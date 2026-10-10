@@ -1,96 +1,70 @@
 @import "tailwindcss";
 
-/* ============================================
+/* ============================================================
    reclu.cl — Design tokens
-   Light, clean, premium fintech aesthetic.
-   Inspired by Stripe / Linear / Vercel clarity.
-   ============================================ */
+   Autopilot marketing × SpaceX restraint.
+   Blanco y negro. La tipografía es el diseño. Los números son el producto.
+   ============================================================ */
 
 @theme {
-  /* Brand — trustworthy blue with soft financial green accent */
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-300: #93c5fd;
-  --color-brand-400: #60a5fa;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
-  --color-brand-800: #1e40af;
-  --color-brand-900: #1e3a8a;
+  /* --- Marca remapeada a grises: el azul desaparece del sistema --- */
+  --color-brand-50: #f6f6f6;
+  --color-brand-100: #ededed;
+  --color-brand-200: #d9d9d9;
+  --color-brand-300: #bdbdbd;
+  --color-brand-400: #8a8a8a;
+  --color-brand-500: #4d4d4d;
+  --color-brand-600: #0a0a0a;
+  --color-brand-700: #000000;
+  --color-brand-800: #000000;
+  --color-brand-900: #000000;
 
-  --color-accent-50: #ecfdf5;
-  --color-accent-100: #d1fae5;
-  --color-accent-200: #a7f3d0;
-  --color-accent-300: #6ee7b7;
-  --color-accent-400: #34d399;
-  --color-accent-500: #10b981;
-  --color-accent-600: #059669;
-  --color-accent-700: #047857;
+  /* --- Accento: sin color de marca --- */
+  --color-accent-50: #f6f6f6;
+  --color-accent-100: #ededed;
+  --color-accent-200: #d9d9d9;
+  --color-accent-300: #bdbdbd;
+  --color-accent-400: #8a8a8a;
+  --color-accent-500: #4d4d4d;
+  --color-accent-600: #0a0a0a;
+  --color-accent-700: #000000;
 
-  /* Neutrals — cool grays, Stripe-like */
-  --color-ink-50: #fafafa;
-  --color-ink-100: #f6f9fc;
-  --color-ink-200: #eef2f7;
-  --color-ink-300: #e3e8ef;
-  --color-ink-400: #cbd2d9;
-  --color-ink-500: #8792a2;
-  --color-ink-600: #697386;
-  --color-ink-700: #4f566b;
-  --color-ink-800: #3c4257;
-  --color-ink-900: #1a1f36;
-  --color-ink-950: #0f172a;
+  /* --- Neutros --- */
+  --color-ink-50: #f6f6f6;
+  --color-ink-100: #f0f0f0;
+  --color-ink-200: #e6e6e6;
+  --color-ink-300: #e6e6e6;
+  --color-ink-400: #c4c4c4;
+  --color-ink-500: #6b6b6b;
+  --color-ink-600: #6b6b6b;
+  --color-ink-700: #3d3d3d;
+  --color-ink-800: #1f1f1f;
+  --color-ink-900: #0a0a0a;
+  --color-ink-950: #0a0a0a;
 
-  /* Semantic */
-  --color-positive: #059669;
-  --color-positive-bg: #ecfdf5;
-  --color-negative: #dc2626;
-  --color-negative-bg: #fef2f2;
-  --color-warning: #d97706;
-  --color-warning-bg: #fffbeb;
+  /* --- Semánticos: verde y rojo SOLO en cifras de rendimiento --- */
+  --color-positive: #0f7a32;
+  --color-negative: #c81e1e;
+  --color-warning: #0a0a0a;
+  /* positive-bg / negative-bg eliminados del diseño a propósito */
 
-  /* Surfaces */
+  /* --- Superficies --- */
   --color-background: #ffffff;
-  --color-surface: #fafafa;
+  --color-surface: #f6f6f6;
   --color-surface-raised: #ffffff;
 
-  /* Typography */
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* --- Tipografía --- */
+  --font-sans: var(--font-instrument), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
-  /* Radii */
-  --radius-card: 0.875rem;
+  /* --- Radios a cero --- */
+  --radius-card: 0px;
 
-  /* Subtle elevation shadows — layered, not muddy */
-  --shadow-subtle: 0 1px 2px 0 rgb(26 31 54 / 0.04), 0 1px 3px 0 rgb(26 31 54 / 0.06);
-  --shadow-card: 0 1px 2px 0 rgb(26 31 54 / 0.03), 0 4px 8px -2px rgb(26 31 54 / 0.05);
-  --shadow-raised: 0 2px 4px -1px rgb(26 31 54 / 0.04), 0 12px 24px -4px rgb(26 31 54 / 0.08);
-  --shadow-pop: 0 4px 12px -2px rgb(26 31 54 / 0.08), 0 16px 40px -8px rgb(26 31 54 / 0.12);
-
-  /* Motion — smooth, professional */
-  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
-  --animate-fade-up: fade-up 0.5s var(--ease-spring) both;
-  --animate-fade-in: fade-in 0.4s ease both;
-}
-
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  /* --- Sombras a cero: separación por espacio y filetes de 1px --- */
+  --shadow-subtle: none;
+  --shadow-card: none;
+  --shadow-raised: none;
+  --shadow-pop: none;
 }
 
 /* ---- Base layer ---- */
@@ -104,60 +78,66 @@
     background-color: var(--color-background);
     color: var(--color-ink-900);
     font-family: var(--font-sans);
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
 
   ::selection {
-    background-color: var(--color-brand-100);
-    color: var(--color-brand-900);
+    background-color: #0a0a0a;
+    color: #ffffff;
   }
 
-  /* Focus ring — consistent everywhere */
+  /* Focus visible: filete negro de 1px, sin anillo de color */
   :focus-visible {
-    outline: 2px solid var(--color-brand-500);
-    outline-offset: 2px;
-    border-radius: 4px;
-  }
-
-  /* Thin, unobtrusive scrollbar */
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-ink-300) transparent;
-  }
-  *::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  *::-webkit-scrollbar-thumb {
-    background-color: var(--color-ink-300);
-    border-radius: 999px;
+    outline: 1px solid #0a0a0a;
+    outline-offset: 3px;
+    border-radius: 0;
   }
 }
 
-/* ---- Utilities ---- */
-@utility text-balance-pretty {
-  text-wrap: pretty;
+/* ---- Escala tipográfica (definida una vez, usada en toda la home) ---- */
+@utility type-display {
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 0.92;
+  font-size: clamp(2.75rem, 7.4vw, 6.5rem);
+}
+
+@utility type-section {
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+  font-size: clamp(2.25rem, 4.6vw, 4.25rem);
+}
+
+@utility type-body {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: #6b6b6b;
+}
+
+/* Cifras de rendimiento: tabular, apretadas */
+@utility num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+  font-weight: 500;
+}
+
+/* Etiqueta fina de sección (no uppercase, no tracking-widest) */
+@utility label-line {
+  font-size: 13px;
+  color: #6b6b6b;
+  font-weight: 400;
 }
 
 @utility container-page {
   margin-inline: auto;
-  max-width: 72rem;
+  max-width: 1120px;
   padding-inline: 1.25rem;
 }
 
-/* Subtle grid background for hero sections */
-@utility bg-grid {
-  background-image:
-    linear-gradient(to right, var(--color-ink-200) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--color-ink-200) 1px, transparent 1px);
-  background-size: 56px 56px;
-}
-
-/* Soft radial glow — used behind hero, very subtle */
-@utility bg-glow {
-  background:
-    radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-brand-100) 0%, transparent 60%),
-    var(--color-background);
+@media (min-width: 768px) {
+  .container-page {
+    padding-inline: 2.5rem;
+  }
 }

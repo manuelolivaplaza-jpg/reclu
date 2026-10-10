@@ -51,95 +51,92 @@ export function AuthForm({ mode }: AuthFormProps) {
   const success = state.success;
 
   return (
-    <div className="w-full max-w-md px-1">
+    <div className="w-full max-w-sm">
+      {/* Wordmark centrado en la columna */}
       <div className="flex justify-center">
         <Link href="/">
           <LogoLockup />
         </Link>
       </div>
 
-      <div className="mt-7 rounded-card border border-ink-200 bg-white p-6 shadow-card sm:mt-8 sm:p-8">
-        <h1 className="text-xl font-semibold tracking-tight text-ink-900">
-          {isLogin ? "Inicia sesión" : "Crea tu cuenta"}
-        </h1>
-        <p className="mt-1.5 text-sm text-ink-600">
-          {isLogin
-            ? "Accede a tu dashboard y alertas."
-            : plan === "pro"
-              ? "Crea tu cuenta y suscríbete a Pro."
-              : "Gratis para siempre. Sin tarjeta de crédito."}
-        </p>
+      <h1 className="mt-10 text-[32px] font-medium tracking-[-0.03em] text-ink-900">
+        {isLogin ? "Entrar." : "Crear cuenta."}
+      </h1>
+      <p className="mt-2 text-[15px] text-ink-500">
+        {isLogin
+          ? "Accede a tu dashboard y alertas."
+          : plan === "pro"
+            ? "Crea tu cuenta y suscríbete a Pro."
+            : "Gratis en 2 portafolios. Sin tarjeta."}
+      </p>
 
-        {/* Google OAuth */}
-        <form action={signInWithGoogle} className="mt-6">
-          <Button type="submit" variant="outline" className="w-full" size="lg">
-            <GoogleIcon />
-            Continuar con Google
-          </Button>
-        </form>
+      {/* Google OAuth */}
+      <form action={signInWithGoogle} className="mt-8">
+        <Button type="submit" variant="outline" className="w-full" size="lg">
+          <GoogleIcon />
+          Continuar con Google
+        </Button>
+      </form>
 
-        <div className="my-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-ink-200" />
-          <span className="text-xs font-medium text-ink-500">o con tu correo</span>
-          <div className="h-px flex-1 bg-ink-200" />
-        </div>
-
-        {/* Email form */}
-        <form action={formAction} className="flex flex-col gap-4">
-          <input type="hidden" name="next" value={next} />
-          {!isLogin && (
-            <Input name="full_name" label="Nombre (opcional)" placeholder="Tu nombre" autoComplete="name" />
-          )}
-          <Input
-            name="email"
-            type="email"
-            label="Correo electrónico"
-            placeholder="tu@correo.com"
-            required
-            autoComplete="email"
-          />
-          <Input
-            name="password"
-            type="password"
-            label="Contraseña"
-            placeholder={isLogin ? "Tu contraseña" : "Mínimo 8 caracteres"}
-            required
-            minLength={isLogin ? undefined : 8}
-            autoComplete={isLogin ? "current-password" : "new-password"}
-          />
-
-          {error && (
-            <p role="alert" className="rounded-lg bg-negative-bg px-3 py-2 text-sm font-medium text-negative">
-              {error}
-            </p>
-          )}
-          {success && (
-            <p role="status" className="rounded-lg bg-accent-50 px-3 py-2 text-sm font-medium text-accent-700">
-              {success}
-            </p>
-          )}
-
-          <Button type="submit" loading={isPending} size="lg" className="mt-2 w-full">
-            {isLogin ? "Iniciar sesión" : "Crear cuenta"}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-ink-600">
-          {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
-          <Link
-            href={isLogin ? `/signup${next !== "/dashboard" ? `?next=${next}` : ""}` : `/login${next !== "/dashboard" ? `?next=${next}` : ""}`}
-            className="font-medium text-brand-600 hover:underline"
-          >
-            {isLogin ? "Regístrate gratis" : "Inicia sesión"}
-          </Link>
-        </p>
+      <div className="my-6 flex items-center gap-3">
+        <div className="h-px flex-1 bg-ink-200" />
+        <span className="text-[13px] text-ink-500">o con tu correo</span>
+        <div className="h-px flex-1 bg-ink-200" />
       </div>
 
-      <p className="mt-6 text-center text-xs leading-relaxed text-ink-500">
-        Al continuar aceptas nuestros{" "}
-        <Link href="/terminos" className="underline hover:text-ink-700">Términos</Link> y{" "}
-        <Link href="/privacidad" className="underline hover:text-ink-700">Política de privacidad</Link>.
-        Información pública, no es consejo de inversión.
+      {/* Email form */}
+      <form action={formAction} className="flex flex-col gap-4">
+        <input type="hidden" name="next" value={next} />
+        {!isLogin && (
+          <Input
+            name="full_name"
+            label="Nombre (opcional)"
+            placeholder="Tu nombre"
+            autoComplete="name"
+          />
+        )}
+        <Input
+          name="email"
+          type="email"
+          label="Correo electrónico"
+          placeholder="tu@correo.com"
+          required
+          autoComplete="email"
+        />
+        <Input
+          name="password"
+          type="password"
+          label="Contraseña"
+          placeholder={isLogin ? "Tu contraseña" : "Mínimo 8 caracteres"}
+          required
+          minLength={isLogin ? undefined : 8}
+          autoComplete={isLogin ? "current-password" : "new-password"}
+        />
+
+        {error && <p role="alert" className="text-sm font-medium text-negative">{error}</p>}
+        {success && (
+          <p role="status" className="text-sm font-medium text-positive">
+            {success}
+          </p>
+        )}
+
+        <Button type="submit" loading={isPending} size="lg" className="mt-2 w-full">
+          {isLogin ? "Entrar" : "Crear cuenta"}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-[15px] text-ink-500">
+        {isLogin ? "¿No tienes cuenta? " : "¿Ya tienes cuenta? "}
+        <Link
+          href={
+            isLogin
+              ? `/signup${next !== "/dashboard" ? `?next=${next}` : ""}`
+              : `/login${next !== "/dashboard" ? `?next=${next}` : ""}`
+          }
+          className="text-ink-900 underline-offset-4 hover:underline"
+        >
+          {isLogin ? "Regístrate gratis" : "Entrar"}
+        </Link>
       </p>
     </div>
   );

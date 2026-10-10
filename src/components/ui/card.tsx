@@ -1,22 +1,16 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Card — clean surface with subtle border and shadow.
- * Hover elevation is opt-in via `interactive`.
+ * Card — superficie con filete 1px, radio 0, sin sombra.
+ * Sistema Autopilot: separación por filetes, no por elevación.
  */
 export function Card({
   className,
-  interactive = false,
   ...props
-}: React.ComponentProps<"div"> & { interactive?: boolean }) {
+}: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn(
-        "rounded-card border border-ink-200 bg-white shadow-card",
-        interactive &&
-          "transition-all duration-200 hover:border-ink-300 hover:shadow-raised",
-        className,
-      )}
+      className={cn("border border-ink-200 bg-white", className)}
       {...props}
     />
   );
@@ -29,7 +23,7 @@ export function CardHeader({ className, ...props }: React.ComponentProps<"div">)
 export function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
   return (
     <h3
-      className={cn("text-lg font-semibold tracking-tight text-ink-900", className)}
+      className={cn("text-[15px] font-medium text-ink-900", className)}
       {...props}
     />
   );
@@ -37,7 +31,7 @@ export function CardTitle({ className, ...props }: React.ComponentProps<"h3">) {
 
 export function CardDescription({ className, ...props }: React.ComponentProps<"p">) {
   return (
-    <p className={cn("text-sm leading-relaxed text-ink-600", className)} {...props} />
+    <p className={cn("text-[15px] leading-relaxed text-ink-500", className)} {...props} />
   );
 }
 

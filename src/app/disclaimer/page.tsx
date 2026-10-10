@@ -12,7 +12,7 @@ export default function DisclaimerPage() {
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 bg-surface">
+      <main className="flex-1">
         <div className="container-page max-w-3xl py-16">
           <Link
             href="/"

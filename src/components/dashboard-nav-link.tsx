@@ -12,8 +12,9 @@ export interface NavItem {
 }
 
 /**
- * Dashboard navigation link that highlights the active route.
- * Renders as a sidebar row or a mobile bottom-bar tab.
+ * Dashboard nav link — activo con filete izquierdo 2px negro (sidebar)
+ * o barra inferior (bottom nav móvil). Iconos Lucide 16px, stroke 1.5,
+ * color heredado. Sin cajas de color.
  */
 export function DashboardNavLink({
   item,
@@ -32,13 +33,13 @@ export function DashboardNavLink({
         href={item.href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+          "flex items-center gap-3 border-l-2 py-2.5 pl-4 text-[15px] transition-opacity",
           active
-            ? "bg-brand-50 text-brand-700"
-            : "text-ink-600 hover:bg-white hover:text-ink-900 hover:shadow-subtle",
+            ? "border-ink-900 text-ink-900"
+            : "border-transparent text-ink-500 hover:text-ink-900",
         )}
       >
-        <Icon className={cn("size-4.5", active && "text-brand-600")} />
+        <Icon className="size-4" strokeWidth={1.5} />
         {item.label}
       </Link>
     );
@@ -49,18 +50,17 @@ export function DashboardNavLink({
       href={item.href}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
-        active ? "text-brand-600" : "text-ink-600 hover:text-brand-600",
+        "flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] transition-opacity",
+        active ? "text-ink-900" : "text-ink-500 hover:text-ink-900",
       )}
     >
       <span
         className={cn(
-          "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
-          active && "bg-brand-50",
+          "flex h-1 w-8 rounded-full transition-colors",
+          active ? "bg-ink-900" : "bg-transparent",
         )}
-      >
-        <Icon className={cn("size-5", active && "text-brand-600")} />
-      </span>
+      />
+      <Icon className="mt-1 size-5" strokeWidth={1.5} />
       {item.label}
     </Link>
   );

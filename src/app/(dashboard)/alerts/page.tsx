@@ -1,34 +1,31 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import Link from "next/link";
-import { BellRing, ArrowUpRight, Sparkles } from "lucide-react";
+import { BellRing, ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFollows, getProfile } from "@/lib/queries";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { timeAgo } from "@/lib/utils";
-import type { AlertType } from "@/lib/types";
 
 export const metadata = { title: "Alertas" };
-// Auth-gated route: reads cookies at request time — never prerendered.
+// Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
 export const instant = false;
 
-const TYPE_BADGE: Record<AlertType, { label: string; variant: "positive" | "negative" | "warning" | "brand" }> = {
-  new_trade: { label: "Compra", variant: "positive" },
-  sold_trade: { label: "Venta", variant: "negative" },
-  weight_change: { label: "Ponderación", variant: "warning" },
-  mention: { label: "Mención", variant: "brand" },
-  threshold: { label: "Umbral", variant: "brand" },
+const TYPE_LABEL: Record<string, string> = {
+  new_trade: "Compra",
+  sold_trade: "Venta",
+  weight_change: "Ponderación",
+  mention: "Mención",
+  threshold: "Umbral",
 };
 
 export default function AlertsPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 sm:text-3xl">
+        <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
           Historial de alertas
         </h1>
-        <p className="mt-1.5 text-ink-600">
+        <p className="mt-1.5 text-[15px] text-ink-500">
           Todos los cambios detectados en los portafolios que sigues.
         </p>
       </div>
@@ -43,14 +40,14 @@ function AlertsSkeleton() {
   return (
     <div className="flex flex-col gap-4">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-32 animate-pulse rounded-card border border-ink-200 bg-ink-100" />
+        <div key={i} className="h-28 animate-pulse bg-ink-100" />
       ))}
     </div>
   );
 }
 
 async function AlertsContent() {
-  // Mark this route as dynamic (reads auth cookies) under cacheComponents.
+  // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
   const supabase = await createClient();
   const [follows, profile] = await Promise.all([getFollows(), getProfile()]);
@@ -71,75 +68,66 @@ async function AlertsContent() {
 
   if (alerts && alerts.length > 0) {
     return (
-      <div className="flex flex-col gap-4">
-        {alerts.map((alert) => {
-          const typeInfo = TYPE_BADGE[alert.type as AlertType] ?? TYPE_BADGE.mention;
-          return (
-            <Card key={alert.id} className="p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant={typeInfo.variant}>{typeInfo.label}</Badge>
-                  <Link
-                    href={`/portfolio/${alert.portfolio.slug}`}
-                    className="text-sm font-semibold text-brand-700 hover:underline"
-                  >
-                    {alert.portfolio.name}
-                  </Link>
-                  <span className="text-xs text-ink-500">{timeAgo(alert.created_at)}</span>
-                </div>
-                <Link
-                  href={`/portfolio/${alert.portfolio.slug}`}
-                  className="flex items-center gap-1 text-xs font-medium text-ink-500 hover:text-ink-900"
-                >
-                  Ver portafolio
-                  <ArrowUpRight className="size-3.5" />
-                </Link>
+      <div className="flex flex-col">
+        {alerts.map((alert) => (
+          <div key={alert.id} className="border-t border-ink-200 py-5 last:border-b">
+            <div className="flex flex-wrap items-center gap-3 text-[13px] text-ink-500">
+              <span>{TYPE_LABEL[alert.type as string] ?? "Alerta"}</span>
+              <Link
+                href={`/portfolio/${alert.portfolio.slug}`}
+                className="text-ink-900 underline-offset-4 hover:underline"
+              >
+                {alert.portfolio.name}
+              </Link>
+              <span>{timeAgo(alert.created_at)}</span>
+            </div>
+
+            <h3 className="mt-2 text-[17px] font-medium text-ink-900">{alert.title}</h3>
+
+            {alert.summary ? (
+              <div className="mt-3 border-l-2 border-ink-900 pl-4">
+                <p className="text-[13px] text-ink-500">Resumen AI</p>
+                <p className="mt-1 text-[15px] leading-relaxed text-ink-900">
+                  {alert.summary}
+                </p>
               </div>
+            ) : !isPro ? (
+              <p className="mt-3 text-[13px] text-ink-500">
+                El resumen AI de esta alerta está disponible en el{" "}
+                <Link href="/#precios" className="text-ink-900 underline-offset-4 hover:underline">
+                  plan Pro
+                </Link>
+                .
+              </p>
+            ) : null}
 
-              <h3 className="mt-3 text-base font-semibold text-ink-900">{alert.title}</h3>
-
-              {alert.summary ? (
-                <div className="mt-3 rounded-lg border border-brand-100 bg-brand-50/60 p-4">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-brand-800">
-                    <Sparkles className="size-3.5" />
-                    Resumen AI
-                  </div>
-                  <p className="mt-1.5 text-sm leading-relaxed text-brand-900/80">
-                    {alert.summary}
-                  </p>
-                </div>
-              ) : !isPro ? (
-                <div className="mt-3 rounded-lg border border-dashed border-ink-300 bg-ink-50 p-4 text-center">
-                  <p className="text-sm text-ink-600">
-                    El resumen AI de esta alerta está disponible en el{" "}
-                    <Link href="/#precios" className="font-medium text-brand-600 hover:underline">
-                      plan Pro
-                    </Link>
-                    .
-                  </p>
-                </div>
-              ) : null}
-            </Card>
-          );
-        })}
+            <Link
+              href={`/portfolio/${alert.portfolio.slug}`}
+              className="mt-3 inline-flex items-center gap-1 text-[13px] text-ink-500 hover:text-ink-900"
+            >
+              Ver portafolio
+              <ArrowUpRight className="size-3.5" />
+            </Link>
+          </div>
+        ))}
       </div>
     );
   }
 
   return (
-    <Card className="p-16 text-center">
-      <BellRing className="mx-auto size-10 text-ink-300" />
-      <p className="mt-4 text-lg font-medium text-ink-900">Sin alertas por ahora</p>
-      <p className="mx-auto mt-2 max-w-md text-sm text-ink-600">
-        Cuando un portafolio que sigues registre un cambio, la alerta aparecerá aquí
-        y llegará a tu correo.
+    <div className="border border-ink-200 p-16 text-center">
+      <BellRing className="mx-auto size-8 text-ink-400" strokeWidth={1.5} />
+      <p className="mt-4 text-[17px] font-medium text-ink-900">Sin alertas por ahora</p>
+      <p className="mx-auto mt-2 max-w-md text-[15px] text-ink-500">
+        Cuando un portafolio que sigas registre un cambio, la alerta aparecerá aquí y
+        llegará a tu correo.
       </p>
       <Link
         href="/explore"
-        className="mt-4 inline-block text-sm font-medium text-brand-600 hover:underline"
+        className="mt-4 inline-block text-[15px] text-ink-900 underline-offset-4 hover:underline"
       >
         Explorar portafolios →
       </Link>
-    </Card>
+    </div>
   );
 }

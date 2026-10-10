@@ -1,20 +1,8 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
-import {
-  ArrowLeft,
-  Users,
-  TrendingUp,
-  TrendingDown,
-  Crown,
-  BellRing,
-  Sparkles,
-  Globe2,
-  Tag,
-} from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing } from "@/lib/queries";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { FollowButton } from "@/components/follow-button";
 import { CATEGORY_META } from "@/lib/types";
 import { timeAgo, formatCompact } from "@/lib/utils";
@@ -68,80 +56,48 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
       </header>
 
-      <main className="flex-1 bg-surface">
+      <main className="flex-1">
         {/* Portfolio header */}
         <div className="border-b border-ink-200 bg-white">
           <div className="container-page py-10">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="brand">{meta.label}</Badge>
-                  <Badge variant="outline" className="gap-1">
-                    <Globe2 className="size-3" />
-                    {portfolio.country === "US" ? "Estados Unidos" : portfolio.country === "CL" ? "Chile" : "Global"}
-                  </Badge>
-                  {portfolio.premium && (
-                    <Badge variant="warning" className="gap-1">
-                      <Crown className="size-3" />
-                      Pro
-                    </Badge>
-                  )}
-                </div>
+                <p className="label-line">
+                  {meta.label} · {portfolio.country}
+                  {portfolio.premium ? " · Pro" : ""}
+                </p>
 
-                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-                  {portfolio.name}
-                </h1>
-                <p className="mt-3 text-lg leading-relaxed text-ink-600">
+                <h1 className="type-section mt-3 text-ink-900">{portfolio.name}</h1>
+                <p className="type-body mt-4">
                   {portfolio.description}
                 </p>
 
                 {/* Meta */}
-                <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-600">
+                <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-ink-500">
                   {portfolio.manager && (
                     <span>
-                      Gestor: <strong className="font-medium text-ink-900">{portfolio.manager}</strong>
+                      Gestor: <span className="text-ink-900">{portfolio.manager}</span>
                     </span>
                   )}
-                  <span className="flex items-center gap-1.5">
-                    <Users className="size-4 text-ink-400" />
-                    <strong className="font-medium tabular-nums text-ink-900">
-                      {formatCompact(portfolio.followers)}
-                    </strong>{" "}
+                  <span>
+                    <span className="num text-ink-900">{formatCompact(portfolio.followers)}</span>{" "}
                     seguidores
                   </span>
-                  <span className="flex items-center gap-1.5">
-                    <Tag className="size-4 text-ink-400" />
-                    Fuente: {portfolio.source}
-                  </span>
+                  <span>Fuente: {portfolio.source}</span>
                 </div>
-
-                {/* Tags */}
-                {portfolio.tags.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {portfolio.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-ink-100 px-2.5 py-0.5 text-xs font-medium text-ink-600"
-                      >
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
               </div>
 
-              {/* Follow card */}
-              <Card className="w-full shrink-0 p-6 lg:w-72">
+              {/* Retorno YTD + follow */}
+              <div className="w-full shrink-0 lg:w-72">
                 {hasReturn && (
-                  <div className="mb-4 flex items-center justify-between border-b border-ink-100 pb-4">
-                    <span className="text-sm text-ink-600">Retorno YTD</span>
+                  <div className="mb-5 border-b border-ink-200 pb-4">
+                    <p className="label-line">Retorno YTD</p>
                     <span
                       className={
-                        "flex items-center gap-1 text-lg font-semibold tabular-nums " +
+                        "num mt-1 block text-[clamp(2.5rem,5vw,3.5rem)] leading-none " +
                         (positive ? "text-positive" : "text-negative")
                       }
                     >
-                      {positive ? <TrendingUp className="size-4" /> : <TrendingDown className="size-4" />}
                       {positive ? "+" : ""}
                       {portfolio.return_ytd?.toFixed(1)}%
                     </span>
@@ -154,102 +110,93 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                   portfolioPremium={portfolio.premium}
                   variant="page"
                 />
-                <p className="mt-3 text-center text-xs text-ink-500">
+                <p className="mt-3 text-[13px] text-ink-500">
                   {following
                     ? "Recibirás alertas por email de este portafolio."
                     : "Sigue este portafolio para recibir alertas."}
                 </p>
-              </Card>
+              </div>
             </div>
           </div>
         </div>
 
         <div className="container-page py-10">
-          <div className="grid gap-8 lg:grid-cols-[1.6fr_1fr]">
+          <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
             {/* Holdings */}
             <section>
-              <h2 className="text-lg font-semibold text-ink-900">
+              <h2 className="text-[15px] font-medium text-ink-900">
                 Composición ({holdings.length} activos)
               </h2>
               {holdings.length > 0 ? (
-                <Card className="mt-4 overflow-hidden">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-ink-200 bg-ink-50 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-                        <th className="px-5 py-3">Activo</th>
-                        <th className="px-5 py-3 text-right">Peso</th>
-                        <th className="px-5 py-3 text-right">Cambio</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-ink-100">
-                      {holdings.map((h) => {
-                        const delta =
-                          h.previous_weight !== null ? h.weight - h.previous_weight : null;
-                        return (
-                          <tr key={h.id} className="hover:bg-ink-50/50">
-                            <td className="px-5 py-3.5">
-                              <div className="font-medium text-ink-900">{h.symbol}</div>
-                              <div className="text-xs text-ink-500">{h.name}</div>
-                            </td>
-                            <td className="px-5 py-3.5 text-right font-medium tabular-nums text-ink-900">
-                              {h.weight.toFixed(1)}%
-                            </td>
-                            <td className="px-5 py-3.5 text-right tabular-nums">
-                              {delta !== null && delta !== 0 ? (
-                                <span className={delta > 0 ? "text-positive" : "text-negative"}>
-                                  {delta > 0 ? "+" : ""}
-                                  {delta.toFixed(1)} pp
-                                </span>
-                              ) : (
-                                <span className="text-ink-400">—</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </Card>
+                <table className="mt-4 w-full text-[15px]">
+                  <thead>
+                    <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
+                      <th className="py-3 font-normal">Activo</th>
+                      <th className="py-3 text-right font-normal">Peso</th>
+                      <th className="py-3 text-right font-normal">Cambio</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {holdings.map((h) => {
+                      const delta =
+                        h.previous_weight !== null ? h.weight - h.previous_weight : null;
+                      return (
+                        <tr key={h.id} className="border-b border-ink-200">
+                          <td className="py-3.5">
+                            <div className="font-medium text-ink-900">{h.symbol}</div>
+                            <div className="text-[13px] text-ink-500">{h.name}</div>
+                          </td>
+                          <td className="py-3.5 text-right font-medium tabular-nums text-ink-900">
+                            {h.weight.toFixed(1)}%
+                          </td>
+                          <td className="py-3.5 text-right tabular-nums">
+                            {delta !== null && delta !== 0 ? (
+                              <span className={delta > 0 ? "text-positive" : "text-negative"}>
+                                {delta > 0 ? "+" : ""}
+                                {delta.toFixed(1)} pp
+                              </span>
+                            ) : (
+                              <span className="text-ink-400">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               ) : (
-                <Card className="mt-4 p-10 text-center">
-                  <p className="text-sm text-ink-600">
-                    La composición se actualizará cuando el scraper procese la próxima
-                    actualización de la fuente.
-                  </p>
-                </Card>
+                <p className="mt-4 text-[15px] text-ink-500">
+                  La composición se actualizará cuando el scraper procese la próxima
+                  actualización de la fuente.
+                </p>
               )}
             </section>
 
             {/* Recent alerts */}
             <section>
-              <h2 className="text-lg font-semibold text-ink-900">Alertas recientes</h2>
+              <h2 className="text-[15px] font-medium text-ink-900">Alertas recientes</h2>
               {alerts.length > 0 ? (
-                <div className="mt-4 flex flex-col gap-3">
+                <div className="mt-4 flex flex-col gap-4">
                   {alerts.map((alert) => (
-                    <Card key={alert.id} className="p-4">
-                      <div className="flex items-center gap-2 text-xs text-ink-500">
-                        <BellRing className="size-3.5 text-brand-500" />
-                        {timeAgo(alert.created_at)}
-                      </div>
-                      <h3 className="mt-1.5 text-sm font-semibold text-ink-900">{alert.title}</h3>
+                    <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
+                      <p className="text-[13px] text-ink-500">{timeAgo(alert.created_at)}</p>
+                      <h3 className="mt-1 text-[15px] font-medium text-ink-900">
+                        {alert.title}
+                      </h3>
                       {alert.summary ? (
-                        <p className="mt-1.5 line-clamp-3 text-xs leading-relaxed text-ink-600">
+                        <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-ink-500">
                           {alert.summary}
                         </p>
                       ) : !isPro ? (
-                        <p className="mt-1.5 text-xs text-ink-500">
-                          <Sparkles className="mr-1 inline size-3" />
+                        <p className="mt-1.5 text-[13px] text-ink-500">
                           Resumen AI disponible en Pro
                         </p>
                       ) : null}
-                    </Card>
+                    </div>
                   ))}
                 </div>
               ) : (
-                <Card className="mt-4 p-8 text-center">
-                  <BellRing className="mx-auto size-6 text-ink-300" />
-                  <p className="mt-2 text-sm text-ink-600">Sin alertas registradas aún.</p>
-                </Card>
+                <p className="mt-4 text-[15px] text-ink-500">Sin alertas registradas aún.</p>
               )}
             </section>
           </div>

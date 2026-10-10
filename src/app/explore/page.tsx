@@ -6,10 +6,10 @@ import { CATEGORY_META, type PortfolioCategory } from "@/lib/types";
 import { ExploreFilters } from "@/components/explore-filters";
 
 export const metadata = {
-  title: "Explorar portafolios",
+  title: "Portafolios",
   description: "Explora todos los portafolios disponibles en reclu.cl",
 };
-// Reads searchParams + optional auth cookies per request — never prerendered.
+// Lee searchParams + cookies de auth por request — nunca se prerenderiza.
 export const instant = false;
 
 interface ExplorePageProps {
@@ -30,42 +30,28 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const followedIds = new Set(follows.map((f) => f.portfolio_id));
   const isPro = profile?.plan === "pro";
 
-  const categories = Object.entries(CATEGORY_META) as [PortfolioCategory, { label: string; description: string }][];
+  const categories = Object.entries(CATEGORY_META) as [
+    PortfolioCategory,
+    { label: string; description: string },
+  ][];
 
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 bg-surface">
-        {/* Page header */}
-        <div className="border-b border-ink-200 bg-white">
-          <div className="container-page py-12">
-            <h1 className="text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-              Explorar portafolios
-            </h1>
-            <p
-              className="mt-3 max-w-2xl text-lg leading-relaxed text-ink-600"
-            >
-              {portfolios.length} portafolio{portfolios.length !== 1 ? "s" : ""} disponible
-              {portfolios.length !== 1 ? "s" : ""}. Sigue los que te interesen y recibe
-              alertas por email.
-            </p>
+      <main id="main">
+        <div className="container-page py-16 md:py-20">
+          <h1 className="type-section text-ink-900">Portafolios.</h1>
+
+          <div className="mt-10">
+            <ExploreFilters categories={categories} activeCategory={category} />
           </div>
-        </div>
 
-        <div className="container-page py-10">
-          {/* Filters */}
-          <ExploreFilters categories={categories} activeCategory={category} />
-
-          {/* Grid */}
           {portfolios.length === 0 ? (
-            <div className="mt-12 rounded-card border border-dashed border-ink-300 bg-white p-16 text-center">
-              <p className="text-lg font-medium text-ink-900">Sin resultados</p>
-              <p className="mt-2 text-sm text-ink-600">
-                No encontramos portafolios con esos filtros. Prueba con otra búsqueda.
-              </p>
-            </div>
+            <p className="mt-16 text-[15px] text-ink-500">
+              Sin resultados. Prueba con otra búsqueda o vuelve a “Todos”.
+            </p>
           ) : (
-            <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {portfolios.map((portfolio) => (
                 <PortfolioCard
                   key={portfolio.id}

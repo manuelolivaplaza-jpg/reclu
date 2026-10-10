@@ -3,19 +3,23 @@
 import { useEffect, useRef } from "react";
 
 /**
- * Sparkline — a tiny self-drawing SVG line chart for inline performance
- * visualization. Draws itself when scrolled into view.
+ * Sparkline — línea fina que se dibuja al entrar en viewport.
+ * Sin relleno de área, sin gradiente. Trazo negro de 1.5px por defecto.
  *
- * @param data normalized values (0-1, 0 = bottom). Any scale is mapped.
+ * @param data valores (cualquier escala, se normaliza).
+ * @param stroke color del trazo, por defecto #0a0a0a.
+ * @param strokeWidth grosor, por defecto 1.5.
  */
 export function Sparkline({
   data,
   className,
-  color = "#2563eb",
+  stroke = "#0a0a0a",
+  strokeWidth = 1.5,
 }: {
   data: number[];
   className?: string;
-  color?: string;
+  stroke?: string;
+  strokeWidth?: number;
 }) {
   const pathRef = useRef<SVGPathElement>(null);
 
@@ -47,14 +51,13 @@ export function Sparkline({
   const max = Math.max(...data);
   const range = max - min || 1;
 
-  const points = data.map((v, i) => {
-    const x = (i / (data.length - 1)) * W;
-    const y = H - ((v - min) / range) * (H - 4) - 2;
-    return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
-  });
-
-  const linePath = points.join(" ");
-  const areaPath = `${linePath} L ${W} ${H} L 0 ${H} Z`;
+  const linePath = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * W;
+      const y = H - ((v - min) / range) * (H - 4) - 2;
+      return `${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`;
+    })
+    .join(" ");
 
   return (
     <svg
@@ -63,21 +66,15 @@ export function Sparkline({
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      <defs>
-        <linearGradient id={`spark-${color.replace("#", "")}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.15" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={areaPath} fill={`url(#spark-${color.replace("#", "")})`} />
       <path
         ref={pathRef}
         d={linePath}
         fill="none"
-        stroke={color}
-        strokeWidth="2"
+        stroke={stroke}
+        strokeWidth={strokeWidth}
         strokeLinecap="round"
         strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
       />
     </svg>
   );

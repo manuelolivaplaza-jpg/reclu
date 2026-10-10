@@ -1,7 +1,4 @@
-import { Check, Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 const FREE_FEATURES = [
   "Seguir hasta 2 portafolios",
@@ -14,90 +11,77 @@ const FREE_FEATURES = [
 const PRO_FEATURES = [
   "Portafolios ilimitados",
   "Resúmenes AI completos en cada alerta",
-  "Alertas en tiempo real (sin batch)",
-  "Portafolios premium (Claude Portfolio y más)",
+  "Alertas en tiempo real",
+  "Portafolios premium",
   "Soporte prioritario",
   "Acceso anticipado a nuevas fuentes",
 ];
 
+/**
+ * Precios — dos columnas. Gratis en blanco, Pro en negativo (fondo negro).
+ * Gap de 1px sobre #e6e6e6 = el filete entre columnas. Radio 0.
+ */
 export function Pricing() {
   return (
-    <section id="precios" className="border-b border-ink-200/60 bg-surface py-24">
+    <section id="precios" className="bg-white py-20 md:py-28">
       <div className="container-page">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">
-            Precios
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-            Empieza gratis. Crece cuando quieras.
-          </h2>
-          <p className="mt-4 text-lg leading-relaxed text-ink-600">
-            Sin sorpresas. Cancela cuando quieras.
-          </p>
-        </div>
+        <h2 className="type-section text-ink-900">Empieza en cero.</h2>
 
-        <div className="mx-auto mt-16 grid max-w-4xl gap-6 lg:grid-cols-2">
-          {/* Free plan */}
-          <div className="relative rounded-card border border-ink-200 bg-white p-8 shadow-card">
-            <h3 className="text-lg font-semibold text-ink-900">Gratis</h3>
-            <p className="mt-1.5 text-sm text-ink-600">Para probar y seguir lo esencial.</p>
-            <div className="mt-6 flex items-baseline gap-1.5">
-              <span className="text-4xl font-semibold tracking-tight text-ink-900">$0</span>
-              <span className="text-sm text-ink-500">/mes para siempre</span>
-            </div>
-            <ButtonLink href="/signup" variant="outline" size="lg" className="mt-6 w-full">
-              Crear cuenta gratis
-            </ButtonLink>
-            <ul className="mt-8 flex flex-col gap-3.5">
-              {FREE_FEATURES.map((feature) => (
-                <li key={feature} className="flex items-start gap-3 text-sm text-ink-700">
-                  <Check className="mt-0.5 size-4 shrink-0 text-ink-400" />
-                  {feature}
+        <div className="mt-12 grid max-w-[880px] grid-cols-1 gap-px border border-ink-200 bg-ink-200 md:grid-cols-2">
+          {/* Gratis */}
+          <div className="flex flex-col bg-white p-8 md:p-10">
+            <p className="label-line">Gratis</p>
+            <p className="type-section mt-4 text-ink-900">$0</p>
+            <p className="label-line mt-1">Para siempre</p>
+
+            <ul className="mt-8 flex flex-1 flex-col">
+              {FREE_FEATURES.map((f) => (
+                <li
+                  key={f}
+                  className="border-b border-ink-200 py-3 text-[15px] text-ink-900 last:border-b-0"
+                >
+                  {f}
                 </li>
               ))}
             </ul>
+
+            <ButtonLink href="/signup" variant="outline" className="mt-8 w-full">
+              Crear cuenta
+            </ButtonLink>
           </div>
 
-          {/* Pro plan */}
-          <div
-            className={cn(
-              "relative rounded-card border-2 border-brand-500 bg-white p-8 shadow-raised",
-            )}
-          >
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-              <Badge variant="brand" className="gap-1.5 shadow-subtle">
-                <Sparkles className="size-3" />
-                Más popular
-              </Badge>
-            </div>
-            <h3 className="text-lg font-semibold text-ink-900">Pro</h3>
-            <p className="mt-1.5 text-sm text-ink-600">
-              Para quienes siguen todo y quieren el análisis completo.
-            </p>
-            <div className="mt-6 flex items-baseline gap-1.5">
-              <span className="text-4xl font-semibold tracking-tight text-ink-900">$9.990</span>
-              <span className="text-sm text-ink-500">CLP /mes</span>
-            </div>
-            <ButtonLink href="/signup?plan=pro" size="lg" className="mt-6 w-full">
-              Suscribirse a Pro
-            </ButtonLink>
-            <ul className="mt-8 flex flex-col gap-3.5">
-              {PRO_FEATURES.map((feature) => (
-                <li key={feature} className="flex items-start gap-3 text-sm text-ink-700">
-                  <Check className="mt-0.5 size-4 shrink-0 text-brand-600" />
-                  {feature}
+          {/* Pro */}
+          <div className="flex flex-col bg-ink-900 p-8 text-white md:p-10">
+            <p className="text-[13px] text-white/60">Pro</p>
+            <p className="type-section mt-4 text-white">$9.990</p>
+            <p className="mt-1 text-[13px] text-white/60">CLP / mes</p>
+
+            <ul className="mt-8 flex flex-1 flex-col">
+              {PRO_FEATURES.map((f) => (
+                <li
+                  key={f}
+                  className="border-b py-3 text-[15px] text-white last:border-b-0"
+                  style={{ borderColor: "rgba(255,255,255,0.16)" }}
+                >
+                  {f}
                 </li>
               ))}
             </ul>
+
+            <ButtonLink
+              href="/signup?plan=pro"
+              className="mt-8 w-full bg-white text-ink-900 hover:opacity-90"
+            >
+              Pasar a Pro
+            </ButtonLink>
           </div>
         </div>
 
-        <p className="mt-10 text-center text-sm text-ink-500">
-          ¿Necesitas más?{" "}
-          <a href="mailto:hola@reclu.cl" className="font-medium text-brand-600 hover:underline">
-            Escríbenos
-          </a>{" "}
-          para planes familiares e institucionales.
+        <p className="mt-8 text-[13px] text-ink-500">
+          Planes para equipos:{" "}
+          <a href="mailto:hola@reclu.cl" className="text-ink-900 underline-offset-4 hover:underline">
+            hola@reclu.cl
+          </a>
         </p>
       </div>
     </section>

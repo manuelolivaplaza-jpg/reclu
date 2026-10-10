@@ -11,13 +11,9 @@ export function SettingsForm({ name, email }: { name: string; email: string }) {
 
   return (
     <form action={formAction} className="flex flex-col gap-5">
-      {state.error && (
-        <p role="alert" className="rounded-lg bg-negative-bg px-3 py-2 text-sm font-medium text-negative">
-          {state.error}
-        </p>
-      )}
+      {state.error && <p role="alert" className="text-sm font-medium text-negative">{state.error}</p>}
       {state.success && (
-        <p role="status" className="rounded-lg bg-accent-50 px-3 py-2 text-sm font-medium text-accent-700">
+        <p role="status" className="text-sm font-medium text-positive">
           {state.success}
         </p>
       )}

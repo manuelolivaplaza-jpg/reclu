@@ -122,10 +122,8 @@ export function PortfolioManager({ initialHoldings }: PortfolioManagerProps) {
         <p
           role={message.type === "error" ? "alert" : "status"}
           className={
-            "rounded-lg px-4 py-2.5 text-sm font-medium " +
-            (message.type === "error"
-              ? "bg-negative-bg text-negative"
-              : "bg-accent-50 text-accent-700")
+            "text-sm font-medium " +
+            (message.type === "error" ? "text-negative" : "text-positive")
           }
         >
           {message.text}

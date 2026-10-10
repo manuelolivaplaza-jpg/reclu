@@ -1,18 +1,16 @@
 import { connection } from "next/server";
 import { getProfile } from "@/lib/queries";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Crown } from "lucide-react";
-import Link from "next/link";
+import { ButtonLink } from "@/components/ui/button";
 import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
 
 export const metadata = { title: "Ajustes" };
-// Auth-gated route: reads cookies at request time — never prerendered.
+// Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
 export const instant = false;
 
 export default async function SettingsPage() {
-  // Mark this route as dynamic (reads auth cookies) under cacheComponents.
+  // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
   const profile = await getProfile();
   if (!profile) return null;
@@ -21,47 +19,35 @@ export default async function SettingsPage() {
   return (
     <div className="flex max-w-2xl flex-col gap-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink-900 sm:text-3xl">
+        <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
           Ajustes
         </h1>
-        <p className="mt-1.5 text-ink-600">Administra tu perfil y preferencias de alertas.</p>
+        <p className="mt-1.5 text-[15px] text-ink-500">
+          Administra tu perfil y preferencias de alertas.
+        </p>
       </div>
 
-      {/* Plan card */}
-      <Card className={profile.plan === "pro" ? "border-brand-300 bg-brand-50/40" : ""}>
+      {/* Plan */}
+      <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Tu plan</CardTitle>
-            <Badge variant={profile.plan === "pro" ? "brand" : "outline"}>
-              {profile.plan === "pro" ? (
-                <>
-                  <Crown className="size-3" />
-                  Pro
-                </>
-              ) : (
-                "Gratis"
-              )}
-            </Badge>
+            <span className="text-[13px] text-ink-900">{isPro ? "Pro" : "Gratis"}</span>
           </div>
           <CardDescription>
-            {profile.plan === "pro"
+            {isPro
               ? "Disfrutas de portafolios ilimitados, resúmenes AI completos y alertas en tiempo real."
               : "El plan gratuito permite seguir hasta 2 portafolios."}
           </CardDescription>
         </CardHeader>
-        {profile.plan !== "pro" && (
+        {!isPro && (
           <CardContent>
-            <Link
-              href="/#precios"
-              className="inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-700"
-            >
-              Actualizar a Pro
-            </Link>
+            <ButtonLink href="/#precios">Actualizar a Pro</ButtonLink>
           </CardContent>
         )}
       </Card>
 
-      {/* Profile form */}
+      {/* Perfil */}
       <Card>
         <CardHeader>
           <CardTitle>Perfil</CardTitle>
@@ -72,7 +58,7 @@ export default async function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Alert frequency */}
+      {/* Frecuencia de alertas */}
       <Card>
         <CardHeader>
           <CardTitle>Frecuencia de alertas</CardTitle>

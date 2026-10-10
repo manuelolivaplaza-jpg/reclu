@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
- * Input — clean text input with label, error, and hint support.
+ * Input — borde 1px gris, radio 0, focus borde negro sin anillo de color.
  */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, hint, id, ...props }, ref) => {
@@ -10,7 +10,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
-          <label htmlFor={inputId} className="text-sm font-medium text-ink-800">
+          <label htmlFor={inputId} className="text-sm font-medium text-ink-900">
             {label}
           </label>
         )}
@@ -19,17 +19,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           aria-invalid={!!error}
           className={cn(
-            "h-10 w-full rounded-lg border border-ink-300 bg-white px-3 text-sm text-ink-900 shadow-subtle",
-            "placeholder:text-ink-400",
-            "focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100",
+            "h-11 w-full rounded-none border border-ink-200 bg-white px-3 text-[15px] text-ink-900",
+            "placeholder:text-ink-500",
+            "focus:border-ink-900 focus:outline-none",
             "disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-500",
-            "aria-invalid:border-negative focus:aria-invalid:ring-negative-bg",
+            "aria-invalid:border-negative",
             error && "border-negative",
             className,
           )}
           {...props}
         />
-        {hint && !error && <p className="text-xs text-ink-500">{hint}</p>}
+        {hint && !error && <p className="text-xs text-ink-600">{hint}</p>}
         {error && (
           <p role="alert" className="text-xs font-medium text-negative">
             {error}

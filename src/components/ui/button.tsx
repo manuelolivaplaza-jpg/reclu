@@ -2,25 +2,22 @@ import { forwardRef } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Variant = "primary" | "secondary" | "outline" | "ghost" | "accent";
+type Variant = "primary" | "outline" | "ghost";
 type Size = "sm" | "md" | "lg";
 
 const variantClasses: Record<Variant, string> = {
-  primary:
-    "bg-brand-600 text-white shadow-subtle hover:bg-brand-700 active:bg-brand-800",
-  secondary:
-    "bg-ink-900 text-white shadow-subtle hover:bg-ink-800 active:bg-ink-950",
-  outline:
-    "border border-ink-300 bg-white text-ink-900 shadow-subtle hover:bg-ink-50 hover:border-ink-400",
-  ghost: "text-ink-700 hover:bg-ink-100 hover:text-ink-900",
-  accent:
-    "bg-accent-600 text-white shadow-subtle hover:bg-accent-700 active:bg-accent-700",
+  // Píldora negra, sin sombra. Hover a negro puro.
+  primary: "bg-ink-900 text-white hover:bg-black",
+  // Borde 1px negro, píldora. Solo cuando un outline es inevitable.
+  outline: "border border-ink-900 bg-transparent text-ink-900 hover:bg-ink-50",
+  // Texto negro, sin fondo, sin pastilla en hover.
+  ghost: "text-ink-900 hover:opacity-60",
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: "h-9 px-3.5 text-sm gap-1.5 rounded-lg",
-  md: "h-10 px-4 text-sm gap-2 rounded-lg",
-  lg: "h-12 px-6 text-base gap-2 rounded-xl",
+  sm: "h-9 px-4 text-sm gap-1.5 rounded-full",
+  md: "h-11 px-5 text-[15px] gap-2 rounded-full",
+  lg: "h-12 px-[22px] text-[15px] gap-2 rounded-full font-medium",
 };
 
 export interface ButtonProps
@@ -28,13 +25,11 @@ export interface ButtonProps
   variant?: Variant;
   size?: Size;
   loading?: boolean;
-  asChildLink?: boolean;
 }
 
 /**
- * Button — the workhorse CTA. Follows Stripe/Linear conventions:
- * subtle shadow, clean hover, smooth transition. `loading` shows a spinner
- * and disables interaction.
+ * Button — píldora. Sistema Autopilot: negro sobre blanco, radio 999px,
+ * sin sombra. Focus outline negro (lo pone el base layer de globals.css).
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
@@ -46,8 +41,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || loading}
         className={cn(
-          "inline-flex items-center justify-center font-medium transition-all duration-150",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500",
+          "inline-flex items-center justify-center transition-opacity duration-150",
           "disabled:pointer-events-none disabled:opacity-50",
           variantClasses[variant],
           sizeClasses[size],
@@ -64,8 +58,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = "Button";
 
 /**
- * ButtonLink — same visuals as Button but renders an <a> (use for
- * internal/external navigation rather than actions).
+ * ButtonLink — mismos visuales que Button, renderiza un <a>.
  */
 export function ButtonLink({
   href,
@@ -79,8 +72,7 @@ export function ButtonLink({
     <a
       href={href}
       className={cn(
-        "inline-flex items-center justify-center font-medium transition-all duration-150",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500",
+        "inline-flex items-center justify-center transition-opacity duration-150",
         variantClasses[variant],
         sizeClasses[size],
         className,

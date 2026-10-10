@@ -12,7 +12,7 @@ export default function PrivacidadPage() {
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 bg-surface">
+      <main className="flex-1">
         <div className="container-page max-w-3xl py-16">
           <Link
             href="/"
@@ -71,7 +71,7 @@ export default function PrivacidadPage() {
                 Conservamos tus datos mientras tu cuenta esté activa. Puedes eliminar tu
                 cartera personal en cualquier momento desde la app. Para eliminar tu cuenta
                 completamente, escríbenos a{" "}
-                <a href="mailto:privacidad@reclu.cl" className="font-medium text-brand-600 hover:underline">
+                <a href="mailto:privacidad@reclu.cl" className="font-medium text-ink-900 underline-offset-4 hover:underline">
                   privacidad@reclu.cl
                 </a>{" "}
                 y procesaremos la solicitud dentro de 30 días.
@@ -84,7 +84,7 @@ export default function PrivacidadPage() {
                 Conforme a la Ley 19.628 sobre protección de la vida privada (Chile), tienes
                 derecho a acceder, rectificar, cancelar u oponerte al tratamiento de tus datos.
                 Ejerce estos derechos escribiéndonos a{" "}
-                <a href="mailto:privacidad@reclu.cl" className="font-medium text-brand-600 hover:underline">
+                <a href="mailto:privacidad@reclu.cl" className="font-medium text-ink-900 underline-offset-4 hover:underline">
                   privacidad@reclu.cl
                 </a>.
               </p>

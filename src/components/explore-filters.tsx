@@ -40,20 +40,20 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
   const pills = [ALL, ...categories.map(([value, meta]) => ({ value, label: meta.label }))];
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Search */}
+    <div className="flex flex-col gap-6">
+      {/* Búsqueda: borde 1px gris, radio 0, focus negro */}
       <form action={handleSearch} className="relative max-w-md">
-        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-400" />
+        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-500" />
         <input
           name="q"
           defaultValue={searchParams.get("q") ?? ""}
           placeholder="Buscar por nombre, gestor o descripción..."
-          className="h-11 w-full rounded-lg border border-ink-300 bg-white pr-4 pl-9 text-sm shadow-subtle placeholder:text-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none"
+          className="h-11 w-full rounded-none border border-ink-200 bg-white pr-4 pl-9 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
         />
       </form>
 
-      {/* Category pills */}
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Categorías">
+      {/* Filtros: activo = subrayado 1px negro; inactivo = gris */}
+      <div className="flex flex-wrap gap-x-6 gap-y-3" role="tablist" aria-label="Categorías">
         {pills.map((pill) => (
           <button
             key={pill.value}
@@ -61,10 +61,10 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
             aria-selected={activeCategory === pill.value}
             onClick={() => setCategory(pill.value)}
             className={cn(
-              "rounded-full border px-4 py-1.5 text-sm font-medium transition-all",
+              "border-b pb-0.5 text-[14px] transition-opacity",
               activeCategory === pill.value
-                ? "border-brand-600 bg-brand-600 text-white shadow-subtle"
-                : "border-ink-300 bg-white text-ink-700 hover:border-ink-400 hover:bg-ink-50",
+                ? "border-ink-900 text-ink-900"
+                : "border-transparent text-ink-500 hover:opacity-70",
             )}
           >
             {pill.label}

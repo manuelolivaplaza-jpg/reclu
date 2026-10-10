@@ -1,6 +1,3 @@
-import { ArrowRight } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
-
 const FAQ_ITEMS = [
   {
     q: "¿reclu.cl ejecuta operaciones por mí?",
@@ -28,77 +25,33 @@ const FAQ_ITEMS = [
   },
 ];
 
+/**
+ * FAQ — cada pregunta es un details con filete superior. Control "+" que rota
+ * a "×" al abrir. Sin card contenedora, sin sombra.
+ */
 export function FAQ() {
   return (
-    <section id="faq" className="border-b border-ink-200/60 py-24">
+    <section id="faq" className="bg-white py-20 md:py-28">
       <div className="container-page">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-brand-600">
-            FAQ
-          </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-            Preguntas frecuentes
-          </h2>
-        </div>
+        <h2 className="type-section text-ink-900">Preguntas.</h2>
 
-        <div className="mx-auto mt-12 max-w-3xl">
-          <div className="divide-y divide-ink-200 rounded-card border border-ink-200 bg-white shadow-card">
-            {FAQ_ITEMS.map((item) => (
-              <details key={item.q} className="group px-6 py-5">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-base font-medium text-ink-900 marker:content-none [&::-webkit-details-marker]:hidden">
+        <div className="mt-12 max-w-[46rem]">
+          {FAQ_ITEMS.map((item) => (
+            <details key={item.q} className="group border-t border-ink-200 py-[1.35rem]">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-6 marker:content-none [&::-webkit-details-marker]:hidden">
+                <span className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 md:text-[24px]">
                   {item.q}
-                  <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-ink-300 text-ink-500 transition-transform group-open:rotate-45 group-open:border-brand-500 group-open:text-brand-600">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
-                      <path d="M6 1v10M1 6h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    </svg>
-                  </span>
-                </summary>
-                <p className="mt-3 pr-10 text-sm leading-relaxed text-ink-600">{item.a}</p>
-              </details>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/** Final CTA band. */
-export function FinalCTA() {
-  return (
-    <section className="py-24">
-      <div className="container-page">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-brand-800 px-8 py-16 text-center shadow-pop sm:px-16">
-          {/* Subtle grid overlay */}
-          <div
-            className="absolute inset-0 opacity-10 [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:48px_48px]"
-            aria-hidden
-          />
-          <div className="relative">
-            <h2 className="mx-auto max-w-xl text-3xl font-semibold tracking-tight text-balance text-white sm:text-4xl">
-              Deja de revisar disclosures. Empieza a recibir alertas.
-            </h2>
-            <p className="mx-auto mt-4 max-w-md text-lg text-brand-100">
-              Únete y sigue tus primeros portafolios en menos de un minuto.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <ButtonLink
-                href="/signup"
-                size="lg"
-                className="w-full bg-white text-brand-700 hover:bg-brand-50 sm:w-auto"
-              >
-                Comenzar gratis
-                <ArrowRight className="size-4" />
-              </ButtonLink>
-              <ButtonLink
-                href="/explore"
-                size="lg"
-                className="w-full border-white/30 bg-transparent text-white hover:bg-white/10 sm:w-auto"
-              >
-                Ver portafolios
-              </ButtonLink>
-            </div>
-          </div>
+                </span>
+                <span className="mt-1 shrink-0 text-[22px] leading-none text-ink-900 transition-transform duration-200 group-open:rotate-45">
+                  +
+                </span>
+              </summary>
+              <p className="mt-3 max-w-[40rem] text-[16px] leading-relaxed text-ink-500">
+                {item.a}
+              </p>
+            </details>
+          ))}
+          <div className="border-t border-ink-200" />
         </div>
       </div>
     </section>

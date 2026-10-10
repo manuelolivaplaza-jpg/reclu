@@ -12,7 +12,7 @@ export default function TerminosPage() {
   return (
     <>
       <SiteHeader />
-      <main className="flex-1 bg-surface">
+      <main className="flex-1">
         <div className="container-page max-w-3xl py-16">
           <Link
             href="/"
@@ -106,7 +106,7 @@ export default function TerminosPage() {
               <h2 className="text-lg font-semibold text-ink-900">8. Contacto</h2>
               <p className="mt-2 leading-relaxed">
                 Para consultas sobre estos términos:{" "}
-                <a href="mailto:hola@reclu.cl" className="font-medium text-brand-600 hover:underline">
+                <a href="mailto:hola@reclu.cl" className="font-medium text-ink-900 underline-offset-4 hover:underline">
                   hola@reclu.cl
                 </a>
               </p>

@@ -8,11 +8,9 @@ import {
   PieChart,
   Settings,
   LogOut,
-  Crown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { LogoLockup } from "@/components/logo";
-import { Badge } from "@/components/ui/badge";
 import { DashboardNavLink, type NavItem } from "@/components/dashboard-nav-link";
 
 const NAV_ITEMS: NavItem[] = [
@@ -24,7 +22,7 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // Mark this route as dynamic (reads auth cookies) under cacheComponents.
+  // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
   const supabase = await createClient();
   const {
@@ -40,26 +38,21 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isPro = profile?.plan === "pro";
 
   return (
-    <div className="flex min-h-screen flex-col bg-surface">
-      {/* Top bar */}
+    <div className="flex min-h-screen flex-col bg-white">
+      {/* Barra superior */}
       <header className="sticky top-0 z-40 border-b border-ink-200 bg-white">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/dashboard">
             <LogoLockup />
           </Link>
-          <div className="flex items-center gap-3">
-            {isPro && (
-              <Badge variant="warning" className="gap-1">
-                <Crown className="size-3" />
-                Pro
-              </Badge>
-            )}
+          <div className="flex items-center gap-4">
+            {isPro && <span className="text-[13px] text-ink-900">Pro</span>}
             <form action="/auth/signout" method="post">
               <button
                 type="submit"
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900"
+                className="flex items-center gap-2 text-sm text-ink-500 transition-opacity hover:text-ink-900"
               >
-                <LogOut className="size-4" />
+                <LogOut className="size-4" strokeWidth={1.5} />
                 <span className="hidden sm:inline">Salir</span>
               </button>
             </form>
@@ -67,9 +60,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 py-8 sm:px-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 gap-10 px-4 py-8 sm:px-6">
         {/* Sidebar */}
-        <aside className="hidden w-56 shrink-0 lg:block">
+        <aside className="hidden w-52 shrink-0 lg:block">
           <nav className="sticky top-24 flex flex-col gap-1" aria-label="Dashboard">
             {NAV_ITEMS.map((item) => (
               <DashboardNavLink key={item.href} item={item} variant="sidebar" />
@@ -77,11 +70,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </nav>
         </aside>
 
-        {/* Main content */}
-        <main id="main" className="min-w-0 flex-1 pb-20 lg:pb-16">{children}</main>
+        {/* Contenido */}
+        <main id="main" className="min-w-0 flex-1 pb-20 lg:pb-16">
+          {children}
+        </main>
       </div>
 
-      {/* Mobile bottom nav */}
+      {/* Nav inferior móvil */}
       <nav
         className="sticky bottom-0 z-40 flex border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
         aria-label="Dashboard móvil"
