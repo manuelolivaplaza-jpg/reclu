@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+/* ============================================
+   reclu.cl — Design tokens
+   Light, clean, premium fintech aesthetic.
+   Inspired by Stripe / Linear / Vercel clarity.
+   ============================================ */
+
+@theme {
+  /* Brand — trustworthy blue with soft financial green accent */
+  --color-brand-50: #eff6ff;
+  --color-brand-100: #dbeafe;
+  --color-brand-200: #bfdbfe;
+  --color-brand-300: #93c5fd;
+  --color-brand-400: #60a5fa;
+  --color-brand-500: #3b82f6;
+  --color-brand-600: #2563eb;
+  --color-brand-700: #1d4ed8;
+  --color-brand-800: #1e40af;
+  --color-brand-900: #1e3a8a;
+
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d1fae5;
+  --color-accent-200: #a7f3d0;
+  --color-accent-300: #6ee7b7;
+  --color-accent-400: #34d399;
+  --color-accent-500: #10b981;
+  --color-accent-600: #059669;
+  --color-accent-700: #047857;
+
+  /* Neutrals — cool grays, Stripe-like */
+  --color-ink-50: #fafafa;
+  --color-ink-100: #f6f9fc;
+  --color-ink-200: #eef2f7;
+  --color-ink-300: #e3e8ef;
+  --color-ink-400: #cbd2d9;
+  --color-ink-500: #8792a2;
+  --color-ink-600: #697386;
+  --color-ink-700: #4f566b;
+  --color-ink-800: #3c4257;
+  --color-ink-900: #1a1f36;
+  --color-ink-950: #0f172a;
+
+  /* Semantic */
+  --color-positive: #059669;
+  --color-positive-bg: #ecfdf5;
+  --color-negative: #dc2626;
+  --color-negative-bg: #fef2f2;
+  --color-warning: #d97706;
+  --color-warning-bg: #fffbeb;
+
+  /* Surfaces */
+  --color-background: #ffffff;
+  --color-surface: #fafafa;
+  --color-surface-raised: #ffffff;
+
+  /* Typography */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Radii */
+  --radius-card: 0.875rem;
+
+  /* Subtle elevation shadows — layered, not muddy */
+  --shadow-subtle: 0 1px 2px 0 rgb(26 31 54 / 0.04), 0 1px 3px 0 rgb(26 31 54 / 0.06);
+  --shadow-card: 0 1px 2px 0 rgb(26 31 54 / 0.03), 0 4px 8px -2px rgb(26 31 54 / 0.05);
+  --shadow-raised: 0 2px 4px -1px rgb(26 31 54 / 0.04), 0 12px 24px -4px rgb(26 31 54 / 0.08);
+  --shadow-pop: 0 4px 12px -2px rgb(26 31 54 / 0.08), 0 16px 40px -8px rgb(26 31 54 / 0.12);
+
+  /* Motion — smooth, professional */
+  --ease-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-fade-up: fade-up 0.5s var(--ease-spring) both;
+  --animate-fade-in: fade-in 0.4s ease both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---- Base layer ---- */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-ink-900);
+    font-family: var(--font-sans);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-100);
+    color: var(--color-brand-900);
+  }
+
+  /* Focus ring — consistent everywhere */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Thin, unobtrusive scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-ink-300) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--color-ink-300);
+    border-radius: 999px;
+  }
+}
+
+/* ---- Utilities ---- */
+@utility text-balance-pretty {
+  text-wrap: pretty;
+}
+
+@utility container-page {
+  margin-inline: auto;
+  max-width: 72rem;
+  padding-inline: 1.25rem;
+}
+
+/* Subtle grid background for hero sections */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, var(--color-ink-200) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--color-ink-200) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+/* Soft radial glow — used behind hero, very subtle */
+@utility bg-glow {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, var(--color-brand-100) 0%, transparent 60%),
+    var(--color-background);
+}
