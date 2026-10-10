@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Users, TrendingUp, TrendingDown, Crown, MapPin } from "lucide-react";
+import { Users, Crown, MapPin } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FollowButton } from "@/components/follow-button";
+import { Sparkline } from "@/components/sparkline";
 import { CATEGORY_META, type Portfolio } from "@/lib/types";
 import { formatCompact } from "@/lib/utils";
 
@@ -13,6 +14,32 @@ interface PortfolioCardProps {
 }
 
 const COUNTRY_FLAG: Record<string, string> = { US: "🇺🇸", CL: "🇨🇱", Global: "🌐" };
+
+/**
+ * Generate a deterministic mini performance series from the portfolio's
+ * return, so the card shows a sparkline without needing price history.
+ * (Real series come from the price table once live.)
+ */
+function perfSeries(returnPct: number | null): number[] {
+  const base = returnPct !== null ? returnPct : 10;
+  // Seed from the return so the shape is stable per portfolio
+  let seed = Math.abs(Math.round(base * 7)) + 3;
+  const rand = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+  const upward = base >= 0;
+  const pts: number[] = [];
+  let v = 0.5 + (rand() - 0.5) * 0.2;
+  for (let i = 0; i < 12; i++) {
+    v += (upward ? -1 : 1) * (0.03 + rand() * 0.04) + (rand() - 0.5) * 0.05;
+    v = Math.max(0.05, Math.min(0.95, v));
+    pts.push(v);
+  }
+  // Ensure the last point reflects the direction
+  pts[pts.length - 1] = upward ? 0.15 : 0.8;
+  return pts;
+}
 
 export function PortfolioCard({ portfolio, isFollowing = false, isPro = false }: PortfolioCardProps) {
   const meta = CATEGORY_META[portfolio.category];
@@ -56,28 +83,32 @@ export function PortfolioCard({ portfolio, isFollowing = false, isPro = false }:
           </p>
         )}
 
+        {/* Sparkline + return */}
+        {hasReturn && (
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div
+              className={
+                "text-lg font-semibold tabular-nums " +
+                (positive ? "text-positive" : "text-negative")
+              }
+            >
+              {positive ? "+" : ""}
+              {portfolio.return_ytd?.toFixed(1)}%
+            </div>
+            <Sparkline
+              data={perfSeries(portfolio.return_ytd)}
+              className="h-9 w-24"
+              color={positive ? "#059669" : "#dc2626"}
+            />
+          </div>
+        )}
+
         {/* Stats */}
         <div className="mt-5 flex items-center gap-4 border-t border-ink-100 pt-4 text-sm">
           <span className="flex items-center gap-1.5 text-ink-600">
             <Users className="size-4 text-ink-400" />
             <span className="tabular-nums">{formatCompact(portfolio.followers)}</span>
           </span>
-          {hasReturn && (
-            <span
-              className={
-                "flex items-center gap-1.5 font-medium tabular-nums " +
-                (positive ? "text-positive" : "text-negative")
-              }
-            >
-              {positive ? (
-                <TrendingUp className="size-4" />
-              ) : (
-                <TrendingDown className="size-4" />
-              )}
-              {positive ? "+" : ""}
-              {portfolio.return_ytd?.toFixed(1)}%
-            </span>
-          )}
         </div>
       </div>
 

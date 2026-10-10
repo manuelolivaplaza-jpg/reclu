@@ -1,0 +1,11 @@
+# robots.txt for reclu.cl
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /settings/
+Disallow: /alerts/
+Disallow: /compare/
+Disallow: /api/
+Disallow: /auth/
+
+Sitemap: https://reclu.cl/sitemap.xml

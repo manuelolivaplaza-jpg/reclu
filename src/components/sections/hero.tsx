@@ -2,6 +2,7 @@ import { ArrowRight, BellRing, Sparkles, TrendingUp } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { HeroChart } from "@/components/hero-chart";
 
 /**
  * Hero section — the first impression.
@@ -81,13 +82,30 @@ export function Hero() {
           Gratis para siempre en 2 portafolios · Sin tarjeta de crédito
         </p>
 
-        {/* Product mockup — floating alert email */}
+        {/* Visual composition: alert card + animated performance chart */}
         <div
-          className="animate-fade-up relative mx-auto mt-16 max-w-3xl"
+          className="animate-fade-up relative mx-auto mt-16 max-w-5xl"
           style={{ animationDelay: "0.3s" }}
         >
-          <div className="absolute -inset-x-8 -top-4 -bottom-8 rounded-[2rem] bg-gradient-to-b from-brand-100/40 via-transparent to-transparent blur-2xl" aria-hidden />
-          <HeroAlertCard />
+          <div
+            className="absolute -inset-x-8 -top-4 -bottom-8 rounded-[2rem] bg-gradient-to-b from-brand-100/40 via-transparent to-transparent blur-2xl"
+            aria-hidden
+          />
+          <div className="relative grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-center">
+            <HeroAlertCard />
+            <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-ink-900">Rendimiento del portafolio</p>
+                  <p className="text-xs text-ink-500">AI World War III · últimos 12 meses</p>
+                </div>
+                <span className="rounded-full bg-positive-bg px-2.5 py-1 text-xs font-semibold text-positive">
+                  +42.8%
+                </span>
+              </div>
+              <HeroChart className="mt-4 w-full" />
+            </div>
+          </div>
         </div>
       </div>
     </section>

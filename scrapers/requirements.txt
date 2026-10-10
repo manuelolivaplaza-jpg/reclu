@@ -3,3 +3,4 @@
 
 httpx>=0.27.0          # HTTP client with redirect/timeout handling
 supabase>=2.4.0        # Supabase Python client (service-role upserts)
+pypdf>=4.0.0           # PDF text extraction (Renta 4 weekly reports are PDFs)

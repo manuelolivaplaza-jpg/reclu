@@ -52,15 +52,18 @@ Deno.serve(async (req) => {
     const alertsToInsert: Array<Record<string, unknown>> = [];
 
     for (const h of changed as HoldingRow[]) {
-      const delta = h.weight - (h.previous_weight ?? h.weight);
+      // BUGFIX: null previous_weight means the holding was just created by the
+      // scraper (new trade) — treat it as a full-weight change, not as noise.
+      const isNewHolding = h.previous_weight === null;
+      const delta = isNewHolding ? h.weight : h.weight - h.previous_weight!;
       const absDelta = Math.abs(delta);
 
-      if (absDelta < 0.5) continue; // ignore sub-0.5pp noise
+      if (!isNewHolding && absDelta < 0.5) continue; // ignore sub-0.5pp noise
 
       let type: string;
       let severity: string;
 
-      if (h.previous_weight === 0 || h.previous_weight === null) {
+      if (isNewHolding || h.previous_weight === 0) {
         type = "new_trade";
         severity = absDelta >= 5 ? "high" : "medium";
       } else if (h.weight === 0) {
