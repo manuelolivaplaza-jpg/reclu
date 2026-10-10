@@ -13,9 +13,9 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { LogoLockup } from "@/components/logo";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { DashboardNavLink, type NavItem } from "@/components/dashboard-nav-link";
 
-const NAV_ITEMS = [
+const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Resumen", icon: LayoutDashboard },
   { href: "/explore", label: "Explorar", icon: Compass },
   { href: "/alerts", label: "Alertas", icon: BellRing },
@@ -72,39 +72,22 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <aside className="hidden w-56 shrink-0 lg:block">
           <nav className="sticky top-24 flex flex-col gap-1" aria-label="Dashboard">
             {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                  "text-ink-600 hover:bg-white hover:text-ink-900 hover:shadow-subtle",
-                )}
-              >
-                <item.icon className="size-4.5" />
-                {item.label}
-              </Link>
+              <DashboardNavLink key={item.href} item={item} variant="sidebar" />
             ))}
           </nav>
         </aside>
 
         {/* Main content */}
-        <main className="min-w-0 flex-1 pb-16">{children}</main>
+        <main id="main" className="min-w-0 flex-1 pb-20 lg:pb-16">{children}</main>
       </div>
 
       {/* Mobile bottom nav */}
       <nav
-        className="sticky bottom-0 z-40 flex border-t border-ink-200 bg-white lg:hidden"
+        className="sticky bottom-0 z-40 flex border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
         aria-label="Dashboard móvil"
       >
         {NAV_ITEMS.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="flex flex-1 flex-col items-center gap-1 py-3 text-[11px] font-medium text-ink-600 transition-colors hover:text-brand-600"
-          >
-            <item.icon className="size-5" />
-            {item.label}
-          </Link>
+          <DashboardNavLink key={item.href} item={item} variant="bottom" />
         ))}
       </nav>
     </div>

@@ -7,14 +7,16 @@ import { cookies } from "next/headers";
  *
  * Note: in Route Handlers where you may need to SET cookies, wrap in try/catch
  * (the middleware handles refreshes) — see the middleware file for details.
+ *
+ * Falls back to placeholder values so the client can be constructed even
+ * before env vars are set; queries then fail gracefully at call time.
  */
 export async function createClient() {
   const cookieStore = await cookies();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder-anon-key";
 
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  return createServerClient(url, key, {
       cookies: {
         getAll() {
           return cookieStore.getAll();

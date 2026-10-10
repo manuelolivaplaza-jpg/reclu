@@ -51,14 +51,14 @@ export function AuthForm({ mode }: AuthFormProps) {
   const success = state.success;
 
   return (
-    <div className="w-full max-w-md">
+    <div className="w-full max-w-md px-1">
       <div className="flex justify-center">
         <Link href="/">
           <LogoLockup />
         </Link>
       </div>
 
-      <div className="mt-8 rounded-card border border-ink-200 bg-white p-8 shadow-card">
+      <div className="mt-7 rounded-card border border-ink-200 bg-white p-6 shadow-card sm:mt-8 sm:p-8">
         <h1 className="text-xl font-semibold tracking-tight text-ink-900">
           {isLogin ? "Inicia sesión" : "Crea tu cuenta"}
         </h1>
