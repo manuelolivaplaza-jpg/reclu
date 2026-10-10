@@ -35,7 +35,12 @@ export async function getPortfolios(filters?: {
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  // Degrade gracefully: if Supabase isn't configured/reachable, return []
+  // instead of crashing the page (lets the site render before backend setup).
+  if (error) {
+    console.warn("[reclu] getPortfolios error:", error.message);
+    return [];
+  }
   return data ?? [];
 }
 
@@ -59,7 +64,10 @@ export async function getHoldings(portfolioId: string): Promise<Holding[]> {
     .select("*")
     .eq("portfolio_id", portfolioId)
     .order("weight", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    console.warn("[reclu] getHoldings error:", error.message);
+    return [];
+  }
   return data ?? [];
 }
 
@@ -83,7 +91,10 @@ export async function getAlerts(portfolioId?: string, limit = 20): Promise<Alert
   }
 
   const { data, error } = await query;
-  if (error) throw error;
+  if (error) {
+    console.warn("[reclu] getAlerts error:", error.message);
+    return [];
+  }
   return data ?? [];
 }
 
@@ -117,7 +128,10 @@ export async function getFollows(): Promise<Follow[]> {
     .select("*")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    console.warn("[reclu] getFollows error:", error.message);
+    return [];
+  }
   return data ?? [];
 }
 
@@ -215,6 +229,9 @@ export async function getUserHoldings(): Promise<UserHolding[]> {
     .select("*")
     .eq("user_id", user.id)
     .order("weight", { ascending: false });
-  if (error) throw error;
+  if (error) {
+    console.warn("[reclu] getUserHoldings error:", error.message);
+    return [];
+  }
   return data ?? [];
 }
