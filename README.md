@@ -1,36 +1,164 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# reclu.cl
 
-## Getting Started
+Plataforma de seguimiento y alertas de portafolios. Monitorea portafolios de
+políticos de EE.UU., corredoras chilenas y fondos; envía alertas por email con
+análisis AI cuando hay cambios. **Solo notificaciones — no ejecuta órdenes.**
 
-First, run the development server:
+## Stack
+
+- **Frontend:** Next.js 16 (App Router) + TypeScript + Tailwind CSS v4
+- **Backend:** Supabase (Postgres, Auth, Edge Functions, RLS)
+- **AI:** OpenRouter (modelos económicos para resúmenes)
+- **Email:** Resend
+- **Scrapers:** Python 3.11+ (httpx + supabase-py)
+- **Deploy:** Vercel
+
+## Inicio rápido
+
+### 1. Clonar e instalar
+
+```bash
+git clone <repo-url>
+cd reclu
+npm install
+```
+
+### 2. Configurar Supabase
+
+1. Crea un proyecto en [supabase.com](https://supabase.com)
+2. Ve a **SQL Editor** y ejecuta `supabase/schema.sql` completo
+   (crea tablas, RLS, triggers y datos seed)
+3. Copia las credenciales de **Project Settings → API**:
+   - `Project URL` → `NEXT_PUBLIC_SUPABASE_URL`
+   - `anon public` → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (solo backend)
+
+### 3. Configurar Auth de Google (opcional)
+
+1. Supabase Dashboard → **Authentication → Providers → Google**
+2. Crea un OAuth client en [Google Cloud Console](https://console.cloud.google.com)
+3. Agrega el callback URL de Supabase a los redirect URIs autorizados
+4. Copia Client ID y Secret a Supabase
+
+En **Authentication → URL Configuration**:
+- Site URL: `http://localhost:3000` (dev) / `https://reclu.cl` (prod)
+- Redirect URLs: `http://localhost:3000/auth/callback` y `https://reclu.cl/auth/callback`
+
+### 4. Configurar variables de entorno
+
+```bash
+cp .env.example .env.local
+# Edita .env.local con tus valores
+```
+
+### 5. Correr en desarrollo
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Abre http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Desplegar edge functions
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Instalar Supabase CLI
+npm i -g supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Login y vincular proyecto
+supabase login
+supabase link --project-ref <tu-ref>
 
-## Learn More
+# Desplegar funciones
+supabase functions deploy detect-changes
+supabase functions deploy send-alerts
 
-To learn more about Next.js, take a look at the following resources:
+# Configurar secrets
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=<key>
+supabase secrets set OPENROUTER_API_KEY=<key>
+supabase secrets set RESEND_API_KEY=<key>
+supabase secrets set EMAIL_FROM="reclu.cl <alertas@reclu.cl>"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Programar detección de cambios (pg_cron)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```sql
+-- Cada día a las 10:00 UTC (07:00 CLT)
+select cron.schedule(
+  'detect-changes-daily',
+  '0 10 * * *',
+  $$
+  select net.http_post(
+    url := 'https://<tu-ref>.functions.supabase.co/detect-changes',
+    headers := '{"Authorization": "Bearer <service-role-key>"}'::jsonb
+  );
+  $$
+);
+```
 
-## Deploy on Vercel
+## Scrapers
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+cd scrapers
+pip install -r requirements.txt
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+export SUPABASE_URL="https://<proj>.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="<key>"
+
+python run_all.py                    # todas las fuentes
+python run_all.py --only capitol_trades
+```
+
+Ver `docs/sources.md` para detalles de cada fuente y limitaciones conocidas.
+
+## Desplegar en Vercel
+
+1. Importa el repo en [vercel.com](https://vercel.com/new)
+2. Agrega las variables de entorno:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_SITE_URL=https://reclu.cl`
+   - `OPENROUTER_API_KEY` (si usas AI desde el servidor)
+   - `RESEND_API_KEY` (si envías emails desde API routes)
+3. Deploy. Vercel detecta Next.js automáticamente.
+
+## Estructura
+
+```
+reclu/
+├── src/
+│   ├── app/
+│   │   ├── (auth)/          # login, signup
+│   │   ├── (dashboard)/     # dashboard, alerts, settings, compare
+│   │   ├── explore/         # catálogo de portafolios
+│   │   ├── portfolio/[slug] # detalle de portafolio
+│   │   ├── api/follow/      # API follow/unfollow
+│   │   ├── auth/            # callback OAuth, signout
+│   │   ├── actions/         # server actions
+│   │   └── page.tsx         # landing
+│   ├── components/          # UI + sections
+│   └── lib/                 # supabase clients, queries, types
+├── supabase/
+│   ├── schema.sql           # esquema completo + RLS + seed
+│   └── functions/           # edge functions (Deno)
+├── scrapers/                # pipelines Python
+└── docs/                    # documentación de fuentes
+```
+
+## Modelo freemium
+
+| Feature | Gratis | Pro |
+|---|---|---|
+| Portafolios seguidos | 2 | Ilimitados |
+| Alertas por email | Diario (batch) | Tiempo real |
+| Resúmenes AI | ❌ | ✅ |
+| Portafolios premium | ❌ | ✅ |
+| Comparar cartera | ✅ | ✅ |
+
+## Disclaimer
+
+Información pública con fines informativos. **No constituye asesoría de
+inversión.** Rentabilidades pasadas no garantizan resultados futuros.
+
+## Licencia
+
+Privado — © 2026 reclu.cl

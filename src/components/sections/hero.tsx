@@ -1,5 +1,6 @@
 import { ArrowRight, BellRing, Sparkles, TrendingUp } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
 /**
@@ -20,7 +21,7 @@ export function Hero() {
       <div className="container-page relative pt-20 pb-24 sm:pt-28 sm:pb-32">
         {/* Announcement pill */}
         <div className="animate-fade-up flex justify-center">
-          <a
+          <Link
             href="/#precios"
             className="group inline-flex items-center gap-2 rounded-full border border-ink-200 bg-white/80 py-1.5 pr-3 pl-1.5 text-sm shadow-subtle backdrop-blur transition-colors hover:border-brand-200"
           >
@@ -31,7 +32,7 @@ export function Hero() {
               Carteras chilenas de Renta 4 ya disponibles
             </span>
             <ArrowRight className="size-3.5 text-ink-400 transition-transform group-hover:translate-x-0.5" />
-          </a>
+          </Link>
         </div>
 
         {/* Headline */}

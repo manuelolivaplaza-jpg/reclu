@@ -2,8 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { CATEGORY_META, type PortfolioCategory } from "@/lib/types";
+import type { PortfolioCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface ExploreFiltersProps {

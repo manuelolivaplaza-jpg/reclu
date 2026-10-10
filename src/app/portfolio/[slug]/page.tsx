@@ -12,10 +12,9 @@ import {
   Tag,
 } from "lucide-react";
 import Link from "next/link";
-import { getPortfolioBySlug, getHoldings, getAlerts, getFollows, getProfile, isFollowing } from "@/lib/queries";
+import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing } from "@/lib/queries";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
 import { FollowButton } from "@/components/follow-button";
 import { CATEGORY_META } from "@/lib/types";
 import { timeAgo, formatCompact } from "@/lib/utils";
@@ -42,10 +41,9 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) notFound();
 
-  const [holdings, alerts, follows, profile, following] = await Promise.all([
+  const [holdings, alerts, profile, following] = await Promise.all([
     getHoldings(portfolio.id),
     getAlerts(portfolio.id, 10),
-    getFollows(),
     getProfile(),
     isFollowing(portfolio.id),
   ]);

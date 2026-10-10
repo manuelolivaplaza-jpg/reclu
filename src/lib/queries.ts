@@ -4,8 +4,8 @@ import type {
   Holding,
   Alert,
   Profile,
-  UserHolding,
   Follow,
+  UserHolding,
 } from "@/lib/types";
 import { FREE_PLAN_FOLLOW_LIMIT } from "@/lib/types";
 

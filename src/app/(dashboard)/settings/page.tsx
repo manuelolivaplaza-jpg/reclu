@@ -3,6 +3,7 @@ import { getProfile } from "@/lib/queries";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Crown } from "lucide-react";
+import Link from "next/link";
 import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
 
@@ -50,12 +51,12 @@ export default async function SettingsPage() {
         </CardHeader>
         {profile.plan !== "pro" && (
           <CardContent>
-            <a
+            <Link
               href="/#precios"
               className="inline-flex h-10 items-center rounded-lg bg-brand-600 px-4 text-sm font-medium text-white transition-colors hover:bg-brand-700"
             >
               Actualizar a Pro
-            </a>
+            </Link>
           </CardContent>
         )}
       </Card>
