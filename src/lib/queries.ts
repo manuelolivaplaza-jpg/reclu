@@ -8,6 +8,13 @@ import type {
   UserHolding,
 } from "@/lib/types";
 import { FREE_PLAN_FOLLOW_LIMIT } from "@/lib/types";
+import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts } from "@/lib/demo-data";
+
+/** True cuando Supabase está configurado con valores reales (no placeholder). */
+function isSupabaseLive(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return url.startsWith("https://") && !url.includes("placeholder");
+}
 
 // ---- Portfolios ----
 export async function getPortfolios(filters?: {
@@ -15,6 +22,18 @@ export async function getPortfolios(filters?: {
   search?: string;
   country?: string;
 }): Promise<Portfolio[]> {
+  // Sin backend real -> datos de demostración (el sitio se ve vivo).
+  if (!isSupabaseLive()) {
+    let list = DEMO_PORTFOLIOS;
+    if (filters?.category && filters.category !== "all") list = list.filter((p) => p.category === filters.category);
+    if (filters?.country && filters.country !== "all") list = list.filter((p) => p.country === filters.country);
+    if (filters?.search) {
+      const q = filters.search.toLowerCase();
+      list = list.filter((p) => p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q) || (p.manager ?? "").toLowerCase().includes(q));
+    }
+    return list;
+  }
+
   const supabase = await createClient();
   let query = supabase
     .from("portfolios")
@@ -35,16 +54,18 @@ export async function getPortfolios(filters?: {
   }
 
   const { data, error } = await query;
-  // Degrade gracefully: if Supabase isn't configured/reachable, return []
-  // instead of crashing the page (lets the site render before backend setup).
   if (error) {
     console.warn("[reclu] getPortfolios error:", error.message);
     return [];
   }
-  return data ?? [];
+  // DB real pero vacía (seed no corrido) -> caemos a demo para no ver el sitio vacío.
+  if (!data || data.length === 0) return DEMO_PORTFOLIOS;
+  return data;
 }
 
 export async function getPortfolioBySlug(slug: string): Promise<Portfolio | null> {
+  if (!isSupabaseLive()) return demoPortfolioBySlug(slug);
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("portfolios")
@@ -58,6 +79,12 @@ export async function getPortfolioBySlug(slug: string): Promise<Portfolio | null
 
 // ---- Holdings ----
 export async function getHoldings(portfolioId: string): Promise<Holding[]> {
+  // En modo demo, portfolioId es el slug (d1, d7...). Resolvemos por slug.
+  if (!isSupabaseLive()) {
+    const slug = DEMO_PORTFOLIOS.find((p) => p.id === portfolioId)?.slug ?? portfolioId;
+    return demoHoldings(slug);
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("holdings")
@@ -68,11 +95,18 @@ export async function getHoldings(portfolioId: string): Promise<Holding[]> {
     console.warn("[reclu] getHoldings error:", error.message);
     return [];
   }
-  return data ?? [];
+  if (!data || data.length === 0) {
+    // Buscar el slug real para servir demo si la DB está vacía.
+    const { data: pf } = await supabase.from("portfolios").select("slug").eq("id", portfolioId).maybeSingle();
+    return pf ? demoHoldings(pf.slug) : [];
+  }
+  return data;
 }
 
 // ---- Alerts ----
 export async function getAlerts(portfolioId?: string, limit = 20): Promise<Alert[]> {
+  if (!isSupabaseLive()) return demoAlerts(portfolioId).slice(0, limit);
+
   const supabase = await createClient();
   let query = supabase
     .from("alerts")

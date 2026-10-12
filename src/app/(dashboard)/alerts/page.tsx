@@ -16,6 +16,10 @@ const TYPE_LABEL: Record<string, string> = {
   weight_change: "Ponderación",
   mention: "Mención",
   threshold: "Umbral",
+  dividend: "Dividendo",
+  earnings: "Resultados",
+  "13f_update": "Filing 13F",
+  scraper_error: "Sistema",
 };
 
 export default function AlertsPage() {

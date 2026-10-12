@@ -17,7 +17,11 @@ export type AlertType =
   | "sold_trade"
   | "weight_change"
   | "mention"
-  | "threshold";
+  | "threshold"
+  | "dividend"
+  | "earnings"
+  | "13f_update"
+  | "scraper_error";
 
 export type AlertSeverity = "low" | "medium" | "high";
 

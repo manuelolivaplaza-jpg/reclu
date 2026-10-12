@@ -139,5 +139,17 @@ begin
   update portfolios set followers = 6200 where slug = 'claude-portfolio';
   update portfolios set followers = 1200 where slug = 'inverse-cramer';
   update portfolios set followers = 800 where slug = 'infoProbidad-cl';
+  update portfolios set followers = 3400 where slug = 'bancos-chilenos';
+  update portfolios set followers = 2100 where slug = 'retail-chileno';
+  update portfolios set followers = 1500 where slug = 'litio-mineria';
+  update portfolios set followers = 1900 where slug = 'dividendos-ipsa';
+  update portfolios set followers = 2400 where slug = 'energias-renovables';
+  update portfolios set followers = 5100 where slug = 'sp500-top10';
+  update portfolios set followers = 4700 where slug = 'semiconductores';
+  update portfolios set followers = 1300 where slug = 'bonos-tesoro-us';
+  update portfolios set followers = 1600 where slug = 'dividend-aristocrats';
+  update portfolios set followers = 2800 where slug = 'fintech-global';
+  update portfolios set followers = 1700 where slug = 'latin-tech';
+  update portfolios set followers = 1100 where slug = 'utilities-defensivas';
 
 end $$;

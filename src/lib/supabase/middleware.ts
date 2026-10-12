@@ -36,9 +36,10 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+  // /portfolio/[slug] es PÚBLICO (con censura para anónimos, ver el componente
+  // PaywallGate). Solo estas rutas requieren sesión real.
   const isProtected =
     path.startsWith("/dashboard") ||
-    path.startsWith("/portfolio") ||
     path.startsWith("/alerts") ||
     path.startsWith("/settings") ||
     path.startsWith("/compare");

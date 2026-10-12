@@ -96,7 +96,7 @@ create unique index if not exists idx_holdings_unique on public.holdings(portfol
 create table if not exists public.alerts (
   id uuid primary key default uuid_generate_v4(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
-  type text not null check (type in ('new_trade', 'sold_trade', 'weight_change', 'mention', 'threshold')),
+  type text not null check (type in ('new_trade', 'sold_trade', 'weight_change', 'mention', 'threshold', 'dividend', 'earnings', '13f_update', 'scraper_error')),
   severity text not null default 'medium' check (severity in ('low', 'medium', 'high')),
   title text not null,
   summary text,                               -- AI-generated via OpenRouter
@@ -262,5 +262,17 @@ insert into public.portfolios (slug, name, description, category, source, manage
   ('ai-world-war', 'AI World War III', 'Tesis temática: empresas clave en la carrera global de inteligencia artificial.', 'thematic', 'model', null, 'Global', false, '{ia, tech, tematica}'),
   ('claude-portfolio', 'Claude Portfolio', 'Portafolio modelo enfocado en empresas del ecosistema Anthropic y AI.', 'thematic', 'model', null, 'Global', true, '{ia, anthropic, tematica}'),
   ('inverse-cramer', 'Inverse Cramer', 'Estrategia contrarian basada en las recomendaciones de Jim Cramer.', 'thematic', 'model', null, 'US', false, '{contrarian, media}'),
-  ('infoProbidad-cl', 'Declaraciones InfoProbidad', 'Seguimiento de declaraciones de patrimonio de autoridades chilenas (InfoProbidad).', 'public_disclosure', 'infoprobidad', null, 'CL', false, '{chile, infoprobidad}')
+  ('infoProbidad-cl', 'Declaraciones InfoProbidad', 'Seguimiento de declaraciones de patrimonio de autoridades chilenas (InfoProbidad).', 'public_disclosure', 'infoprobidad', null, 'CL', false, '{chile, infoprobidad}'),
+  ('bancos-chilenos', 'Bancos Chilenos', 'Las principales instituciones financieras que transan en la bolsa de Santiago.', 'thematic', 'model', null, 'CL', false, '{chile, bancos, financiero}'),
+  ('retail-chileno', 'Retail Chileno', 'Grandes cadenas de retail y centros comerciales del IPSA.', 'thematic', 'model', null, 'CL', false, '{chile, retail, consumo}'),
+  ('litio-mineria', 'Litio y Minería', 'Salmueras de litio y minería: el motor de commodities de Chile.', 'thematic', 'model', null, 'CL', true, '{chile, litio, mineria}'),
+  ('dividendos-ipsa', 'Dividendos IPSA', 'Acciones del IPSA con historial de reparto de dividendos.', 'thematic', 'model', null, 'CL', false, '{chile, dividendos, ipsa}'),
+  ('energias-renovables', 'Energías Renovables', 'Generadoras y utilities enfocadas en transición energética.', 'thematic', 'model', null, 'Global', false, '{energia, renovables, utilities}'),
+  ('sp500-top10', 'S&P 500 Top 10', 'Las diez mayores empresas del S&P 500 por capitalización.', 'thematic', 'model', null, 'US', false, '{usa, sp500, megacaps}'),
+  ('semiconductores', 'Carrera de Semiconductores', 'Fabricantes y diseñadores de chips que lideran la demanda global de cómputo.', 'thematic', 'model', null, 'Global', false, '{semis, tech, ia}'),
+  ('bonos-tesoro-us', 'Bonos del Tesoro US', 'Renta fija soberana de Estados Unidos como refugio defensivo.', 'thematic', 'model', null, 'US', false, '{bonos, renta-fija, defensivo}'),
+  ('dividend-aristocrats', 'Dividend Aristocrats', 'Empresas de EE.UU. con 25+ años aumentando su dividendo.', 'thematic', 'model', null, 'US', true, '{dividendos, aristocrats, defensivo}'),
+  ('fintech-global', 'Fintech Global', 'Plataformas de pagos, neobancos e infraestructura financiera digital.', 'thematic', 'model', null, 'Global', false, '{fintech, pagos, tech}'),
+  ('latin-tech', 'Latin Tech', 'Las mayores empresas de tecnología de Latinoamérica.', 'thematic', 'model', null, 'Global', false, '{latam, tech, mercados-emergentes}'),
+  ('utilities-defensivas', 'Utilities Defensivas', 'Servicios básicos estables: agua, electricidad y gas.', 'thematic', 'model', null, 'Global', false, '{utilities, defensivo, dividendos}')
 on conflict (slug) do nothing;
