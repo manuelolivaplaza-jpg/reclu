@@ -6,8 +6,10 @@ based on real market data instead of hardcoded numbers.
 
 Usage:
     PRICE_SYMBOLS="NVDA,AAPL,^GSPC" python prices.py
+    PRICE_SYMBOLS="NVDA,AAPL" python prices.py --dry-run
 
-Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see base.get_db).
+Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see base.get_db),
+except in --dry-run mode which never touches the database.
 """
 
 from __future__ import annotations
@@ -69,14 +71,30 @@ def upsert_prices(db, symbol: str, rows: list[tuple[str, float]]) -> None:
     db.table("prices").upsert(payload, on_conflict="symbol,date").execute()
 
 
-def refresh_all(db, symbols: list[str]) -> dict[str, int]:
-    """Refresh prices for all symbols, tolerating per-symbol failures."""
+def refresh_all(db, symbols: list[str], dry_run: bool = False) -> dict[str, int]:
+    """Refresh prices for all symbols, tolerating per-symbol failures.
+
+    If dry_run is True, only print how many rows would be downloaded per
+    symbol plus the first and last (date, close), without writing to the DB.
+    """
     ok = 0
     for symbol in symbols:
         try:
             rows = fetch_eod(symbol)
-            upsert_prices(db, symbol, rows)
-            print(f"OK {symbol}: {len(rows)} rows")
+            if dry_run:
+                if rows:
+                    first_date, first_close = rows[0]
+                    last_date, last_close = rows[-1]
+                    print(
+                        f"DRY-RUN {symbol}: {len(rows)} rows "
+                        f"(first {first_date} @ {first_close}, "
+                        f"last {last_date} @ {last_close})"
+                    )
+                else:
+                    print(f"DRY-RUN {symbol}: 0 rows")
+            else:
+                upsert_prices(db, symbol, rows)
+                print(f"OK {symbol}: {len(rows)} rows")
             ok += 1
         except Exception as e:  # noqa: BLE001 - keep going on any single-symbol error
             print(f"WARNING {symbol}: {e}")
@@ -86,11 +104,25 @@ def refresh_all(db, symbols: list[str]) -> dict[str, int]:
 
 
 def main() -> None:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Download EOD prices from Yahoo Finance")
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Only show how many prices would be downloaded per symbol "
+        "(count + first/last), without writing to the database.",
+    )
+    args = parser.parse_args()
+
     from base import get_db
 
     env = os.environ.get("PRICE_SYMBOLS", "")
     symbols = env.split(",") if env else DEFAULT_SYMBOLS
-    refresh_all(get_db(), symbols)
+    if args.dry_run:
+        refresh_all(None, symbols, dry_run=True)
+    else:
+        refresh_all(get_db(), symbols)
 
 
 if __name__ == "__main__":
