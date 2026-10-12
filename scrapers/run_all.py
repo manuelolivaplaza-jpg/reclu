@@ -23,7 +23,7 @@ def main() -> None:
     parser.add_argument(
         "--only",
         nargs="*",
-        choices=["capitol_trades", "renta4", "infoprobidad"],
+        choices=["capitol_trades", "house_disclosure", "renta4", "infoprobidad"],
         help="Run only these scrapers (default: all)",
     )
     args = parser.parse_args()
@@ -31,7 +31,7 @@ def main() -> None:
     db = get_db()
     results = []
 
-    scrapers = args.only or ["capitol_trades", "renta4", "infoprobidad"]
+    scrapers = args.only or ["house_disclosure", "capitol_trades", "renta4", "infoprobidad"]
 
     if "capitol_trades" in scrapers:
         try:
@@ -44,6 +44,18 @@ def main() -> None:
         except Exception as e:
             log(f"capitol_trades failed: {e}")
             results.append({"source": "capitol_trades", "status": "error", "error": str(e)})
+
+    if "house_disclosure" in scrapers:
+        try:
+            from house_disclosure import HouseDisclosureAdapter
+
+            for politician in ["pelosi", "trump"]:
+                log(f"Starting House Disclosure ({politician})...")
+                adapter = HouseDisclosureAdapter(politician=politician)
+                results.append(adapter.run(db))
+        except Exception as e:
+            log(f"house_disclosure failed: {e}")
+            results.append({"source": "house_disclosure", "status": "error", "error": str(e)})
 
     if "renta4" in scrapers:
         try:

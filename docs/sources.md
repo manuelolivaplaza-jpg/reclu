@@ -6,13 +6,39 @@ Documentación de cada fuente scrapeada, su estado y limitaciones conocidas.
 
 | Fuente | Portafolio | Estado | Notas |
 |---|---|---|---|
-| Capitol Trades | pelosi-tracker, trump-trades | ⚠️ Login wall | Streaming RSC parseado; datos requieren auth |
-| Renta 4 | renta4-moderada, renta4-moderada-ampliada | 🔧 Selectores a ajustar | HTML parsing genérico |
+| House Disclosure (oficial) | pelosi-tracker, trump-trades | ✅ Funcional (verificado en vivo) | disclosures-clerk.house.gov, sin login, PTRs en PDF |
+| Capitol Trades | pelosi-tracker, trump-trades | ⚠️ Login wall | Streaming RSC parseado; requiere auth |
+| Renta 4 | renta4-moderada, renta4-moderada-ampliada | ✅ Funcional (verificado) | Hub → artículo → PDF semanal |
+| BTG Pactual Chile | btg-insights | 🔧 Pendiente | HTML público: app.btgpactual.cl/.../cartera-recomendada |
+| LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
 | InfoProbidad | infoProbidad-cl | 🔧 Dataset URL a confirmar | CSV público |
-| House Disclosure (oficial) | political_us | ✅ Accesible | disclosures-clerk.house.gov |
+
+## House Financial Disclosure (house_disclosure.py) — RECOMENDADO
+
+**URL:** `https://disclosures-clerk.house.gov/FinancialDisclosure`
+
+**Estado:** ✅ Funcional, verificado en vivo (Pelosi 2025: 4 PTRs extraídos).
+
+Es la **fuente oficial** del Congreso de EE.UU. para trades de congresistas —
+sin login wall, a diferencia de Capitol Trades.
+
+- Buscador: `/FinancialDisclosure/ViewSearch` (form → POST a
+  `ViewMemberSearchResult` con `LastName`, `FilingYear`, `State`, `District`
+  y un `__RequestVerificationToken` CSRF).
+- Reportes:
+  - `public_disc/ptr-pdfs/{year}/{id}.pdf` — **PTR** (Periodic Transaction
+    Reports) = las compras/ventas reales.
+  - `public_disc/financial-pdfs/{year}/{id}.pdf` — reporte de patrimonio anual.
+- El adapter busca por apellido, descarga los PTRs del año, extrae el texto
+  con pypdf y parsea las filas `(<TICKER>) [ST|OP] <P|S|E> <fecha> <monto>`.
+- Equivalente Senado (separado): `efdsearch.senate.gov`.
+
+**Por qué importa:** es el camino real para que `pelosi-tracker` y
+`trump-trades` tengan datos vivos sin depender de scrapers con login.
+
+---
 
 ## Capitol Trades (capitol_trades.py)
-
 **URL:** `https://www.capitoltrades.com/trades?politician=<slug>`
 
 **Arquitectura:** React Server Components (Next.js App Router). Los datos
