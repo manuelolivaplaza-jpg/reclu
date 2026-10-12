@@ -9,7 +9,7 @@
 //   OPENROUTER_API_KEY, OPENROUTER_MODEL
 //   RESEND_API_KEY, EMAIL_FROM
 
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 interface HoldingRow {
   id: string;
@@ -97,6 +97,9 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Recent window = holdings just flagged by the scraper (this run).
+    await appendAccumulationAlerts(supabase, alertsToInsert);
+
     if (alertsToInsert.length === 0) {
       return Response.json({ alerts_created: 0 }, { headers: corsHeaders });
     }
@@ -153,6 +156,115 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+const ACCUMULATION_MIN_PORTFOLIOS = 3;
+const ACCUMULATION_HIGH_SEVERITY = 5;
+
+interface TradePayload {
+  symbol?: string;
+  name?: string;
+  weight?: number;
+}
+
+/**
+ * When 3+ distinct portfolios open the same ticker in this window, emit one
+ * extra `mention` alert. Severity is high at 5+ portfolios.
+ */
+async function appendAccumulationAlerts(
+  supabase: SupabaseClient,
+  alerts: Array<Record<string, unknown>>,
+): Promise<void> {
+  const bySymbol = new Map<string, Map<string, { portfolio_id: string; weight: number | null }>>();
+
+  for (const alert of alerts) {
+    if (alert.type !== "new_trade") continue;
+    const payload = (alert.payload ?? {}) as TradePayload;
+    const symbol = String(payload.symbol ?? "").trim().toUpperCase();
+    const portfolioId = String(alert.portfolio_id ?? "");
+    if (!symbol || !portfolioId) continue;
+
+    let portfolios = bySymbol.get(symbol);
+    if (!portfolios) {
+      portfolios = new Map();
+      bySymbol.set(symbol, portfolios);
+    }
+    if (!portfolios.has(portfolioId)) {
+      portfolios.set(portfolioId, {
+        portfolio_id: portfolioId,
+        weight: typeof payload.weight === "number" ? payload.weight : null,
+      });
+    }
+  }
+
+  const groups = [...bySymbol.entries()].filter(([, portfolios]) => portfolios.size >= ACCUMULATION_MIN_PORTFOLIOS);
+  if (groups.length === 0) return;
+
+  const portfolioIds = [...new Set(groups.flatMap(([, portfolios]) => [...portfolios.keys()]))];
+  const { data: portfolioRows, error: portfolioErr } = await supabase
+    .from("portfolios")
+    .select("id, slug, name")
+    .in("id", portfolioIds);
+  if (portfolioErr) throw portfolioErr;
+
+  const portfolioMeta = new Map(
+    (portfolioRows ?? []).map((row: { id: string; slug: string; name: string }) => [row.id, row]),
+  );
+
+  const { data: existingMentions, error: mentionErr } = await supabase
+    .from("alerts")
+    .select("payload")
+    .eq("type", "mention")
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (mentionErr) throw mentionErr;
+
+  const existingSignatures = new Set(
+    (existingMentions ?? [])
+      .map((row: { payload: { symbol?: string; portfolios?: Array<{ portfolio_id?: string }> } }) =>
+        accumulationSignature(row.payload?.symbol, row.payload?.portfolios),
+      )
+      .filter((signature: string) => signature.length > 0),
+  );
+
+  for (const [symbol, portfolios] of groups) {
+    const list = [...portfolios.values()].sort((a, b) => a.portfolio_id.localeCompare(b.portfolio_id));
+    const signature = accumulationSignature(symbol, list);
+    if (existingSignatures.has(signature)) continue;
+
+    alerts.push({
+      portfolio_id: list[0].portfolio_id,
+      type: "mention",
+      severity: list.length >= ACCUMULATION_HIGH_SEVERITY ? "high" : "medium",
+      title: `Acumulación: ${symbol}`,
+      payload: {
+        symbol,
+        portfolios: list.map((entry) => {
+          const meta = portfolioMeta.get(entry.portfolio_id);
+          return {
+            portfolio_id: entry.portfolio_id,
+            slug: meta?.slug ?? null,
+            name: meta?.name ?? null,
+            weight: entry.weight,
+          };
+        }),
+      },
+      is_published: false,
+    });
+  }
+}
+
+function accumulationSignature(
+  symbol: string | undefined,
+  portfolios: Array<{ portfolio_id?: string }> | undefined,
+): string {
+  const ticker = String(symbol ?? "").trim().toUpperCase();
+  if (!ticker || !portfolios || portfolios.length === 0) return "";
+  const ids = portfolios
+    .map((entry) => entry.portfolio_id ?? "")
+    .filter((id) => id.length > 0)
+    .sort();
+  return `${ticker}:${ids.join(",")}`;
+}
 
 async function generateSummary(
   apiKey: string,
