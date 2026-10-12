@@ -28,11 +28,17 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
 
   function handleSearch(formData: FormData) {
     const q = String(formData.get("q") ?? "").trim();
+    const simbolo = String(formData.get("simbolo") ?? "").trim().toUpperCase();
     const params = new URLSearchParams(searchParams.toString());
     if (q) {
       params.set("q", q);
     } else {
       params.delete("q");
+    }
+    if (simbolo) {
+      params.set("simbolo", simbolo);
+    } else {
+      params.delete("simbolo");
     }
     router.push(`/explore?${params.toString()}`);
   }
@@ -42,14 +48,27 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
   return (
     <div className="flex flex-col gap-6">
       {/* Búsqueda: borde 1px gris, radio 0, focus negro */}
-      <form action={handleSearch} className="relative max-w-md">
-        <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-500" />
-        <input
-          name="q"
-          defaultValue={searchParams.get("q") ?? ""}
-          placeholder="Buscar por nombre, gestor o descripción..."
-          className="h-11 w-full rounded-none border border-ink-200 bg-white pr-4 pl-9 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
-        />
+      <form action={handleSearch} className="flex max-w-3xl flex-col gap-3 sm:flex-row">
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-500" />
+          <input
+            name="q"
+            defaultValue={searchParams.get("q") ?? ""}
+            placeholder="Buscar por nombre, gestor o descripción..."
+            className="h-11 w-full rounded-none border border-ink-200 bg-white pr-4 pl-9 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
+          />
+        </div>
+        <div className="relative min-w-0 flex-1">
+          <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-500" />
+          <input
+            name="simbolo"
+            aria-label="Buscar por símbolo"
+            defaultValue={(searchParams.get("simbolo") ?? "").toUpperCase()}
+            placeholder="Buscar por símbolo"
+            autoCapitalize="characters"
+            className="h-11 w-full rounded-none border border-ink-200 bg-white pr-4 pl-9 text-[15px] text-ink-900 uppercase placeholder:normal-case placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
+          />
+        </div>
       </form>
 
       {/* Filtros: activo = subrayado 1px negro; inactivo = gris */}
