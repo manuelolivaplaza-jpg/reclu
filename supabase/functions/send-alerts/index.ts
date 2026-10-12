@@ -5,7 +5,7 @@
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 //   RESEND_API_KEY, EMAIL_FROM
 
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 interface AlertWithPortfolio {
   id: string;
@@ -18,20 +18,9 @@ interface AlertWithPortfolio {
   portfolio: { id: string; slug: string; name: string };
 }
 
-interface Follower {
-  user_id: string;
-  profiles: { email: string; full_name: string | null; plan: string; alert_frequency: string };
-}
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const SEVERITY_EMOJI: Record<string, string> = {
-  low: "🔵",
-  medium: "🟡",
-  high: "🔴",
 };
 
 Deno.serve(async (req) => {
@@ -68,8 +57,12 @@ Deno.serve(async (req) => {
     }
 
     let totalSent = 0;
+    const alerts = pendingAlerts as AlertWithPortfolio[];
 
-    for (const alert of pendingAlerts as AlertWithPortfolio[]) {
+    // Free users get one grouped digest. Pro users stay on the per-alert loop.
+    totalSent += await sendFreeDigests(supabase, alerts, resendKey, from);
+
+    for (const alert of alerts) {
       // 2. Get followers of this portfolio
       const { data: followers } = await supabase
         .from("follows")
@@ -86,12 +79,14 @@ Deno.serve(async (req) => {
 
       const deliveredIds = new Set((delivered ?? []).map((d: { user_id: string }) => d.user_id));
 
-      for (const f of followers as Follower[]) {
-        if (deliveredIds.has(f.user_id)) continue;
-        // Free users only get daily digest — skip realtime sends
-        if (f.profiles.plan !== "pro" && f.profiles.alert_frequency === "realtime") continue;
+      for (const row of followers ?? []) {
+        const profile = firstProfile(row.profiles);
+        if (!profile) continue;
+        if (deliveredIds.has(row.user_id)) continue;
+        // Free plans are handled by the digest above.
+        if (profile.plan !== "pro") continue;
 
-        const html = renderEmail(alert, f.profiles.full_name ?? "Hola");
+        const html = renderEmail(alert, profile.full_name ?? "Hola");
 
         const res = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -101,8 +96,8 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             from,
-            to: f.profiles.email,
-            subject: `${SEVERITY_EMOJI[alert.severity] ?? "📢"} ${alert.portfolio.name}: ${alert.title}`,
+            to: profile.email,
+            subject: `reclu.cl — ${alert.portfolio.name}: ${alert.title}`,
             html,
           }),
         });
@@ -111,7 +106,7 @@ Deno.serve(async (req) => {
           totalSent++;
           await supabase.from("alert_deliveries").insert({
             alert_id: alert.id,
-            user_id: f.user_id,
+            user_id: row.user_id,
             email_sent: true,
             sent_at: new Date().toISOString(),
           });
@@ -128,36 +123,72 @@ Deno.serve(async (req) => {
   }
 });
 
-/** Render a clean, responsive alert email (light theme, matches brand). */
-function renderEmail(alert: AlertWithPortfolio, name: string): string {
+const FONT =
+  "'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
+
+/** Color a return only. Positive is green, negative is red, zero stays ink. */
+function colorizeReturns(escaped: string): string {
+  return escaped.replace(/[+\u2212-]?\d+(?:[.,]\d+)?\s*%/g, (match) => {
+    const value = Number.parseFloat(
+      match.replace("%", "").replace(/\s/g, "").replace(",", ".").replace("\u2212", "-"),
+    );
+    if (!Number.isFinite(value) || value === 0) return match;
+    const color = value > 0 ? "#0f7a32" : "#c81e1e";
+    return `<span style="color:${color};font-variant-numeric:tabular-nums;font-feature-settings:'tnum' 1;">${match}</span>`;
+  });
+}
+
+/** Render the alert email: white, 1px rules, black pill. No brand blue. */
+function renderEmail(alert: AlertWithPortfolio, _name: string): string {
   const portfolioUrl = `https://reclu.cl/portfolio/${alert.portfolio.slug}`;
+  const title = colorizeReturns(escapeHtml(alert.title));
   const summaryBlock = alert.summary
-    ? `<div style="margin:16px 0;padding:16px;border:1px solid #dbeafe;background:#eff6ff;border-radius:8px;">
-         <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#1e40af;">✨ Resumen AI</p>
-         <p style="margin:0;font-size:14px;line-height:1.6;color:#1e3a8a;">${escapeHtml(alert.summary)}</p>
+    ? `<div style="margin:20px 0 0;padding:0 0 0 14px;border-left:2px solid #0a0a0a;background:#ffffff;">
+         <p style="margin:0 0 6px;font-size:13px;font-weight:400;line-height:1.4;color:#6b6b6b;">Resumen AI</p>
+         <p style="margin:0;font-size:15px;line-height:1.5;color:#0a0a0a;">${colorizeReturns(escapeHtml(alert.summary))}</p>
        </div>`
-    : `<p style="font-size:13px;color:#697386;">Actualiza a Pro para recibir resúmenes con análisis AI.</p>`;
+    : `<p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:#6b6b6b;">Actualiza a Pro para recibir resúmenes con análisis AI.</p>`;
 
   return `<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#fafafa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+  a.reclu-manage { color: #0a0a0a; text-decoration: none; }
+  a.reclu-manage:hover { text-decoration: underline; }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;color:#0a0a0a;font-family:${FONT};">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
-    <p style="font-size:18px;font-weight:600;color:#1a1f36;margin:0 0 4px;">reclu<span style="color:#2563eb;">.cl</span></p>
-    <p style="font-size:13px;color:#697386;margin:0 0 24px;">Alerta de portafolio</p>
-    <div style="background:#ffffff;border:1px solid #eef2f7;border-radius:12px;padding:24px;">
-      <p style="font-size:14px;color:#697386;margin:0 0 4px;">${escapeHtml(alert.portfolio.name)}</p>
-      <h1 style="font-size:18px;font-weight:600;color:#1a1f36;margin:0 0 16px;">${escapeHtml(alert.title)}</h1>
+    <p style="margin:0 0 24px;font-size:18px;font-weight:600;letter-spacing:-0.04em;line-height:1;color:#0a0a0a;">reclu</p>
+    <div style="background:#ffffff;border:1px solid #e6e6e6;border-radius:0;box-shadow:none;padding:24px;">
+      <p style="margin:0 0 6px;font-size:13px;font-weight:400;line-height:1.4;color:#6b6b6b;">${escapeHtml(alert.portfolio.name)}</p>
+      <h1 style="margin:0;font-size:20px;font-weight:600;letter-spacing:-0.03em;line-height:1.2;color:#0a0a0a;">${title}</h1>
       ${summaryBlock}
-      <a href="${portfolioUrl}" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:500;padding:10px 20px;border-radius:8px;">Ver portafolio</a>
+      <a href="${portfolioUrl}" style="display:inline-block;margin-top:24px;background:#0a0a0a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;line-height:1;padding:14px 22px;border-radius:999px;">Ver portafolio</a>
     </div>
-    <p style="font-size:11px;color:#8792a2;line-height:1.6;margin:24px 0 0;">
+    <p style="margin:24px 0 0;font-size:11px;line-height:1.6;color:#6b6b6b;">
       Información pública con fines informativos. No constituye asesoría de inversión.
-      <a href="https://reclu.cl/settings" style="color:#2563eb;">Administrar alertas</a>
+      <a class="reclu-manage" href="https://reclu.cl/settings" style="color:#0a0a0a;text-decoration:none;">Administrar alertas</a>
     </p>
   </div>
 </body>
 </html>`;
+}
+
+interface ProfileRow {
+  email: string;
+  full_name: string | null;
+  plan: string;
+  alert_frequency: string;
+}
+
+/** Supabase may type an inner join as one row or as an array. */
+function firstProfile(profiles: ProfileRow | ProfileRow[] | null | undefined): ProfileRow | null {
+  if (!profiles) return null;
+  return Array.isArray(profiles) ? profiles[0] ?? null : profiles;
 }
 
 function escapeHtml(str: string): string {
@@ -166,4 +197,159 @@ function escapeHtml(str: string): string {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+/**
+ * One email for a free user: alerts grouped by portfolio.
+ * Empty input returns an empty string so the caller sends nothing.
+ */
+function buildDigest(alerts: AlertWithPortfolio[], name: string): string {
+  if (alerts.length === 0) return "";
+
+  const groups = new Map<string, { portfolio: AlertWithPortfolio["portfolio"]; alerts: AlertWithPortfolio[] }>();
+  for (const alert of alerts) {
+    const key = alert.portfolio.id;
+    const group = groups.get(key) ?? { portfolio: alert.portfolio, alerts: [] };
+    group.alerts.push(alert);
+    groups.set(key, group);
+  }
+
+  const sections = [...groups.values()].map((group) => {
+    const items = group.alerts.map((alert) => {
+      const summary = alert.summary
+        ? `<p style="margin:6px 0 0;font-size:15px;line-height:1.5;color:#0a0a0a;">${colorizeReturns(escapeHtml(alert.summary))}</p>`
+        : "";
+      return `<div style="padding:14px 0;border-top:1px solid #e6e6e6;">
+        <p style="margin:0;font-size:16px;font-weight:500;letter-spacing:-0.03em;line-height:1.3;color:#0a0a0a;">${colorizeReturns(escapeHtml(alert.title))}</p>
+        ${summary}
+      </div>`;
+    }).join("");
+
+    const portfolioUrl = `https://reclu.cl/portfolio/${group.portfolio.slug}`;
+    return `<section style="margin-top:28px;">
+      <p style="margin:0 0 4px;font-size:13px;font-weight:400;line-height:1.4;color:#6b6b6b;">${escapeHtml(group.portfolio.name)}</p>
+      ${items}
+      <a href="${portfolioUrl}" style="display:inline-block;margin-top:12px;background:#0a0a0a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;line-height:1;padding:14px 22px;border-radius:999px;">Ver portafolio</a>
+    </section>`;
+  }).join("");
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+</head>
+<body style="margin:0;padding:0;background:#ffffff;color:#0a0a0a;font-family:${FONT};">
+  <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+    <p style="margin:0 0 24px;font-size:18px;font-weight:600;letter-spacing:-0.04em;line-height:1;color:#0a0a0a;">reclu</p>
+    <h1 style="margin:0 0 12px;font-size:28px;font-weight:500;letter-spacing:-0.04em;line-height:1;color:#0a0a0a;">Tu resumen reclu</h1>
+    <p style="margin:0;font-size:15px;line-height:1.5;color:#6b6b6b;">Hola ${escapeHtml(name)}, estos son los cambios en los portafolios que sigues.</p>
+    ${sections}
+    <p style="margin:32px 0 0;padding-top:20px;border-top:1px solid #e6e6e6;font-size:11px;line-height:1.6;color:#6b6b6b;">
+      Información pública con fines informativos. No constituye asesoría de inversión.
+      <a href="https://reclu.cl/settings" style="color:#0a0a0a;text-decoration:none;">Administrar alertas</a>
+    </p>
+  </div>
+</body>
+</html>`;
+}
+
+/** Group every pending alert of the portfolios a free user follows into one email. */
+async function sendFreeDigests(
+  supabase: SupabaseClient,
+  alerts: AlertWithPortfolio[],
+  resendKey: string,
+  from: string,
+): Promise<number> {
+  if (alerts.length === 0) return 0;
+
+  const portfolioIds = [...new Set(alerts.map((alert) => alert.portfolio_id))];
+  const { data: follows, error: followsErr } = await supabase
+    .from("follows")
+    .select("user_id, portfolio_id, profiles!inner(email, full_name, plan, alert_frequency)")
+    .in("portfolio_id", portfolioIds);
+  if (followsErr) throw followsErr;
+  if (!follows || follows.length === 0) return 0;
+
+  const alertIds = alerts.map((alert) => alert.id);
+  const { data: delivered, error: deliveredErr } = await supabase
+    .from("alert_deliveries")
+    .select("alert_id, user_id")
+    .in("alert_id", alertIds);
+  if (deliveredErr) throw deliveredErr;
+
+  const deliveredKeys = new Set(
+    (delivered ?? []).map((row: { alert_id: string; user_id: string }) => `${row.alert_id}:${row.user_id}`),
+  );
+
+  const alertsByPortfolio = new Map<string, AlertWithPortfolio[]>();
+  for (const alert of alerts) {
+    const list = alertsByPortfolio.get(alert.portfolio_id) ?? [];
+    list.push(alert);
+    alertsByPortfolio.set(alert.portfolio_id, list);
+  }
+
+  const buckets = new Map<string, { email: string; name: string; alerts: AlertWithPortfolio[]; seen: Set<string> }>();
+
+  for (const row of follows) {
+    const profile = firstProfile(row.profiles);
+    if (!profile || profile.plan === "pro") continue;
+    const portfolioAlerts = alertsByPortfolio.get(row.portfolio_id) ?? [];
+    if (portfolioAlerts.length === 0) continue;
+
+    let bucket = buckets.get(row.user_id);
+    if (!bucket) {
+      bucket = {
+        email: profile.email,
+        name: profile.full_name?.trim() || "Hola",
+        alerts: [],
+        seen: new Set<string>(),
+      };
+      buckets.set(row.user_id, bucket);
+    }
+
+    for (const alert of portfolioAlerts) {
+      if (deliveredKeys.has(`${alert.id}:${row.user_id}`)) continue;
+      if (bucket.seen.has(alert.id)) continue;
+      bucket.seen.add(alert.id);
+      bucket.alerts.push(alert);
+    }
+  }
+
+  let sent = 0;
+  for (const [userId, bucket] of buckets) {
+    if (bucket.alerts.length === 0 || !bucket.email) continue;
+
+    const html = buildDigest(bucket.alerts, bucket.name);
+    if (!html) continue;
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from,
+        to: bucket.email,
+        subject: "Tu resumen reclu",
+        html,
+      }),
+    });
+
+    if (!res.ok) continue;
+
+    sent++;
+    await supabase.from("alert_deliveries").insert(
+      bucket.alerts.map((alert) => ({
+        alert_id: alert.id,
+        user_id: userId,
+        email_sent: true,
+        sent_at: new Date().toISOString(),
+      })),
+    );
+  }
+
+  return sent;
 }
