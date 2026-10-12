@@ -3,6 +3,8 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X, ArrowUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { ChatGateModal, type GateReason } from "./chat-gate-modal";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -16,6 +18,27 @@ const SUGGESTIONS = [
   "Explícame los ETFs de ARK",
 ];
 
+// Cuota anónima: 2 preguntas antes de pedir registro. Persistida en localStorage.
+const ANON_FREE_QUESTIONS = 2;
+const ANON_KEY = "reclu_anon_questions";
+
+function readAnonCount(): number {
+  if (typeof window === "undefined") return 0;
+  const raw = window.localStorage.getItem(ANON_KEY);
+  const n = raw ? parseInt(raw, 10) : 0;
+  return Number.isFinite(n) ? n : 0;
+}
+
+function bumpAnonCount(): number {
+  const next = readAnonCount() + 1;
+  try {
+    window.localStorage.setItem(ANON_KEY, String(next));
+  } catch {
+    /* storage bloqueado */
+  }
+  return next;
+}
+
 export function AiChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -26,6 +49,13 @@ export function AiChatWidget() {
   replyRef.current = reply;
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [user, setUser] = useState<{ id: string; plan: string } | null>(null);
+  const [gate, setGate] = useState<{ open: boolean; reason: GateReason }>({
+    open: false,
+    reason: "register",
+  });
+  const [lowQuota, setLowQuota] = useState(false);
+  const [loadedHistory, setLoadedHistory] = useState(false);
 
   // Auto-scroll al fondo cuando llegan mensajes
   useEffect(() => {
@@ -48,9 +78,53 @@ export function AiChatWidget() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Detectar sesión y cargar historial guardado
+  useEffect(() => {
+    const supabase = createClient();
+    let cancelled = false;
+    supabase.auth.getUser().then(async ({ data }) => {
+      if (cancelled || !data.user) return;
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("plan")
+        .eq("id", data.user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setUser({ id: data.user.id, plan: profile?.plan ?? "free" });
+      // Cargar últimas 50 mensajes del historial
+      const { data: history } = await supabase
+        .from("chat_messages")
+        .select("role, content")
+        .eq("user_id", data.user.id)
+        .order("created_at", { ascending: true })
+        .limit(50);
+      if (!cancelled && history && history.length > 0) {
+        setMessages(
+          history.map((h: { role: string; content: string }) => ({
+            role: h.role === "assistant" ? "assistant" : "user",
+            content: h.content,
+          })),
+        );
+      }
+      setLoadedHistory(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   async function send(text: string) {
     const question = text.trim();
     if (!question || loading) return;
+
+    // --- Gate anónimo: tras 2 preguntas, pedir registro ---
+    if (!user) {
+      const count = readAnonCount();
+      if (count >= ANON_FREE_QUESTIONS) {
+        setGate({ open: true, reason: "register" });
+        return;
+      }
+    }
 
     const userMsg: ChatMessage = { role: "user", content: question };
     const nextMessages = [...messages, userMsg];
@@ -58,6 +132,7 @@ export function AiChatWidget() {
     setInput("");
     setLoading(true);
     setReply("");
+    if (!user) bumpAnonCount();
 
     try {
       const res = await fetch("/api/chat", {
@@ -65,6 +140,13 @@ export function AiChatWidget() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: nextMessages }),
       });
+
+      // 429 = límite alcanzado (registrado). Pop-up de upgrade o de renovación.
+      if (res.status === 429) {
+        setGate({ open: true, reason: "limit" });
+        setLoading(false);
+        return;
+      }
 
       if (!res.ok || !res.body) {
         let errMsg = "No pude conectar con el asistente. Intenta de nuevo en un momento.";
@@ -78,6 +160,11 @@ export function AiChatWidget() {
         setLoading(false);
         return;
       }
+
+      // Cuota: free recibe el número restante; Pro recibe solo el aviso sutil.
+      const remaining = res.headers.get("X-Chat-Remaining");
+      const quedanPocas = res.headers.get("X-Chat-Quedan-Pocas") === "true";
+      setLowQuota(quedanPocas || (remaining !== null && remaining !== "limited" && Number(remaining) <= 2));
 
       // El backend stremea SSE de OpenRouter: leer chunk a chunk.
       const reader = res.body.getReader();
@@ -176,7 +263,7 @@ export function AiChatWidget() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-50 flex flex-col bg-background sm:inset-auto sm:right-5 sm:bottom-5 sm:h-[560px] sm:w-[400px] sm:border sm:border-ink-200"
+            className="relative fixed inset-0 z-50 flex flex-col bg-background sm:inset-auto sm:right-5 sm:bottom-5 sm:h-[560px] sm:w-[400px] sm:border sm:border-ink-200"
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
@@ -184,6 +271,17 @@ export function AiChatWidget() {
             role="dialog"
             aria-label="Asistente IA de reclu"
           >
+            <ChatGateModal
+              open={gate.open}
+              reason={gate.reason}
+              onClose={() => setGate((g) => ({ ...g, open: false }))}
+            />
+            {/* Aviso MUY sutil solo para Pro cerca del límite (nunca el número) */}
+            {lowQuota && user?.plan === "pro" && !gate.open && (
+              <p className="border-b border-ink-200 px-5 py-2 text-[12px] text-ink-500">
+                Te quedan pocas consultas esta semana. Se renuevan automáticamente.
+              </p>
+            )}
             {/* Header */}
             <div className="flex items-center justify-between border-b border-ink-200 px-5 py-4">
               <div>
