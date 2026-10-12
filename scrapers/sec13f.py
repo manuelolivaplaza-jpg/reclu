@@ -15,17 +15,33 @@ import httpx
 
 # fund manager name -> CIK
 FUNDS: dict[str, int] = {
+    # --- US short-book funds (verified in data.sec.gov 2026-10-12) ---
     "Berkshire Hathaway": 1067983,
     "Scion Asset Management": 1649339,  # fixed 2026-10-12: 1644424 was CareQuo LLC
     "Pershing Square": 1336528,
     "Appaloosa": 1656456,
-    # short-book 13Fs, CIKs verified in data.sec.gov 2026-10-12
     "Tiger Global": 1167483,
     "Coatue": 1135730,
     "Duquesne": 1536411,
     "Third Point": 1040273,
     "Baupost": 1061768,
     "Viking Global": 1103804,
+    # --- International funds with US 13F filings ---
+    "TCI Fund Management": 1647251,      # GB — Chris Hohn, 11 lines
+    "Public Investment Fund": 1767640,   # SA — Saudi sovereign (SpaceX, Uber, EA)
+    "Cevian Capital": 1365341,           # SE/JE — activist (UBS, Autoliv, CRH)
+    "Egerton Capital": 1581811,          # GB — John Armitage
+    "SoftBank Group": 1065521,           # JP — 33 lines (Intel, T-Mobile, Symbotic)
+    "SB Investment Advisers": 1731509,   # GB — SoftBank Vision Fund listed book
+    "Mubadala": 1704268,                 # AE — UAE sovereign (GlobalFoundries)
+    "Lansdowne Partners": 1608485,       # GB — long/short
+}
+
+# Funds whose 13F XML infotable has a non-standard filename or
+# where the cover value is in thousands instead of dollars.
+SPECIAL_INFOTABLE: dict[str, str] = {
+    "AKO Capital": "13F_report_20260630.xml",  # kept for reference; AKO not enabled
+    "SoftBank Group": "form13fInfoTable.xml",
 }
 
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
@@ -55,25 +71,33 @@ def _latest_13f(cik: int) -> tuple[str, str] | None:
     return None
 
 
-def _infotable_url(cik: int, accession: str) -> str:
-    """Find the info-table XML inside an accession folder."""
+def _infotable_url(cik: int, accession: str, fund_name: str = "") -> str:
+    """Find the info-table XML inside an accession folder.
+
+    Some filers use a non-standard filename (e.g. SoftBank's
+    form13fInfoTable.xml), so check SPECIAL_INFOTABLE first.
+    """
     acc_nodash = accession.replace("-", "")
-    index = _get_json(f"{ARCHIVES_URL.format(cik=cik, accession_nodash=acc_nodash)}/index.json")
+    base = ARCHIVES_URL.format(cik=cik, accession_nodash=acc_nodash)
+    special = SPECIAL_INFOTABLE.get(fund_name)
+    if special:
+        return f"{base}/{special}"
+    index = _get_json(f"{base}/index.json")
     for item in index["directory"]["item"]:
         name = item["name"]
         if name.endswith(".xml") and name != "primary_doc.xml":
-            return f"{ARCHIVES_URL.format(cik=cik, accession_nodash=acc_nodash)}/{name}"
+            return f"{base}/{name}"
     raise ValueError(f"no info table xml in accession {accession}")
 
 
-def fetch_holdings(cik: int) -> list[dict]:
+def fetch_holdings(cik: int, fund_name: str = "") -> list[dict]:
     """Parsed holdings of the latest 13F, with computed weights."""
     latest = _latest_13f(cik)
     if not latest:
         return []
     accession, filing_date = latest
 
-    xml_text = _get_text(_infotable_url(cik, accession))
+    xml_text = _get_text(_infotable_url(cik, accession, fund_name))
     root = ET.fromstring(xml_text)
     ns = {"ns": root.tag.split("}")[0].strip("{")}
 
@@ -115,7 +139,7 @@ def fetch_all_funds() -> dict[str, list[dict]]:
     results: dict[str, list[dict]] = {}
     for name, cik in FUNDS.items():
         try:
-            holdings = fetch_holdings(cik)
+            holdings = fetch_holdings(cik, name)
             results[name] = holdings
             print(f"OK {name}: {len(holdings)} holdings")
         except Exception as e:  # noqa: BLE001 - one bad fund must not kill the run
