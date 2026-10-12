@@ -274,5 +274,9 @@ insert into public.portfolios (slug, name, description, category, source, manage
   ('dividend-aristocrats', 'Dividend Aristocrats', 'Empresas de EE.UU. con 25+ años aumentando su dividendo.', 'thematic', 'model', null, 'US', true, '{dividendos, aristocrats, defensivo}'),
   ('fintech-global', 'Fintech Global', 'Plataformas de pagos, neobancos e infraestructura financiera digital.', 'thematic', 'model', null, 'Global', false, '{fintech, pagos, tech}'),
   ('latin-tech', 'Latin Tech', 'Las mayores empresas de tecnología de Latinoamérica.', 'thematic', 'model', null, 'Global', false, '{latam, tech, mercados-emergentes}'),
-  ('utilities-defensivas', 'Utilities Defensivas', 'Servicios básicos estables: agua, electricidad y gas.', 'thematic', 'model', null, 'Global', false, '{utilities, defensivo, dividendos}')
+  ('utilities-defensivas', 'Utilities Defensivas', 'Servicios básicos estables: agua, electricidad y gas.', 'thematic', 'model', null, 'Global', false, '{utilities, defensivo, dividendos}'),
+  ('berkshire-hathaway-13f', 'Berkshire Hathaway 13F', 'Cartera de Berkshire Hathaway (Warren Buffett) según sus declaraciones 13F ante la SEC.', 'hedge_fund', 'sec_13f', 'Warren Buffett', 'US', false, '{buffett, berkshire, 13f, value}'),
+  ('pershing-square-13f', 'Pershing Square 13F', 'Cartera de Pershing Square Capital (Bill Ackman) según sus declaraciones 13F ante la SEC.', 'hedge_fund', 'sec_13f', 'Bill Ackman', 'US', false, '{ackman, pershing, 13f, activista}'),
+  ('appaloosa-13f', 'Appaloosa 13F', 'Cartera de Appaloosa Management (David Tepper) según sus declaraciones 13F ante la SEC.', 'hedge_fund', 'sec_13f', 'David Tepper', 'US', false, '{tepper, appaloosa, 13f}'),
+  ('scion-13f', 'Scion 13F', 'Cartera de Scion Asset Management (Michael Burry) según sus declaraciones 13F ante la SEC.', 'hedge_fund', 'sec_13f', 'Michael Burry', 'US', false, '{burry, scion, 13f, contrarian}')
 on conflict (slug) do nothing;
