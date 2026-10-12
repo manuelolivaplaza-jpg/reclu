@@ -35,6 +35,10 @@ FUNDS: dict[str, int] = {
     "SB Investment Advisers": 1731509,   # GB — SoftBank Vision Fund listed book
     "Mubadala": 1704268,                 # AE — UAE sovereign (GlobalFoundries)
     "Lansdowne Partners": 1608485,       # GB — long/short
+    # --- Big books (Autopilot-parity): long but real, shown in full ---
+    "Renaissance Technologies": 1037389,  # 3,140 lines — institutional book, not Medallion
+    "Bridgewater Associates": 1350694,    # 997 lines — All Weather long-only cut
+    "Soros Fund Management": 1029160,     # 266 lines — family office
 }
 
 # Funds whose 13F XML infotable has a non-standard filename or
