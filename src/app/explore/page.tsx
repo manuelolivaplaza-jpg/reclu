@@ -1,9 +1,13 @@
-import { getPortfolios, getFollows, getProfile } from "@/lib/queries";
+import { getPortfolios, getFollows, getProfile, getHoldings, getAlerts } from "@/lib/queries";
 import { PortfolioCard } from "@/components/portfolio-card";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { CATEGORY_META, type PortfolioCategory } from "@/lib/types";
+import { CATEGORY_META, type Portfolio, type PortfolioCategory } from "@/lib/types";
 import { ExploreFilters } from "@/components/explore-filters";
+import { ExploreRankings } from "@/components/explore-rankings";
+
+/** getAlerts recorta por defecto a 20. El ranking cuenta publicadas, no solo las últimas. */
+const ALERT_RANKING_LIMIT = 1000;
 
 export const metadata = {
   title: "Portafolios",
@@ -13,19 +17,26 @@ export const metadata = {
 export const instant = false;
 
 interface ExplorePageProps {
-  searchParams: Promise<{ categoria?: string; q?: string; pais?: string }>;
+  searchParams: Promise<{ categoria?: string; q?: string; pais?: string; simbolo?: string }>;
 }
 
 export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const params = await searchParams;
   const category = params.categoria ?? "all";
   const search = params.q ?? "";
+  const symbol = (params.simbolo ?? "").trim().toUpperCase();
 
-  const [portfolios, follows, profile] = await Promise.all([
+  const [listed, follows, profile, catalog, alerts] = await Promise.all([
     getPortfolios({ category, search }),
     getFollows(),
     getProfile(),
+    getPortfolios(),
+    getAlerts(undefined, ALERT_RANKING_LIMIT),
   ]);
+
+  const portfolios = symbol
+    ? await filterByHoldingSymbol(listed, symbol)
+    : listed;
 
   const followedIds = new Set(follows.map((f) => f.portfolio_id));
   const isPro = profile?.plan === "pro";
@@ -45,6 +56,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
           <div className="mt-10">
             <ExploreFilters categories={categories} activeCategory={category} />
           </div>
+
+          <ExploreRankings portfolios={catalog} alerts={alerts} />
 
           {portfolios.length === 0 ? (
             <p className="mt-16 text-[15px] text-ink-500">
@@ -67,4 +80,15 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
       <SiteFooter />
     </>
   );
+}
+
+/** Portafolios cuyo listado de holdings incluye el símbolo (ya en mayúsculas). */
+async function filterByHoldingSymbol(portfolios: Portfolio[], symbol: string): Promise<Portfolio[]> {
+  const matches = await Promise.all(
+    portfolios.map(async (portfolio) => {
+      const holdings = await getHoldings(portfolio.id);
+      return holdings.some((holding) => holding.symbol.trim().toUpperCase() === symbol);
+    }),
+  );
+  return portfolios.filter((_, index) => matches[index]);
 }

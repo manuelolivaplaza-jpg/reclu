@@ -8,6 +8,7 @@ import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { CATEGORY_META } from "@/lib/types";
 import { timeAgo, formatCompact } from "@/lib/utils";
+import { disclosureLagLabel } from "@/lib/disclosure-lag";
 
 export const instant = false;
 
@@ -208,23 +209,31 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
               <PaywallGate locked label="historial de alertas" className="mt-4">
                 {alerts.length > 0 ? (
                   <div className="flex flex-col gap-4">
-                    {alerts.map((alert) => (
-                      <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
-                        <p className="text-[13px] text-ink-500">{timeAgo(alert.created_at)}</p>
-                        <h3 className="mt-1 text-[15px] font-medium text-ink-900">
-                          {alert.title}
-                        </h3>
-                        {alert.summary ? (
-                          <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-ink-500">
-                            {alert.summary}
-                          </p>
-                        ) : !isPro ? (
-                          <p className="mt-1.5 text-[13px] text-ink-500">
-                            Resumen AI disponible en Pro
-                          </p>
-                        ) : null}
-                      </div>
-                    ))}
+                    {alerts.map((alert) => {
+                      const lag = disclosureLagLabel(alert.payload);
+                      return (
+                        <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
+                          <p className="text-[13px] text-ink-500">{timeAgo(alert.created_at)}</p>
+                          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                            <h3 className="text-[15px] font-medium text-ink-900">{alert.title}</h3>
+                            {lag ? (
+                              <p className="text-[13px] font-normal leading-snug text-[#6b6b6b]">
+                                {lag}
+                              </p>
+                            ) : null}
+                          </div>
+                          {alert.summary ? (
+                            <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-ink-500">
+                              {alert.summary}
+                            </p>
+                          ) : !isPro ? (
+                            <p className="mt-1.5 text-[13px] text-ink-500">
+                              Resumen AI disponible en Pro
+                            </p>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="mt-4 text-[15px] text-ink-500">Sin alertas registradas aún.</p>
