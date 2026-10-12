@@ -16,9 +16,16 @@ import httpx
 # fund manager name -> CIK
 FUNDS: dict[str, int] = {
     "Berkshire Hathaway": 1067983,
-    "Scion Asset Management": 1644424,
+    "Scion Asset Management": 1649339,  # fixed 2026-10-12: 1644424 was CareQuo LLC
     "Pershing Square": 1336528,
     "Appaloosa": 1656456,
+    # short-book 13Fs, CIKs verified in data.sec.gov 2026-10-12
+    "Tiger Global": 1167483,
+    "Coatue": 1135730,
+    "Duquesne": 1536411,
+    "Third Point": 1040273,
+    "Baupost": 1061768,
+    "Viking Global": 1103804,
 }
 
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
