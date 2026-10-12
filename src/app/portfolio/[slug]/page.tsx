@@ -3,12 +3,11 @@ import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing } from "@/lib/queries";
+import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
-import { Sparkline } from "@/components/sparkline";
 import { CATEGORY_META } from "@/lib/types";
 import { timeAgo, formatCompact } from "@/lib/utils";
-import { sparklineData } from "@/components/sections/portfolio-data";
 
 export const instant = false;
 
@@ -45,6 +44,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const locked = !profile;
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
+  // Solo pesos actuales. No hay serie de valor, benchmark ni retornos mensuales en la app.
+  const composition = holdings.map((holding) => ({
+    symbol: holding.symbol,
+    weight: holding.weight,
+  }));
+  const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -135,22 +140,20 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
 
         <div className="container-page py-10">
+          {showComposition ? (
+            <div className="mb-12">
+              <ChartSection>
+                <PortfolioDetailCharts composition={composition} />
+              </ChartSection>
+            </div>
+          ) : null}
+
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
             {/* Holdings — censurados sin cuenta */}
             <section>
               <h2 className="text-[15px] font-medium text-ink-900">
                 Composición ({holdings.length} activos)
               </h2>
-
-              {/* Gráfica de rendimiento — censurada */}
-              {hasReturn && (
-                <PaywallGate locked label="gráfica" className="mt-4">
-                  <Sparkline
-                    data={sparklineData(portfolio.return_ytd ?? 0)}
-                    className="h-24 w-full"
-                  />
-                </PaywallGate>
-              )}
 
               <PaywallGate locked label="composición" className="mt-4">
                 {holdings.length > 0 ? (

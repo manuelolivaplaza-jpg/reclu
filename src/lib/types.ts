@@ -68,6 +68,28 @@ export interface Holding {
   exchange: string | null;
   currency: "USD" | "CLP" | "EUR";
   as_of: string;
+  /** Price at disclosure (real market data, Fase 1). */
+  price_at_disclosure: number | null;
+  price_current: number | null;
+  /** Computed return % (price_current vs price_at_disclosure). */
+  return_pct: number | null;
+}
+
+// ---- Portfolio snapshots (Fase 3 charts) ----
+export interface PortfolioSnapshot {
+  id: string;
+  portfolio_id: string;
+  symbol: string;
+  weight: number;
+  as_of: string;
+}
+
+// ---- Prices (Fase 1) ----
+export interface Price {
+  symbol: string;
+  date: string;
+  close: number;
+  currency: "USD" | "CLP" | "EUR";
 }
 
 // ---- Alerts ----
