@@ -68,10 +68,12 @@ export function sparklineData(returnPct: number): number[] {
   const pts: number[] = [];
   let v = 0.5 + (rand() - 0.5) * 0.2;
   for (let i = 0; i < 12; i++) {
-    v += (upward ? -1 : 1) * (0.03 + rand() * 0.04) + (rand() - 0.5) * 0.05;
+    // Trend follows the sign: positive returns climb, negative fall.
+    v += (upward ? 1 : -1) * (0.03 + rand() * 0.04) + (rand() - 0.5) * 0.05;
     v = Math.max(0.05, Math.min(0.95, v));
     pts.push(v);
   }
-  pts[pts.length - 1] = upward ? 0.12 : 0.82;
+  // End point must sit on the correct side so the stroke direction matches.
+  pts[pts.length - 1] = upward ? 0.82 : 0.12;
   return pts;
 }
