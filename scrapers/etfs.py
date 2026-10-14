@@ -86,12 +86,29 @@ def fetch_ark(slug: str) -> list[dict]:
 
 
 def _latest_globalx_date(ticker: str) -> str:
-    """Newest YYYYMMDD found in the fund page (holdings file is date-stamped)."""
-    html = _get(GLOBALX_LISTING.format(ticker=ticker))
-    dates = re.findall(rf"{ticker}_full-holdings_(\d{{8}})\.csv", html)
-    if not dates:
-        raise ValueError(f"no holdings link found for {ticker}")
-    return max(dates)
+    """Newest YYYYMMDD whose holdings CSV returns HTTP 200 and starts with 'Global X'.
+
+    The fund page no longer links the file. Probe yesterday, then walk back
+    at most five days (offsets 1..5).
+    """
+    from datetime import datetime, timedelta
+
+    today = datetime.now()
+    for days_back in range(1, 6):
+        file_date = (today - timedelta(days=days_back)).strftime("%Y%m%d")
+        url = GLOBALX_HOLDINGS.format(ticker=ticker, date=file_date)
+        try:
+            resp = httpx.get(
+                url,
+                headers={"User-Agent": USER_AGENT},
+                timeout=10.0,
+                follow_redirects=True,
+            )
+        except httpx.HTTPError:
+            continue
+        if resp.status_code == 200 and resp.text.startswith("Global X"):
+            return file_date
+    raise ValueError(f"no holdings link found for {ticker}")
 
 
 def fetch_globalx(slug: str) -> list[dict]:
