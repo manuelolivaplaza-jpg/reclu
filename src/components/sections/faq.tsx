@@ -31,22 +31,22 @@ const FAQ_ITEMS = [
  */
 export function FAQ() {
   return (
-    <section id="faq" className="bg-white py-20 md:py-28">
+    <section id="faq" className="bg-white py-28 md:py-36">
       <div className="container-page">
         <h2 className="type-section text-ink-900">Preguntas.</h2>
 
-        <div className="mt-12 max-w-[46rem]">
+        <div className="mt-16 max-w-[46rem] md:mt-20">
           {FAQ_ITEMS.map((item) => (
-            <details key={item.q} className="group border-t border-ink-200 py-[1.35rem]">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-6 marker:content-none [&::-webkit-details-marker]:hidden">
-                <span className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 md:text-[24px]">
+            <details key={item.q} className="group border-t border-ink-200 py-7 md:py-8">
+              <summary className="flex cursor-pointer list-none items-start justify-between gap-8 marker:content-none [&::-webkit-details-marker]:hidden">
+                <span className="text-[22px] font-medium leading-[1.2] tracking-[-0.03em] text-ink-900 underline decoration-transparent underline-offset-[0.22em] [text-decoration-thickness:1px] transition-[text-decoration-color] duration-200 group-hover:decoration-ink-900 md:text-[26px]">
                   {item.q}
                 </span>
                 <span className="mt-1 shrink-0 text-[22px] leading-none text-ink-900 transition-transform duration-200 group-open:rotate-45">
                   +
                 </span>
               </summary>
-              <p className="mt-3 max-w-[40rem] text-[16px] leading-relaxed text-ink-500">
+              <p className="mt-4 max-w-[40rem] text-[16px] leading-[1.65] text-ink-500">
                 {item.a}
               </p>
             </details>

@@ -23,44 +23,47 @@ const PRO_FEATURES = [
  */
 export function Pricing() {
   return (
-    <section id="precios" className="bg-white py-20 md:py-28">
+    <section id="precios" className="bg-white py-28 md:py-36">
       <div className="container-page">
         <h2 className="type-section text-ink-900">Empieza en cero.</h2>
 
-        <div className="mt-12 grid max-w-[880px] grid-cols-1 gap-px border border-ink-200 bg-ink-200 md:grid-cols-2">
+        <div className="mt-16 grid max-w-[880px] grid-cols-1 gap-px border border-ink-200 bg-ink-200 md:mt-20 md:grid-cols-2">
           {/* Gratis */}
-          <div className="flex flex-col bg-white p-8 md:p-10">
+          <div className="flex flex-col bg-white p-8 md:p-12">
             <p className="label-line">Gratis</p>
-            <p className="type-section mt-4 text-ink-900">$0</p>
-            <p className="label-line mt-1">Para siempre</p>
+            <p className="type-section num mt-5 text-ink-900">$0</p>
+            <p className="label-line mt-3">Para siempre</p>
 
-            <ul className="mt-8 flex flex-1 flex-col">
+            <ul className="mt-10 flex flex-1 flex-col border-t border-ink-200">
               {FREE_FEATURES.map((f) => (
                 <li
                   key={f}
-                  className="border-b border-ink-200 py-3 text-[15px] text-ink-900 last:border-b-0"
+                  className="border-b border-ink-200 py-3.5 text-[15px] leading-snug text-ink-900 last:border-b-0"
                 >
                   {f}
                 </li>
               ))}
             </ul>
 
-            <ButtonLink href="/signup" variant="outline" className="mt-8 w-full">
+            <ButtonLink href="/signup" variant="outline" className="mt-10 w-full">
               Crear cuenta
             </ButtonLink>
           </div>
 
           {/* Pro */}
-          <div className="flex flex-col bg-ink-900 p-8 text-white md:p-10">
+          <div className="flex flex-col bg-ink-900 p-8 text-white md:p-12">
             <p className="text-[13px] text-white/60">Pro</p>
-            <p className="type-section mt-4 text-white">$9.990</p>
-            <p className="mt-1 text-[13px] text-white/60">CLP / mes</p>
+            <p className="type-section num mt-5 text-white">$9.990</p>
+            <p className="mt-3 text-[13px] text-white/60">CLP / mes</p>
 
-            <ul className="mt-8 flex flex-1 flex-col">
+            <ul
+              className="mt-10 flex flex-1 flex-col border-t"
+              style={{ borderColor: "rgba(255,255,255,0.16)" }}
+            >
               {PRO_FEATURES.map((f) => (
                 <li
                   key={f}
-                  className="border-b py-3 text-[15px] text-white last:border-b-0"
+                  className="border-b py-3.5 text-[15px] leading-snug text-white last:border-b-0"
                   style={{ borderColor: "rgba(255,255,255,0.16)" }}
                 >
                   {f}
@@ -70,16 +73,19 @@ export function Pricing() {
 
             <ButtonLink
               href="/signup?plan=pro"
-              className="mt-8 w-full bg-white text-ink-900 hover:opacity-90"
+              className="mt-10 w-full bg-white text-ink-900 hover:opacity-90"
             >
               Pasar a Pro
             </ButtonLink>
           </div>
         </div>
 
-        <p className="mt-8 text-[13px] text-ink-500">
+        <p className="mt-10 text-[13px] text-ink-500">
           Planes para equipos:{" "}
-          <a href="mailto:hola@reclu.cl" className="text-ink-900 underline-offset-4 hover:underline">
+          <a
+            href="mailto:hola@reclu.cl"
+            className="text-ink-900 underline decoration-transparent underline-offset-[0.25em] [text-decoration-thickness:1px] transition-[text-decoration-color] duration-200 hover:decoration-ink-900"
+          >
             hola@reclu.cl
           </a>
         </p>

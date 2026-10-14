@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing } from "@/lib/queries";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
+import { PortfolioEvolution, type EvolutionPoint } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { CATEGORY_META } from "@/lib/types";
@@ -41,16 +42,22 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
 
   const meta = CATEGORY_META[portfolio.category];
   const isPro = profile?.plan === "pro";
-  // Sin cuenta => holdings, gráficas y alertas van censurados.
+  // Sin cuenta => tabla de acciones, heatmap, comparación y alertas van censurados.
+  // El retorno YTD y el gráfico público no.
   const locked = !profile;
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
-  // Solo pesos actuales. No hay serie de valor, benchmark ni retornos mensuales en la app.
+  // Pesos actuales: dato real para la composición.
   const composition = holdings.map((holding) => ({
     symbol: holding.symbol,
     weight: holding.weight,
   }));
   const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
+  // No hay serie de valor en la DB. portfolios.return_ytd es un escalar.
+  // portfolio_snapshots guarda peso por símbolo y fecha, no el valor del portafolio.
+  // No se inventa una curva a partir del YTD. Sin puntos reales, no se pinta evolución.
+  const evolution: EvolutionPoint[] = [];
+  const showEvolution = evolution.some((point) => Number.isFinite(point.value));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -103,24 +110,15 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 {hasReturn && (
                   <div className="mb-5 border-b border-ink-200 pb-4">
                     <p className="label-line">Retorno YTD</p>
-                    {locked ? (
-                      <PaywallGate locked label="retorno" className="mt-1">
-                        <span className="num block text-[clamp(2.5rem,5vw,3.5rem)] leading-none text-positive">
-                          {positive ? "+" : ""}
-                          {portfolio.return_ytd?.toFixed(1)}%
-                        </span>
-                      </PaywallGate>
-                    ) : (
-                      <span
-                        className={
-                          "num mt-1 block text-[clamp(2.5rem,5vw,3.5rem)] leading-none " +
-                          (positive ? "text-positive" : "text-negative")
-                        }
-                      >
-                        {positive ? "+" : ""}
-                        {portfolio.return_ytd?.toFixed(1)}%
-                      </span>
-                    )}
+                    <span
+                      className={
+                        "num mt-1 block text-[clamp(2.5rem,5vw,3.5rem)] leading-none " +
+                        (positive ? "text-positive" : "text-negative")
+                      }
+                    >
+                      {positive ? "+" : ""}
+                      {portfolio.return_ytd?.toFixed(1)}%
+                    </span>
                   </div>
                 )}
                 <FollowButton
@@ -141,7 +139,13 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
 
         <div className="container-page py-10">
-          {showComposition ? (
+          {showEvolution ? (
+            <div className="mb-12">
+              <ChartSection title="Evolución">
+                <PortfolioEvolution data={evolution} />
+              </ChartSection>
+            </div>
+          ) : showComposition ? (
             <div className="mb-12">
               <ChartSection>
                 <PortfolioDetailCharts composition={composition} />

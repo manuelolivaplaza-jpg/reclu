@@ -1,54 +1,51 @@
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
-import { PortfolioRow } from "@/components/portfolio-row";
+import { ShowcaseList } from "./showcase-list";
 import { HERO_PORTFOLIOS } from "./portfolio-data";
 
 /**
  * Hero — titular enorme, negro, alineado a la izquierda. Sin fondo decorativo.
  * Debajo, una muestra de tres filas tipográficas de portafolios.
  */
+const textLink =
+  "text-[15px] text-ink-900 underline decoration-transparent underline-offset-[0.35em] [text-decoration-thickness:1px] transition-[text-decoration-color] duration-200 hover:decoration-ink-900";
+
 export function Hero() {
   return (
-    <section className="bg-white pt-[4.5rem] pb-16 md:pt-[7.5rem] md:pb-20">
+    <section className="bg-white pt-24 pb-24 md:pt-36 md:pb-32 lg:pt-40">
       <div className="container-page">
-        {/* H1 */}
-        <h1 className="type-display max-w-[16ch] text-ink-900">
+        <h1
+          className="type-display max-w-[16ch] text-ink-900"
+          style={{
+            fontSize: "clamp(3.25rem, 8vw, 7.25rem)",
+            letterSpacing: "-0.052em",
+            lineHeight: 0.9,
+          }}
+        >
           Sigue las carteras que mueven el mercado.
         </h1>
 
-        {/* Sub */}
-        <p className="type-body mt-6 max-w-[36rem]">
+        <p className="type-body mt-8 max-w-[36rem] md:mt-10">
           Políticos de EE.UU., corredoras chilenas y fondos. Una alerta en tu correo
           cuando algo cambia. Sin órdenes. Sin ruido.
         </p>
 
-        {/* Acciones */}
-        <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-8">
+        <div className="mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-10 md:mt-12">
           <ButtonLink href="/signup" size="lg">
             Empezar
           </ButtonLink>
-          <Link
-            href="/explore"
-            className="text-[15px] text-ink-900 underline-offset-4 hover:underline"
-          >
+          <Link href="/explore" className={textLink}>
             Ver portafolios →
           </Link>
         </div>
 
-        <p className="mt-4 text-[13px] text-ink-500">
+        <p className="mt-6 text-[13px] text-ink-500">
           Gratis en 2 portafolios. Sin tarjeta.
         </p>
       </div>
 
-      {/* Muestra de tres filas */}
-      <div className="container-page mt-[4.5rem]">
-        {HERO_PORTFOLIOS.map((p, i) => (
-          <PortfolioRow
-            key={p.slug}
-            portfolio={p}
-            isLast={i === HERO_PORTFOLIOS.length - 1}
-          />
-        ))}
+      <div className="container-page mt-20 md:mt-28">
+        <ShowcaseList portfolios={HERO_PORTFOLIOS} />
       </div>
     </section>
   );
