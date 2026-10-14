@@ -131,3 +131,56 @@ export function demoAlerts(portfolioId?: string): Alert[] {
   const filtered = portfolioId ? DEMO_ALERTS.filter((a) => a.portfolio_id === portfolioId) : DEMO_ALERTS;
   return filtered;
 }
+
+/**
+ * Serie ilustrativa de evolución. Mismo seed en cada render (sin mismatch
+ * de hidratación): arranca en 0% y termina exactamente en returnPct.
+ * Fechas: los últimos `points` días de calendario, hasta hoy.
+ */
+export function demoPerformance(
+  slug: string,
+  returnPct: number,
+  points = 90,
+): { date: string; value: number }[] {
+  const count = Number.isFinite(points) ? Math.max(2, Math.floor(points)) : 90;
+  const target = Number.isFinite(returnPct) ? returnPct : 0;
+
+  let seed = Math.abs(Math.round(target * 7)) + 3;
+  for (let i = 0; i < slug.length; i++) {
+    seed = (seed * 33 + slug.charCodeAt(i)) % 233280;
+  }
+  if (seed < 3) seed += 3;
+  const rand = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return seed / 233280;
+  };
+
+  // Puente: camino con altibajos que se corrige para cerrar en returnPct.
+  const walk: number[] = [0];
+  const dailyVol = Math.max(0.25, Math.abs(target) * 0.045);
+  let level = 0;
+  for (let i = 1; i < count; i++) {
+    level += (rand() - 0.5) * 2 * dailyVol;
+    walk.push(level);
+  }
+  const endGap = target - (walk[count - 1] ?? 0);
+
+  const end = new Date();
+  end.setHours(0, 0, 0, 0);
+
+  const series: { date: string; value: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    const day = new Date(end);
+    day.setDate(end.getDate() - (count - 1 - i));
+    const y = day.getFullYear();
+    const m = String(day.getMonth() + 1).padStart(2, "0");
+    const d = String(day.getDate()).padStart(2, "0");
+    const t = i / (count - 1);
+    const raw = (walk[i] ?? 0) + t * endGap;
+    series.push({
+      date: `${y}-${m}-${d}`,
+      value: i === 0 ? 0 : i === count - 1 ? target : Math.round(raw * 100) / 100,
+    });
+  }
+  return series;
+}
