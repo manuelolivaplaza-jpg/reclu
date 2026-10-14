@@ -37,6 +37,7 @@ from prices import fetch_eod
 
 PAGE_SIZE = 1000
 SYMBOL_DELAY_SECONDS = 1
+MAX_HOLDINGS = 40
 
 
 def _paged(build_query) -> list[dict[str, Any]]:
@@ -130,11 +131,16 @@ def build_performance_series(
     renormalized over the symbols that have prices so they sum to 1.
     Returns an empty list when the portfolio has no positive-weight holdings
     or when no holding has prices. Nothing is invented.
+    Only the top MAX_HOLDINGS by weight are used; those weights are
+    renormalized to sum to 1 before fetching prices.
     """
     holdings = [(symbol, weight) for symbol, weight in get_portfolio_holdings(db, portfolio_id) if weight > 0]
-    raw_weights = {symbol: weight for symbol, weight in holdings}
-    if sum(raw_weights.values()) <= 0:
+    holdings.sort(key=lambda item: item[1], reverse=True)
+    holdings = holdings[:MAX_HOLDINGS]
+    total_weight = sum(weight for _, weight in holdings)
+    if total_weight <= 0:
         return []
+    raw_weights = {symbol: weight / total_weight for symbol, weight in holdings}
 
     series_by_symbol: dict[str, list[tuple[str, float]]] = {}
 
