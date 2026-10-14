@@ -126,29 +126,38 @@ def build_performance_series(
 ) -> list[dict[str, Any]]:
     """Cumulative return points {date, value_pct} for one portfolio.
 
+    A symbol that fails or returns no prices is excluded. Weights are
+    renormalized over the symbols that have prices so they sum to 1.
     Returns an empty list when the portfolio has no positive-weight holdings
-    or when any holding is missing prices. Nothing is invented.
+    or when no holding has prices. Nothing is invented.
     """
     holdings = [(symbol, weight) for symbol, weight in get_portfolio_holdings(db, portfolio_id) if weight > 0]
-    total_weight = sum(weight for _, weight in holdings)
-    if total_weight <= 0:
+    raw_weights = {symbol: weight for symbol, weight in holdings}
+    if sum(raw_weights.values()) <= 0:
         return []
 
-    weights = {symbol: weight / total_weight for symbol, weight in holdings}
     series_by_symbol: dict[str, list[tuple[str, float]]] = {}
 
-    for index, symbol in enumerate(weights):
+    for index, symbol in enumerate(raw_weights):
         if index:
             time.sleep(SYMBOL_DELAY_SECONDS)
         try:
             rows = fetch_eod(symbol, days)
-        except Exception as exc:  # noqa: BLE001 — one bad symbol drops this portfolio only
+        except Exception as exc:  # noqa: BLE001 — one bad symbol is left out of this series
             print(f"WARNING {symbol}: {exc}")
-            return []
+            continue
         if not rows:
             print(f"WARNING {symbol}: no prices")
-            return []
+            continue
         series_by_symbol[symbol] = rows
+
+    if not series_by_symbol:
+        return []
+
+    priced_weight = sum(raw_weights[symbol] for symbol in series_by_symbol)
+    if priced_weight <= 0:
+        return []
+    weights = {symbol: raw_weights[symbol] / priced_weight for symbol in series_by_symbol}
 
     aligned = _align_prices(series_by_symbol)
     if not aligned:
