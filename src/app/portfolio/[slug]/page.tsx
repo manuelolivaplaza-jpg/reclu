@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
+import { demoPerformance } from "@/lib/demo-data";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
 import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
@@ -12,6 +13,12 @@ import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
 
 export const instant = false;
+
+/** Misma regla que queries.ts: sin URL real, el sitio está en modo demo. */
+function isSupabaseLive(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return url.startsWith("https://") && !url.includes("placeholder");
+}
 
 interface PortfolioPageProps {
   params: Promise<{ slug: string }>;
@@ -44,17 +51,23 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const meta = CATEGORY_META[portfolio.category];
   const isPro = profile?.plan === "pro";
   // Sin cuenta => tabla de acciones, heatmap, comparación y alertas van censurados.
-  // El retorno YTD y la evolución (serie real) quedan visibles.
+  // El retorno YTD y la evolución (real, o ilustrativa en demo) quedan visibles.
   const locked = !profile;
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
+  const performanceReal = performance;
+  const demoPoints =
+    performanceReal.length === 0 && !isSupabaseLive()
+      ? demoPerformance(portfolio.slug, portfolio.return_ytd ?? 0)
+      : [];
+  const showEvolution = performanceReal.length > 0 || demoPoints.length > 0;
+  const evolution = performanceReal.length > 0 ? performanceReal : demoPoints;
   // Pesos actuales: dato real para la composición.
   const composition = holdings.map((holding) => ({
     symbol: holding.symbol,
     weight: holding.weight,
   }));
   const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
-  const showEvolution = performance.length > 0;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -139,7 +152,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
           {showEvolution ? (
             <div className="mb-12">
               <ChartSection title="Evolución">
-                <PortfolioEvolution data={performance} />
+                <PortfolioEvolution data={evolution} />
               </ChartSection>
             </div>
           ) : null}
