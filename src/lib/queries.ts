@@ -77,6 +77,57 @@ export async function getPortfolioBySlug(slug: string): Promise<Portfolio | null
   return data;
 }
 
+function performanceValue(raw: unknown): number | null {
+  if (typeof raw === "number") return Number.isFinite(raw) ? raw : null;
+  if (typeof raw === "string" && raw.trim() !== "") {
+    const value = Number(raw);
+    return Number.isFinite(value) ? value : null;
+  }
+  return null;
+}
+
+/**
+ * Serie real de rendimiento. value = value_pct.
+ * Sin tabla, sin filas o ante cualquier fallo: [] (no se inventa una curva).
+ */
+export async function getPerformance(
+  portfolioId: string,
+  limit = 365,
+): Promise<{ date: string; value: number }[]> {
+  if (!isSupabaseLive()) return [];
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("portfolio_performance")
+      .select("date, value_pct")
+      .eq("portfolio_id", portfolioId)
+      .order("date", { ascending: true })
+      .limit(limit);
+
+    if (error || !Array.isArray(data)) {
+      if (error) console.warn("[reclu] getPerformance error:", error.message);
+      return [];
+    }
+
+    const points: { date: string; value: number }[] = [];
+    for (const row of data) {
+      if (!row || typeof row !== "object") continue;
+      const record = row as { date?: unknown; value_pct?: unknown };
+      const value = performanceValue(record.value_pct);
+      if (typeof record.date !== "string" || record.date.length === 0 || value === null) continue;
+      points.push({ date: record.date, value });
+    }
+    return points;
+  } catch (err) {
+    console.warn(
+      "[reclu] getPerformance error:",
+      err instanceof Error ? err.message : "unknown",
+    );
+    return [];
+  }
+}
+
 // ---- Holdings ----
 export async function getHoldings(portfolioId: string): Promise<Holding[]> {
   // En modo demo, portfolioId es el slug (d1, d7...). Resolvemos por slug.
