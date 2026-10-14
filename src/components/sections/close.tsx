@@ -5,12 +5,12 @@ import { ButtonLink } from "@/components/ui/button";
  */
 export function Close() {
   return (
-    <section className="bg-white py-24 md:py-32">
+    <section className="border-t border-ink-200 bg-white py-32 md:py-40 lg:py-48">
       <div className="container-page">
         <h2 className="type-display max-w-[12ch] text-ink-900">
           Deja de revisar filings.
         </h2>
-        <div className="mt-8">
+        <div className="mt-10 md:mt-12">
           <ButtonLink href="/signup" size="lg">
             Empezar
           </ButtonLink>

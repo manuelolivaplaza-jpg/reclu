@@ -1,15 +1,23 @@
 import Link from "next/link";
-import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+/** Anchos distintos: sugieren filas de datos sin revelar nada. */
+const GHOST_ABOVE = [
+  ["w-[58%]", "w-[14%]"],
+  ["w-[36%]", "w-[20%]"],
+  ["w-[72%]", "w-[11%]"],
+] as const;
+
+const GHOST_BELOW = [
+  ["w-[47%]", "w-[16%]"],
+  ["w-[64%]", "w-[12%]"],
+  ["w-[31%]", "w-[18%]"],
+] as const;
+
 /**
- * PaywallGate — censura el contenido de valor (holdings, gráficas, retorno
- * histórico) para visitantes sin cuenta. Con `locked`, muestra el contenido
- * real pero desenfocado/bloqueado tras un muro con CTA; sin `locked`, muestra
- * el children tal cual.
- *
- * El children se renderiza SIEMPRE (para que el blur tenga algo que difuminar),
- * pero se hace inaccesible visualmente cuando está bloqueado.
+ * PaywallGate — censura holdings, gráficas y retorno para quien no tiene cuenta.
+ * Con `locked`, no monta el children: muestra filas fantasma y el CTA.
+ * Sin `locked`, muestra el children tal cual.
  */
 export function PaywallGate({
   locked,
@@ -28,42 +36,54 @@ export function PaywallGate({
   }
 
   return (
-    <div className={cn("relative overflow-hidden", className)}>
-      {/* Contenido real, desenfocado y sin interacción */}
-      <div
-        className="pointer-events-none select-none blur-[6px] saturate-50"
-        aria-hidden="true"
-      >
-        {children}
-      </div>
+    <div
+      className={cn("border border-ink-200 bg-white", className)}
+      role="region"
+      aria-label={`Contenido reservado: ${label}`}
+    >
+      <GhostRows rows={GHOST_ABOVE} />
 
-      {/* Velo que tapa el desenfoque y centra el CTA */}
-      <div className="absolute inset-0 flex items-center justify-center bg-white/60">
-        <div className="mx-4 flex max-w-sm flex-col items-center border border-ink-900 bg-white px-6 py-8 text-center">
-          <Lock className="size-5 text-ink-900" strokeWidth={1.5} />
-          <p className="mt-4 text-[17px] font-medium tracking-[-0.02em] text-ink-900">
-            Crea tu cuenta para ver el {label}
-          </p>
-          <p className="mt-2 text-[14px] leading-relaxed text-ink-500">
-            Accede a las acciones, las gráficas y las alertas de este portafolio.
-            Gratis en 2 portafolios.
-          </p>
-          <div className="mt-5 flex items-center gap-4">
-            <Link
-              href="/signup"
-              className="inline-flex h-10 items-center rounded-full bg-ink-900 px-5 text-[15px] font-medium text-white transition-opacity hover:opacity-90"
-            >
-              Crear cuenta
-            </Link>
-            <Link
-              href="/login"
-              className="text-[15px] text-ink-900 underline-offset-4 hover:underline"
-            >
-              Entrar
-            </Link>
-          </div>
+      <div className="flex flex-col items-center px-6 py-10 text-center sm:px-10">
+        <p className="max-w-[14ch] text-[clamp(28px,3vw,32px)] font-medium leading-[1.05] tracking-[-0.03em] text-ink-900">
+          Crea tu cuenta.
+        </p>
+        <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-ink-500">
+          Para ver {label}. Accede a las acciones, las gráficas y las alertas de este
+          portafolio. Gratis en 2 portafolios.
+        </p>
+        <div className="mt-6 flex items-center gap-5">
+          <Link
+            href="/signup"
+            className="inline-flex h-12 items-center rounded-full bg-ink-900 px-[22px] text-[15px] font-medium text-white hover:bg-black"
+          >
+            Crear cuenta
+          </Link>
+          <Link
+            href="/login"
+            className="text-[15px] text-ink-900 underline-offset-4 hover:underline"
+          >
+            Entrar
+          </Link>
         </div>
       </div>
+
+      <GhostRows rows={GHOST_BELOW} />
+    </div>
+  );
+}
+
+function GhostRows({ rows }: { rows: readonly (readonly [string, string])[] }) {
+  return (
+    <div aria-hidden="true" className="px-5 sm:px-6">
+      {rows.map(([left, right]) => (
+        <div
+          key={left + right}
+          className="flex h-9 items-center justify-between gap-8 border-b border-ink-200 last:border-b-0"
+        >
+          <span className={cn("h-2.5 bg-ink-200", left)} />
+          <span className={cn("h-2.5 shrink-0 bg-ink-100", right)} />
+        </div>
+      ))}
     </div>
   );
 }

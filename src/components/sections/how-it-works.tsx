@@ -22,24 +22,24 @@ const STEPS = [
  */
 export function HowItWorks() {
   return (
-    <section id="como-funciona" className="bg-white py-20 md:py-28">
+    <section id="como-funciona" className="bg-white py-28 md:py-36">
       <div className="container-page">
         <h2 className="type-section text-ink-900">Tres pasos.</h2>
 
-        <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-3 lg:gap-0">
+        <div className="mt-16 grid grid-cols-1 border-t border-ink-200 md:mt-20 lg:mt-24 lg:grid-cols-3">
           {STEPS.map((step, i) => (
             <div
               key={step.n}
               className={
-                "lg:px-10 " +
-                (i === 0 ? "lg:pl-0" : "lg:border-l lg:border-ink-200")
+                "border-b border-ink-200 py-10 lg:py-14 lg:pr-12 " +
+                (i === 0 ? "lg:pl-0" : "lg:border-l lg:pl-12")
               }
             >
               <p className="label-line">{step.n}</p>
-              <h3 className="mt-4 text-[26px] font-medium tracking-[-0.03em] text-ink-900 md:text-[28px]">
+              <h3 className="mt-5 text-[26px] font-medium tracking-[-0.03em] text-ink-900 md:text-[28px]">
                 {step.title}
               </h3>
-              <p className="mt-3 max-w-[34rem] text-[15px] leading-relaxed text-ink-500">
+              <p className="mt-4 max-w-[34rem] text-[15px] leading-[1.6] text-ink-500">
                 {step.body}
               </p>
             </div>
