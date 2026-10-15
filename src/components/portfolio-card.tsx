@@ -27,21 +27,38 @@ export function PortfolioCard({
   const positive = (portfolio.return_ytd ?? 0) >= 0;
 
   return (
-    <div className="flex flex-col border border-ink-200 p-6">
-      {/* Categoría + país */}
-      <div className="flex items-center justify-between">
-        <span className="text-[13px] text-ink-500">{meta.label}</span>
-        <span className="text-[11px] tracking-[0.08em] text-ink-500">
-          {portfolio.country}
-        </span>
-      </div>
+    <div className="flex flex-col overflow-hidden border border-ink-200">
+      {/* Portada (imagen fotorrealista 1:1) */}
+      {portfolio.cover_image && (
+        <Link
+          href={`/portfolio/${portfolio.slug}`}
+          className="group block aspect-square w-full overflow-hidden border-b border-ink-200 bg-ink-100"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`/covers/${portfolio.cover_image}`}
+            alt={portfolio.name}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+            loading="lazy"
+          />
+        </Link>
+      )}
 
-      {/* Nombre */}
-      <Link href={`/portfolio/${portfolio.slug}`} className="group mt-4 block">
-        <h3 className="text-[20px] font-medium tracking-[-0.03em] text-ink-900 group-hover:underline">
-          {portfolio.name}
-        </h3>
-      </Link>
+      <div className="flex flex-1 flex-col p-6">
+        {/* Categoría + país */}
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-ink-500">{meta.label}</span>
+          <span className="text-[11px] tracking-[0.08em] text-ink-500">
+            {portfolio.country}
+          </span>
+        </div>
+
+        {/* Nombre */}
+        <Link href={`/portfolio/${portfolio.slug}`} className="group mt-4 block">
+          <h3 className="text-[20px] font-medium tracking-[-0.03em] text-ink-900 group-hover:underline">
+            {portfolio.name}
+          </h3>
+        </Link>
 
       {portfolio.manager && (
         <p className="mt-1 text-[13px] text-ink-500">{portfolio.manager}</p>
@@ -85,6 +102,7 @@ export function PortfolioCard({
           initialIsPro={isPro}
           portfolioPremium={portfolio.premium}
         />
+      </div>
       </div>
     </div>
   );

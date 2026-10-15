@@ -48,6 +48,8 @@ export interface Portfolio {
   premium: boolean;
   /** Tags for search & filtering. */
   tags: string[];
+  /** Cover image path under /covers (e.g. "05-algoritmo.png"), or null. */
+  cover_image: string | null;
   created_at: string;
   updated_at: string;
 }
