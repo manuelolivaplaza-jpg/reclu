@@ -9,7 +9,8 @@ import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfol
 import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
-import { CATEGORY_META } from "@/lib/types";
+import { PortfolioTools } from "@/components/portfolio-tools";
+import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
 
@@ -50,7 +51,8 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   ]);
 
   const meta = CATEGORY_META[portfolio.category];
-  const isPro = profile?.plan === "pro";
+  const isPro = isPaidPlan(profile?.plan);
+  const isElite = isElitePlan(profile?.plan);
   // Sin cuenta => tabla de acciones, heatmap, comparación y alertas van censurados.
   // El retorno YTD y la evolución (real, o ilustrativa en demo) quedan visibles.
   const locked = !profile;
@@ -254,6 +256,18 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
               </PaywallGate>
             </section>
           </div>
+
+          {/* Simulador + exportación CSV (Elite) */}
+          {hasReturn && portfolio.return_ytd !== null ? (
+            <PortfolioTools
+              slug={portfolio.slug}
+              portfolioName={portfolio.name}
+              returnYtd={portfolio.return_ytd}
+              holdings={holdings}
+              authenticated={!!profile}
+              isElite={isElite}
+            />
+          ) : null}
 
           {/* Disclaimer */}
           <p className="mt-12 border-t border-ink-200 pt-8 text-xs leading-relaxed text-ink-500">

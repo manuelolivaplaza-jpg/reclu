@@ -43,6 +43,16 @@ export function AuthForm({ mode }: AuthFormProps) {
   const plan = searchParams.get("plan");
 
   const isLogin = mode === "login";
+  const isPaidSignup = !isLogin && (plan === "pro" || plan === "elite");
+  const planLabel =
+    plan === "elite"
+      ? "Plan Elite · $16.990 CLP/mes"
+      : "Plan Pro · $12.990 CLP/mes";
+  const planBlurb =
+    plan === "elite"
+      ? "Fondos 13F institucionales, portafolios ilimitados y exportación CSV."
+      : "Hasta 15 portafolios, alertas en tiempo real y resúmenes AI.";
+
   const [state, formAction, isPending] = useActionState<FormState, FormData>(
     isLogin ? signIn : signUp,
     {},
@@ -65,10 +75,18 @@ export function AuthForm({ mode }: AuthFormProps) {
       <p className="mt-2 text-[15px] text-ink-500">
         {isLogin
           ? "Accede a tu dashboard y alertas."
-          : plan === "pro"
-            ? "Crea tu cuenta y suscríbete a Pro."
+          : isPaidSignup
+            ? "Crea tu cuenta para activar tu suscripción."
             : "Gratis en 2 portafolios. Sin tarjeta."}
       </p>
+
+      {/* Recuadro del plan seleccionado — filete negro 1px */}
+      {isPaidSignup && (
+        <div className="mt-6 border border-ink-900 p-4">
+          <p className="text-[15px] font-medium text-ink-900">{planLabel}</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-500">{planBlurb}</p>
+        </div>
+      )}
 
       {/* Google OAuth */}
       <form action={signInWithGoogle} className="mt-8">

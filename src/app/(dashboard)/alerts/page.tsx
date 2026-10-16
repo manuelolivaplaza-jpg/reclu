@@ -4,6 +4,7 @@ import Link from "next/link";
 import { BellRing, ArrowUpRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFollows, getProfile } from "@/lib/queries";
+import { isPaidPlan } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
 
 export const metadata = { title: "Alertas" };
@@ -55,7 +56,7 @@ async function AlertsContent() {
   await connection();
   const supabase = await createClient();
   const [follows, profile] = await Promise.all([getFollows(), getProfile()]);
-  const isPro = profile?.plan === "pro";
+  const isPro = isPaidPlan(profile?.plan);
 
   const followedIds = follows.map((f) => f.portfolio_id);
 

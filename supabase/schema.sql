@@ -16,7 +16,7 @@ create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   email text not null,
   full_name text,
-  plan text not null default 'free' check (plan in ('free', 'pro')),
+  plan text not null default 'free' check (plan in ('free', 'pro', 'elite')),
   alert_frequency text not null default 'realtime' check (alert_frequency in ('realtime', 'daily', 'weekly')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

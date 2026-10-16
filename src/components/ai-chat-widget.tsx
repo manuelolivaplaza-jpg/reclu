@@ -5,6 +5,7 @@ import { X, ArrowUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { isPaidPlan } from "@/lib/types";
 import { ChatGateModal, type GateReason } from "./chat-gate-modal";
 
 interface ChatMessage {
@@ -390,7 +391,7 @@ export function AiChatWidget() {
               onClose={() => setGate((g) => ({ ...g, open: false }))}
             />
             {/* Aviso MUY sutil solo para Pro cerca del límite (nunca el número) */}
-            {lowQuota && user?.plan === "pro" && !gate.open && (
+            {lowQuota && isPaidPlan(user?.plan) && !gate.open && (
               <p className="border-b border-ink-200 px-5 py-2 text-[12px] text-ink-500">
                 Te quedan pocas consultas esta semana. Se renuevan automáticamente.
               </p>

@@ -6,7 +6,7 @@ import { getPortfolios } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { PortfolioCard } from "@/components/portfolio-card";
 import { ButtonLink } from "@/components/ui/button";
-import { FREE_PLAN_FOLLOW_LIMIT } from "@/lib/types";
+import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT, isPaidPlan } from "@/lib/types";
 
 export const metadata = { title: "Dashboard" };
 // Auth-gated route: reads cookies at request time — never prerendered.
@@ -32,8 +32,11 @@ export default async function DashboardPage() {
     .filter((p) => !followedIds.has(p.id))
     .slice(0, 3);
 
-  const isPro = profile?.plan === "pro";
+  const isPro = isPaidPlan(profile?.plan);
+  const isElite = profile?.plan === "elite";
   const limitReached = !isPro && followed.length >= FREE_PLAN_FOLLOW_LIMIT;
+  const proLimitReached =
+    profile?.plan === "pro" && followed.length >= PRO_PLAN_FOLLOW_LIMIT;
 
   // Recent alerts for followed portfolios
   const { data: recentAlerts } = await supabase
@@ -59,7 +62,11 @@ export default async function DashboardPage() {
         <p className="mt-1.5 text-[15px] text-ink-500">
           {followed.length === 0
             ? "Sigue tu primer portafolio para empezar a recibir alertas."
-            : `Sigues ${followed.length} de ${FREE_PLAN_FOLLOW_LIMIT} portafolios del plan gratuito.`}
+            : isElite
+              ? `Sigues ${followed.length} portafolios. Plan Elite: sin límite.`
+              : profile?.plan === "pro"
+                ? `Sigues ${followed.length} de ${PRO_PLAN_FOLLOW_LIMIT} portafolios del plan Pro.`
+                : `Sigues ${followed.length} de ${FREE_PLAN_FOLLOW_LIMIT} portafolios del plan gratuito.`}
         </p>
       </div>
 
@@ -70,14 +77,32 @@ export default async function DashboardPage() {
             <p className="font-medium text-ink-900">
               {limitReached
                 ? "Alcanzaste el límite del plan gratuito"
-                : "Desbloquea portafolios ilimitados con Pro"}
+                : "Desbloquea hasta 15 portafolios con Pro"}
             </p>
             <p className="mt-0.5 text-sm text-ink-500">
               Resúmenes AI completos, alertas en tiempo real y portafolios premium.
             </p>
           </div>
           <ButtonLink href="/#precios" className="shrink-0">
-            Ver Pro
+            Ver planes
+            <ArrowRight className="size-4" />
+          </ButtonLink>
+        </div>
+      )}
+
+      {/* Pro plan banner — límite de 15 alcanzado */}
+      {proLimitReached && (
+        <div className="flex flex-col gap-4 border border-ink-900 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-medium text-ink-900">
+              Alcanzaste los {PRO_PLAN_FOLLOW_LIMIT} portafolios del plan Pro
+            </p>
+            <p className="mt-0.5 text-sm text-ink-500">
+              Con Elite sigues portafolios ilimitados, incluidos Fondos 13F y exportación CSV.
+            </p>
+          </div>
+          <ButtonLink href="/#precios" className="shrink-0">
+            Pasar a Elite
             <ArrowRight className="size-4" />
           </ButtonLink>
         </div>

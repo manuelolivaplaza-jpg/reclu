@@ -3,7 +3,7 @@ import { PortfolioCard } from "@/components/portfolio-card";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
-import { CATEGORY_META, type Portfolio, type PortfolioCategory } from "@/lib/types";
+import { CATEGORY_META, isPaidPlan, type Portfolio, type PortfolioCategory } from "@/lib/types";
 import { ExploreFilters } from "@/components/explore-filters";
 import { ExploreRankings } from "@/components/explore-rankings";
 
@@ -40,7 +40,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     : listed;
 
   const followedIds = new Set(follows.map((f) => f.portfolio_id));
-  const isPro = profile?.plan === "pro";
+  const isPro = isPaidPlan(profile?.plan);
 
   const categories = Object.entries(CATEGORY_META) as [
     PortfolioCategory,

@@ -12,6 +12,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { LogoLockup } from "@/components/logo";
 import { DashboardNavLink, type NavItem } from "@/components/dashboard-nav-link";
+import { isPaidPlan, isElitePlan } from "@/lib/types";
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Resumen", icon: LayoutDashboard },
@@ -35,7 +36,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .select("plan, full_name")
     .eq("id", user.id)
     .single();
-  const isPro = profile?.plan === "pro";
+  const isPro = isPaidPlan(profile?.plan);
+  const isElite = isElitePlan(profile?.plan);
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -46,7 +48,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <LogoLockup />
           </Link>
           <div className="flex items-center gap-4">
-            {isPro && <span className="text-[13px] text-ink-900">Pro</span>}
+            {isPro && <span className="text-[13px] text-ink-900">{isElite ? "Elite" : "Pro"}</span>}
             <form action="/auth/signout" method="post">
               <button
                 type="submit"

@@ -25,7 +25,7 @@ export type AlertType =
 
 export type AlertSeverity = "low" | "medium" | "high";
 
-export type Plan = "free" | "pro";
+export type Plan = "free" | "pro" | "elite";
 
 // ---- Portfolios ----
 export interface Portfolio {
@@ -144,6 +144,18 @@ export interface UserHolding {
 
 // ---- Freemium limits ----
 export const FREE_PLAN_FOLLOW_LIMIT = 2;
+export const PRO_PLAN_FOLLOW_LIMIT = 15;
+// Elite no lleva constante de límite: portafolios ilimitados.
+
+/** Cualquier plan de pago (Pro o Elite). Compatible con `plan === "pro"` existente. */
+export function isPaidPlan(plan?: string | null): boolean {
+  return plan === "pro" || plan === "elite";
+}
+
+/** Solo el plan Elite (institucional, 13F, exportación). */
+export function isElitePlan(plan?: string | null): boolean {
+  return plan === "elite";
+}
 
 // ---- Category metadata (for UI labels / icons) ----
 export const CATEGORY_META: Record<

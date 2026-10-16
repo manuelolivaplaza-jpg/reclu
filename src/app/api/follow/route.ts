@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { followPortfolio, unfollowPortfolio } from "@/lib/queries";
-import { FREE_PLAN_FOLLOW_LIMIT } from "@/lib/types";
+import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT } from "@/lib/types";
 
 /**
  * POST /api/follow — toggle follow for a portfolio.
@@ -48,14 +48,23 @@ export async function POST(request: Request) {
   const result = await followPortfolio(portfolioId);
   if (!result.ok) {
     if (result.reason === "limit_reached") {
-      return Response.json({
-        ok: false,
-        error: `El plan gratuito permite seguir hasta ${FREE_PLAN_FOLLOW_LIMIT} portafolios. ¡Actualiza a Pro!`,
-        redirect: "/#precios",
-      });
+      return Response.json(
+        {
+          ok: false,
+          error:
+            result.limit === PRO_PLAN_FOLLOW_LIMIT
+              ? `El plan Pro permite seguir hasta ${PRO_PLAN_FOLLOW_LIMIT} portafolios. ¡Pasa a Elite para seguir ilimitados!`
+              : `El plan gratuito permite seguir hasta ${FREE_PLAN_FOLLOW_LIMIT} portafolios. ¡Actualiza a Pro!`,
+          redirect: "/#precios",
+        },
+      );
     }
     if (result.reason === "premium_required") {
-      return Response.json({ ok: false, error: "Este portafolio requiere plan Pro.", redirect: "/#precios" });
+      return Response.json({
+        ok: false,
+        error: "Este portafolio requiere un plan de pago (Pro o Elite).",
+        redirect: "/#precios",
+      });
     }
     return Response.json({ ok: false, error: result.error ?? "Error al seguir." });
   }

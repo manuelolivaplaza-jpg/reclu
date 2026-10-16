@@ -7,7 +7,7 @@ import type {
   Follow,
   UserHolding,
 } from "@/lib/types";
-import { FREE_PLAN_FOLLOW_LIMIT } from "@/lib/types";
+import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT } from "@/lib/types";
 import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts } from "@/lib/demo-data";
 
 /** True cuando Supabase está configurado con valores reales (no placeholder). */
@@ -237,13 +237,15 @@ export async function isFollowing(portfolioId: string): Promise<boolean> {
 }
 
 /**
- * Follow a portfolio, enforcing the free-plan limit.
- * Returns { ok, error, reason? }.
+ * Follow a portfolio, enforcing plan limits (free 2 / pro 15 / elite unlimited).
+ * Returns { ok, error, reason?, limit? }.
  */
 export async function followPortfolio(portfolioId: string): Promise<{
   ok: boolean;
   error?: string;
   reason?: "limit_reached" | "auth_required" | "premium_required";
+  /** Plan limit hit, for a tailored message. */
+  limit?: number;
 }> {
   const supabase = await createClient();
   const {
@@ -259,23 +261,24 @@ export async function followPortfolio(portfolioId: string): Promise<{
     .single();
   const plan = profile?.plan ?? "free";
 
-  // Check portfolio premium status
+  // Check portfolio premium status (any paid plan unlocks it)
   const { data: portfolio } = await supabase
     .from("portfolios")
     .select("premium")
     .eq("id", portfolioId)
     .single();
-  if (portfolio?.premium && plan !== "pro") {
+  if (portfolio?.premium && (plan === "free")) {
     return { ok: false, reason: "premium_required" };
   }
 
-  if (plan === "free") {
+  if (plan !== "elite") {
+    const limit = plan === "pro" ? PRO_PLAN_FOLLOW_LIMIT : FREE_PLAN_FOLLOW_LIMIT;
     const { count } = await supabase
       .from("follows")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id);
-    if ((count ?? 0) >= FREE_PLAN_FOLLOW_LIMIT) {
-      return { ok: false, reason: "limit_reached" };
+    if ((count ?? 0) >= limit) {
+      return { ok: false, reason: "limit_reached", limit };
     }
   }
 
