@@ -36,8 +36,12 @@ DEFAULT_YEARS = 4  # how far back to walk
 MEMBER_SLUG = {
     "pelosi": "pelosi-tracker",
     "trump": "trump-trades",
-    "cardenas": "cardenas-tracker",
-    "gonzalez-colon": "gonzalez-colon-tracker",
+    "gottheimer": "gottheimer-tracker",
+    "cisneros": "cisneros-tracker",
+    "hern": "hern-tracker",
+    "delaney": "mcclain-delaney-tracker",
+    "moskowitz": "moskowitz-tracker",
+    "fields": "fields-tracker",
 }
 
 
