@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 import type { PortfolioCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,13 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
   }
 
   const pills = [ALL, ...categories.map(([value, meta]) => ({ value, label: meta.label }))];
+  const hasActiveSearch = Boolean(
+    (searchParams.get("q") ?? "").trim() || (searchParams.get("simbolo") ?? "").trim(),
+  );
+
+  function clearFilters() {
+    router.push("/explore");
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -66,29 +73,47 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
             defaultValue={(searchParams.get("simbolo") ?? "").toUpperCase()}
             placeholder="Buscar por símbolo"
             autoCapitalize="characters"
-            className="h-11 w-full rounded-none border border-ink-200 bg-white pr-4 pl-9 text-[15px] text-ink-900 uppercase placeholder:normal-case placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
+            className="h-11 w-full rounded-none border border-ink-200 bg-white pr-9 pl-9 text-[15px] text-ink-900 uppercase placeholder:normal-case placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
           />
         </div>
+        {hasActiveSearch && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 border border-ink-200 px-4 text-[14px] text-ink-900 transition-colors hover:bg-ink-50 sm:w-auto"
+            aria-label="Limpiar búsqueda y filtros"
+          >
+            <X className="size-4" strokeWidth={1.8} />
+            Limpiar
+          </button>
+        )}
       </form>
 
-      {/* Filtros: activo = subrayado 1px negro; inactivo = gris */}
-      <div className="flex flex-wrap gap-x-6 gap-y-3" role="tablist" aria-label="Categorías">
-        {pills.map((pill) => (
-          <button
-            key={pill.value}
-            role="tab"
-            aria-selected={activeCategory === pill.value}
-            onClick={() => setCategory(pill.value)}
-            className={cn(
-              "border-b pb-0.5 text-[14px] transition-opacity",
-              activeCategory === pill.value
-                ? "border-ink-900 text-ink-900"
-                : "border-transparent text-ink-500 hover:opacity-70",
-            )}
-          >
-            {pill.label}
-          </button>
-        ))}
+      {/* Filtros: scroll horizontal fluido en móvil (sin cortar palabras),
+          filete activo inferior nítido de 1px. */}
+      <div className="-mx-5 overflow-x-auto no-scrollbar px-5 md:mx-0 md:px-0">
+        <div
+          className="flex w-max min-w-full items-center gap-x-6 gap-y-3 pb-1"
+          role="tablist"
+          aria-label="Categorías"
+        >
+          {pills.map((pill) => (
+            <button
+              key={pill.value}
+              role="tab"
+              aria-selected={activeCategory === pill.value}
+              onClick={() => setCategory(pill.value)}
+              className={cn(
+                "shrink-0 whitespace-nowrap border-b pb-1.5 text-[14px] transition-opacity",
+                activeCategory === pill.value
+                  ? "border-ink-900 font-medium text-ink-900"
+                  : "border-transparent text-ink-500 hover:opacity-70",
+              )}
+            >
+              {pill.label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );
