@@ -18,6 +18,7 @@ function p(over: Partial<Portfolio> & Pick<Portfolio, "id" | "slug" | "name" | "
     return_ytd: 12.5,
     premium: false,
     tags: [],
+    cover_image: null,
     created_at: NOW,
     updated_at: NOW,
     ...over,
