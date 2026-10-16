@@ -26,14 +26,21 @@ export function Sparkline({
   useEffect(() => {
     const path = pathRef.current;
     if (!path) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const length = path.getTotalLength();
+    if (reduced) {
+      // Sin animación: el trazo aparece completo.
+      path.style.strokeDasharray = "none";
+      path.style.strokeDashoffset = "0";
+      return;
+    }
     path.style.strokeDasharray = `${length}`;
     path.style.strokeDashoffset = `${length}`;
     const observer = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
           if (e.isIntersecting) {
-            path.style.transition = "stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1)";
+            path.style.transition = "stroke-dashoffset 0.8s cubic-bezier(0.16, 1, 0.3, 1)";
             path.style.strokeDashoffset = "0";
             observer.disconnect();
           }

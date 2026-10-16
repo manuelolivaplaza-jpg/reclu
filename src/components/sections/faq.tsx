@@ -42,7 +42,7 @@ export function FAQ() {
                 <span className="text-[22px] font-medium leading-[1.2] tracking-[-0.03em] text-ink-900 underline decoration-transparent underline-offset-[0.22em] [text-decoration-thickness:1px] transition-[text-decoration-color] duration-200 group-hover:decoration-ink-900 md:text-[26px]">
                   {item.q}
                 </span>
-                <span className="mt-1 shrink-0 text-[22px] leading-none text-ink-900 transition-transform duration-200 group-open:rotate-45">
+                <span className="mt-1 shrink-0 text-[22px] leading-none text-ink-900 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-open:rotate-45">
                   +
                 </span>
               </summary>

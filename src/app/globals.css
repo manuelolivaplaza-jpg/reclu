@@ -130,6 +130,15 @@
   font-weight: 400;
 }
 
+/* Scroll horizontal sin barra visible (tabs de categorías en móvil) */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility container-page {
   margin-inline: auto;
   max-width: 1120px;
@@ -139,5 +148,27 @@
 @media (min-width: 768px) {
   .container-page {
     padding-inline: 2.5rem;
+  }
+}
+
+/* ---- FAQ: revelado limpio del contenido al abrir cada pregunta ---- */
+@keyframes details-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+details[open] > summary ~ * {
+  animation: details-reveal 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  details[open] > summary ~ * {
+    animation: none;
   }
 }
