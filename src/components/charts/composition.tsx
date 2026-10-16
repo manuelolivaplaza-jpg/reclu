@@ -14,6 +14,7 @@ export interface CompositionProps {
 interface Tip {
   index: number;
   x: number;
+  edge: number;
 }
 
 function formatWeight(weight: number): string {
@@ -36,7 +37,9 @@ export function Composition({ data }: CompositionProps) {
     if (!bar) return;
     const segmentBox = segment.getBoundingClientRect();
     const track = bar.getBoundingClientRect();
-    setTip({ index, x: segmentBox.left - track.left + segmentBox.width / 2 });
+    const x = segmentBox.left - track.left + segmentBox.width / 2;
+    const edge = track.width > 0 ? x / track.width : 0.5;
+    setTip({ index, x, edge });
   }
 
   if (slices.length === 0 || total <= 0) {
@@ -46,9 +49,7 @@ export function Composition({ data }: CompositionProps) {
   }
 
   const active = tip !== null ? slices[tip.index] : undefined;
-  const trackWidth = barRef.current?.getBoundingClientRect().width ?? 0;
-  const tipX = tip ? tip.x : 0;
-  const edge = trackWidth > 0 ? tipX / trackWidth : 0.5;
+  const edge = tip ? tip.edge : 0.5;
 
   return (
     <figure className="w-full">

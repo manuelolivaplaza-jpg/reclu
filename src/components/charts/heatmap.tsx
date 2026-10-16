@@ -23,6 +23,7 @@ interface Tip {
   returnPct: number;
   x: number;
   y: number;
+  edge: number;
 }
 
 function monthTime(month: string): number {
@@ -88,15 +89,17 @@ export function Heatmap({ rows }: HeatmapProps) {
   }
   const hasScale = Number.isFinite(min) && Number.isFinite(max);
 
-  function showTip(cellEl: HTMLButtonElement, next: Omit<Tip, "x" | "y">) {
+  function showTip(cellEl: HTMLButtonElement, next: Omit<Tip, "x" | "y" | "edge">) {
     const wrap = wrapRef.current;
     if (!wrap) return;
     const cell = cellEl.getBoundingClientRect();
     const board = wrap.getBoundingClientRect();
+    const x = cell.left - board.left + cell.width / 2;
     setTip({
       ...next,
-      x: cell.left - board.left + cell.width / 2,
+      x,
       y: cell.top - board.top,
+      edge: board.width > 0 ? x / board.width : 0.5,
     });
   }
 
@@ -108,8 +111,7 @@ export function Heatmap({ rows }: HeatmapProps) {
     );
   }
 
-  const boardWidth = wrapRef.current?.getBoundingClientRect().width ?? 0;
-  const edge = tip && boardWidth > 0 ? tip.x / boardWidth : 0.5;
+  const edge = tip ? tip.edge : 0.5;
 
   return (
     <figure className="w-full">
