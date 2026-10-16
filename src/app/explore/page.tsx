@@ -2,6 +2,7 @@ import { getPortfolios, getFollows, getProfile, getHoldings, getAlerts } from "@
 import { PortfolioCard } from "@/components/portfolio-card";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { CATEGORY_META, type Portfolio, type PortfolioCategory } from "@/lib/types";
 import { ExploreFilters } from "@/components/explore-filters";
 import { ExploreRankings } from "@/components/explore-rankings";
@@ -64,16 +65,17 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               Sin resultados. Prueba con otra búsqueda o vuelve a “Todos”.
             </p>
           ) : (
-            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <StaggerList className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {portfolios.map((portfolio) => (
-                <PortfolioCard
-                  key={portfolio.id}
-                  portfolio={portfolio}
-                  isFollowing={followedIds.has(portfolio.id)}
-                  isPro={isPro}
-                />
+                <StaggerItem key={portfolio.id}>
+                  <PortfolioCard
+                    portfolio={portfolio}
+                    isFollowing={followedIds.has(portfolio.id)}
+                    isPro={isPro}
+                  />
+                </StaggerItem>
               ))}
-            </div>
+            </StaggerList>
           )}
         </div>
       </main>

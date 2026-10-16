@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ButtonLink } from "@/components/ui/button";
+import { FadeIn, StaggerList } from "@/components/ui/motion";
 import { ShowcaseList } from "./showcase-list";
 import { HERO_PORTFOLIOS } from "./portfolio-data";
 
@@ -14,38 +15,46 @@ export function Hero() {
   return (
     <section className="bg-white pt-24 pb-24 md:pt-36 md:pb-32 lg:pt-40">
       <div className="container-page">
-        <h1
-          className="type-display max-w-[16ch] text-ink-900"
-          style={{
-            fontSize: "clamp(3.25rem, 8vw, 7.25rem)",
-            letterSpacing: "-0.052em",
-            lineHeight: 0.9,
-          }}
-        >
-          Sigue las carteras que mueven el mercado.
-        </h1>
+        <FadeIn>
+          <h1
+            className="type-display max-w-[16ch] text-ink-900"
+            style={{
+              fontSize: "clamp(3.25rem, 8vw, 7.25rem)",
+              letterSpacing: "-0.052em",
+              lineHeight: 0.9,
+            }}
+          >
+            Sigue las carteras que mueven el mercado.
+          </h1>
 
-        <p className="type-body mt-8 max-w-[36rem] md:mt-10">
-          Políticos de EE.UU., corredoras chilenas y fondos. Una alerta en tu correo
-          cuando algo cambia. Sin órdenes. Sin ruido.
-        </p>
+          <p className="type-body mt-8 max-w-[36rem] md:mt-10">
+            Políticos de EE.UU., corredoras chilenas y fondos. Una alerta en tu correo
+            cuando algo cambia. Sin órdenes. Sin ruido.
+          </p>
+        </FadeIn>
 
-        <div className="mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-10 md:mt-12">
-          <ButtonLink href="/signup" size="lg">
-            Empezar
-          </ButtonLink>
-          <Link href="/explore" className={textLink}>
-            Ver portafolios →
-          </Link>
-        </div>
+        <FadeIn delay={0.08}>
+          <div className="mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-10 md:mt-12">
+            <ButtonLink href="/signup" size="lg">
+              Empezar
+            </ButtonLink>
+            <Link href="/explore" className={textLink}>
+              Ver portafolios →
+            </Link>
+          </div>
+        </FadeIn>
 
-        <p className="mt-6 text-[13px] text-ink-500">
-          Gratis en 2 portafolios. Sin tarjeta.
-        </p>
+        <FadeIn delay={0.12}>
+          <p className="mt-6 text-[13px] text-ink-500">
+            Gratis en 2 portafolios. Sin tarjeta.
+          </p>
+        </FadeIn>
       </div>
 
       <div className="container-page mt-20 md:mt-28">
-        <ShowcaseList portfolios={HERO_PORTFOLIOS} />
+        <StaggerList>
+          <ShowcaseList portfolios={HERO_PORTFOLIOS} />
+        </StaggerList>
       </div>
     </section>
   );

@@ -1,3 +1,5 @@
+import { FadeIn, StaggerList, StaggerItem } from "@/components/ui/motion";
+
 const STEPS = [
   {
     n: "01",
@@ -24,11 +26,13 @@ export function HowItWorks() {
   return (
     <section id="como-funciona" className="bg-white py-28 md:py-36">
       <div className="container-page">
-        <h2 className="type-section text-ink-900">Tres pasos.</h2>
+        <FadeIn>
+          <h2 className="type-section text-ink-900">Tres pasos.</h2>
+        </FadeIn>
 
-        <div className="mt-16 grid grid-cols-1 border-t border-ink-200 md:mt-20 lg:mt-24 lg:grid-cols-3">
+        <StaggerList className="mt-16 grid grid-cols-1 border-t border-ink-200 md:mt-20 lg:mt-24 lg:grid-cols-3">
           {STEPS.map((step, i) => (
-            <div
+            <StaggerItem
               key={step.n}
               className={
                 "border-b border-ink-200 py-10 lg:py-14 lg:pr-12 " +
@@ -42,9 +46,9 @@ export function HowItWorks() {
               <p className="mt-4 max-w-[34rem] text-[15px] leading-[1.6] text-ink-500">
                 {step.body}
               </p>
-            </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerList>
       </div>
     </section>
   );

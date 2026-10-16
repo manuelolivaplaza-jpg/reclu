@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FadeIn, StaggerList } from "@/components/ui/motion";
 import { ShowcaseList } from "./showcase-list";
 import { STAGE_PORTFOLIOS } from "./portfolio-data";
 
@@ -12,19 +13,21 @@ export function PortfolioStage() {
   return (
     <section id="portafolios" className="bg-white py-28 md:py-36">
       <div className="container-page">
-        <div className="flex items-end justify-between gap-8">
-          <div>
-            <p className="label-line">Esta semana</p>
-            <h2 className="type-section mt-4 text-ink-900">Lo que está moviéndose.</h2>
+        <FadeIn>
+          <div className="flex items-end justify-between gap-8">
+            <div>
+              <p className="label-line">Esta semana</p>
+              <h2 className="type-section mt-4 text-ink-900">Lo que está moviéndose.</h2>
+            </div>
+            <Link href="/explore" className={"mb-2 hidden shrink-0 md:inline " + textLink}>
+              Ver todos →
+            </Link>
           </div>
-          <Link href="/explore" className={"mb-2 hidden shrink-0 md:inline " + textLink}>
-            Ver todos →
-          </Link>
-        </div>
+        </FadeIn>
 
-        <div className="mt-14 md:mt-16">
+        <StaggerList className="mt-14 md:mt-16">
           <ShowcaseList portfolios={STAGE_PORTFOLIOS} />
-        </div>
+        </StaggerList>
 
         <Link href="/explore" className={"mt-10 inline-block md:hidden " + textLink}>
           Ver todos →
