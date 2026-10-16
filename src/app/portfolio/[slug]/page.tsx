@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
 import { demoPerformance } from "@/lib/demo-data";
+import { SiteHeader } from "@/components/site-header";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
 import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
@@ -71,23 +72,19 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header */}
-      <header className="border-b border-ink-200 bg-white">
-        <div className="container-page py-4">
-          <Link
-            href="/explore"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
-          >
-            <ArrowLeft className="size-4" />
-            Volver a explorar
-          </Link>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="flex-1">
         {/* Portfolio header */}
         <div className="border-b border-ink-200 bg-white">
           <div className="container-page py-10">
+            <Link
+              href="/explore"
+              className="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
+            >
+              <ArrowLeft className="size-4" />
+              Volver a explorar
+            </Link>
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
                 <p className="label-line">
@@ -172,7 +169,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 Composición ({holdings.length} activos)
               </h2>
 
-              <PaywallGate locked label="composición" className="mt-4">
+              <PaywallGate locked={locked} label="composición" className="mt-4">
                 {holdings.length > 0 ? (
                   <table className="w-full text-[15px]">
                     <thead>
@@ -222,7 +219,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             {/* Recent alerts — censuradas sin cuenta */}
             <section>
               <h2 className="text-[15px] font-medium text-ink-900">Alertas recientes</h2>
-              <PaywallGate locked label="historial de alertas" className="mt-4">
+              <PaywallGate locked={locked} label="historial de alertas" className="mt-4">
                 {alerts.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     {alerts.map((alert) => {

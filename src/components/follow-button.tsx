@@ -53,6 +53,8 @@ export function FollowButton({
   }
 
   const size = variant === "page" ? "lg" : "sm";
+  // En el detalle, el botón ocupa todo el ancho de su columna (apilado móvil preciso).
+  const width = variant === "page" ? "w-full" : "";
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -61,6 +63,7 @@ export function FollowButton({
         size={size}
         loading={isPending}
         onClick={handleClick}
+        className={width}
         aria-label={following ? "Dejar de seguir" : "Seguir portafolio"}
       >
         {following ? (
