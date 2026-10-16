@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { X, ArrowUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ChatGateModal, type GateReason } from "./chat-gate-modal";
 
@@ -39,14 +40,104 @@ function bumpAnonCount(): number {
   return next;
 }
 
+/* ---------------------------------------------------------------
+   Contexto por ruta: sugerencias específicas para la página actual.
+   --------------------------------------------------------------- */
+
+const PORTFOLIO_SUGGESTIONS = [
+  "¿Cuáles son las principales posiciones de este portafolio?",
+  "¿Qué movimientos recientes ha tenido?",
+  "¿Cuál es el riesgo o concentración principal aquí?",
+];
+
+const COMPARE_SUGGESTIONS = [
+  "¿Cómo comparo mi cartera con estos portafolios?",
+  "¿Cómo diversifico a partir de lo que siguen los políticos?",
+  "¿Qué tan concentrada debería tener mi cartera?",
+];
+
+/** Extrae el slug de /portfolio/[slug] desde el pathname. */
+function portfolioSlugFromPathname(pathname: string): string | null {
+  const match = pathname.match(/^\/portfolio\/([^/]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function suggestionsForPath(pathname: string): { items: string[]; contextual: boolean } {
+  if (portfolioSlugFromPathname(pathname)) return { items: PORTFOLIO_SUGGESTIONS, contextual: true };
+  if (pathname.startsWith("/compare")) return { items: COMPARE_SUGGESTIONS, contextual: true };
+  return { items: SUGGESTIONS, contextual: false };
+}
+
+/* ---------------------------------------------------------------
+   Markdown ligero y seguro, sin dependencias.
+   Renderiza párrafos, listas con viñetas (- o *) y **negritas**.
+   --------------------------------------------------------------- */
+
+/** Divide el texto en segmentos de texto plano y **negritas**. */
+function renderBold(text: string, keyPrefix: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return (
+        <strong key={`${keyPrefix}-b-${i}`} className="font-semibold text-ink-900">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    return <span key={`${keyPrefix}-t-${i}`}>{part}</span>;
+  });
+}
+
+/** Convierte una respuesta del asistente en bloques de párrafos y listas. */
+function AssistantContent({ content }: { content: string }) {
+  const lines = content.split("\n");
+
+  // Agrupa líneas contiguas de lista (empiezan con - o *) en un solo <ul>,
+  // y el resto en párrafos. Sin markdown externo ni dangerouslySetInnerHTML.
+  const blocks: React.ReactNode[] = [];
+  let listBuffer: { text: string; key: number }[] = [];
+
+  const flushList = () => {
+    if (listBuffer.length === 0) return;
+    blocks.push(
+      <ul key={`ul-${blocks.length}`} className="mt-1.5 space-y-1.5 pl-1">
+        {listBuffer.map(({ text, key }) => (
+          <li key={`li-${key}`} className="relative flex gap-2.5 leading-relaxed">
+            <span aria-hidden="true" className="mt-[0.6em] h-[3px] w-[3px] shrink-0 bg-ink-900" />
+            <span>{renderBold(text, `li-${key}`)}</span>
+          </li>
+        ))}
+      </ul>,
+    );
+    listBuffer = [];
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    const listMatch = line.match(/^[-*]\s+(.*)$/);
+    if (listMatch) {
+      listBuffer.push({ text: listMatch[1], key: i });
+      continue;
+    }
+    flushList();
+    blocks.push(
+      <p key={`p-${blocks.length}`} className="mt-0 leading-relaxed [&:not(:first-child)]:mt-2.5">
+        {renderBold(line, `p-${blocks.length}`)}
+      </p>,
+    );
+  }
+  flushList();
+
+  return <>{blocks}</>;
+}
+
 export function AiChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [reply, setReply] = useState("");
-  const replyRef = useRef("");
-  replyRef.current = reply;
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [user, setUser] = useState<{ id: string; plan: string } | null>(null);
@@ -55,7 +146,16 @@ export function AiChatWidget() {
     reason: "register",
   });
   const [lowQuota, setLowQuota] = useState(false);
-  const [loadedHistory, setLoadedHistory] = useState(false);
+  const pathname = usePathname();
+
+  // Rutas del dashboard con nav inferior fija: el botón flota más arriba en móvil.
+  const isDashboardRoute =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/alerts") ||
+    pathname.startsWith("/compare") ||
+    pathname.startsWith("/settings");
+
+  const suggestions = suggestionsForPath(pathname);
 
   // Auto-scroll al fondo cuando llegan mensajes
   useEffect(() => {
@@ -106,7 +206,6 @@ export function AiChatWidget() {
           })),
         );
       }
-      setLoadedHistory(true);
     });
     return () => {
       cancelled = true;
@@ -170,6 +269,7 @@ export function AiChatWidget() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let acc = "";
+      let streamedReply = "";
 
       while (true) {
         const { done, value } = await reader.read();
@@ -188,7 +288,10 @@ export function AiChatWidget() {
           try {
             const parsed = JSON.parse(payload);
             const delta = parsed.choices?.[0]?.delta?.content;
-            if (delta) setReply((prev) => prev + delta);
+            if (delta) {
+              streamedReply += delta;
+              setReply((prev) => prev + delta);
+            }
           } catch {
             /* línea parcial, esperar más chunks */
           }
@@ -197,12 +300,13 @@ export function AiChatWidget() {
         acc = acc.split("\n").pop() ?? "";
       }
 
+      const finalReply = streamedReply.trim();
       setMessages((prev) => {
         const last = prev[prev.length - 1];
         if (last?.role === "assistant") {
-          return [...prev.slice(0, -1), { role: "assistant", content: replyRef.current || last.content }];
+          return [...prev.slice(0, -1), { role: "assistant", content: finalReply || last.content }];
         }
-        return [...prev, { role: "assistant", content: replyRef.current || "Sin respuesta." }];
+        return [...prev, { role: "assistant", content: finalReply || "Sin respuesta." }];
       });
     } catch {
       setMessages([
@@ -212,6 +316,12 @@ export function AiChatWidget() {
     } finally {
       setLoading(false);
     }
+  }
+
+  /** Reinicia la vista actual sin borrar el historial persistido del usuario. */
+  function clearView() {
+    setMessages([]);
+    setReply("");
   }
 
   return (
@@ -230,13 +340,16 @@ export function AiChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Botón flotante */}
+      {/* Botón flotante — en el dashboard móvil flota sobre la nav inferior */}
       <AnimatePresence>
         {!open && (
           <motion.button
             type="button"
             onClick={() => setOpen(true)}
-            className="fixed right-5 bottom-5 z-50 flex h-12 items-center gap-2 rounded-full bg-ink-900 pr-4 pl-3.5 text-[14px] font-medium text-white"
+            className={
+              "fixed right-5 z-50 flex h-12 items-center gap-2 rounded-full bg-ink-900 pr-4 pl-3.5 text-[14px] font-medium text-white " +
+              (isDashboardRoute ? "bottom-20 lg:bottom-5" : "bottom-5")
+            }
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -259,11 +372,11 @@ export function AiChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Panel del chat */}
+      {/* Panel del chat — 100dvh en móvil para convivir con el teclado virtual */}
       <AnimatePresence>
         {open && (
           <motion.div
-            className="relative fixed inset-0 z-50 flex flex-col bg-background sm:inset-auto sm:right-5 sm:bottom-5 sm:h-[560px] sm:w-[400px] sm:border sm:border-ink-200"
+            className="relative fixed inset-0 z-50 flex h-dvh flex-col bg-background sm:inset-auto sm:right-5 sm:bottom-5 sm:h-[560px] sm:w-[400px] sm:border sm:border-ink-200"
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
@@ -292,14 +405,25 @@ export function AiChatWidget() {
                   Información con fines informativos. No es asesoría de inversión.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-ink-500 transition-opacity hover:opacity-60"
-                aria-label="Cerrar asistente"
-              >
-                <X size={18} strokeWidth={1.8} />
-              </button>
+              <div className="flex items-center gap-3">
+                {messages.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearView}
+                    className="text-[12px] text-ink-500 transition-colors hover:text-ink-900"
+                  >
+                    Limpiar
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="text-ink-500 transition-opacity hover:opacity-60"
+                  aria-label="Cerrar asistente"
+                >
+                  <X size={18} strokeWidth={1.8} />
+                </button>
+              </div>
             </div>
 
             {/* Mensajes */}
@@ -307,11 +431,12 @@ export function AiChatWidget() {
               {messages.length === 0 ? (
                 <div className="space-y-4">
                   <p className="text-[15px] leading-relaxed text-ink-500">
-                    Pregúntame sobre los portafolios que seguimos, cómo funcionan las alertas,
-                    los 13F de los fondos o cualquier duda de inversión.
+                    {suggestions.contextual
+                      ? "Pregúntame sobre lo que estás viendo ahora."
+                      : "Pregúntame sobre los portafolios que seguimos, cómo funcionan las alertas, los 13F de los fondos o cualquier duda de inversión."}
                   </p>
                   <div className="space-y-2">
-                    {SUGGESTIONS.map((s) => (
+                    {suggestions.items.map((s) => (
                       <button
                         key={s}
                         type="button"
@@ -333,9 +458,9 @@ export function AiChatWidget() {
                         </p>
                       ) : (
                         <div className="max-w-[92%] border-l-2 border-ink-900 pl-3.5">
-                          <p className="text-[14px] leading-relaxed whitespace-pre-wrap text-ink-900">
-                            {m.content}
-                          </p>
+                          <div className="text-[14px] whitespace-pre-wrap text-ink-900">
+                            <AssistantContent content={m.content} />
+                          </div>
                         </div>
                       )}
                     </div>
@@ -354,10 +479,10 @@ export function AiChatWidget() {
                   {loading && reply && (
                     <div>
                       <div className="max-w-[92%] border-l-2 border-ink-900 pl-3.5">
-                        <p className="text-[14px] leading-relaxed whitespace-pre-wrap text-ink-900">
-                          {reply}
+                        <div className="text-[14px] text-ink-900">
+                          <AssistantContent content={reply} />
                           <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-ink-900" />
-                        </p>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -367,7 +492,7 @@ export function AiChatWidget() {
 
             {/* Input */}
             <form
-              className="flex items-center gap-2 border-t border-ink-200 px-4 py-3"
+              className="flex items-center gap-2 border-t border-ink-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
               onSubmit={(e) => {
                 e.preventDefault();
                 send(input);
