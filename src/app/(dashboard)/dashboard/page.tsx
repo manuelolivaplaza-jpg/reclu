@@ -1,8 +1,7 @@
 import { connection } from "next/server";
 import Link from "next/link";
 import { BellRing, Plus, ArrowRight } from "lucide-react";
-import { getFollows, getProfile } from "@/lib/queries";
-import { getPortfolios } from "@/lib/queries";
+import { getAlerts, getFollows, getPortfolios, getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { PortfolioCard } from "@/components/portfolio-card";
 import { ButtonLink } from "@/components/ui/button";
@@ -38,8 +37,8 @@ export default async function DashboardPage() {
   const proLimitReached =
     profile?.plan === "pro" && followed.length >= PRO_PLAN_FOLLOW_LIMIT;
 
-  // Recent alerts for followed portfolios
-  const { data: recentAlerts } = await supabase
+  // Recent alerts for followed portfolios (with fallback to global/demo alerts)
+  const { data: followedAlerts } = await supabase
     .from("alerts")
     .select("*, portfolio:portfolios!inner(id, slug, name)")
     .eq("is_published", true)
@@ -49,6 +48,22 @@ export default async function DashboardPage() {
     )
     .order("created_at", { ascending: false })
     .limit(5);
+
+  const portfolioById = new Map(allPortfolios.map((p) => [p.id, p]));
+  const recentAlerts =
+    followedAlerts && followedAlerts.length > 0
+      ? followedAlerts
+      : (await getAlerts(undefined, 5)).map((alert) => {
+          const matched = portfolioById.get(alert.portfolio_id);
+          return {
+            ...alert,
+            portfolio: alert.portfolio ?? {
+              id: matched?.id ?? alert.portfolio_id,
+              slug: matched?.slug ?? "pelosi-tracker",
+              name: matched?.name ?? "Portafolio",
+            },
+          };
+        });
 
   const firstName = profile?.full_name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "ahí";
 
@@ -83,10 +98,18 @@ export default async function DashboardPage() {
               Resúmenes AI completos, alertas en tiempo real y portafolios premium.
             </p>
           </div>
-          <ButtonLink href="/#precios" className="shrink-0">
-            Ver planes
-            <ArrowRight className="size-4" />
-          </ButtonLink>
+          <div className="flex shrink-0 flex-wrap items-center gap-4">
+            <Link
+              href="/upgrade?plan=elite"
+              className="text-[14px] text-ink-900 underline-offset-4 hover:underline"
+            >
+              Plan Elite →
+            </Link>
+            <ButtonLink href="/upgrade?plan=pro" className="shrink-0">
+              Pasar a Pro
+              <ArrowRight className="size-4" />
+            </ButtonLink>
+          </div>
         </div>
       )}
 
@@ -101,7 +124,7 @@ export default async function DashboardPage() {
               Con Elite sigues portafolios ilimitados, incluidos Fondos 13F y exportación CSV.
             </p>
           </div>
-          <ButtonLink href="/#precios" className="shrink-0">
+          <ButtonLink href="/upgrade?plan=elite" className="shrink-0">
             Pasar a Elite
             <ArrowRight className="size-4" />
           </ButtonLink>

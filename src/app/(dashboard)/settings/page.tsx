@@ -81,9 +81,9 @@ export default async function SettingsPage() {
                     </p>
                     <p className="mt-0.5 text-[13px] text-ink-500">{tier.desc}</p>
                   </div>
-                  {!tier.current && (
+                  {!tier.current && !tier.name.startsWith("Gratis") && (
                     <ButtonLink
-                      href={tier.name.startsWith("Elite") ? "/signup?plan=elite" : "/signup?plan=pro"}
+                      href={tier.name.startsWith("Elite") ? "/upgrade?plan=elite" : "/upgrade?plan=pro"}
                       size="sm"
                       className="shrink-0"
                     >
@@ -94,7 +94,7 @@ export default async function SettingsPage() {
               ))}
             </div>
             {!isPro && (
-              <ButtonLink href="/#precios" variant="outline" className="w-fit">
+              <ButtonLink href="/upgrade?plan=pro" variant="outline" className="w-fit">
                 Comparar planes
               </ButtonLink>
             )}
