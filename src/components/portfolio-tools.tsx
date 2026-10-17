@@ -26,6 +26,79 @@ function formatClp(value: number): string {
 }
 
 /**
+ * PortfolioMetricsStrip — Barra arquitectónica de 4 métricas clave de composición.
+ * Filetes de 1px, tipografía tabular y monocromo estricto.
+ */
+export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
+  const sorted = useMemo(
+    () => [...holdings].sort((a, b) => b.weight - a.weight),
+    [holdings],
+  );
+
+  const top3Weight = useMemo(
+    () => sorted.slice(0, 3).reduce((sum, h) => sum + h.weight, 0),
+    [sorted],
+  );
+
+  const topHolding = sorted[0] ?? null;
+
+  const recentMoves = useMemo(
+    () =>
+      holdings.filter(
+        (h) => h.previous_weight !== null && h.previous_weight !== h.weight,
+      ).length,
+    [holdings],
+  );
+
+  return (
+    <div
+      aria-label="Métricas de cartera"
+      className="mb-10 grid grid-cols-2 gap-px border border-ink-200 bg-ink-200 sm:grid-cols-4"
+    >
+      <div className="bg-white p-5">
+        <p className="text-[13px] text-ink-500">Activos en cartera</p>
+        <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
+          {holdings.length}
+        </p>
+      </div>
+
+      <div className="bg-white p-5">
+        <p className="text-[13px] text-ink-500">Concentración Top 3</p>
+        <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
+          {holdings.length > 0 ? `${top3Weight.toFixed(1)}%` : "—"}
+        </p>
+      </div>
+
+      <div className="bg-white p-5">
+        <p className="text-[13px] text-ink-500">Mayor posición</p>
+        <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
+          {topHolding ? (
+            <>
+              <span>{topHolding.symbol}</span>{" "}
+              <span className="text-[15px] font-normal text-ink-500">
+                {topHolding.weight.toFixed(1)}%
+              </span>
+            </>
+          ) : (
+            "—"
+          )}
+        </p>
+      </div>
+
+      <div className="bg-white p-5">
+        <p className="text-[13px] text-ink-500">Rotación reciente</p>
+        <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
+          {recentMoves}{" "}
+          <span className="text-[15px] font-normal text-ink-500">
+            movimientos
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * PortfolioTools — Simulador de Capital YTD + Exportación CSV (Elite).
  * Dos bloques sobrios con filetes, tipografía num tabular. Cero color
  * salvo el resultado en verde/rojo como cifra de rendimiento.

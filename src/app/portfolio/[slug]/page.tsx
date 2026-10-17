@@ -9,7 +9,7 @@ import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfol
 import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
-import { PortfolioTools } from "@/components/portfolio-tools";
+import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
@@ -142,12 +142,20 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                     ? "Recibirás alertas por email de este portafolio."
                     : "Sigue este portafolio para recibir alertas."}
                 </p>
+                <Link
+                  href="/compare"
+                  className="mt-3 inline-block text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline"
+                >
+                  Comparar con otra cartera →
+                </Link>
               </div>
             </div>
           </div>
         </div>
 
         <div className="container-page py-10">
+          <PortfolioMetricsStrip holdings={holdings} />
+
           {showEvolution ? (
             <div className="mb-12">
               <ChartSection title="Evolución">
@@ -188,7 +196,26 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                         return (
                           <tr key={h.id} className="border-b border-ink-200">
                             <td className="py-3.5">
-                              <div className="font-medium text-ink-900">{h.symbol}</div>
+                              <div className="flex items-baseline gap-2">
+                                <Link
+                                  href={`/explore?simbolo=${encodeURIComponent(h.symbol)}`}
+                                  className="font-medium text-ink-900 underline-offset-4 hover:underline"
+                                >
+                                  {h.symbol}
+                                </Link>
+                                {h.return_pct !== null && (
+                                  <span
+                                    className={
+                                      "num text-xs " +
+                                      (h.return_pct >= 0 ? "text-positive" : "text-negative")
+                                    }
+                                    title="Retorno desde declaración"
+                                  >
+                                    {h.return_pct >= 0 ? "+" : ""}
+                                    {h.return_pct.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
                               <div className="text-[13px] text-ink-500">{h.name}</div>
                             </td>
                             <td className="py-3.5 text-right font-medium tabular-nums text-ink-900">
