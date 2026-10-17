@@ -6,6 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { LogoLockup } from "@/components/logo";
+import { CommandPalette } from "@/components/command-palette";
 
 const NAV_LINKS = [
   { href: "/explore", label: "Portafolios" },
@@ -49,8 +50,9 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        {/* Desktop CTAs: Entrar es texto, Empezar es píldora */}
+        {/* Desktop CTAs: buscar ⌘K, Entrar y Empezar */}
         <div className="hidden items-center gap-6 md:flex">
+          <CommandPalette />
           <Link
             href="/login"
             className="text-sm text-ink-900 transition-opacity hover:opacity-55"
@@ -62,16 +64,19 @@ export function SiteHeader() {
           </ButtonLink>
         </div>
 
-        {/* Mobile toggle */}
-        <button
-          type="button"
-          className="inline-flex size-10 items-center justify-center text-ink-900 md:hidden"
-          onClick={() => setMobileOpen((v) => !v)}
-          aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
-          aria-expanded={mobileOpen}
-        >
-          {mobileOpen ? <X className="size-6" /> : <Menu className="size-6" />}
-        </button>
+        {/* Mobile: buscar + toggle */}
+        <div className="flex items-center gap-2 md:hidden">
+          <CommandPalette />
+          <button
+            type="button"
+            className="inline-flex size-10 items-center justify-center text-ink-900"
+            onClick={() => setMobileOpen((v) => !v)}
+            aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
+            aria-expanded={mobileOpen}
+          >
+            {mobileOpen ? <X className="size-6" /> : <Menu className="size-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile nav — pantalla completa blanca, links grandes.
