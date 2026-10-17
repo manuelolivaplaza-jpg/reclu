@@ -1,10 +1,14 @@
 /**
- * STOCK Act: días entre la operación (tx_date) y la declaración (disclosed).
- * Solo calcula si el payload trae ambas fechas ISO. Si faltan o no parsean, null.
+ * STOCK Act: días entre la operación y la declaración.
+ * Acepta dos convenciones de payload:
+ *  - Políticos PTR:   tx_date + disclosed
+ *  - Fondos 13F:      traded_at + filed_at
+ * Solo calcula si el payload trae ambas fechas ISO de un par válido.
+ * Si faltan o no parsean, null.
  */
 export function disclosureLagLabel(payload: Record<string, unknown>): string | null {
-  const tx = payload.tx_date;
-  const disclosed = payload.disclosed;
+  const tx = payload.tx_date ?? payload.traded_at;
+  const disclosed = payload.disclosed ?? payload.filed_at;
   if (typeof tx !== "string" || typeof disclosed !== "string") return null;
 
   const txDay = utcDayNumber(tx);
