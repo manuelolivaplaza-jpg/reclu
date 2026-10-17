@@ -9,7 +9,7 @@ Documentación de cada fuente scrapeada, su estado y limitaciones conocidas.
 | House Disclosure (oficial) | pelosi-tracker, trump-trades | ✅ Funcional (verificado en vivo) | disclosures-clerk.house.gov, sin login, PTRs en PDF |
 | Capitol Trades | pelosi-tracker, trump-trades | ⚠️ Login wall | Streaming RSC parseado; requiere auth |
 | Renta 4 | renta4-moderada, renta4-moderada-ampliada | ✅ Funcional (verificado) | Hub → artículo → PDF semanal |
-| BTG Pactual Chile | btg-insights | 🔧 Pendiente | HTML público: app.btgpactual.cl/.../cartera-recomendada |
+| BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado 2026-10-16) | PDF estático público S3: Cartera_Concentrada_RVL.pdf |
 | LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
 | InfoProbidad | infoProbidad-cl | 🔧 Dataset URL a confirmar | CSV público |
 

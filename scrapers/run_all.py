@@ -23,7 +23,7 @@ def main() -> None:
     parser.add_argument(
         "--only",
         nargs="*",
-        choices=["capitol_trades", "house_disclosure", "renta4", "infoprobidad"],
+        choices=["capitol_trades", "house_disclosure", "renta4", "infoprobidad", "btg_pactual"],
         help="Run only these scrapers (default: all)",
     )
     args = parser.parse_args()
@@ -31,7 +31,13 @@ def main() -> None:
     db = get_db()
     results = []
 
-    scrapers = args.only or ["house_disclosure", "capitol_trades", "renta4", "infoprobidad"]
+    scrapers = args.only or [
+        "house_disclosure",
+        "capitol_trades",
+        "renta4",
+        "infoprobidad",
+        "btg_pactual",
+    ]
 
     if "capitol_trades" in scrapers:
         try:
@@ -79,6 +85,17 @@ def main() -> None:
         except Exception as e:
             log(f"infoprobidad failed: {e}")
             results.append({"source": "infoprobidad", "status": "error", "error": str(e)})
+
+    if "btg_pactual" in scrapers:
+        try:
+            from btg_pactual import BtgPactualAdapter
+
+            log("Starting BTG Pactual (Cartera Concentrada)...")
+            adapter = BtgPactualAdapter()
+            results.append(adapter.run(db))
+        except Exception as e:
+            log(f"btg_pactual failed: {e}")
+            results.append({"source": "btg_pactual", "status": "error", "error": str(e)})
 
     # Summary
     print("\n" + "=" * 50)
