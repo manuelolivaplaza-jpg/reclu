@@ -3,6 +3,7 @@ import type { Alert, Portfolio } from "@/lib/types";
 import { cn, formatPercent } from "@/lib/utils";
 
 const ROW_LIMIT = 5;
+const RADAR_LIMIT = 7;
 
 interface RankingRow {
   id: string;
@@ -12,16 +13,25 @@ interface RankingRow {
   tone?: "positive" | "negative";
 }
 
+/** Símbolo + nº de carteras del catálogo que lo incluyen. */
+export interface ConsensusTicker {
+  symbol: string;
+  count: number;
+}
+
 /**
- * Tres rankings tipográficos del catálogo. El conteo de alertas se arma en
- * memoria agrupando por portfolio_id. return_ytd nulo no entra en Mejor retorno.
+ * Tres rankings tipográficos del catálogo + Radar de Consenso.
+ * El conteo de alertas se arma en memoria agrupando por portfolio_id.
+ * return_ytd nulo no entra en Mejor retorno.
  */
 export function ExploreRankings({
   portfolios,
   alerts,
+  consensus = [],
 }: {
   portfolios: Portfolio[];
   alerts: Alert[];
+  consensus?: ConsensusTicker[];
 }) {
   const alertCount = new Map<string, number>();
   for (const alert of alerts) {
@@ -74,7 +84,52 @@ export function ExploreRankings({
         <RankingTable title="Mejor retorno" rows={bestReturn} />
         <RankingTable title="Más alertas" rows={mostAlerts} />
       </div>
+
+      {consensus.length > 0 && (
+        <ConsensusRadar tickers={consensus.slice(0, RADAR_LIMIT)} />
+      )}
     </section>
+  );
+}
+
+/**
+ * Radar de Consenso — tickers más repetidos entre las carteras del
+ * catálogo (ballenas incluidas). Enlaces directos a /explore?simbolo=.
+ */
+function ConsensusRadar({ tickers }: { tickers: ConsensusTicker[] }) {
+  return (
+    <div className="mt-14 border-t border-ink-200 pt-8">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <h3 className="text-[15px] font-medium text-ink-900">
+          Radar de Consenso — Tickers más repetidos
+        </h3>
+        <p className="text-[13px] text-ink-500">
+          Compras simultáneas de múltiples carteras seguidas.
+        </p>
+      </div>
+      <ul className="mt-5 grid grid-cols-1 gap-px border border-ink-200 bg-ink-200 sm:grid-cols-2 lg:grid-cols-7 lg:border-0 lg:bg-transparent">
+        {tickers.map((t, i) => (
+          <li key={t.symbol} className="bg-white lg:border lg:border-ink-200 lg:bg-white">
+            <Link
+              href={`/explore?simbolo=${encodeURIComponent(t.symbol)}`}
+              className="group flex h-full flex-col justify-between gap-6 p-5 transition-colors hover:bg-ink-50"
+            >
+              <span className="num text-[11px] text-ink-400">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div>
+                <p className="num text-[24px] leading-none tracking-[-0.03em] text-ink-900 group-hover:underline">
+                  {t.symbol}
+                </p>
+                <p className="mt-1.5 text-[13px] text-ink-500">
+                  {t.count} cartera{t.count !== 1 ? "s" : ""}
+                </p>
+              </div>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

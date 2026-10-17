@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { CATEGORY_META, isPaidPlan, type Portfolio, type PortfolioCategory } from "@/lib/types";
 import { ExploreFilters } from "@/components/explore-filters";
-import { ExploreRankings } from "@/components/explore-rankings";
+import { ExploreRankings, type ConsensusTicker } from "@/components/explore-rankings";
 
 /** getAlerts recorta por defecto a 20. El ranking cuenta publicadas, no solo las últimas. */
 const ALERT_RANKING_LIMIT = 1000;
@@ -42,6 +42,9 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const followedIds = new Set(follows.map((f) => f.portfolio_id));
   const isPro = isPaidPlan(profile?.plan);
 
+  // Radar de Consenso: tickers más repetidos entre las carteras del catálogo.
+  const consensus = await buildConsensus(catalog);
+
   const categories = Object.entries(CATEGORY_META) as [
     PortfolioCategory,
     { label: string; description: string },
@@ -58,7 +61,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             <ExploreFilters categories={categories} activeCategory={category} />
           </div>
 
-          <ExploreRankings portfolios={catalog} alerts={alerts} />
+          <ExploreRankings portfolios={catalog} alerts={alerts} consensus={consensus} />
 
           {portfolios.length === 0 ? (
             <p className="mt-16 text-[15px] text-ink-500">
@@ -82,6 +85,34 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
       <SiteFooter />
     </>
   );
+}
+
+/**
+ * Radar de Consenso: cuenta en cuántas carteras del catálogo aparece cada
+ * ticker y devuelve los más repetidos. El conteo es por cartera distinta,
+ * no por peso.
+ */
+async function buildConsensus(
+  catalog: Portfolio[],
+  limit = 7,
+): Promise<ConsensusTicker[]> {
+  const counts = new Map<string, number>();
+  await Promise.all(
+    catalog.map(async (portfolio) => {
+      const holdings = await getHoldings(portfolio.id);
+      const seen = new Set<string>();
+      for (const holding of holdings) {
+        const symbol = holding.symbol.trim().toUpperCase();
+        if (!symbol || seen.has(symbol)) continue;
+        seen.add(symbol);
+        counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
+      }
+    }),
+  );
+  return [...counts.entries()]
+    .map(([symbol, count]) => ({ symbol, count }))
+    .sort((a, b) => b.count - a.count || a.symbol.localeCompare(b.symbol))
+    .slice(0, limit);
 }
 
 /** Portafolios cuyo listado de holdings incluye el símbolo (ya en mayúsculas). */
