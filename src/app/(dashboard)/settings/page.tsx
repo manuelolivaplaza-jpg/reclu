@@ -1,14 +1,32 @@
 import { connection } from "next/server";
 import { getProfile } from "@/lib/queries";
+import { createClient } from "@/lib/supabase/server";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
+import { BillingStatus } from "@/components/billing-status";
 import { isPaidPlan } from "@/lib/types";
 
 export const metadata = { title: "Ajustes" };
 // Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
 export const instant = false;
+
+/** Etiquetas de proveedores para la UI de Ajustes. */
+const SUBSCRIPTION_PROVIDER_LABELS: Record<string, string> = {
+  flow: "Flow",
+  mercadopago: "Mercado Pago",
+  mock: "modo prueba",
+};
+
+interface SubscriptionRow {
+  plan: string;
+  period: string;
+  status: string;
+  provider: string;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
 
 export default async function SettingsPage() {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
@@ -16,6 +34,22 @@ export default async function SettingsPage() {
   const profile = await getProfile();
   if (!profile) return null;
   const isPro = isPaidPlan(profile.plan);
+
+  // Suscripción activa del usuario (RLS permite SELECT propio).
+  let activeSubscription: SubscriptionRow | null = null;
+  if (isPro) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("plan, period, status, provider, current_period_end, cancel_at_period_end")
+      .eq("user_id", profile.id)
+      .in("status", ["active", "past_due"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    activeSubscription = (data as SubscriptionRow | null) ?? null;
+  }
+
   const planName =
     profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Gratis";
 
@@ -97,6 +131,18 @@ export default async function SettingsPage() {
               <ButtonLink href="/upgrade?plan=pro" variant="outline" className="w-fit">
                 Comparar planes
               </ButtonLink>
+            )}
+            {isPro && (
+              <BillingStatus
+                plan={activeSubscription?.plan === "elite" ? "elite" : "pro"}
+                period={(activeSubscription?.period as "mensual" | "anual") ?? "mensual"}
+                status={activeSubscription?.status ?? "active"}
+                currentPeriodEnd={activeSubscription?.current_period_end ?? null}
+                cancelAtPeriodEnd={Boolean(activeSubscription?.cancel_at_period_end)}
+                providerLabel={SUBSCRIPTION_PROVIDER_LABELS[
+                  activeSubscription?.provider ?? "mock"
+                ] ?? "reclu"}
+              />
             )}
           </div>
         </CardContent>

@@ -8,13 +8,14 @@ import type { Plan } from "@/lib/types";
 
 export type UpgradePlanChoice = "pro" | "elite";
 export type BillingCycle = "monthly" | "annual";
-export type PaymentMethodId = "webpay" | "fintoc" | "mercadopago";
 
 export interface UpgradeCheckoutProps {
   currentPlan: Plan;
   initialSelectedPlan?: UpgradePlanChoice;
   initialBilling?: BillingCycle;
   userEmail?: string;
+  /** Proveedor activo (server): muestra aviso "modo prueba" si es mock. */
+  isTestMode?: boolean;
 }
 
 const PLAN_DETAILS: Record<
@@ -62,28 +63,21 @@ const PAYMENT_METHODS: {
   id: PaymentMethodId;
   label: string;
   description: string;
-  instructions: string;
 }[] = [
   {
     id: "webpay",
     label: "Tarjeta de crédito o débito (Webpay Plus)",
-    description: "Visa, Mastercard, Redcompra · Transbank Chile en CLP.",
-    instructions:
-      "Procesamos tu suscripción con cargo automático en CLP vía Webpay Plus. Envía tu código de referencia o comprobante a hola@reclu.cl para activar tu plan de inmediato mientras finalizamos la pasarela automática.",
+    description: "Visa, Mastercard, Redcompra · procesado por Flow.cl en CLP.",
   },
   {
     id: "fintoc",
     label: "Transferencia bancaria instantánea (Fintoc)",
     description: "Banco de Chile, Santander, BCI, Itaú, Scotiabank, BancoEstado.",
-    instructions:
-      "Realiza la transferencia desde tu banco con el código de referencia indicado y responde al correo de confirmación o escribe a hola@reclu.cl. Tu cuenta quedará activada en minutos.",
   },
   {
     id: "mercadopago",
     label: "Mercado Pago",
     description: "Saldo en cuenta o tarjetas guardadas en Mercado Pago Chile.",
-    instructions:
-      "Completa el pago con tu cuenta de Mercado Pago indicando tu código de referencia a hola@reclu.cl para habilitar todas las funciones del plan en tu perfil.",
   },
 ];
 
@@ -92,11 +86,13 @@ export function UpgradeCheckout({
   initialSelectedPlan = "pro",
   initialBilling = "monthly",
   userEmail = "",
+  isTestMode = false,
 }: UpgradeCheckoutProps) {
   const [selectedPlan, setSelectedPlan] = useState<UpgradePlanChoice>(initialSelectedPlan);
   const [billing, setBilling] = useState<BillingCycle>(initialBilling);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>("webpay");
-  const [submittedRef, setSubmittedRef] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const plan = PLAN_DETAILS[selectedPlan];
   const activePayment =
@@ -105,15 +101,35 @@ export function UpgradeCheckout({
     billing === "annual" ? plan.annualMonthlyPrice : plan.monthlyPrice;
   const totalDueNow = billing === "annual" ? plan.annualTotal : plan.monthlyPrice;
 
-  function handleActivate(e: React.FormEvent) {
+  async function handleActivate(e: React.FormEvent) {
     e.preventDefault();
-    const prefix = selectedPlan === "elite" ? "ELITE" : "PRO";
-    const cycleCode = billing === "annual" ? "ANUAL" : "MES";
-    const suffix = (userEmail || "RECLU")
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .slice(0, 6)
-      .toUpperCase();
-    setSubmittedRef(`RCL-${prefix}-${cycleCode}-${suffix || "CL2026"}`);
+    setError(null);
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: selectedPlan,
+          period: billing === "annual" ? "anual" : "mensual",
+        }),
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        url?: string;
+        error?: string;
+        redirect?: string;
+      };
+      if (!data.ok || !data.url) {
+        setError(data.error ?? "No se pudo iniciar el pago.");
+        setSubmitting(false);
+        return;
+      }
+      window.location.href = data.url;
+    } catch {
+      setError("No se pudo iniciar el pago. Revisa tu conexión e intenta de nuevo.");
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -158,7 +174,7 @@ export function UpgradeCheckout({
             type="button"
             onClick={() => {
               setBilling("monthly");
-              setSubmittedRef(null);
+              setError(null);
             }}
             className={`px-4 py-1.5 text-[13px] font-medium transition-colors ${
               billing === "monthly"
@@ -172,7 +188,7 @@ export function UpgradeCheckout({
             type="button"
             onClick={() => {
               setBilling("annual");
-              setSubmittedRef(null);
+              setError(null);
             }}
             className={`px-4 py-1.5 text-[13px] font-medium transition-colors ${
               billing === "annual"
@@ -204,7 +220,7 @@ export function UpgradeCheckout({
                     type="button"
                     onClick={() => {
                       setSelectedPlan(tierKey);
-                      setSubmittedRef(null);
+                      setError(null);
                     }}
                     className={`flex flex-col justify-between border p-5 text-left transition-colors ${
                       isSelected
@@ -283,7 +299,7 @@ export function UpgradeCheckout({
                         checked={active}
                         onChange={() => {
                           setPaymentMethod(method.id);
-                          setSubmittedRef(null);
+                          setError(null);
                         }}
                         className="mt-1 size-4 accent-ink-900"
                       />
@@ -304,7 +320,7 @@ export function UpgradeCheckout({
 
           {/* Submit CTA */}
           <div className="flex flex-col gap-3">
-            <Button type="submit" size="lg" className="w-full sm:w-fit">
+            <Button type="submit" size="lg" loading={submitting} className="w-full sm:w-fit">
               {selectedPlan === "elite" ? "Activar Plan Elite" : "Activar Plan Pro"}
               <ArrowRight className="size-4" />
             </Button>
@@ -313,63 +329,27 @@ export function UpgradeCheckout({
             </p>
           </div>
 
-          {/* Interactive confirmation panel */}
-          {submittedRef && (
-            <div
-              role="status"
-              aria-live="polite"
-              className="border border-ink-900 bg-white p-6"
-            >
-              <p className="text-[13px] text-ink-500">Solicitud de activación generada</p>
-              <h3 className="mt-1 text-[20px] font-medium tracking-[-0.025em] text-ink-900">
-                {plan.name} · {billing === "annual" ? "Facturación anual" : "Facturación mensual"}
-              </h3>
-
-              <div className="mt-4 grid gap-3 border-y border-ink-200 py-4 text-[13px] sm:grid-cols-3">
-                <div>
-                  <p className="text-ink-500">Código de referencia</p>
-                  <p className="mt-0.5 font-medium tabular-nums text-ink-900">
-                    {submittedRef}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-ink-500">Medio seleccionado</p>
-                  <p className="mt-0.5 font-medium text-ink-900">
-                    {activePayment.label}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-ink-500">Total a pagar</p>
-                  <p className="mt-0.5 font-medium tabular-nums text-ink-900">
-                    {totalDueNow} CLP
-                  </p>
-                </div>
-              </div>
-
-              <p className="mt-4 text-[14px] leading-relaxed text-ink-900">
-                {activePayment.instructions}
+          {/* Estado de redirección / error */}
+          {submitting && (
+            <div role="status" className="border border-ink-900 bg-white p-6">
+              <p className="text-[14px] text-ink-900">
+                Te estamos redirigiendo al pago seguro…
               </p>
-
-              <div className="mt-5 flex flex-wrap items-center gap-4">
-                <ButtonLink
-                  href={`mailto:hola@reclu.cl?subject=${encodeURIComponent(
-                    `Activación ${plan.name} (${submittedRef})`,
-                  )}&body=${encodeURIComponent(
-                    `Hola equipo reclu,\n\nQuiero activar mi suscripción:\n- Plan: ${plan.name}\n- Ciclo: ${billing === "annual" ? "Anual (20% dcto.)" : "Mensual"}\n- Medio de pago: ${activePayment.label}\n- Total: ${totalDueNow} CLP\n- Referencia: ${submittedRef}\n- Cuenta: ${userEmail}\n`,
-                  )}`}
-                  size="sm"
-                >
-                  Confirmar activación por correo
-                  <ArrowRight className="size-3.5" />
-                </ButtonLink>
-                <Link
-                  href="/explore"
-                  className="text-[13px] text-ink-900 underline-offset-4 hover:underline"
-                >
-                  Explorar catálogo →
-                </Link>
-              </div>
             </div>
+          )}
+          {error && (
+            <div role="alert" className="border border-ink-900 bg-white p-6">
+              <p className="text-[14px] font-medium text-ink-900">{error}</p>
+              <p className="mt-1 text-[13px] text-ink-500">
+                Si el problema persiste, escríbenos a hola@reclu.cl.
+              </p>
+            </div>
+          )}
+
+          {isTestMode && (
+            <p className="text-[12px] text-ink-500">
+              Modo prueba: los pagos se simulan y no se realizan cobros reales.
+            </p>
           )}
         </form>
 
