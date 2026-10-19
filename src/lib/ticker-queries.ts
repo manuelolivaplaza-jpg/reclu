@@ -13,6 +13,11 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Alert, Portfolio } from "@/lib/types";
 import { DEMO_PORTFOLIOS, demoAlerts, demoHoldings } from "@/lib/demo-data";
+import {
+  HOLDING_LIMITS,
+  canViewPremium,
+  type AccessRole,
+} from "@/lib/access";
 
 // ---- Tipos ----
 
@@ -163,6 +168,54 @@ export function filterAlertsBySymbol(alerts: Alert[], symbol: string): Alert[] {
 
 function escapeRegExp(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&");
+}
+
+/**
+ * Fila de "quién tiene X" ya resuelta, independiente del origen
+ * (RPC get_symbol_holders, cliente admin o lectura legacy pre-012).
+ */
+export interface SymbolHolderRow {
+  portfolioId: string;
+  slug: string;
+  name: string;
+  category: string;
+  premium: boolean | null;
+  weight: number;
+  asOf: string;
+  previousWeight: number | null;
+  firstSeen: string;
+  holdingName: string | null;
+  priceCurrent: number | null;
+  currency: string | null;
+  returnPct: number | null;
+  /**
+   * Rank de la posición por peso dentro de su cartera en su as_of vigente
+   * (1 = mayor peso). Null cuando el origen ya aplicó el recorte (RPC 015).
+   */
+  rankInPortfolio: number | null;
+}
+
+/**
+ * Recorte del muro de pago para filas de "quién tiene X" (F9).
+ * Misma regla que la RPC get_symbol_holders (migración 015):
+ *  - portafolio premium visible solo con plan de pago;
+ *  - posición visible solo si su rank ≤ límite del rol (top N por peso).
+ * Si rankInPortfolio es null el origen ya recortó (RPC), así que no se corta
+ * de más; premium se re-verifica siempre por defensa en profundidad.
+ */
+export function trimHoldersForRole(
+  rows: SymbolHolderRow[],
+  role: AccessRole,
+): SymbolHolderRow[] {
+  const limit = HOLDING_LIMITS[role];
+  const capped = Number.isFinite(limit);
+  return rows.filter((row) => {
+    if (row.premium && !canViewPremium(role)) return false;
+    if (capped && row.rankInPortfolio !== null && row.rankInPortfolio > (limit as number)) {
+      return false;
+    }
+    return true;
+  });
 }
 
 // ---- Acceso a datos ----
