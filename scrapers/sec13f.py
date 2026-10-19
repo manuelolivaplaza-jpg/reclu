@@ -44,6 +44,22 @@ FUNDS: dict[str, int] = {
     "AKO Capital": 1376879,               # Nicolai Tangen — infotable no estándar, valor en MILES
     "HHLR Advisors": 1762304,             # ex Hillhouse — libro corto
     "Temasek Holdings": 1021944,           # soberano de Singapur, libro largo
+    # --- Soberanos, banco central y family offices (F25) ---
+    # CIK verificados 2026-10-19 vía data.sec.gov/submissions/CIK##########.json
+    # (scrapers/data/v2/F25/ciks_verificados.json). Duquesne 1536411 y Soros
+    # 1029160 ya están arriba: no se duplican.
+    "Norges Bank": 1374170,             # 13F-HR 2026-08-12, periodo 2026-06-30; top 50
+    "Swiss National Bank": 1582202,     # 13F-HR 2026-08-11, periodo 2026-06-30; top 50
+    "Gates Foundation Trust": 1166559,  # 13F-HR 2026-08-14, periodo 2026-06-30
+    "Icahn Carl C": 921669,             # 13F-HR 2026-08-14, periodo 2026-06-30
+}
+
+# Books with thousands of 13F lines. The published portfolio keeps the N
+# largest positions by reported value. Weights stay shares of the FULL
+# book, so a line is not inflated just because the tail was dropped.
+TOP_N: dict[str, int] = {
+    "Norges Bank": 50,
+    "Swiss National Bank": 50,
 }
 
 # Funds whose 13F XML infotable has a non-standard filename or
@@ -99,14 +115,25 @@ def _infotable_url(cik: int, accession: str, fund_name: str = "") -> str:
     raise ValueError(f"no info table xml in accession {accession}")
 
 
-def fetch_holdings(cik: int, fund_name: str = "") -> list[dict]:
-    """Parsed holdings of the latest 13F, with computed weights."""
-    latest = _latest_13f(cik)
-    if not latest:
-        return []
-    accession, filing_date = latest
+def resolve_top_n(fund_name: str, top_n: int | None = None) -> int | None:
+    """Line cap for one fund. An explicit top_n overrides TOP_N."""
+    if top_n is not None:
+        return top_n
+    return TOP_N.get(fund_name)
 
-    xml_text = _get_text(_infotable_url(cik, accession, fund_name))
+
+def parse_infotable(
+    xml_text: str,
+    filing_date: str = "",
+    top_n: int | None = None,
+) -> list[dict]:
+    """Parse a 13F information table.
+
+    Duplicate issuers (one row per manager or discretion) are merged first.
+    Weights are the share of the full reported book, rounded to 2 decimals.
+    If top_n is set, only the N largest positions by value are kept, largest
+    first. The long tail is left out of the published book.
+    """
     root = ET.fromstring(xml_text)
     ns = {"ns": root.tag.split("}")[0].strip("{")}
 
@@ -125,8 +152,6 @@ def fetch_holdings(cik: int, fund_name: str = "") -> list[dict]:
             }
         )
 
-    total = sum(h["value"] for h in holdings) or 1.0
-
     # Merge duplicate issuers: 13F reports one entry per manager/discretion.
     merged: dict[str, dict] = {}
     for h in holdings:
@@ -138,9 +163,28 @@ def fetch_holdings(cik: int, fund_name: str = "") -> list[dict]:
             merged[key] = dict(h)
     holdings = list(merged.values())
 
+    total = sum(h["value"] for h in holdings) or 1.0
     for h in holdings:
         h["weight"] = round(h["value"] / total * 100, 2)
+
+    if top_n is not None:
+        holdings = sorted(holdings, key=lambda h: h["value"], reverse=True)[:top_n]
     return holdings
+
+
+def fetch_holdings(cik: int, fund_name: str = "", top_n: int | None = None) -> list[dict]:
+    """Parsed holdings of the latest 13F, with computed weights.
+
+    top_n limits the published book. None uses TOP_N for that fund (50 for
+    Norges Bank and Swiss National Bank) and leaves every other fund whole.
+    """
+    latest = _latest_13f(cik)
+    if not latest:
+        return []
+    accession, filing_date = latest
+
+    xml_text = _get_text(_infotable_url(cik, accession, fund_name))
+    return parse_infotable(xml_text, filing_date, top_n=resolve_top_n(fund_name, top_n))
 
 
 def fetch_all_funds() -> dict[str, list[dict]]:
