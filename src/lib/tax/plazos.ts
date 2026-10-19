@@ -34,20 +34,3 @@ export const GUIAS_OFICIALES = [
     url: "https://ayuda.racional.cl/es/articles/6010953-paso-a-paso-para-declarar-mis-stocks-al-sii-dj-1929-y-formulario-22",
   },
 ] as const;
-
-const ETIQUETA_CODIGO: Record<number, string> = {
-  10: "10 · Dividendos",
-  11: "11 · Intereses",
-  13: "13 · Ganancias de capital",
-  21: "21 · Otras rentas",
-};
-
-const TITULO_PASO: Record<Paso, string> = {
-  subir: "Sube el CSV de operaciones",
-  revisar: "Revisa las operaciones y el tipo de cambio",
-  resumen: "Resumen para la DJ 1929",
-};
-
-/* ------------------------------------------------------------------ */
-/* Componente                                                          */
-/* ------------------------------------------------------------------ */

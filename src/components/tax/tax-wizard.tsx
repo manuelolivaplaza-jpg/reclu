@@ -185,6 +185,23 @@ export function nombreArchivoImportado(): string {
 
 export { PLAZOS, GUIAS_OFICIALES } from "@/lib/tax/plazos";
 
+const ETIQUETA_CODIGO: Record<number, string> = {
+  10: "10 · Dividendos",
+  11: "11 · Intereses",
+  13: "13 · Ganancias de capital",
+  21: "21 · Otras rentas",
+};
+
+const TITULO_PASO: Record<Paso, string> = {
+  subir: "Sube el CSV de operaciones",
+  revisar: "Revisa las operaciones y el tipo de cambio",
+  resumen: "Resumen para la DJ 1929",
+};
+
+/* ------------------------------------------------------------------ */
+/* Componente                                                          */
+/* ------------------------------------------------------------------ */
+
 export function TaxWizard() {
   const [estado, setEstado] = useState<EstadoWizard>(() => estadoInicial());
   const [nombreArchivo, setNombreArchivo] = useState<string | null>(null);
