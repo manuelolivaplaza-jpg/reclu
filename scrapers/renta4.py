@@ -58,8 +58,8 @@ class Renta4Adapter(SourceAdapter):
         "moderada-ampliada": "renta4-moderada-ampliada",
     }
 
-    def __init__(self, portfolio: str = "moderada") -> None:
-        super().__init__()
+    def __init__(self, portfolio: str = "moderada", dry_run: bool = False) -> None:
+        super().__init__(dry_run=dry_run)
         self.portfolio = portfolio
         self.portfolio_slug = self.PORTFOLIOS.get(portfolio, "renta4-moderada")
 
@@ -81,15 +81,16 @@ class Renta4Adapter(SourceAdapter):
         if m:
             return self._abs(m.group(1))
 
-        # Otherwise follow the newest article link
+        # Otherwise follow the newest article link (href puede ser absoluto
+        # o relativo — verificado en vivo: hoy vienen absolutos)
         article = re.search(
-            r'href="(/analisis-actualidad/recomendaciones-y-oportunidades/'
-            r'carteras-recomendadas/\d{4}/\d+/\d[^"]*?)"',
+            r'href="((?:https?://www\.renta4\.cl)?/analisis-actualidad/recomendaciones-y-oportunidades/'
+            r'carteras-recomendadas/\d{4}/\d+/[^"]*?)"',
             html,
         )
         if not article:
             # Fallback: any carteras article link
-            article = re.search(r'href="(/[^"]*carteras-recomendadas/[^"]*?\d[^"]*?)"', html)
+            article = re.search(r'href="([^"]*carteras-recomendadas/[^"]*)"', html)
         if not article:
             log(f"[{self.name}] no article link found on hub")
             return None

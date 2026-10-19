@@ -3,4 +3,6 @@
 
 httpx>=0.27.0          # HTTP client with redirect/timeout handling
 supabase>=2.4.0        # Supabase Python client (service-role upserts)
-pypdf>=4.0.0           # PDF text extraction (Renta 4 weekly reports are PDFs)
+pypdf>=4.0.0           # PDF text extraction (Renta 4 / House PTR PDFs)
+curl_cffi>=0.7.0        # Senate eFD: Akamai rechaza httpx por huella TLS (impersona Chrome)
+openpyxl>=3.1.0         # VanEck SMH: holdings diarios se publican como XLSX

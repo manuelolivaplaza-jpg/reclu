@@ -27,8 +27,8 @@ class CapitolTradesAdapter(SourceAdapter):
         "trump": "trump-trades",
     }
 
-    def __init__(self, politician: str = "pelosi") -> None:
-        super().__init__()
+    def __init__(self, politician: str = "pelosi", dry_run: bool = False) -> None:
+        super().__init__(dry_run=dry_run)
         self.politician = politician.lower()
         self.portfolio_slug = self.POLITICIANS.get(self.politician, "pelosi-tracker")
 
