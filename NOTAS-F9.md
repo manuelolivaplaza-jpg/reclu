@@ -1,79 +1,90 @@
-# NOTAS-F9 — Que /accion/[symbol] funcione con el muro de pago de la 012
+# NOTAS-F9 — /accion/[symbol] con el muro de pago de la 012
 
-Rama: `mejoras/f9-fix-accion`. Estado: **parcial, con avance commiteado**.
-El run se cortó por presupuesto de tiempo antes de terminar todo el frente;
-abajo queda el detalle exacto de lo hecho y lo pendiente para el próximo run.
+Rama: `mejoras/f9-fix-accion`. Estado: **hecho en esta rama** (sin push).
 
-## Hecho (commiteado)
+La 012 quitó el `SELECT` público de `holdings`. La página por ticker ya no
+lee esa tabla directo como camino principal.
+
+## Qué cambió
 
 1. `supabase/migrations/015_holders_por_simbolo.sql`
-   - Función `public.get_symbol_holders(p_symbol text)`:
-     `security definer`, `set search_path = ''`, `stable`, `language sql`,
-     idempotente (`create or replace`), con `grant execute to anon, authenticated`
-     y bloque `-- rollback` comentado.
-   - Devuelve por cartera activa que tenga el símbolo en su `as_of` más
-     reciente: `portfolio_id, slug, name, category, premium, weight, as_of,
-     previous_weight, first_seen, holding_name, price_current, currency,
-     return_pct`.
-   - Respeta el muro: `row_number()` por `(portfolio_id, as_of)` ordenado por
-     `weight desc, id` y solo filas con `rank <= holdings_limit_for_plan(
-     current_user_plan())` (null = sin límite para pro/elite); carteras
-     `premium` solo para planes pagados. Igual semántica que
-     `get_portfolio_holdings` de la 012.
-   - Extra sobre el pedido mínimo: `first_seen` (para la columna "Desde" de la
-     página sin segunda consulta) y `price_current`/`currency` (para el
-     `displayName`/precio del overview).
+   - `public.get_symbol_holders(p_symbol text)`, misma firma de siempre.
+   - `security definer`, `set search_path = ''`, `stable`, `language sql`.
+   - Idempotente (`create or replace`) y `grant execute` a `anon` y
+     `authenticated`. Rollback comentado al final: `drop function`.
+   - **Rank corregido.** Antes `row_number()` corría solo sobre las filas del
+     símbolo, así que el rank quedaba en 1 y el anónimo veía la posición
+     aunque no estuviera en su top N. Ahora:
+     1. CTE `latest`: `max(as_of)` por cartera activa, sobre todos sus holdings.
+     2. CTE `ranked`: `row_number()` de ese libro (`weight desc, id`).
+     3. Recién ahí se filtra el símbolo.
+   - La fila sale solo si ese rank cabe en
+     `holdings_limit_for_plan(current_user_plan())` (`null` = sin límite,
+     pro/elite). Cartera `premium` solo si el plan es `pro` o `elite`.
 
-2. `src/lib/ticker-queries.ts` (commits `5b9b790` y anteriores)
-   - Nuevo tipo exportado `SymbolHolderRow`: fila de "quién tiene X"
-     independiente del origen, con `rankInPortfolio: number | null`.
-   - Nueva función pura `trimHoldersForRole(rows, role)`: aplica la misma
-     regla que la RPC (premium solo con plan pago; `rankInPortfolio`
-     ≤ `HOLDING_LIMITS[role]`). Si `rankInPortfolio` es null el origen ya
-     recortó (RPC), no se corta de más. Premium se re-verifica siempre.
-   - Import agregado: `HOLDING_LIMITS`, `canViewPremium`, `AccessRole` desde
-     `@/lib/access` (archivo ya existente, sin tocarlo).
+2. `src/lib/ticker-queries.ts`
+   - `getTickerOverview()` mantiene la forma de `TickerOverview`.
+   - Con Supabase: `supabase.rpc("get_symbol_holders", { p_symbol })`.
+     Cada fila se mapea a `SymbolHolderRow` con `rankInPortfolio: null`
+     (la RPC ya recortó) y pasa por `trimHoldersForRole` (defensa: premium).
+   - Si la RPC da error (015 no aplicada): `createAdminClient()`. Con service
+     key lee el libro del `as_of` vigente de las carteras que tienen el
+     símbolo, `rankAtLatestAsOf()` calcula el rank y `trimHoldersForRole()`
+     recorta con `roleFor(await getProfile())` de `access.ts`. Esas filas de
+     más no salen del servidor.
+   - Sin service key: la lectura directa de antes y el mismo recorte. Sin
+     rank (la lectura pública no trae el libro) `rankInPortfolio` queda
+     `null`: no se inventa un rank 1. Con la 012 aplicada esa lectura vuelve
+     vacía.
+   - Puras y exportadas: `trimHoldersForRole`, `rankAtLatestAsOf`.
 
-## Pendiente (para el próximo run de F9)
+3. `tests/ticker-access.test.ts`
+   - `trimHoldersForRole`: anon top 5, free top 10, pro (`paid`) todo;
+     premium oculto para anon/free y visible para pro; `rankInPortfolio: null`
+     no recorta de más y sí oculta premium.
+   - `rankAtLatestAsOf`: rank del libro completo (un símbolo en el puesto 6
+     no entra al anónimo), ignora fechas viejas, empate por `id`, carteras
+     separadas.
 
-1. **Reescribir la parte "Supabase real" de `getTickerOverview()` en
-   `src/lib/ticker-queries.ts` (~líneas 221-288)**: hoy sigue leyendo
-   `from("holdings")` directo (se rompe con la 012 aplicada). Plan ya
-   diseñado:
-   - Camino 1: `supabase.rpc("get_symbol_holders", { p_symbol: symbol })`
-     → mapear filas a `SymbolHolderRow` con `rankInPortfolio: null`
-     (la RPC ya recortó) → `trimHoldersForRole` solo por defensa.
-   - Camino 2 (RPC no existe / error): `createAdminClient()` de
-     `src/lib/supabase/admin.ts`; si hay admin, leer holdings del símbolo +
-     portafolios activos y calcular rank por `(portfolio_id, as_of)` en
-     TypeScript, luego `trimHoldersForRole(rows, roleFor(await getProfile()))`
-     con `roleFor`/`HOLDING_LIMITS` de `src/lib/access.ts`. Nunca enviar al
-     navegador filas fuera del recorte.
-   - Camino 3 (sin service key): la lectura actual + `trimHoldersForRole`
-     (y demo rotulada como ya hace).
-   - `summarizeHolders` y la forma de `TickerOverview` NO cambian: convertir
-     `SymbolHolderRow` → `RawHoldingRow` + metadatos y seguir usando el
-     mismo pipeline. `firstSeen` de la RPC reemplaza el cálculo por historial.
-   - La página `src/app/accion/[symbol]/page.tsx` no requiere cambios
-     (consume `TickerOverview`, que mantiene su forma). `instant = false` ya
-     está.
-2. **Verificar el resto del repo con la 012**: `rg 'from\("holdings"\)|from\("portfolio_snapshots"\)' src` hoy solo marca `queries.ts` (ya cubierto por F6 con RPC + admin) y `ticker-queries.ts` (este frente). No hay otras lecturas directas en `src/`; rankings/radar/compare ya pasan por `getAllHoldingsAdmin` o RPC.
-3. **Tests** `tests/ticker-access.test.ts` para `trimHoldersForRole`:
-   premium oculto para anon/free y visible para paid; rank 1..5 visible con
-   anon, rank 6+ oculto; rank 6..10 visible con free; rank >10 oculto con
-   free; todo visible con paid (`Infinity`); `rankInPortfolio: null` no se
-   corta de más (camino RPC).
-4. **Fila 015 en `supabase/migrations/README.md`** (pendiente por corte).
-5. `npm run lint && npm run typecheck && npm test && npm run build` — NO
-   ejecutados en este run por presupuesto; lo commiteado se escribió con
-   typecheck mental contra los archivos leídos (`access.ts`, `types.ts`,
-   `queries.ts`). Ejecutarlos es lo primero del próximo run.
+4. `supabase/migrations/README.md` ya lista la 015 (fila reservada F9).
+   Aplicar **después** de la 012.
 
-## Para Manu
+La página `src/app/accion/[symbol]/page.tsx` no cambió: sigue consumiendo
+`TickerOverview`. `instant = false` ya estaba.
 
-- Aplicar en orden (SQL Editor de Supabase): `012_muro_pago.sql` (si falta) →
-  `015_holders_por_simbolo.sql`. Es idempotente: se puede re-ejecutar.
-- Sin variables de entorno nuevas ni cuentas externas: la 015 usa solo
-  helpers de la 012 y tablas existentes. El respaldo del server usa la
-  `SUPABASE_SERVICE_ROLE_KEY` que ya documentan `.env.example` y `admin.ts`.
-- Pendiente de este frente antes de merge: ítems 1-5 de arriba.
+## Cómo probar
+
+En el SQL Editor, en orden, las dos son re-ejecutables:
+
+1. `012_muro_pago.sql` si aún no está.
+2. `015_holders_por_simbolo.sql`.
+
+Sin variables nuevas. El respaldo usa `SUPABASE_SERVICE_ROLE_KEY`, la misma
+de `.env.example`.
+
+Caso del bug: una cartera con seis posiciones y el símbolo en el peso más
+bajo. Anónimo no debe ver esa fila en `/accion/[symbol]`. Free la ve si el
+rank es 6–10. Pro ve todo, incluidas las carteras premium.
+
+Tests de este frente:
+
+```bash
+npm test -- tests/ticker-access.test.ts
+```
+
+## Verificación de este run (2026-10-19)
+
+| Comando | Resultado |
+|---|---|
+| `npm run lint` | OK |
+| `npm test` | OK, 12 archivos, 123 tests |
+| `npm run build` | OK. `/accion/[symbol]` queda en prerender parcial |
+| `npm run typecheck` | OK después del build |
+
+`tsc` aislado, antes de que `next build` escriba `.next/types`, marca
+`LayoutProps` en `src/app/layout.tsx`. Es el tipo global de Next 16; el
+build lo genera y el typecheck de después pasa. No es de este frente.
+
+No levanté el dev server ni pegué contra Supabase: este run no despliega y
+no abre servidores. El muro nuevo es de datos (RPC + recorte en servidor),
+no de layout.
