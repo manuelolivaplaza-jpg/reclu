@@ -8,8 +8,8 @@ Rama local `v2/f24-consenso-corredoras` (worktree `C:\reclu-work\f23`, base
 ### 1. Migración `supabase/migrations/024_consenso_corredoras.sql`
 - Crea tres portafolios `broker_cl`, `country=CL`, `premium=false`,
   `followers=0`, `return_ytd=null`:
-  - `bice-cartera-recomendada` (`source=bice_cartera`)
-  - `mbi-cartera-recomendada` (`source=mbi_cartera`)
+  - `bice-acciones-destacadas` (`source=bice_cartera`)
+  - `mbi-acciones-recomendadas` (`source=mbi_cartera`)
   - `consenso-corredoras-cl` (`source=corredoras_cl`)
 - Holdings semilla del corte **2026-10-05**, tomados de
   `scrapers/data/v2/F23/carteras_oct_2026.json`:
@@ -19,7 +19,8 @@ Rama local `v2/f24-consenso-corredoras` (worktree `C:\reclu-work\f23`, base
 - Todos con `previous_weight=0`, `currency=CLP`, `exchange=BCS`,
   `asset_class=equity`.
 - Idempotente:
-  - portafolios: `on conflict (slug) do update` solo de `description` y
+  - BICE y MBI: `on conflict (slug) do nothing` (mismos valores que la 044);
+  - consenso: `on conflict (slug) do update` solo de `description` y
     `source` (nunca pisa `followers` ni `return_ytd`);
   - holdings: `insert ... select` con
     `on conflict (portfolio_id, symbol, as_of) do nothing`.
@@ -83,14 +84,13 @@ Ninguna.
   cp1252 (problema previo de `run_all.py`, no de esta tarea).
 
 ## Deudas / pendientes
-1. **Slugs duplicados con la 044 (M44).** La migración 044 ya crea
-   `bice-acciones-destacadas` y `mbi-acciones-recomendadas`, y los adaptadores
-   de F23 siguen escribiendo ahí. La 024 crea los slugs que pide F24
-   (`bice-cartera-recomendada`, `mbi-cartera-recomendada`). Hoy conviven: el
-   seed de 024 es el canónico de F24, pero una corrida real del scraper
-   actualiza las filas de 044, no las de 024. Falta unificar slugs (renombrar
-   o redirigir) en una tarea posterior. No se tocó 044 para no romper
-   `test_migracion_044.py`.
+1. ~~**Slugs duplicados con la 044 (M44).**~~ **Resuelto en F24-B** (rama
+   `v2/f24b-unificar-slugs`): los slugs oficiales son los de la 044
+   (`bice-acciones-destacadas` y `mbi-acciones-recomendadas`). La 024 ahora
+   inserta esas dos filas con los mismos valores que la 044 y
+   `on conflict (slug) do nothing`, así el orden de aplicación no importa.
+   Los holdings semilla, el panel y los tests usan esos slugs. El parser ya
+   los usaba. Ver `NOTAS-F24B.md`.
 2. **Consenso no se reescribe solo.** `build_consenso` está listo, pero la
    etapa `corredoras_cl` sigue devolviendo solo los dos adaptadores BICE/MBI.
    La 024 deja el consenso como foto de octubre 2026. Para actualizarlo en
