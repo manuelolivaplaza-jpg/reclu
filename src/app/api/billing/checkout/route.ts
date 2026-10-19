@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { getPaymentProvider } from "@/lib/billing";
+import { getPaymentProvider, PaymentsNotConfiguredError } from "@/lib/billing";
 import { recordPendingCheckout } from "@/lib/billing/pending";
 import { revalidatePath } from "next/cache";
 

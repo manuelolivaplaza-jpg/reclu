@@ -1,5 +1,11 @@
 import { processPaymentNotification } from "@/lib/billing/process";
-import { createFlowProvider, createMercadoPagoProvider, createMockProvider } from "@/lib/billing";
+import {
+  createFlowProvider,
+  createMercadoPagoProvider,
+  createMockProvider,
+  getPaymentMode,
+  isMockAllowed,
+} from "@/lib/billing";
 import type { PaymentProvider } from "@/lib/billing/types";
 
 /**
@@ -17,10 +23,14 @@ import type { PaymentProvider } from "@/lib/billing/types";
  * Siempre responde 200 a notificaciones bien formadas (los proveedores
  * reintentan con backoff si respondes 4xx/5xx; responder 200 sin procesar
  * un duplicado es lo correcto).
+ *
+ * FAIL CLOSED: `mock` solo existe en desarrollo (isMockAllowed). Fuera de
+ * ahí el endpoint responde 404 ANTES de tocar la base — nadie puede
+ * activarse Pro/Elite forjando una notificación mock.
  */
 
 const providers: Record<string, () => PaymentProvider> = {
-  flow: () => createFlowProvider(getMode()),
+  flow: () => createFlowProvider(getPaymentMode()),
   mercadopago: () => createMercadoPagoProvider(),
   mock: () => createMockProvider(),
 };
@@ -34,6 +44,10 @@ export async function POST(
   ctx: { params: Promise<{ provider: string }> },
 ) {
   const { provider: providerId } = await ctx.params;
+  // FAIL CLOSED: mock solo en desarrollo. Antes de leer body ni tocar base.
+  if (providerId === "mock" && !isMockAllowed()) {
+    return Response.json({ ok: false, error: "Proveedor desconocido." }, { status: 404 });
+  }
   const factory = providers[providerId];
   if (!factory) {
     return Response.json({ ok: false, error: "Proveedor desconocido." }, { status: 404 });
