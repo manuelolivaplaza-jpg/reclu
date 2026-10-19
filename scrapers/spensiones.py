@@ -26,8 +26,9 @@ No se guarda ningún código CUSIP: solo el nemotécnico y el emisor.
   - cambio menor → previous_weight = peso nuevo (delta 0), para que el
     umbral global de 0.5 pp no dispare una alerta.
 
-detect-changes aún no copia `source_url` al payload. La URL va en el
-resumen de la corrida y en `payload_alerta()`.
+detect-changes copia `source_url` al payload de AFP Modelo (la misma
+URL del cuadro 14 que arma `payload_alerta()`). La de `scraper_error`
+ya la guarda esta etapa.
 """
 
 from __future__ import annotations
