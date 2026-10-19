@@ -64,30 +64,27 @@ export function OverlapPanel({ symbols }: { symbols: string[] }) {
     .sort()
     .join("|");
 
-  const [entries, setEntries] = useState<OverlapEntry[]>([]);
-  const [state, setState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [result, setResult] = useState<{
+    key: string;
+    entries: OverlapEntry[];
+    error: boolean;
+  } | null>(null);
 
   useEffect(() => {
-    if (!key) {
-      setEntries([]);
-      setState("ready");
-      return;
-    }
+    if (!key) return;
 
     let alive = true;
-    setState("loading");
     getOverlapForSymbols(key.split("|"))
-      .then((result) => {
+      .then((response) => {
         if (!alive) return;
-        if (result.error) {
-          setState("error");
-          return;
-        }
-        setEntries(result.overlaps ?? []);
-        setState("ready");
+        setResult(
+          response.error
+            ? { key, entries: [], error: true }
+            : { key, entries: response.overlaps ?? [], error: false },
+        );
       })
       .catch(() => {
-        if (alive) setState("error");
+        if (alive) setResult({ key, entries: [], error: true });
       });
 
     return () => {
@@ -96,6 +93,11 @@ export function OverlapPanel({ symbols }: { symbols: string[] }) {
   }, [key]);
 
   if (!key) return null;
+
+  const ready = !!result && result.key === key;
+  const entries = result && result.key === key ? result.entries : [];
+  const loading = !ready;
+  const failed = !!result && result.key === key && result.error;
 
   const withHolders = entries.filter((entry) => entry.totalHolders > 0);
   const withoutHolders = entries.filter((entry) => entry.totalHolders === 0);
@@ -107,7 +109,7 @@ export function OverlapPanel({ symbols }: { symbols: string[] }) {
         <h2 id="overlap-title" className="text-[15px] font-medium text-ink-900">
           Quién más tiene lo mismo
         </h2>
-        {state === "loading" && (
+        {loading && (
           <span className="text-[13px] text-ink-500" role="status">
             Buscando coincidencias…
           </span>
@@ -118,12 +120,12 @@ export function OverlapPanel({ symbols }: { symbols: string[] }) {
         catálogo. Tu cartera es privada: no se publica ni se comparte.
       </p>
 
-      {state === "error" || (state === "ready" && unavailable) ? (
+      {failed || (ready && unavailable) ? (
         <p className="mt-4 border border-ink-200 px-4 py-3 text-[13px] text-ink-500">
           No pudimos consultar las coincidencias ahora. Vuelve a intentarlo en
           unos minutos.
         </p>
-      ) : state === "ready" && entries.length > 0 ? (
+      ) : ready && entries.length > 0 ? (
         <>
           {withHolders.length > 0 ? (
             <ul className="mt-4 divide-y divide-ink-100 border-y border-ink-200">
