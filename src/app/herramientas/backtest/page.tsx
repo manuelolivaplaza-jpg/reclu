@@ -1,0 +1,241 @@
+import type { Metadata } from "next";
+import { connection } from "next/server";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+import { LegalNotice } from "@/components/legal/legal-notice";
+import { DemoBadge } from "@/components/demo-badge";
+import {
+  BacktestForm,
+  type BacktestBenchmark,
+  type BacktestPortfolio,
+} from "@/components/backtest-form";
+import { getPortfolios, getProfile } from "@/lib/queries";
+import { createClient } from "@/lib/supabase/server";
+import { getBenchmarkSeries } from "@/lib/performance-queries";
+import { demoPerformance } from "@/lib/demo-data";
+import { fromPctToLevel, type SeriesPoint } from "@/lib/performance";
+import { isPaidPlan } from "@/lib/types";
+
+export const metadata: Metadata = {
+  title: "Backtest de portafolios",
+  description:
+    "Combina hasta cinco portafolios con los pesos que elijas, define el rebalanceo y compara la curva contra el S&P 500 o el IPSA. Simulación histórica, sin órdenes ni recomendaciones.",
+};
+
+// Lee la sesión para decidir la ventana de historial: nunca se prerenderiza.
+export const instant = false;
+
+/** La ventana gratuita se recorta en el servidor, antes de serializar. */
+const FREE_WINDOW_DAYS = 90;
+/** Techo de consultas por request: prioriza los portafolios más seguidos. */
+const MAX_SERIES_PORTFOLIOS = 32;
+const MAX_SERIES_POINTS = 2000;
+const CONCURRENCY = 8;
+const DAY_MS = 86_400_000;
+
+function isSupabaseLive(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return url.startsWith("https://") && !url.includes("placeholder");
+}
+
+function toTime(date: string): number {
+  const iso = date.includes("T") ? date : `${date.slice(0, 10)}T00:00:00Z`;
+  return Date.parse(iso);
+}
+
+/**
+ * Recorta una serie a la ventana reciente. Si deja menos de dos puntos,
+ * conserva los dos últimos para que el backtest tenga algo que dibujar.
+ */
+function truncateToWindow(points: SeriesPoint[], days: number | null): SeriesPoint[] {
+  if (!days || points.length <= 2) return points;
+  const clean = points.filter(
+    (point) => Number.isFinite(point.value) && Number.isFinite(toTime(point.date)),
+  );
+  if (clean.length <= 2) return clean.length > 0 ? clean : points;
+  const latest = clean.reduce((max, point) => Math.max(max, toTime(point.date)), -Infinity);
+  if (!Number.isFinite(latest)) return points;
+  const cutoff = latest - (days - 1) * DAY_MS;
+  const recent = clean.filter((point) => toTime(point.date) >= cutoff);
+  return recent.length >= 2 ? recent : clean.slice(-2);
+}
+
+function cleanPerformanceRows(rows: unknown): SeriesPoint[] {
+  if (!Array.isArray(rows)) return [];
+  const points: SeriesPoint[] = [];
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+    const record = row as { date?: unknown; value_pct?: unknown };
+    if (record.value_pct === null || record.value_pct === undefined) continue;
+    const value = Number(record.value_pct);
+    if (typeof record.date !== "string" || record.date.length === 0) continue;
+    if (!Number.isFinite(value) || !Number.isFinite(toTime(record.date))) continue;
+    points.push({ date: record.date.slice(0, 10), value });
+  }
+  return points;
+}
+
+export default async function BacktestPage() {
+  await connection();
+
+  const [profile, portfolios] = await Promise.all([getProfile(), getPortfolios()]);
+  const paid = isPaidPlan(profile?.plan);
+  const windowDays = paid ? null : FREE_WINDOW_DAYS;
+  const live = isSupabaseLive();
+
+  const candidates = portfolios.slice(0, MAX_SERIES_PORTFOLIOS);
+  let options: BacktestPortfolio[] = [];
+  let sp500: SeriesPoint[] = [];
+  let ipsa: SeriesPoint[] = [];
+
+  if (live) {
+    const supabase = await createClient();
+    const seriesById = new Map<string, SeriesPoint[]>();
+
+    for (let index = 0; index < candidates.length; index += CONCURRENCY) {
+      const batch = candidates.slice(index, index + CONCURRENCY);
+      await Promise.all(
+        batch.map(async (portfolio) => {
+          const { data, error } = await supabase
+            .from("portfolio_performance")
+            .select("date, value_pct")
+            .eq("portfolio_id", portfolio.id)
+            .order("date", { ascending: true })
+            .limit(MAX_SERIES_POINTS);
+          if (error) {
+            console.warn("[reclu] backtest performance error:", error.message);
+            return;
+          }
+          const points = cleanPerformanceRows(data);
+          if (points.length >= 2) seriesById.set(portfolio.id, points);
+        }),
+      );
+    }
+
+    options = candidates
+      .map((portfolio): BacktestPortfolio | null => {
+        const series = seriesById.get(portfolio.id);
+        if (!series || series.length < 2) return null;
+        return {
+          id: portfolio.id,
+          slug: portfolio.slug,
+          name: portfolio.name,
+          country: portfolio.country,
+          returnYtd: portfolio.return_ytd,
+          series,
+        };
+      })
+      .filter((option): option is BacktestPortfolio => option !== null);
+
+    const [gspc, ipsaSeries, spy] = await Promise.all([
+      getBenchmarkSeries("^GSPC", MAX_SERIES_POINTS),
+      getBenchmarkSeries("^IPSA", MAX_SERIES_POINTS),
+      getBenchmarkSeries("SPY", MAX_SERIES_POINTS),
+    ]);
+    sp500 = gspc.length >= 2 ? gspc : spy;
+    ipsa = ipsaSeries;
+  } else {
+    // Modo demo: series ilustrativas, rotuladas como tales en la pantalla.
+    options = candidates
+      .filter((portfolio) => portfolio.return_ytd !== null)
+      .map((portfolio) => ({
+        id: portfolio.id,
+        slug: portfolio.slug,
+        name: portfolio.name,
+        country: portfolio.country,
+        returnYtd: portfolio.return_ytd,
+        series: demoPerformance(portfolio.slug, portfolio.return_ytd ?? 0, 120),
+      }));
+    sp500 = fromPctToLevel(demoPerformance("bench-sp500", 12, 120));
+    ipsa = fromPctToLevel(demoPerformance("bench-ipsa", 8, 120));
+  }
+
+  if (windowDays) {
+    options = options.map((option) => ({
+      ...option,
+      series: truncateToWindow(option.series, windowDays),
+    }));
+    sp500 = truncateToWindow(sp500, windowDays);
+    ipsa = truncateToWindow(ipsa, windowDays);
+  }
+
+  const benchmarks: BacktestBenchmark[] = [
+    { symbol: "^GSPC", label: "S&P 500", series: sp500 },
+    { symbol: "^IPSA", label: "IPSA", series: ipsa },
+  ].filter((benchmark) => benchmark.series.length >= 2);
+
+  return (
+    <>
+      <SiteHeader />
+      <main id="main">
+        <div className="container-page max-w-6xl py-16 md:py-20">
+          <p className="label-line">Herramientas</p>
+          <h1 className="type-section mt-3 text-ink-900">Backtest.</h1>
+          <p className="type-body mt-5 max-w-2xl">
+            Combina hasta cinco portafolios, define sus pesos y el rebalanceo,
+            y mira la curva contra el mercado. Trabaja con retornos ya
+            publicados: no ejecuta órdenes ni recomienda una cartera.
+          </p>
+          {!live ? (
+            <div className="mt-5">
+              <DemoBadge />
+            </div>
+          ) : null}
+
+          <section className="mt-12 border-t border-ink-200 pt-10">
+            {options.length === 0 ? (
+              <div className="border border-ink-200 px-4 py-10">
+                <p className="text-[14px] text-ink-900">
+                  Todavía no hay portafolios con dos datos de rendimiento.
+                </p>
+                <p className="mt-2 text-[13px] text-ink-500">
+                  El backtest se activa cuando el pipeline publica la primera
+                  serie. Mientras tanto, puedes revisar el{" "}
+                  <a href="/ranking" className="underline underline-offset-4">
+                    ranking honesto
+                  </a>
+                  .
+                </p>
+              </div>
+            ) : (
+              <BacktestForm
+                portfolios={options}
+                benchmarks={benchmarks}
+                paid={paid}
+                windowDays={windowDays ?? FREE_WINDOW_DAYS}
+                demo={!live}
+              />
+            )}
+          </section>
+
+          <section className="mt-16 border-t border-ink-200 pt-8">
+            <h2 className="text-[15px] font-medium text-ink-900">Cómo se calcula</h2>
+            <ul className="mt-4 max-w-2xl space-y-2 text-[13px] leading-relaxed text-ink-500">
+              <li>
+                La curva parte en 100 el primer día en que todas las series
+                tienen un dato y termina cuando se acaba la más corta.
+              </li>
+              <li>
+                El rebalanceo vuelve a los pesos objetivo al cierre del primer
+                día del período. Sin comisiones ni dividendos.
+              </li>
+              <li>
+                El supuesto de entrada es la fecha de publicación, no la fecha
+                de la operación: se mide lo que ya era público.
+              </li>
+              <li>
+                Si una serie no tiene punto en una fecha, se mantiene su último
+                nivel. No se inventan retornos.
+              </li>
+            </ul>
+          </section>
+
+          <div className="mt-12">
+            <LegalNotice kind="simulation" />
+          </div>
+        </div>
+      </main>
+      <SiteFooter />
+    </>
+  );
+}
