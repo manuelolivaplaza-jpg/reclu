@@ -85,6 +85,9 @@ def test_corredoras_cl_aparece_antes_de_radar_ia() -> None:
     merged, _merged_runners = insert_before_radar(stages, runners, discovered)
     order = [stage[0] for stage in merged]
     assert order.index("corredoras_cl") < order.index("radar_ia")
+    # stages/ ya trae al menos una etapa (polymarket, F30): un directorio
+    # vacío es lo que debe devolver lista vacía.
+    assert discover_stages(tmp_path) == []
 
 
 def test_modulo_sin_stage_falla(tmp_path: Path) -> None:
