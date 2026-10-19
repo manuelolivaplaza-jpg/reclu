@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {
@@ -57,6 +58,8 @@ export async function generateMetadata({ params }: AccionPageProps): Promise<Met
 }
 
 export default async function AccionPage({ params }: AccionPageProps) {
+  // timeAgo usa Date.now(). Sin esto el prerender de los símbolos comunes aborta el build.
+  await connection();
   const { symbol: raw } = await params;
   const symbol = normalizeSymbol(raw);
   if (!symbol) notFound();

@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowUpRight, BellRing, Search, X } from "lucide-react";
 import type { Alert, AlertType, PortfolioCategory } from "@/lib/types";
-import { disclosureLagLabel } from "@/lib/disclosure-lag";
+import { LagBadge } from "@/components/lag-badge";
+import { lagDays, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { cn, timeAgo } from "@/lib/utils";
 
 export interface EnrichedAlert extends Omit<Alert, "portfolio"> {
@@ -232,7 +233,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
         <div className="flex flex-col">
           {filteredAlerts.map((alert) => {
             const isHighlighted = alert.type === "mention" || alert.severity === "high";
-            const lag = disclosureLagLabel(alert.payload ?? {});
+            const payload = alert.payload ?? {};
             const rawSymbol =
               typeof alert.payload?.symbol === "string" && alert.payload.symbol.trim().length > 0
                 ? alert.payload.symbol.trim().toUpperCase()
@@ -275,7 +276,12 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
 
                   <span className="tabular-nums">· {timeAgo(alert.created_at)}</span>
 
-                  {lag && <span className="tabular-nums">· {lag}</span>}
+                  <LagBadge
+                    publishedAt={publishedAtFromPayload(payload)}
+                    recordedAt={alert.created_at}
+                    lagDays={lagDays(payload)}
+                    leadingDot
+                  />
                 </div>
 
                 {/* Chip de ticker + delta de peso si existe */}
