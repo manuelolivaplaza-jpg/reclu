@@ -10,6 +10,9 @@ import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
+import { PerformancePanel } from "@/components/performance-panel";
+import { getPortfolioPerformanceData } from "@/lib/performance-queries";
+import { computePerformanceMetrics, fromPctToLevel } from "@/lib/performance";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
@@ -42,12 +45,16 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) notFound();
 
-  const [holdings, alerts, profile, following, performance] = await Promise.all([
+  const [holdings, alerts, profile, following, performance, perfData] = await Promise.all([
     getHoldings(portfolio.id),
     getAlerts(portfolio.id, 10),
     getProfile(),
     isFollowing(portfolio.id),
     getPerformance(portfolio.id),
+    getPortfolioPerformanceData({
+      portfolioId: portfolio.id,
+      country: portfolio.country,
+    }),
   ]);
 
   const meta = CATEGORY_META[portfolio.category];
@@ -65,6 +72,25 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       : [];
   const showEvolution = performanceReal.length > 0 || demoPoints.length > 0;
   const evolution = performanceReal.length > 0 ? performanceReal : demoPoints;
+  // F5: rendimiento vs benchmark. En modo demo (sin Supabase) la serie es
+  // ilustrativa: se calcula sobre demoPoints y se rotula "datos de ejemplo".
+  const perfSourceSeries =
+    performanceReal.length > 0 ? performanceReal : demoPoints.length > 0 ? demoPoints : [];
+  const perfPanelData =
+    perfData.metrics !== null || perfData.portfolioSeries.length >= 2
+      ? perfData
+      : perfSourceSeries.length >= 2
+        ? {
+            ...perfData,
+            metrics: computePerformanceMetrics({ portfolio: fromPctToLevel(perfSourceSeries) }),
+            portfolioSeries: perfData.portfolioSeries.length >= 2 ? perfData.portfolioSeries : [],
+            method: "calculado-al-vuelo" as const,
+          }
+        : perfData;
+  const perfDemo =
+    perfPanelData.method === "calculado-al-vuelo" &&
+    performanceReal.length === 0 &&
+    demoPoints.length > 0;
   // Pesos actuales: dato real para la composición.
   const composition = holdings.map((holding) => ({
     symbol: holding.symbol,
@@ -163,6 +189,18 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
               </ChartSection>
             </div>
           ) : null}
+
+          <div className="mb-12">
+            <PerformancePanel
+              metrics={perfPanelData.metrics}
+              portfolioSeries={perfPanelData.portfolioSeries}
+              benchmarkSeries={perfPanelData.benchmarkSeries}
+              benchmarkLabel={perfPanelData.benchmarkLabel}
+              method={perfDemo ? "demo" : perfPanelData.method}
+              asOf={perfPanelData.precomputed?.as_of ?? null}
+              demo={perfDemo}
+            />
+          </div>
 
           {showComposition ? (
             <div className="mb-12">

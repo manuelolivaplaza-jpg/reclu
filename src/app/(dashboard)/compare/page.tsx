@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getUserHoldings, getPortfolios, getHoldings } from "@/lib/queries";
 import { PortfolioManager, type CatalogPortfolio } from "@/components/portfolio-manager";
+import { AlignmentPanel } from "@/components/alignment-panel";
 
 export const metadata = { title: "Mi cartera" };
 // Auth-gated route — never prerendered.
@@ -27,9 +28,15 @@ export default async function ComparePage() {
   );
 
   return (
-    <PortfolioManager
-      initialHoldings={holdings.map((h) => ({ symbol: h.symbol, name: h.name, weight: h.weight }))}
-      catalog={withHoldings}
-    />
+    <div className="flex flex-col gap-6">
+      <PortfolioManager
+        initialHoldings={holdings.map((h) => ({ symbol: h.symbol, name: h.name, weight: h.weight }))}
+        catalog={withHoldings}
+      />
+      <AlignmentPanel
+        userHoldings={holdings.map((h) => ({ symbol: h.symbol, name: h.name, weight: h.weight }))}
+        catalog={withHoldings}
+      />
+    </div>
   );
 }

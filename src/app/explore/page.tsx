@@ -6,6 +6,7 @@ import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { CATEGORY_META, isPaidPlan, type Portfolio, type PortfolioCategory } from "@/lib/types";
 import { ExploreFilters } from "@/components/explore-filters";
 import { ExploreRankings, type ConsensusTicker } from "@/components/explore-rankings";
+import { getBeatTheMarketRanking } from "@/lib/performance-queries";
 
 /** getAlerts recorta por defecto a 20. El ranking cuenta publicadas, no solo las últimas. */
 const ALERT_RANKING_LIMIT = 1000;
@@ -27,12 +28,13 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const search = params.q ?? "";
   const symbol = (params.simbolo ?? "").trim().toUpperCase();
 
-  const [listed, follows, profile, catalog, alerts] = await Promise.all([
+  const [listed, follows, profile, catalog, alerts, beatMarket] = await Promise.all([
     getPortfolios({ category, search }),
     getFollows(),
     getProfile(),
     getPortfolios(),
     getAlerts(undefined, ALERT_RANKING_LIMIT),
+    getBeatTheMarketRanking(7, "excess"),
   ]);
 
   const portfolios = symbol
@@ -61,7 +63,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             <ExploreFilters categories={categories} activeCategory={category} />
           </div>
 
-          <ExploreRankings portfolios={catalog} alerts={alerts} consensus={consensus} />
+          <ExploreRankings portfolios={catalog} alerts={alerts} consensus={consensus} beatMarket={beatMarket} />
 
           {portfolios.length === 0 ? (
             <p className="mt-16 text-[15px] text-ink-500">
