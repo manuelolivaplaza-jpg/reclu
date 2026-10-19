@@ -1,15 +1,27 @@
 -- ============================================================
 -- Migration 007: Seguridad RLS — F1
 -- 1) Trigger que protege columnas sensibles de profiles (plan, cuotas).
+--    Enfoque genérico: revierte todo lo que no esté en la lista blanca de
+--    preferencias (no nombra columnas que quizá no existan).
+--    Las funciones confiables (check_chat_quota, etc.) marcan la transacción
+--    con set_config('reclu.trusted','on',true) y el trigger las deja pasar.
 -- 2) Límite de follows en la base según plan (free 2 / pro 15 / elite ∞).
 -- 3) Rate limit anónimo del chat: chat_rate_limits + check_anon_chat_quota().
+-- 4) Re-crea check_chat_quota (006) con 'reclu.trusted' para que el trigger
+--    de protección no revierta el incremento de cuota. F4 (008) la redefine.
 -- Idempotente: seguro de re-ejecutar en el SQL Editor.
 -- ============================================================
 
 -- ------------------------------------------------------------
 -- 1. PROFILES: el usuario solo edita preferencias inofensivas.
---    Con anon key no puede cambiarse plan, cuotas de chat ni ids de
---    facturación. service_role NO está afectado (facturación/admin).
+--    Enfoque genérico: todo lo que NO esté en la lista de columnas
+--    permitidas se revierte a su valor en OLD. Así no dependemos de nombrar
+--    columnas que quizá no existan (stripe_customer_id, trial_ends_at,
+--    telegram_chat_id, etc.): cualquier columna nueva sensible queda
+--    protegida por defecto.
+--    service_role y las funciones confiables del backend (que marcan
+--    set_config('reclu.trusted','on',true) en la transacción) no están
+--    afectados: facturación y cuotas las maneja el servidor.
 -- ------------------------------------------------------------
 create or replace function public.protect_profile_columns()
 returns trigger
@@ -20,22 +32,35 @@ begin
   if auth.role() = 'service_role' or auth.role() is null then
     return new; -- service_role y el propio Postgres/admin pueden todo
   end if;
-  -- Columnas sensibles: se revierte cualquier cambio del usuario.
-  new.plan := old.plan;
-  new.stripe_customer_id := old.stripe_customer_id;
-  new.chat_quota_used := old.chat_quota_used;
-  new.chat_reset_at := old.chat_reset_at;
-  new.chat_quota_limit := old.chat_quota_limit;
+  -- Funciones confiables del backend (check_chat_quota, link_telegram_chat,
+  -- unsubscribe_by_token...): escriben cuotas/tokens legítimamente.
+  if current_setting('reclu.trusted', true) = 'on' then
+    return new;
+  end if;
+  -- Lista blanca de preferencias editables por el usuario. Todo lo demás
+  -- (plan, cuotas, ids de facturación, fechas de prueba, tokens, chat_id...)
+  -- se revierte al valor previo de la fila.
+  new := jsonb_populate_record(
+    new,
+    to_jsonb(old)
+      - array['full_name', 'alert_frequency', 'alert_channel', 'weekly_digest',
+              'email_unsubscribed', 'updated_at']
+  );
   return new;
 end;
 $$;
 
 drop trigger if exists protect_profile_columns on public.profiles;
-create trigger protect_profile_columns
+-- a_... para que corra ANTES que reset_chat_quota (orden alfabético de
+-- triggers): la protección primero revierte, y el reinicio semanal de cuota
+-- de la 006 se evalúa después sin ser anulado.
+create trigger a_protect_profile_columns
   before update on public.profiles
   for each row execute function public.protect_profile_columns();
 
--- INSERT: un usuario no puede crear su perfil con plan pagado.
+-- INSERT: un usuario no puede crear su perfil con plan pagado ni datos
+-- sensibles pre-cargados. Mismo enfoque genérico: solo se aceptan
+-- id/email/full_name y preferencias; lo demás cae a los defaults de la tabla.
 create or replace function public.protect_profile_insert()
 returns trigger
 language plpgsql
@@ -45,11 +70,32 @@ begin
   if auth.role() = 'service_role' or auth.role() is null then
     return new;
   end if;
-  if new.plan is distinct from 'free' then
-    raise exception 'No puedes asignarte un plan por tu cuenta.'
-      with hint = 'El plan se cambia desde facturación.';
+  if current_setting('reclu.trusted', true) = 'on' then
+    return new;
   end if;
-  new.stripe_customer_id := null;
+  -- Solo se aceptan id/email y preferencias; todo lo demás cae a los
+  -- defaults de la tabla. jsonb_strip_nulls deja sin tocar las columnas
+  -- que el insert no trajo (así no rompe los NOT NULL DEFAULT) y
+  -- jsonb_populate_record ignora claves que no existan en profiles.
+  declare
+    v_in jsonb := to_jsonb(new);
+  begin
+    new := jsonb_populate_record(
+      new,
+      jsonb_strip_nulls(
+        jsonb_build_object(
+          'id', v_in -> 'id',
+          'email', v_in -> 'email',
+          'full_name', v_in -> 'full_name',
+          'alert_frequency', v_in -> 'alert_frequency',
+          'alert_channel', v_in -> 'alert_channel',
+          'weekly_digest', v_in -> 'weekly_digest',
+          'email_unsubscribed', v_in -> 'email_unsubscribed'
+        )
+      )
+    );
+  end;
+  new.plan := 'free';
   return new;
 end;
 $$;
@@ -86,7 +132,7 @@ begin
       raise exception 'Este portafolio requiere un plan de pago (Pro o Elite).';
     end if;
   end if;
-  select plan into v_plan from public.profiles where id = auth.uid();
+  select plan into v_plan from public.profiles where id = auth.uid() for update;
   if coalesce(v_plan, 'free') <> 'elite' then
     select count(*) into v_count from public.follows where user_id = auth.uid();
     if v_count >= (case when v_plan = 'pro' then 15 else 2 end) then
@@ -101,6 +147,95 @@ drop trigger if exists enforce_follow_limits on public.follows;
 create trigger enforce_follow_limits
   before insert on public.follows
   for each row execute function public.enforce_follow_limits();
+
+-- ------------------------------------------------------------
+-- 2b. CHECK_CHAT_QUOTA: re-creada desde 006 con el canal 'reclu.trusted'.
+--     Sin esto, el trigger a_protect_profile_columns revertiría el
+--     incremento de chat_quota_used (auth.role() sigue siendo
+--     'authenticated' dentro de una security definer). NOTA: F4 la
+--     redefinirá en la 008; debe conservar el set_config.
+--     El servicio usa la service_role key, así que no pasa por aquí;
+--     esto queda para llamadas RPC directas del cliente autenticado.
+-- ------------------------------------------------------------
+create or replace function public.check_chat_quota(p_user_id uuid default auth.uid())
+returns jsonb
+language plpgsql
+security definer set search_path = ''
+as $$
+declare
+  v_plan text;
+  v_used integer;
+  v_reset_at timestamptz;
+  v_limit integer;
+  v_window interval;
+begin
+  perform set_config('reclu.trusted', 'on', true);
+
+  select plan, chat_quota_used, chat_reset_at
+    into v_plan, v_used, v_reset_at
+  from public.profiles
+  where id = p_user_id
+  for update;
+
+  if not found then
+    return jsonb_build_object('allowed', false, 'reason', 'profile_not_found');
+  end if;
+
+  v_limit := case
+    when v_plan = 'elite' then 500
+    when v_plan = 'pro' then 50
+    else 5
+  end;
+
+  v_window := case
+    when v_plan in ('pro', 'elite') then interval '7 days'
+    else interval '1 day'
+  end;
+
+  if v_reset_at is null or v_reset_at < now() - v_window then
+    v_used := 0;
+    v_reset_at := now();
+  end if;
+
+  if v_used >= v_limit then
+    update public.profiles
+       set chat_quota_used = v_used,
+           chat_reset_at = v_reset_at,
+           chat_quota_limit = v_limit
+     where id = p_user_id;
+
+    return jsonb_build_object(
+      'allowed', false,
+      'plan', v_plan,
+      'used', v_used,
+      'limit', v_limit,
+      'remaining', 0,
+      'reset_at', v_reset_at
+    );
+  end if;
+
+  v_used := v_used + 1;
+
+  update public.profiles
+     set chat_quota_used = v_used,
+         chat_reset_at = v_reset_at,
+         chat_quota_limit = v_limit
+   where id = p_user_id;
+
+  return jsonb_build_object(
+    'allowed', true,
+    'plan', v_plan,
+    'used', v_used,
+    'limit', v_limit,
+    'remaining', greatest(v_limit - v_used, 0),
+    'reset_at', v_reset_at
+  );
+end;
+$$;
+
+-- El incremento de cuota solo lo decide el backend: los clientes no pueden
+-- llamar esta RPC directo (evita auto-consumo/reset desde el navegador).
+revoke execute on function public.check_chat_quota(uuid) from anon, authenticated;
 
 -- ------------------------------------------------------------
 -- 3. RATE LIMIT ANÓNIMO DEL CHAT (2 preguntas/día por IP hasheada).
