@@ -434,7 +434,40 @@ const DEMO_HOLDINGS: Record<string, Omit<Holding, "portfolio_id" | "as_of">[]> =
   ],
 };
 
+/**
+ * Portafolios demo con cifras inventadas que quedan ocultos. El valor es el
+ * slug real que los reemplaza (`null` si no hay reemplazo disponible).
+ *
+ * En vivo la migración 043 marca `is_active = false` + `replaced_by_slug`; este
+ * mapa es el respaldo estático (la política RLS `portfolios public read` no
+ * deja leer filas inactivas con el cliente anónimo).
+ */
+export const HIDDEN_DEMO_SLUGS: Record<string, string | null> = {
+  "elon-doge-tracker": "musk-dice",
+  "trump-truth-signals": "trump-dice",
+  "afp-consenso-chile": "afp-modelo-acciones-cl",
+  "inverse-cramer": "inverse-cramer-real",
+};
+
+/** True si el slug corresponde a un portafolio oculto (cifras inventadas). */
+export function isHiddenSlug(slug: string): boolean {
+  return Object.prototype.hasOwnProperty.call(HIDDEN_DEMO_SLUGS, slug);
+}
+
+/**
+ * En modo demo, el slug real al que redirige un portafolio oculto, o `null`
+ * si no está oculto o si el real no existe en los datos demo (misma regla que
+ * en vivo: solo redirige si el real está disponible).
+ */
+export function demoRedirectTarget(slug: string): string | null {
+  if (!isHiddenSlug(slug)) return null;
+  const real = HIDDEN_DEMO_SLUGS[slug];
+  if (!real) return null;
+  return demoPortfolioBySlug(real) ? real : null;
+}
+
 export function demoPortfolioBySlug(slug: string): Portfolio | null {
+  if (isHiddenSlug(slug)) return null;
   return DEMO_PORTFOLIOS.find((x) => x.slug === slug) ?? null;
 }
 

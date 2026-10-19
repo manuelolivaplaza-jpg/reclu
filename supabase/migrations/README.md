@@ -69,6 +69,26 @@ de cada adaptador). No trae holdings semilla: los carga la etapa
 cada corredora. Aplicar después de `021_infoprobidad_agregado.sql` (y de la
 `043` si existe); independiente de `022-042`. El `on conflict (slug) do update`
 toca solo `description` y `source`, nunca `followers` ni `return_ytd`.
+## 043 — Ocultar portafolios con cifras inventadas (D43)
+
+`043_ocultar_demos.sql`: agrega `portfolios.replaced_by_slug` y
+`portfolios.hidden_reason`, y marca `is_active = false` +
+`hidden_reason = 'cifras_inventadas'` en `elon-doge-tracker`,
+`trump-truth-signals`, `afp-consenso-chile` e `inverse-cramer`. Apunta
+`replaced_by_slug` a la versión real (`musk-dice`, `trump-dice`,
+`afp-modelo-acciones-cl`, `inverse-cramer-real`); el de `inverse-cramer` solo
+se escribe si `inverse-cramer-real` existe y está activa. **No borra filas** ni
+toca holdings/alerts. Se puede aplicar después de la 021 y antes o después de
+las migraciones v2 (022-042): es independiente. Idempotente.
+
+**Reversión:** `043_ocultar_demos_down.sql` reactiva esos 4 portafolios y
+limpia `replaced_by_slug`/`hidden_reason`. **El `_down` NO se aplica en el flujo
+normal**; solo se corre a mano si se quiere deshacer el ocultamiento.
+
+Pendiente conocido: las RPC de `011`, `012`, `015` y `019` ya filtran
+`p.is_active = true`, así que no vuelven a exponer los ocultos. La política RLS
+`portfolios public read` (`schema.sql`) también limita la lectura a
+`is_active = true`, por eso el redirect usa un mapa estático como respaldo.
 
 ## Revertir el muro de pago (012)
 

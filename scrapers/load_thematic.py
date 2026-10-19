@@ -9,9 +9,27 @@ as such — the theme is ours, the prices are real.
 
 from __future__ import annotations
 
+import argparse
 from datetime import date
 
 from base import get_db
+
+# Portafolios ocultos por cifras inventadas (migracion 043): quedan con
+# is_active = false y su slug redirige a la version real. No se les cargan
+# holdings reales para no reactivarlos ni ensuciarlos.
+HIDDEN_SLUGS: frozenset[str] = frozenset(
+    {
+        "elon-doge-tracker",
+        "trump-truth-signals",
+        "afp-consenso-chile",
+        "inverse-cramer",
+    }
+)
+
+
+def is_hidden(slug: str) -> bool:
+    return slug in HIDDEN_SLUGS
+
 
 # slug -> [(ticker, weight)] — representative, liquid tickers per theme.
 THEMATIC_HOLDINGS: dict[str, list[tuple[str, float]]] = {
@@ -36,11 +54,14 @@ THEMATIC_HOLDINGS: dict[str, list[tuple[str, float]]] = {
 }
 
 
-def main() -> None:
+def main(dry_run: bool = False) -> None:
     db = get_db()
     today = date.today().isoformat()
     ok = 0
     for slug, picks in THEMATIC_HOLDINGS.items():
+        if is_hidden(slug):
+            print(f"-- {slug}: oculto (migracion 043), se salta")
+            continue
         try:
             pf = db.table("portfolios").select("id").eq("slug", slug).maybe_single().execute()
             if not pf.data:
@@ -60,6 +81,10 @@ def main() -> None:
                 }
                 for tk, wt in picks
             ]
+            if dry_run:
+                print(f"DRY {slug}: {len(picks)} holdings (no se escribe en la DB)")
+                ok += 1
+                continue
             db.table("holdings").upsert(payload, on_conflict="portfolio_id,symbol,as_of").execute()
             print(f"OK {slug}: {len(picks)} holdings reales")
             ok += 1
@@ -69,4 +94,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Carga holdings reales de los temáticos 'model'.")
+    parser.add_argument("--dry-run", action="store_true", help="no escribe en la DB")
+    args = parser.parse_args()
+    main(dry_run=args.dry_run)

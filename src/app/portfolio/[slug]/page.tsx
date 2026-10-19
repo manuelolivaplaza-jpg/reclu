@@ -1,8 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
+import { getPortfolioBySlug, getPortfolioRedirect, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
 import { getMentions, MUSK_INSIDER_NOTICE } from "@/lib/mentions-queries";
 import { getInsiderTrades, holdingsAtLatestAsOf } from "@/lib/insider-queries";
 import { InsiderTradesList } from "@/components/insider-trades-list";
@@ -98,7 +98,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   await connection();
   const { slug } = await params;
   const portfolio = await getPortfolioBySlug(slug);
-  if (!portfolio) notFound();
+  if (!portfolio) {
+    // Portafolio oculto con reemplazo real -> 308 a la versión real.
+    const redirectSlug = await getPortfolioRedirect(slug);
+    if (redirectSlug) permanentRedirect(`/portfolio/${redirectSlug}`);
+    notFound();
+  }
 
   // Arranca en paralelo con el perfil y las holdings.
   // Trump dice, Elon Musk dice e Inverse Cramer comparten public.mentions.
