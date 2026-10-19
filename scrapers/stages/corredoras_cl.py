@@ -1,7 +1,8 @@
 """Etapa corredoras_cl. Opcional: un PDF que cambie de formato no tumba la corrida.
 
-TODO(F16): sin UI. El aviso legal, cuando estas carteras se muestren,
-vive en el componente de F16. Aquí solo se leen PDF públicos.
+La UI y el aviso legal viven en
+`src/components/source-panels/corredoras-cl.tsx` (F16/F24). Aquí solo se
+leen PDF públicos.
 """
 
 from __future__ import annotations
