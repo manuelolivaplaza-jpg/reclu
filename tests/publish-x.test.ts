@@ -21,8 +21,11 @@ const X_ENV_KEYS = [
   "X_BEARER_TOKEN",
 ] as const;
 
+/** El flag del canal entra en la limpieza: por defecto queda apagado. */
+const X_FLAG_KEY = "PUBLISH_X_ENABLED";
+
 const originalEnv = new Map<string, string | undefined>(
-  X_ENV_KEYS.map((key) => [key, process.env[key]]),
+  [...X_ENV_KEYS, X_FLAG_KEY].map((key) => [key, process.env[key]]),
 );
 
 const CREDENTIALS = {
@@ -34,10 +37,11 @@ const CREDENTIALS = {
 
 beforeEach(() => {
   for (const key of X_ENV_KEYS) delete process.env[key];
+  delete process.env[X_FLAG_KEY];
 });
 
 afterEach(() => {
-  for (const key of X_ENV_KEYS) {
+  for (const key of [...X_ENV_KEYS, X_FLAG_KEY]) {
     const value = originalEnv.get(key);
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
@@ -48,6 +52,10 @@ afterEach(() => {
 
 function setCredentials(): void {
   for (const [key, value] of Object.entries(CREDENTIALS)) process.env[key] = value;
+}
+
+function enableChannel(): void {
+  process.env[X_FLAG_KEY] = "true";
 }
 
 function draft(body = "Un cambio público en una cartera seguida."): Draft {
@@ -159,6 +167,7 @@ describe("xPublisher sin configuración", () => {
     const publisher = xPublisher();
     expect(readXEnv()).toBeNull();
     expect(() => publisher.validate("hola")).toThrow("X no configurado");
+    enableChannel();
     await expect(publisher.send(draft())).rejects.toThrow("X no configurado");
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -174,9 +183,33 @@ describe("xPublisher sin configuración", () => {
   });
 });
 
+describe("xPublisher con el flag apagado", () => {
+  it("send rechaza y no llama a fetch", async () => {
+    setCredentials();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(xPublisher().send(draft())).rejects.toThrow(
+      "El canal X está apagado.",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("falla cerrado antes de leer credenciales", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(xPublisher().send(draft())).rejects.toThrow(
+      "El canal X está apagado.",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("xPublisher con configuración", () => {
   it("firma solo parámetros oauth: el cuerpo JSON queda fuera", async () => {
     setCredentials();
+    enableChannel();
     const fetchMock = vi.fn(async () =>
       new Response(JSON.stringify({ data: { id: "1800000000000000001" } }), {
         status: 201,
@@ -237,6 +270,7 @@ describe("xPublisher con configuración", () => {
 
   it("un estado distinto de 2xx es error sin filtrar la cabecera", async () => {
     setCredentials();
+    enableChannel();
     const fetchMock = vi.fn(async () => new Response("{}", { status: 403 }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -247,6 +281,7 @@ describe("xPublisher con configuración", () => {
 
   it("exige el id en la respuesta", async () => {
     setCredentials();
+    enableChannel();
     vi.stubGlobal("fetch", vi.fn(async () => new Response("{}", { status: 201 })));
     await expect(xPublisher().send(draft())).rejects.toThrow(
       "X no devolvió el id del post.",
@@ -257,6 +292,7 @@ describe("xPublisher con configuración", () => {
 describe("sin fugas de secretos", () => {
   it("ninguna salida de log contiene claves, tokens ni Authorization", async () => {
     setCredentials();
+    enableChannel();
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => new Response(JSON.stringify({ data: { id: "77" } }), { status: 201 })),

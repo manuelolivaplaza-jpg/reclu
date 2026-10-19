@@ -16,9 +16,13 @@
  *
  * Las claves se leen dentro de cada llamada, nunca al importar el módulo.
  * No se loguean claves, tokens ni la cabecera Authorization.
+ *
+ * El flag `PUBLISH_X_ENABLED` se vuelve a revisar dentro de `send` para fallar
+ * cerrado incluso si alguien invoca el adaptador sin pasar por `publishDraft`.
  */
 
 import { createHmac, randomBytes } from "node:crypto";
+import { isChannelEnabled } from "./flags";
 import type { Draft, Publisher } from "./types";
 
 /** URL exacta del endpoint de creación de posts. */
@@ -201,6 +205,9 @@ export function xPublisher(): Publisher {
     },
 
     async send(draft: Draft): Promise<{ externalId: string }> {
+      if (!isChannelEnabled("x")) {
+        throw new Error("El canal X está apagado.");
+      }
       // Se releen las claves en cada envío: nunca se cachean en el módulo.
       const credentials = requireCredentials();
       validateBody(draft.body);
