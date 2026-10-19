@@ -18,6 +18,8 @@ el CLI, respetando el mismo orden).
 | 7 | `006_elite_plan_and_13f_portfolios.sql` | Plan Elite completo: cuotas diferenciadas, portafolios 13F Wave 2/3. **Reemplaza al 006 anterior en la práctica** (ambos son idempotentes; aplicar ambos no rompe, pero basta con este). |
 | 8 | `prices.sql` | Tabla de precios diarios por símbolo (sin número: aplicar después de 002). |
 | 9 | `012_muro_pago.sql` | Muro de pago real: quita lectura pública de `holdings`/`portfolio_snapshots`, funciones `get_portfolio_holdings(p_slug)` y `get_portfolio_snapshots(p_slug)` con recorte por plan. **Incluir bloque `-- rollback` si se quiere revertir.** |
+| 10 | `013_portafolios_tematicos.sql` | Tres portafolios temáticos + holdings semilla. |
+| 11 | `014_trump_dice.sql` | Tabla `mentions` (lectura pública solo `status='verificada'`, sin políticas de escritura), portafolio `trump-dice`, 15 menciones y holdings semilla. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 

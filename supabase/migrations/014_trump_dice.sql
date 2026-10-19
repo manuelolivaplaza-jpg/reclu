@@ -127,7 +127,8 @@ begin
      'Mesa redonda en la Casa Blanca',
      'Dijo que Dell "make[s] a great product" al agradecer a Michael y Susan Dell.',
      array['https://www.hudson-labs.com/research/trump-praised-companies'],
-     'verificada', 'M06');
+     'verificada', 'M06')
+  on conflict (external_id) do nothing;
 
   -- M07..M15 en un insert aparte (mismo bloque, misma idempotencia por
   -- external_id único + on conflict do nothing).
