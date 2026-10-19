@@ -3,19 +3,16 @@
  * Body: { messages: { role: "user" | "assistant", content: string }[] }
  * Streams the model reply as Server-Sent Events (OpenRouter chat completions).
  *
- * Signed-in users have a server quota and a stored transcript.
- * Anonymous callers are not blocked here; the client tracks their own limit.
+ * Signed-in users hit `check_chat_quota` before OpenRouter.
+ * Anonymous callers hit `check_anon_chat_quota` (memory fallback, 2/day).
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { enforceAnonQuota, enforceSignedInQuota, portfolioSystemContext } from "@/lib/chat-guard";
+import { chatRequestSchema, firstZodMessage } from "@/lib/validation";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-2.0-flash-001";
-
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
-const FREE_DAILY_LIMIT = 5;
-const PRO_LOW_REMAINING = 10;
 
 const SYSTEM_PROMPT = `Eres el asistente de reclu.cl, experto en inversiones y en los portafolios de la plataforma: políticos del Congreso de EE.UU., hedge funds 13F (como Warren Buffett y Michael Burry), ETFs de ARK y corredoras chilenas como Renta 4.
 
@@ -29,39 +26,6 @@ type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
 interface ChatMessage {
   role: ChatRole;
   content: string;
-}
-
-interface ChatQuotaProfile {
-  plan: string;
-  chat_quota_used: number;
-  chat_reset_at: string;
-  chat_quota_limit: number;
-}
-
-function isChatMessage(value: unknown): value is ChatMessage {
-  if (!value || typeof value !== "object") return false;
-  const message = value as { role?: unknown; content?: unknown };
-  return (
-    (message.role === "user" || message.role === "assistant") &&
-    typeof message.content === "string" &&
-    message.content.trim().length > 0
-  );
-}
-
-function asQuotaProfile(value: unknown): ChatQuotaProfile | null {
-  if (!value || typeof value !== "object") return null;
-  const row = value as Record<string, unknown>;
-  const used = Number(row.chat_quota_used);
-  const limit = Number(row.chat_quota_limit);
-  if (typeof row.plan !== "string") return null;
-  if (typeof row.chat_reset_at !== "string") return null;
-  if (!Number.isFinite(used) || !Number.isFinite(limit)) return null;
-  return {
-    plan: row.plan,
-    chat_quota_used: used,
-    chat_reset_at: row.chat_reset_at,
-    chat_quota_limit: limit,
-  };
 }
 
 function latestUserContent(messages: ChatMessage[]): string | null {
@@ -143,106 +107,6 @@ async function insertChatMessage(
   }
 }
 
-/**
- * Free: 5 questions per rolling day. Pro: `chat_quota_limit` (default 100) per rolling week.
- * The weekly stale check is `chat_reset_at < now - 7 days`. Free also resets after 24 hours
- * on the same columns. Pro responses never include the numeric remainder.
- */
-async function enforceChatQuota(
-  supabase: ServerSupabase,
-  userId: string,
-): Promise<
-  | { ok: false; response: Response }
-  | { ok: true; headers: Record<string, string> }
-> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("plan, chat_quota_used, chat_reset_at, chat_quota_limit")
-    .eq("id", userId)
-    .single();
-
-  const profile = asQuotaProfile(data);
-  if (error || !profile) {
-    return {
-      ok: false,
-      response: Response.json(
-        { error: "No pudimos verificar tu cupo del asistente." },
-        { status: 500 },
-      ),
-    };
-  }
-
-  const isPro = profile.plan === "pro";
-  const plan = isPro ? "pro" : "free";
-  const now = Date.now();
-  const resetAt = Date.parse(profile.chat_reset_at);
-  const weeklyStale = Number.isNaN(resetAt) || resetAt < now - WEEK_MS;
-  const dailyStale = !isPro && (Number.isNaN(resetAt) || resetAt < now - DAY_MS);
-  const stale = weeklyStale || dailyStale;
-
-  let used = profile.chat_quota_used;
-  if (stale) {
-    used = 0;
-    const { error: resetError } = await supabase
-      .from("profiles")
-      .update({
-        chat_quota_used: 0,
-        chat_reset_at: new Date(now).toISOString(),
-      })
-      .eq("id", userId);
-    if (resetError) {
-      return {
-        ok: false,
-        response: Response.json(
-          { error: "No pudimos renovar tu cupo del asistente." },
-          { status: 500 },
-        ),
-      };
-    }
-  }
-
-  const limit = isPro ? Math.max(0, profile.chat_quota_limit) : FREE_DAILY_LIMIT;
-
-  if (used >= limit) {
-    const message = isPro
-      ? "Alcanzaste el límite semanal del asistente. Podrás usarlo de nuevo cuando se renueve tu cupo."
-      : "Alcanzaste el límite de 5 preguntas por día. Pasa a Pro para continuar.";
-    return {
-      ok: false,
-      response: Response.json(
-        { error: message, upgrade: true, plan },
-        { status: 429 },
-      ),
-    };
-  }
-
-  const nextUsed = used + 1;
-  const { error: incrementError } = await supabase
-    .from("profiles")
-    .update({ chat_quota_used: nextUsed })
-    .eq("id", userId);
-
-  if (incrementError) {
-    return {
-      ok: false,
-      response: Response.json(
-        { error: "No pudimos actualizar tu cupo del asistente." },
-        { status: 500 },
-      ),
-    };
-  }
-
-  const remaining = Math.max(0, limit - nextUsed);
-  const headers: Record<string, string> = {
-    "X-Chat-Plan": plan,
-    "X-Chat-Remaining": isPro ? "limited" : String(remaining),
-  };
-  if (isPro) {
-    headers["X-Chat-Quedan-Pocas"] = remaining <= PRO_LOW_REMAINING ? "true" : "false";
-  }
-  return { ok: true, headers };
-}
-
 export async function POST(request: Request) {
   const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
@@ -255,49 +119,50 @@ export async function POST(request: Request) {
     );
   }
 
+  let json: unknown;
+  try {
+    json = await request.json();
+  } catch {
+    return Response.json({ error: "Body inválido." }, { status: 400 });
+  }
+
+  const parsed = chatRequestSchema.safeParse(json);
+  if (!parsed.success) {
+    return Response.json({ error: firstZodMessage(parsed.error) }, { status: 400 });
+  }
+
+  const { messages, slug } = parsed.data;
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let body: { messages?: unknown };
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: "Body inválido." }, { status: 400 });
+  const quota = user
+    ? await enforceSignedInQuota(user.id)
+    : await enforceAnonQuota(request.headers);
+  if (!quota.ok) {
+    return Response.json(quota.body, { status: quota.status });
   }
-
-  if (!Array.isArray(body.messages) || body.messages.length === 0) {
-    return Response.json(
-      { error: "messages es requerido y no puede venir vacío." },
-      { status: 400 },
-    );
-  }
-
-  if (!body.messages.every(isChatMessage)) {
-    return Response.json(
-      { error: "Cada mensaje debe tener role (user o assistant) y content de texto." },
-      { status: 400 },
-    );
-  }
-
-  const messages = body.messages;
 
   const streamHeaders: Record<string, string> = {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
-    "X-Chat-Plan": "anonymous",
+    ...quota.headers,
   };
 
   if (user) {
-    const quota = await enforceChatQuota(supabase, user.id);
-    if (!quota.ok) return quota.response;
-    Object.assign(streamHeaders, quota.headers);
-
     const question = latestUserContent(messages);
-    if (question) {
-      await insertChatMessage(supabase, user.id, "user", question);
+    if (question) await insertChatMessage(supabase, user.id, "user", question);
+  }
+
+  let system = SYSTEM_PROMPT;
+  if (slug) {
+    try {
+      const context = await portfolioSystemContext(supabase, slug);
+      if (context) system = `${SYSTEM_PROMPT}\n\n${context}`;
+    } catch (error) {
+      console.warn("[reclu] contexto de portafolio:", error);
     }
   }
 
@@ -313,7 +178,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         model,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        messages: [{ role: "system", content: system }, ...messages],
         max_tokens: 700,
         temperature: 0.3,
         stream: true,

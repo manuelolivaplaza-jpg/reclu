@@ -2,13 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { z } from "zod";
-
-const holdingSchema = z.object({
-  symbol: z.string().min(1).max(20),
-  name: z.string().max(100).optional().default(""),
-  weight: z.number().min(0).max(100),
-});
+import { userHoldingsSchema } from "@/lib/validation";
 
 /**
  * Save the user's own holdings (replacing existing ones).
@@ -21,7 +15,7 @@ export async function saveUserHoldings(input: unknown) {
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado." };
 
-  const parsed = z.array(holdingSchema).safeParse(input);
+  const parsed = userHoldingsSchema.safeParse(input);
   if (!parsed.success) {
     return { error: "Datos inválidos. Verifica símbolo y ponderación." };
   }
