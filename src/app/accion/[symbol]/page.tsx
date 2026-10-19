@@ -58,6 +58,7 @@ export async function generateMetadata({ params }: AccionPageProps): Promise<Met
 }
 
 export default async function AccionPage({ params }: AccionPageProps) {
+  // timeAgo usa Date.now(). Sin esto, el prerender de /accion/nvda aborta el build.
   await connection();
   const { symbol: raw } = await params;
   const symbol = normalizeSymbol(raw);

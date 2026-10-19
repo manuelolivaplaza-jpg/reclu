@@ -8,11 +8,14 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | Fuente | Portafolio | Estado | Notas |
 |---|---|---|---|
 | House Disclosure (oficial) | pelosi-tracker | ✅ Funcional (verificado en vivo) | disclosures-clerk.house.gov, sin login, PTRs en PDF. Trump NO se scrapea: no es miembro de la Cámara |
+| OGE 278-T (oficial) | trump-compra | ✅ PDF público, parser OCR | extapps2.oge.gov, formulario 278-T de Donald Trump. Montos en tramos. Todo queda `pendiente` hasta revisión manual. Premium false (5 U.S.C. § 13107). |
 | Senate eFD (oficial) | tuberville, mccormick, mullin-tracker | ✅ Funcional (requiere curl_cffi) | efdsearch.senate.gov — Akamai geo-bloquea IPs no-EE.UU. y rechaza httpx por huella TLS; funciona desde GitHub Actions (IPs de EE.UU.) |
 | Renta 4 | renta4-moderada, renta4-moderada-ampliada | ✅ Funcional (verificado) | Hub → artículo → PDF semanal |
 | BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado) | PDF estático público S3 |
 | InfoProbidad | infoProbidad-cl | ✅ Funcional (SPARQL verificado 2026-10-18) | El CSV de la versión anterior NO existe; la fuente real es el endpoint SPARQL datos.cplt.cl/sparql |
+| Superintendencia de Pensiones | afp-modelo-acciones-cl | ✅ Modo A (cuadro 14, verificado 2026-10-19) | AFP Modelo, acciones chilenas, hasta mayo 2026. Desde junio el portal cifra el parámetro. No se guardan CUSIP. `afp-consenso-chile` sigue siendo la semilla demo de la 006 |
 | SEC 13F (EDGAR) | 25 fondos (ver `load_13f.py`) | ✅ Funcional | data.sec.gov, sin login. CIK verificados en docs de expansión |
+| SEC Form 4 (insiders) | insiders-compras-1m | ✅ Funcional (feed verificado 2026-10-19) | Compras P de officers y directores ≥ US$1M. Señal informativa: en el 1S-2026 no le ganó al SPY. Sin direcciones del insider |
 | ARK Invest | arkk, arkg, arkw, arkq, arkf | ✅ Funcional (verificado 2026-10-18) | CSV diario del emisor con pesos exactos |
 | Global X | copx, lit, bug, hero | ✅ Funcional | CSV con fecha, se sondea hacia atrás |
 | iShares (BlackRock) | ech, eww, ewz, ibit | ✅ Funcional (verificado 2026-10-18) | CSV oficial: /us/products/{id}/{slug}/latest-holdings.csv |
@@ -20,6 +23,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | Capitol Trades | (ninguno) | ⛔ OBSOLETO — login wall | Fuente muerta; se mantiene solo como referencia. NO integrar |
 | Invesco QQQ | (ninguno) | ⛔ 406 en todos los endpoints | Bloqueo HTTP 406 verificado 2026-10-18; sin CSV público accesible |
 | LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
+| X (@elonmusk) | musk-dice | 🔧 Archivo verificado; sin API en producción | Menciones en `scrapers/data/musk_menciones.json`. Solo id, fecha, cita y URL. La API de X exige plan de pago |
 | CNBC Lightning Round (Mad Money) | inverse-cramer-real | ✅ RSS verificado 2026-10-19 | Artículos públicos. Se guarda solo ticker, fecha, cita de hasta 10 palabras y URL. El proxy `inverse-cramer` (SQQQ/PSQ) no se toca. Términos de uso de CNBC: pendientes de que Manu los revise antes de lanzar |
 
 ## Flujo automatizado (GitHub Actions + Vercel Cron)
@@ -30,6 +34,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
     ↓ POSICIONES: house → senate → renta4 → btg → infoprobidad → 13f → etfs
     ↓ PRECIOS: prices (Yahoo EOD) → RENDIMIENTOS: compute_returns
     ↓ SNAPSHOTS: performance (series históricas)
+    ↓ trump_dice → insiders_form4 → oge_trump → spensiones → musk_dice → inverse_cramer → radar_ia
     ↓ holdings upsert con previous_weight (detección de cambios)
     ↓ curl GET /api/run-pipeline con CRON_SECRET
     ↓
@@ -92,26 +97,34 @@ Fuente **oficial** del Senado — Periodic Transaction Reports electrónicos.
 
 ---
 
-## InfoProbidad (infoprobidad.py) — REESCRITO
+## InfoProbidad (infoprobidad.py) — agregado por RUT
 
-**URL:** `https://datos.cplt.cl/sparql` (portal www.infoprobidad.cl)
+**URL:** `https://datos.cplt.cl/sparql` (portal [www.infoprobidad.cl](https://www.infoprobidad.cl/))
 
-**Estado:** ✅ Funcional (verificado en vivo 2026-10-18).
+**Estado:** ✅ Endpoint SPARQL verificado. Licencia **CC BY 4.0** (atribución obligatoria).
 
-La versión anterior apuntaba a un CSV (`/descargas/declaraciones-<año>.csv`)
-que **no existe** (404). La fuente real: el Consejo para la Transparencia
-publica **Datos Abiertos Enlazados** con endpoint SPARQL público (licencia
-CC 4.0, actualización semanal martes/viernes).
+La versión anterior agrupaba por el nombre de la sociedad y partía el
+símbolo de la primera palabra, así que "LATAM" y "LATAM AIRLINES GROUP S.A."
+salían duplicadas. Ahora la consulta agrupa por `ip:rutJuridica`, filtra
+`ip:ultimaDecDeclarante` y descarta `rut=0` y sociedades deportivas.
 
-- El adapter consulta: Persona → `declara` → Declaración →
-  `tieneAccionDerecho` → entidad (`derechoSobre`) y valor (`valorPlaza`,
-  Money con valor + moneda CLP).
-- Portafolio `infoProbidad-cl`: canasta de las entidades en que las
-  autoridades chilenas declaran acciones, ponderadas por valor declarado.
-- Es **información pública de patrimonio**, no un portafolio de inversión
-  ni recomendación.
-- Limitación: el SPARQL es un Virtuoso público y puede tardar/limitar;
-  el adapter tolera fallos y la etapa NO es crítica.
+- Se publica solo el agregado: cuántas autoridades declaran acciones de
+  cada empresa, el valor total declarado (`ip:valorPlaza`) y la fecha más
+  reciente. La consulta no pide dirección, estado civil, régimen
+  patrimonial, bienes, pasivos ni datos de familiares.
+- Nombres de autoridades: flag `INFOPROBIDAD_NOMBRES` apagado (`0`). Aunque
+  se ponga en `1`, esta versión no los consulta ni los guarda.
+- Portafolio `infoProbidad-cl` (el slug no cambia): canasta solo de
+  emisoras con nemotécnico en `scrapers/data/infoprobidad/rut_nemotecnico.json`,
+  peso proporcional al número de autoridades. No es una cartera para copiar
+  ni hay rendimiento simulado.
+- Alerta `threshold` si una empresa sube 5 o más autoridades entre corridas.
+  El payload no lleva nombres de personas.
+- Tabla `infoprobidad_empresas` (migración 021), lectura pública.
+- Limitación: el SPARQL es un Virtuoso público y puede tardar; la etapa
+  no es crítica. El docstring histórico dice martes y viernes; no hay
+  página oficial que lo confirme. La declaración más reciente vista el
+  2026-10-19 es del 2026-10-10.
 
 ---
 
@@ -133,6 +146,39 @@ el CIK histórico 1079114 dejó de presentar en 2024), AKO Capital
   no incluye cortos, derivados ni caja.
 - AKO: infotable no estándar (`13F_report_*.xml`) y valor en **miles**
   (ver `SPECIAL_INFOTABLE` en sec13f.py).
+
+---
+
+## SEC Form 4 — compras de ejecutivos (insiders_form4.py)
+
+**URL:** `https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&owner=include&count=100&output=atom`
+
+**Estado:** ✅ Feed Atom verificado el 2026-10-19. Dominio público, sin login.
+
+Portafolio `insiders-compras-1m` ("Compras de ejecutivos"): canasta de
+igual peso con las compras en mercado abierto (código P, adquirido A) de
+officers y directores por US$1 millón o más, presentadas en los últimos
+90 días. `source=sec_form4`.
+
+- El adapter lee el Atom de EDGAR (`count=100`), baja el índice y el XML
+  del Form 4 con pausa de 0,15 s y el User-Agent de `sec13f.py`
+  ("reclu research admin@reclu.cl"). Máximo de la SEC: 10 solicitudes
+  por segundo.
+- Histórico trimestral (no corre en el cron): Insider Transactions Data
+  Sets, ZIP con TSV. Índice en
+  `https://www.sec.gov/data-research/sec-markets-data/insider-transactions-data-sets`.
+- Plazo legal: el Form 4 se presenta dentro de 2 días hábiles.
+- **No se guardan direcciones** (`rptOwnerStreet1`, ciudad, estado, zip).
+  Solo nombre, cargo, emisor, ticker, fecha, código, acciones, precio y
+  monto. La tabla `insider_trades` no tiene columnas de dirección.
+- Cada alerta `new_trade` lleva `payload.source_url` y sale publicada.
+- **No es una estrategia ganadora.** Backtest 1S-2026 (corte de precios
+  2026-10-16, corrida 2026-10-19): 270 eventos, promedio −1,80% contra
+  SPY +8,11%. Le ganó al SPY en 88 de 270. Aviso fijo en la ficha:
+  "Simulación histórica con fines informativos. No es recomendación de
+  inversión."
+- Etapa no crítica en `run_all.py`, después de `performance` y antes de
+  `radar_ia`. `--dry-run` no escribe.
 
 ---
 
@@ -167,6 +213,26 @@ normaliza quitando el sufijo.
 
 ---
 
+## Superintendencia de Pensiones (spensiones.py)
+
+**URL:** `https://www.spensiones.cl/apps/carteras/genera_desagregada_xsl.php?fecpro=AAAAMM&idu=50&listado=14`
+
+**Estado:** ✅ Modo A verificado en `--dry-run` el 2026-10-19. El modo navegador queda detrás de `--navegador` y no está verificado en vivo.
+
+Fuente pública de la Superintendencia de Pensiones. El portafolio `afp-modelo-acciones-cl` es el Cuadro 14: diversificación de AFP Modelo en acciones nacionales, por tipo de fondo y sector. Cifras en MMUS$. El peso en reclu es la participación del emisor en esa cartera de acciones chilenas, no el porcentaje del fondo completo.
+
+- `idu=50` es solo AFP Modelo. Otros `idu` probados (0–15 y 30–70) no devolvieron datos. El consolidado de todas las AFP no se consigue por esta vía.
+- Hasta mayo de 2026 el endpoint antiguo responde el cuadro. Desde junio de 2026 devuelve vacío (0 o ~363 bytes): el portal pasa a `genera_desagregada_xsl_v2.0.php?param=…` con el parámetro cifrado, y curl no lo baja.
+- El scraper camina el mes en curso hacia atrás (hasta 18 meses) hasta una respuesta de más de 1000 bytes que contenga "CUADRO".
+- **No se publican códigos CUSIP.** La página trae aviso de copyright de CUSIP (American Bankers Association / FactSet). Solo se guardan el nemotécnico y el emisor.
+- Desfase: la cartera de cada mes aparece varias semanas después. El desfase exacto no se midió. La ficha lo dice: "La SP publica con desfase; no es la cartera de hoy."
+- Referencia de mercado en la ficha: **ECH en CLP (proxy del IPSA)**. Yahoo `^IPSA` no trae datos. ECH es iShares MSCI Chile (ya está en la etapa `etfs`). No es el IPSA oficial. Los precios `.SN` de Yahoo no traen volumen desde el 2026-09-16.
+- `afp-consenso-chile` (migración 006) no se modifica: seguidores y retorno de demostración. Propuesta: alimentarlo con el consolidado cuando el modo navegador funcione, o desactivarlo.
+- Términos de reutilización: no se encontraron condiciones explícitas. Revisarlas antes de tratar la fuente como cerrada.
+- Etapa opcional en `run_all.py`, después de `performance` y antes de `radar_ia`. El cron no invoca `--navegador`.
+
+---
+
 ## BTG Pactual Chile (btg_pactual.py)
 
 **URL:** PDF estático público en S3 (`Cartera_Concentrada_RVL.pdf`).
@@ -184,6 +250,49 @@ normaliza quitando el sufijo.
 Se mantiene el archivo por referencia, pero **no está en ninguna etapa**
 de `run_all.py`. Si algún día reabre el dataset público, agregar una
 etapa no-crítica.
+
+---
+
+## OGE 278-T (oge_trump.py)
+
+Informe periódico de transacciones del presidente. El índice PAS de
+nominados no lista a Trump; el PDF vive igual en `Presiden.nsf` y está
+anotado en `scrapers/data/trump_oge/known_reports.json`. Si el índice
+empieza a enlazar PDFs `Donald-J-Trump*278T`, el scraper los suma.
+
+- Parser puro `parse_278t`. Fechas que no calzan con `M/D/2026` quedan
+  `trans_date_uncertain`. "lourchaso" y variantes OCR → purchase.
+- Ticker en `scrapers/data/trump_oge/descripcion_ticker.json`. Sin ticker
+  no entra a holdings (la mayoría son bonos municipales).
+- Cada fila se guarda `pendiente`. Solo `verificada` (revisión humana)
+  crea holdings de compras ≥ US$1M en acciones/ETF y la alerta
+  `new_trade` con `payload.source_url`.
+- Texto: `pdftotext -layout`, si no hay, pypdf. OCR con pytesseract solo
+  si el PDF no trae capa de texto.
+
+---
+
+## X — Elon Musk dice (musk_dice.py)
+
+**URL:** posts públicos de `https://x.com/elonmusk`. La fuente de verdad de
+esta entrega es `scrapers/data/musk_menciones.json` (archivo completo, corte
+2026-10-19). Contexto: CNBC, 2021-01-29,
+`https://www.cnbc.com/2021/01/29/elon-musks-tweets-are-moving-markets.html`.
+
+**Estado:** 🔧 Menciones históricas ya verificadas. No se llama a la API de X
+desde el scraper: hace falta un plan de pago y los términos piden mostrar el
+post embebido o enlazado.
+
+- Portafolio `musk-dice`, `source` `musk_mentions`. Usa `public.mentions` de
+  la migración 014. No hay tabla nueva.
+- Cada fila guarda el id del post, la fecha, una cita corta y la URL de X.
+  La alerta `mention` lleva `payload.speaker = Elon Musk` y `payload.source_url`.
+- ETSY y GME entran al 50%. CDR (Varsovia, PLN) es solo mención. Tesla es
+  `empresa_propia`: se muestra como contexto y no genera holding ni alerta.
+- `--detectar` deja candidatas en `pendiente` (`$TICKER` o "buy" más el
+  nombre de una empresa del catálogo). Una pendiente no se inserta ni alerta.
+- `--dry-run` no escribe en Supabase. Etapa `musk_dice` en `run_all.py`,
+  después de `performance` y antes de `radar_ia`, no crítica.
 
 ---
 
@@ -207,8 +316,8 @@ modifica.
 
 Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
 `btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
-`compute_returns` → `performance` → `trump_dice` → `inverse_cramer` →
-`radar_ia`.
+`compute_returns` → `performance` → `trump_dice` → `insiders_form4` →
+`oge_trump` → `spensiones` → `musk_dice` → `inverse_cramer` → `radar_ia`.
 
 - `--only <etapas>` / `--skip <etapas>`: selección de etapas.
 - `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.

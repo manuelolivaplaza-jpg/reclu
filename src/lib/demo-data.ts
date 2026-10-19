@@ -28,6 +28,7 @@ function p(over: Partial<Portfolio> & Pick<Portfolio, "id" | "slug" | "name" | "
 export const DEMO_PORTFOLIOS: Portfolio[] = [
   p({ id: "d1", slug: "pelosi-tracker", name: "Pelosi Tracker", description: "Sigue las operaciones bursátiles declaradas por Nancy Pelosi, ex presidenta de la Cámara de Representantes de EE.UU.", category: "political_us", source: "capitol_trades", manager: "Nancy Pelosi", country: "US", followers: 12400, return_ytd: 31.4, tags: ["pelosi", "congreso", "tech"] }),
   p({ id: "d2", slug: "trump-trades", name: "Trump Trades", description: "Operaciones bursátiles y menciones públicas de Donald Trump y su círculo cercano.", category: "political_us", source: "capitol_trades", manager: "Donald Trump", country: "US", followers: 8300, return_ytd: 18.2, tags: ["trump", "menciones"] }),
+  p({ id: "d13oge", slug: "trump-compra", name: "Trump compra (OGE)", description: "Compras de acciones y ETF de US$1 millón o más declaradas en el formulario OGE 278-T. Los montos son tramos, no cifras exactas. Simulación histórica con fines informativos. No es recomendación de inversión.", category: "political_us", source: "oge_278t", manager: "Donald Trump", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["trump", "oge", "declaraciones"] }),
   p({ id: "d3", slug: "renta4-moderada", name: "Renta 4 — Cartera Moderada", description: "Cartera moderada recomendada por Renta 4 Corredores de Bolsa (Chile).", category: "broker_cl", source: "renta4", manager: "Renta 4", country: "CL", followers: 5600, return_ytd: 12.6, tags: ["chile", "renta4", "moderada"] }),
   p({ id: "d4", slug: "renta4-moderada-ampliada", name: "Renta 4 — Cartera Moderada Ampliada", description: "Versión ampliada de la cartera moderada de Renta 4, con mayor diversificación.", category: "broker_cl", source: "renta4", manager: "Renta 4", country: "CL", followers: 3100, return_ytd: 11.1, tags: ["chile", "renta4", "ampliada"] }),
   p({ id: "d5", slug: "larrainvial-top-picks", name: "LarrainVial Top Picks", description: "Selección de acciones destacadas del equipo de research de LarrainVial.", category: "broker_cl", source: "larrainvial", manager: "LarrainVial", country: "CL", followers: 2900, return_ytd: 15.8, tags: ["chile", "larrainvial"] }),
@@ -47,7 +48,7 @@ export const DEMO_PORTFOLIOS: Portfolio[] = [
   p({ id: "d19", slug: "fintech-global", name: "Fintech Global", description: "Plataformas de pagos, neobancos e infraestructura financiera digital.", category: "thematic", source: "model", country: "Global", followers: 2800, return_ytd: 21.3, tags: ["fintech", "pagos", "tech"] }),
   p({ id: "d20", slug: "latin-tech", name: "Latin Tech", description: "Las mayores empresas de tecnología de Latinoamérica.", category: "thematic", source: "model", country: "Global", followers: 1700, return_ytd: 17.5, tags: ["latam", "tech", "emergentes"] }),
   p({ id: "d21", slug: "utilities-defensivas", name: "Utilities Defensivas", description: "Servicios básicos estables: agua, electricidad y gas.", category: "thematic", source: "model", country: "Global", followers: 1100, return_ytd: 6.3, tags: ["utilities", "defensivo", "dividendos"] }),
-  p({ id: "d22", slug: "infoProbidad-cl", name: "Declaraciones InfoProbidad", description: "Seguimiento de declaraciones de patrimonio de autoridades chilenas (InfoProbidad).", category: "public_disclosure", source: "infoprobidad", country: "CL", followers: 800, return_ytd: 5.1, tags: ["chile", "infoprobidad"] }),
+  p({ id: "d22", slug: "infoProbidad-cl", name: "Declaraciones InfoProbidad", description: "Empresas en las que autoridades chilenas declaran acciones, agregado por RUT (InfoProbidad, CC BY 4.0). Sirve para ver posibles conflictos de interés. No es una cartera para copiar ni una recomendación de inversión.", category: "public_disclosure", source: "infoprobidad", country: "CL", followers: 800, return_ytd: null, tags: ["chile", "infoprobidad"] }),
   // --- Fondos 13F institucionales y soberanos (Wave 2) ---
   p({ id: "d23", slug: "berkshire-hathaway", name: "Berkshire Hathaway", description: "El libro 13F de Warren Buffett: posiciones listadas en EE.UU. al cierre de cada trimestre.", category: "hedge_fund", source: "sec_13f", manager: "Warren Buffett", country: "US", followers: 18900, return_ytd: 22.4, tags: ["buffett", "13f", "value"] }),
   p({ id: "d24", slug: "pershing-square", name: "Pershing Square", description: "El libro 13F de Bill Ackman: cartera concentrada de convicción.", category: "hedge_fund", source: "sec_13f", manager: "Bill Ackman", country: "US", followers: 9200, return_ytd: 19.8, premium: true, tags: ["ackman", "13f", "activista"] }),
@@ -78,6 +79,21 @@ export const DEMO_PORTFOLIOS: Portfolio[] = [
   p({ id: "d46", slug: "cobre-superciclo", name: "Superciclo del Cobre & Red Eléctrica", description: "Productores de cobre y equipamiento de transmisión eléctrica ante el déficit estructural por electrificación y data centers.", category: "thematic", source: "model", manager: "Tesis Commodities", country: "Global", followers: 6900, return_ytd: 29.1, premium: true, tags: ["cobre", "mineria", "chile", "electrificacion"] }),
   p({ id: "d47", slug: "trump-dice", name: "Trump dice", description: "Compra simulada de US$1.000 al cierre cada vez que Donald Trump llama a comprar o elogia directamente una acción. Cada mención con su cita y su fuente.", category: "political_us", source: "trump_mentions", manager: "Donald Trump", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["trump", "menciones", "truth-social", "dichos"] }),
   p({ id: "d48", slug: "inverse-cramer-real", name: "Inverse Cramer (real)", description: "Simulación: se vende en corto lo que Jim Cramer recomienda comprar en el Lightning Round de CNBC y se compra lo que recomienda vender. Igual peso, 30 días hábiles, sin costo de préstamo.", category: "model", source: "cnbc_lightning_round", manager: "Jim Cramer (invertido)", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["cramer", "inverse", "cnbc", "menciones"] }),
+  p({
+    id: "d-f10",
+    slug: "insiders-compras-1m",
+    name: "Compras de ejecutivos",
+    description:
+      "Compras en mercado abierto (código P) de officers y directores por US$1 millón o más, según el Formulario 4 de la SEC. En el primer semestre de 2026 esta señal no le ganó al SPY (promedio -1,80% contra +8,11%). Simulación histórica con fines informativos. No es recomendación de inversión.",
+    category: "public_disclosure",
+    source: "sec_form4",
+    country: "US",
+    followers: 0,
+    return_ytd: null,
+    premium: false,
+    tags: ["insiders", "form4", "sec", "ejecutivos"],
+  }),
+  p({ id: "d49", slug: "musk-dice", name: "Elon Musk dice", description: "Simulación histórica de los elogios verificados de Elon Musk a acciones de terceros, con la cita y el enlace al post. Tesla se muestra como contexto: Musk es insider y no es una señal.", category: "model", source: "musk_mentions", manager: "Elon Musk", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["musk", "menciones", "x"] }),
 ];
 
 // Holdings de demostración por portfolio (id -> lista)
@@ -406,6 +422,16 @@ const DEMO_HOLDINGS: Record<string, Omit<Holding, "portfolio_id" | "as_of">[]> =
     { id: "h242", symbol: "STWD", name: "STWD", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h243", symbol: "TRN", name: "Corto: TRN", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
   ],
+  "insiders-compras-1m": [
+    { id: "h-f10-1", symbol: "TTD", name: "TTD", weight: 33.34, previous_weight: 0, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h-f10-2", symbol: "KKR", name: "KKR", weight: 33.33, previous_weight: 0, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h-f10-3", symbol: "MSCI", name: "MSCI", weight: 33.33, previous_weight: 33.33, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+  ],
+  // Semilla 017. previous_weight null: en demo no hay salto. CDR y Tesla no son holdings.
+  "musk-dice": [
+    { id: "h244", symbol: "ETSY", name: "Etsy", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h245", symbol: "GME", name: "GameStop", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+  ],
 };
 
 export function demoPortfolioBySlug(slug: string): Portfolio | null {
@@ -420,6 +446,7 @@ export function demoHoldings(slug: string): Holding[] {
 
 const DEMO_ALERTS: Alert[] = [
   { id: "a1", portfolio_id: "d1", type: "new_trade", severity: "high", title: "Nancy Pelosi compró $1M–$5M en NVDA", summary: "La congresista Pelosi realizó una compra significativa de NVIDIA vía opciones call deep-in-the-money con vencimiento 2027, su tercera operación en semiconductores este trimestre.", payload: { symbol: "NVDA", tx_date: "2026-10-01", disclosed: "2026-10-09", traded_at: "2026-10-01", filed_at: "2026-10-09" }, created_at: "2026-10-09T14:00:00Z", portfolio: { id: "d1", slug: "pelosi-tracker", name: "Pelosi Tracker" } },
+  { id: "a-f10-1", portfolio_id: "d-f10", type: "new_trade", severity: "high", title: "Insider: Chief Executive Officer de TTD compró US$148.101.266", summary: null, payload: { symbol: "TTD", owner_name: "Jeff Green", owner_title: "Chief Executive Officer", value_usd: 148101266, trans_date: "2026-03-02", filed_at: "2026-03-04", source_url: "https://www.sec.gov/Archives/edgar/data/1671933/000167144526000004/wk-form4_1772674051.xml" }, created_at: "2026-03-04T21:00:00Z", portfolio: { id: "d-f10", slug: "insiders-compras-1m", name: "Compras de ejecutivos" } },
   { id: "a11", portfolio_id: "d35", type: "mention", severity: "high", title: "Trump en Truth Social: impulso a perforación en EE.UU. (XOM, CVX)", summary: "Donald Trump publicó en Truth Social un llamado directo a acelerar permisos federales de perforación y gas natural licuado ('DRILL, BABY, DRILL'), destacando a las integradas energéticas estadounidenses Exxon Mobil (XOM) y Chevron (CVX) como pilares para reducir costos industriales.", payload: { symbol: "XOM", filed_at: "2026-10-10", traded_at: "2026-10-10" }, created_at: "2026-10-10T11:30:00Z", portfolio: { id: "d35", slug: "trump-truth-signals", name: "Trump Truth & Tariffs Radar" } },
   { id: "a12", portfolio_id: "d2", type: "mention", severity: "high", title: "Trump ratifica tesis de Reserva Estratégica de Bitcoin (IBIT, COIN)", summary: "En declaración pública amplificada en Truth Social, Trump reiteró su compromiso de posicionar a EE.UU. como capital mundial cripto y mantener activos digitales en reserva estratégica, impulsando flujos institucionales hacia IBIT (+3.5pp en el radar).", payload: { symbol: "IBIT", filed_at: "2026-10-09", traded_at: "2026-10-09" }, created_at: "2026-10-09T18:15:00Z", portfolio: { id: "d2", slug: "trump-trades", name: "Trump Trades" } },
   { id: "a13", portfolio_id: "d35", type: "mention", severity: "high", title: "Amenaza de aranceles del 25% al acero importado impulsa a Nucor (NUE)", summary: "Trump anunció revisión inmediata de cuotas de importación de acero extranjero para proteger acerías locales. Nucor Corp (NUE) y productores domésticos registraron fuerte rotación compradora tras el comunicado.", payload: { symbol: "NUE", filed_at: "2026-10-09", traded_at: "2026-10-08" }, created_at: "2026-10-09T09:45:00Z", portfolio: { id: "d35", slug: "trump-truth-signals", name: "Trump Truth & Tariffs Radar" } },

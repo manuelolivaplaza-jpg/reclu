@@ -1,0 +1,12 @@
+{"fuente":"X API v2 search_posts_all (archivo completo), verificado 2026-10-19","menciones":[
+{"ticker":"ETSY","yahoo":"ETSY","texto":"I kinda love Etsy","utc":"2021-01-26T11:25:00Z","url":"https://x.com/elonmusk/status/1354027651468550144","sentido":"positivo","entrada":"2021-01-26","nota":"antes de la apertura; entrada al cierre del mismo día"},
+{"ticker":"GME","yahoo":"GME","texto":"Gamestonk!!","utc":"2021-01-26T21:08:00Z","url":"https://x.com/elonmusk/status/1354174279894642703","sentido":"positivo","entrada":"2021-01-27","nota":"después del cierre"},
+{"ticker":"CDR","yahoo":"CDR.WA","texto":"It can play Cyberpunk","utc":"2021-01-28T02:34:00Z","url":"https://x.com/elonmusk/status/1354618772586426368","sentido":"positivo","entrada":"2021-01-28","nota":"CD Projekt, Varsovia, PLN"},
+{"ticker":"TSLA","yahoo":"TSLA","texto":"Tesla stock price is too high imo","utc":"2020-05-01T15:11:00Z","url":"https://x.com/elonmusk/status/1256239815256797184","sentido":"negativo","entrada":"2020-05-01","nota":"empresa propia; entrada al cierre del mismo día; aparte del portafolio"}
+],"excluidas":[
+{"texto":"Use Signal","fecha":"2021-01-07","motivo":"la app, no una acción; subió Signal Advance (SIGL) por error","fuente":"https://www.cnbc.com/2021/01/08/elon-musk-boosts-signal-app-signal-advance-stock-jumps-1100percent.html"},
+{"texto":"Sandstorm is a masterpiece","motivo":"canción, no la empresa"},
+{"texto":"Buy Ryan Air and restore Ryan as their rightful ruler","fecha":"2026-01","url":"https://x.com/elonmusk/status/2013315607253655621","motivo":"broma sobre comprar la empresa"},
+{"texto":"mRNA tremendous promise","fecha":"2026-08-19","motivo":"no nombra empresa"},
+{"texto":"bought a billion dollars of Tesla stock last year","fecha":"2026-01-18","url":"https://x.com/elonmusk/status/2012743714318217507","motivo":"empresa propia (insider)"}
+]}

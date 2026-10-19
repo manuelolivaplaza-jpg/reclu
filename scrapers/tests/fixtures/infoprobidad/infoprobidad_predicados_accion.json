@@ -1,0 +1,14 @@
+
+{ "head": { "link": [], "vars": ["pr", "n"] },
+  "results": { "distinct": false, "ordered": true, "bindings": [
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/esControlador" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "53051" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/gravamenes" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "54289" }},
+    { "pr": { "type": "uri", "value": "http://www.w3.org/1999/02/22-rdf-syntax-ns#type" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "56331" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/giro" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "52756" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/fechaAdquisicion" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "54604" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/tipoAccionDerecho" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "54817" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/valorPlaza" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "56331" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/pais" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "54136" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/derechoSobre" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "56322" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/cantidadAcciones" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "56313" }},
+    { "pr": { "type": "uri", "value": "http://datos.cplt.cl/ontologias/infoprobidad/rutJuridica" }	, "n": { "type": "typed-literal", "datatype": "http://www.w3.org/2001/XMLSchema#integer", "value": "54423" }} ] } }

@@ -1,0 +1,148 @@
+{
+ "fecha_trade": {
+  "igual_peso_pct": -0.29,
+  "spy_mismas_fechas_pct": -0.45,
+  "hasta": "2026-10-16",
+  "detalle": [
+   {
+    "ticker": "VGK",
+    "entrada": "2026-08-06",
+    "ret": -4.71,
+    "spy": -0.44
+   },
+   {
+    "ticker": "XLC",
+    "entrada": "2026-08-10",
+    "ret": -1.03,
+    "spy": -1.02
+   },
+   {
+    "ticker": "MSFT",
+    "entrada": "2026-08-10",
+    "ret": 4.74,
+    "spy": -1.02
+   },
+   {
+    "ticker": "MCD",
+    "entrada": "2026-08-10",
+    "ret": -10.6,
+    "spy": -1.02
+   },
+   {
+    "ticker": "CMCSA",
+    "entrada": "2026-08-10",
+    "ret": -11.74,
+    "spy": -1.02
+   },
+   {
+    "ticker": "META",
+    "entrada": "2026-08-21",
+    "ret": 29.09,
+    "spy": -0.08
+   },
+   {
+    "ticker": "T",
+    "entrada": "2026-08-21",
+    "ret": -6.27,
+    "spy": -0.08
+   },
+   {
+    "ticker": "COP",
+    "entrada": "2026-08-21",
+    "ret": 8.63,
+    "spy": -0.08
+   },
+   {
+    "ticker": "ABT",
+    "entrada": "2026-08-21",
+    "ret": -9.52,
+    "spy": -0.08
+   },
+   {
+    "ticker": "NFLX",
+    "entrada": "2026-08-21",
+    "ret": -11.38,
+    "spy": -0.08
+   },
+   {
+    "ticker": "CVX",
+    "entrada": "2026-08-21",
+    "ret": 9.61,
+    "spy": -0.08
+   }
+  ]
+ },
+ "publicacion": {
+  "igual_peso_pct": 2.06,
+  "spy_mismas_fechas_pct": -1.38,
+  "hasta": "2026-10-16",
+  "detalle": [
+   {
+    "ticker": "VGK",
+    "entrada": "2026-10-08",
+    "ret": 2.18,
+    "spy": -1.38
+   },
+   {
+    "ticker": "XLC",
+    "entrada": "2026-10-08",
+    "ret": -1.56,
+    "spy": -1.38
+   },
+   {
+    "ticker": "MSFT",
+    "entrada": "2026-10-08",
+    "ret": 1.23,
+    "spy": -1.38
+   },
+   {
+    "ticker": "MCD",
+    "entrada": "2026-10-08",
+    "ret": 2.56,
+    "spy": -1.38
+   },
+   {
+    "ticker": "CMCSA",
+    "entrada": "2026-10-08",
+    "ret": 3.25,
+    "spy": -1.38
+   },
+   {
+    "ticker": "META",
+    "entrada": "2026-10-08",
+    "ret": -1.6,
+    "spy": -1.38
+   },
+   {
+    "ticker": "T",
+    "entrada": "2026-10-08",
+    "ret": -4.68,
+    "spy": -1.38
+   },
+   {
+    "ticker": "COP",
+    "entrada": "2026-10-08",
+    "ret": 9.18,
+    "spy": -1.38
+   },
+   {
+    "ticker": "ABT",
+    "entrada": "2026-10-08",
+    "ret": 7.15,
+    "spy": -1.38
+   },
+   {
+    "ticker": "NFLX",
+    "entrada": "2026-10-08",
+    "ret": -1.45,
+    "spy": -1.38
+   },
+   {
+    "ticker": "CVX",
+    "entrada": "2026-10-08",
+    "ret": 6.35,
+    "spy": -1.38
+   }
+  ]
+ }
+}

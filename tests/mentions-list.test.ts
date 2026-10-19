@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   demoCramerMentions,
+  demoMuskMentions,
   demoTrumpMentions,
   formatMentionDate,
   mentionKindLabel,
+  MUSK_INSIDER_NOTICE,
   primarySourceUrl,
   recluActionLabel,
   selectVerifiedMentions,
@@ -64,6 +66,12 @@ describe("mentionKindLabel", () => {
     expect(mentionKindLabel("recomienda_compra")).toBe("Recomienda compra");
     expect(mentionKindLabel("recomienda_venta")).toBe("Recomienda venta");
   });
+
+  it("traduce los tipos de Musk (017)", () => {
+    expect(mentionKindLabel("empresa_propia")).toBe("Empresa propia");
+    expect(mentionKindLabel("critica")).toBe("Crítica");
+    expect(mentionKindLabel("elogio")).toBe("Elogio");
+  });
 });
 
 describe("recluActionLabel", () => {
@@ -73,6 +81,24 @@ describe("recluActionLabel", () => {
     expect(recluActionLabel("compra_directa", "DELL")).toBeNull();
     expect(recluActionLabel("recomienda_compra", "  ")).toBeNull();
     expect(recluActionLabel(null, "MTZ")).toBeNull();
+  });
+});
+
+describe("menciones de Musk", () => {
+  it("lista las cuatro, con URL de X, y no esconde la empresa propia", () => {
+    const rows = demoMuskMentions();
+    expect(rows).toHaveLength(4);
+    expect(rows.every((row) => row.sourceUrls[0]?.startsWith("https://x.com/elonmusk/status/"))).toBe(
+      true,
+    );
+    const visible = selectVerifiedMentions(rows);
+    expect(visible.map((row) => row.symbol)).toEqual(["CDR", "GME", "ETSY", "TSLA"]);
+    const tesla = visible.find((row) => row.symbol === "TSLA");
+    expect(tesla?.kind).toBe("empresa_propia");
+    expect(tesla?.sourceUrl).toBe("https://x.com/elonmusk/status/1256239815256797184");
+    expect(MUSK_INSIDER_NOTICE).toBe(
+      "Musk es insider de Tesla/SpaceX/xAI; esas menciones no son señal.",
+    );
   });
 });
 

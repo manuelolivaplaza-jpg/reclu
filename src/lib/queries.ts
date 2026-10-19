@@ -15,6 +15,7 @@ import {
   ALERT_LIMITS,
   type AccessRole,
 } from "@/lib/access";
+import { isPublicDisclosureSource } from "@/lib/public-disclosure";
 
 /** True cuando Supabase está configurado con valores reales (no placeholder). */
 function isSupabaseLive(): boolean {
@@ -151,7 +152,9 @@ export async function getHoldings(
   // En modo demo, portfolioId es el slug (d1, d7...). Resolvemos por slug.
   if (!isSupabaseLive()) {
     const slug = DEMO_PORTFOLIOS.find((p) => p.id === portfolioId)?.slug ?? portfolioId;
-    return sliceHoldings(demoHoldings(slug), opts?.role);
+    const list = demoHoldings(slug);
+    if (slug === "trump-compra") return list;
+    return sliceHoldings(list, opts?.role);
   }
 
   const supabase = await createClient();
@@ -159,7 +162,7 @@ export async function getHoldings(
   // Camino con migración 012 aplicada: RPC con recorte en la base.
   const slugRow = await supabase
     .from("portfolios")
-    .select("slug")
+    .select("slug, source")
     .eq("id", portfolioId)
     .maybeSingle();
   if (slugRow.data?.slug) {
@@ -186,6 +189,7 @@ export async function getHoldings(
     const { data: pf } = await supabase.from("portfolios").select("slug").eq("id", portfolioId).maybeSingle();
     return pf ? sliceHoldings(demoHoldings(pf.slug), opts?.role) : [];
   }
+  if (isPublicDisclosureSource(slugRow.data?.source)) return data as Holding[];
   return sliceHoldings(data, opts?.role);
 }
 

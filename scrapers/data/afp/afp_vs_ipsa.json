@@ -1,0 +1,546 @@
+{
+ "30-05-2025": {
+  "cartera_fecha": "30-05-2025",
+  "entrada": "2025-06-02",
+  "salida": "2026-09-16",
+  "cartera_clp_pct": 33.79,
+  "ech_en_clp_pct": 33.09,
+  "ech_usd_pct": 28.65,
+  "cobertura_peso_pct": 100.0,
+  "sin_precio": [],
+  "detalle": [
+   {
+    "nemo": "CENCOSUD",
+    "peso_pct": 13.5,
+    "ret_pct": -34.33,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SQM-B",
+    "peso_pct": 8.05,
+    "ret_pct": 133.01,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "BSANTANDER",
+    "peso_pct": 7.8,
+    "ret_pct": 49.69,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "BCI",
+    "peso_pct": 7.06,
+    "ret_pct": 83.17,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CHILE",
+    "peso_pct": 6.6,
+    "ret_pct": 48.45,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "LTM",
+    "peso_pct": 6.46,
+    "ret_pct": 36.92,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "FALABELLA",
+    "peso_pct": 6.25,
+    "ret_pct": 45.94,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "COPEC",
+    "peso_pct": 6.16,
+    "ret_pct": 3.74,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CENCOMALLS",
+    "peso_pct": 5.31,
+    "ret_pct": 19.76,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "MALLPLAZA",
+    "peso_pct": 4.83,
+    "ret_pct": 93.99,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ENELAM",
+    "peso_pct": 4.74,
+    "ret_pct": -7.21,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "COLBUN",
+    "peso_pct": 3.46,
+    "ret_pct": -1.42,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ENELCHILE",
+    "peso_pct": 2.53,
+    "ret_pct": 24.77,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CMPC",
+    "peso_pct": 2.26,
+    "ret_pct": -33.11,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "PARAUCO",
+    "peso_pct": 1.99,
+    "ret_pct": 91.11,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ECL",
+    "peso_pct": 1.47,
+    "ret_pct": 51.16,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SK",
+    "peso_pct": 1.47,
+    "ret_pct": 31.47,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "AGUAS-A",
+    "peso_pct": 1.22,
+    "ret_pct": -1.17,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SMU",
+    "peso_pct": 1.08,
+    "ret_pct": -31.12,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ANDINA-B",
+    "peso_pct": 0.96,
+    "ret_pct": 23.83,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ENTEL",
+    "peso_pct": 0.94,
+    "ret_pct": 52.24,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "RIPLEY",
+    "peso_pct": 0.93,
+    "ret_pct": 9.3,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CONCHATORO",
+    "peso_pct": 0.85,
+    "ret_pct": -14.14,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SMSAAM",
+    "peso_pct": 0.79,
+    "ret_pct": 6.53,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ANDINA-A",
+    "peso_pct": 0.7,
+    "ret_pct": 22.03,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "EMBONOR-B",
+    "peso_pct": 0.67,
+    "ret_pct": 29.05,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "FORUS",
+    "peso_pct": 0.65,
+    "ret_pct": -22.87,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "BESALCO",
+    "peso_pct": 0.48,
+    "ret_pct": 64.97,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "QUINENCO",
+    "peso_pct": 0.35,
+    "ret_pct": 47.04,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ANTARCHILE",
+    "peso_pct": 0.24,
+    "ret_pct": 2.91,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ALMENDRAL",
+    "peso_pct": 0.17,
+    "ret_pct": 51.08,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "MOLLER",
+    "peso_pct": 0.04,
+    "ret_pct": 61.08,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "VAPORES",
+    "peso_pct": 0.02,
+    "ret_pct": 5.13,
+    "desde": "2025-06-02",
+    "hasta": "2026-09-16"
+   }
+  ]
+ },
+ "29-05-2026": {
+  "cartera_fecha": "29-05-2026",
+  "entrada": "2026-06-01",
+  "salida": "2026-09-16",
+  "cartera_clp_pct": 3.74,
+  "ech_en_clp_pct": 3.31,
+  "ech_usd_pct": -3.62,
+  "cobertura_peso_pct": 99.9,
+  "sin_precio": [
+   "MULTI X"
+  ],
+  "detalle": [
+   {
+    "nemo": "LTM",
+    "peso_pct": 13.96,
+    "ret_pct": 4.2,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SQM-B",
+    "peso_pct": 12.87,
+    "ret_pct": -12.09,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "BCI",
+    "peso_pct": 9.0,
+    "ret_pct": 12.7,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "MALLPLAZA",
+    "peso_pct": 8.98,
+    "ret_pct": 2.38,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CENCOSUD",
+    "peso_pct": 7.22,
+    "ret_pct": -2.1,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CHILE",
+    "peso_pct": 7.11,
+    "ret_pct": 18.85,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "BSANTANDER",
+    "peso_pct": 6.44,
+    "ret_pct": 18.66,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CENCOMALLS",
+    "peso_pct": 4.66,
+    "ret_pct": -3.85,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "FALABELLA",
+    "peso_pct": 4.33,
+    "ret_pct": 14.95,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "COPEC",
+    "peso_pct": 4.09,
+    "ret_pct": 2.84,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "PARAUCO",
+    "peso_pct": 3.2,
+    "ret_pct": -1.45,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ENELCHILE",
+    "peso_pct": 2.23,
+    "ret_pct": 8.2,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "COLBUN",
+    "peso_pct": 2.14,
+    "ret_pct": 8.22,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ENELAM",
+    "peso_pct": 1.4,
+    "ret_pct": 7.06,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SK",
+    "peso_pct": 1.34,
+    "ret_pct": -0.22,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ECL",
+    "peso_pct": 1.31,
+    "ret_pct": 1.09,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "AGUAS-A",
+    "peso_pct": 1.21,
+    "ret_pct": -1.66,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SMU",
+    "peso_pct": 1.06,
+    "ret_pct": -16.93,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CMPC",
+    "peso_pct": 1.01,
+    "ret_pct": -9.01,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ANDINA-B",
+    "peso_pct": 0.93,
+    "ret_pct": 6.29,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ANDINA-A",
+    "peso_pct": 0.78,
+    "ret_pct": 8.67,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "EMBONOR-B",
+    "peso_pct": 0.65,
+    "ret_pct": 4.63,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "BESALCO",
+    "peso_pct": 0.63,
+    "ret_pct": 3.42,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SMSAAM",
+    "peso_pct": 0.62,
+    "ret_pct": -16.45,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "RIPLEY",
+    "peso_pct": 0.58,
+    "ret_pct": 18.44,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ENTEL",
+    "peso_pct": 0.55,
+    "ret_pct": 10.31,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "FORUS",
+    "peso_pct": 0.43,
+    "ret_pct": -13.51,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CONCHATORO",
+    "peso_pct": 0.32,
+    "ret_pct": 6.44,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "QUINENCO",
+    "peso_pct": 0.24,
+    "ret_pct": 20.93,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ANTARCHILE",
+    "peso_pct": 0.17,
+    "ret_pct": -6.34,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "ALMENDRAL",
+    "peso_pct": 0.16,
+    "ret_pct": -8.4,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "INGEVEC",
+    "peso_pct": 0.08,
+    "ret_pct": 12.48,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CAMANCHACA",
+    "peso_pct": 0.06,
+    "ret_pct": -0.8,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "PAZ",
+    "peso_pct": 0.05,
+    "ret_pct": 31.13,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "MOLLER",
+    "peso_pct": 0.05,
+    "ret_pct": 2.54,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "TRICOT",
+    "peso_pct": 0.04,
+    "ret_pct": -7.7,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "INDISA",
+    "peso_pct": 0.04,
+    "ret_pct": -4.19,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SOQUICOM",
+    "peso_pct": 0.03,
+    "ret_pct": -2.37,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "SALMOCAM",
+    "peso_pct": 0.02,
+    "ret_pct": -2.95,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "WATTS",
+    "peso_pct": 0.01,
+    "ret_pct": -9.34,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   },
+   {
+    "nemo": "CINTAC",
+    "peso_pct": 0.0,
+    "ret_pct": -8.61,
+    "desde": "2026-06-01",
+    "hasta": "2026-09-16"
+   }
+  ]
+ }
+}

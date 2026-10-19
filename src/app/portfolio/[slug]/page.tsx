@@ -3,7 +3,9 @@ import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
-import { getMentions } from "@/lib/mentions-queries";
+import { getMentions, MUSK_INSIDER_NOTICE } from "@/lib/mentions-queries";
+import { getInsiderTrades, holdingsAtLatestAsOf } from "@/lib/insider-queries";
+import { InsiderTradesList } from "@/components/insider-trades-list";
 import { demoPerformance } from "@/lib/demo-data";
 import { SiteHeader } from "@/components/site-header";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
@@ -22,6 +24,29 @@ import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
+import { OgeTradesPanel } from "@/components/oge-trades-panel";
+import { getVerifiedOgeTrades } from "@/lib/disclosure-trades";
+import { isPublicDisclosureSource } from "@/lib/public-disclosure";
+import { InfoprobidadEmpresas } from "@/components/infoprobidad-empresas";
+import {
+  getInfoprobidadEmpresas,
+  INFOPROBIDAD_FUENTE,
+  INFOPROBIDAD_LICENCIA_URL,
+  INFOPROBIDAD_SLUG,
+  INFOPROBIDAD_URL,
+} from "@/lib/infoprobidad";
+import {
+  AFP_MODELO_SLUG,
+  AVISO_DESFASE_SP,
+  AVISO_SIMULACION,
+  ECH_PROXY_LABEL,
+  enlaceSpensiones,
+  fechaCartera,
+  latestAsOf,
+  urlFuenteAfpModelo,
+} from "@/lib/afp-fuente";
+import { LegalNotice } from "@/components/legal/legal-notice";
+import { SourcePanel } from "@/components/source-panels";
 
 export const instant = false;
 
@@ -40,8 +65,13 @@ export async function generateMetadata({ params }: PortfolioPageProps) {
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) return { title: "Portafolio no encontrado" };
   const year = new Date().getFullYear();
-  const title = `Qué compró ${portfolio.name} — cartera ${year} | Reclu`;
-  const description = `Composición, pesos y movimientos de ${portfolio.name}. ${portfolio.description}`;
+  const esInfo = portfolio.slug === INFOPROBIDAD_SLUG;
+  const title = esInfo
+    ? `Empresas declaradas por autoridades — ${year} | Reclu`
+    : `Qué compró ${portfolio.name} — cartera ${year} | Reclu`;
+  const description = esInfo
+    ? portfolio.description
+    : `Composición, pesos y movimientos de ${portfolio.name}. ${portfolio.description}`;
   return {
     title,
     description,
@@ -70,8 +100,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   if (!portfolio) notFound();
 
   // Arranca en paralelo con el perfil y las holdings.
+  // Trump dice, Elon Musk dice e Inverse Cramer comparten public.mentions.
   const mentionsSource =
-    portfolio.source === "trump_mentions" || portfolio.source === "cnbc_lightning_round"
+    portfolio.source === "trump_mentions" ||
+    portfolio.source === "musk_mentions" ||
+    portfolio.source === "cnbc_lightning_round"
       ? portfolio.source
       : null;
   const mentionsPromise = mentionsSource ? getMentions(portfolio.id, mentionsSource) : null;
@@ -81,7 +114,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const profile = await getProfile();
   const role = roleFor(profile);
 
-  const [holdings, alerts, following, performance, perfData] = await Promise.all([
+  const esAgregado = portfolio.slug === INFOPROBIDAD_SLUG;
+  const publicDisclosure = isPublicDisclosureSource(portfolio.source);
+  // Form 4: el libro sale de get_portfolio_holdings (muro 012). Si quedara
+  // más de un as_of por símbolo, nos quedamos con el más reciente.
+  const isInsiders = portfolio.source === "sec_form4";
+  const [holdingsRaw, alerts, following, performance, perfData, insiderFeed, ogeTrades, empresas] = await Promise.all([
     getHoldings(portfolio.id, { role }),
     getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
@@ -90,7 +128,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       portfolioId: portfolio.id,
       country: portfolio.country,
     }),
+    isInsiders ? getInsiderTrades() : Promise.resolve(null),
+    portfolio.source === "oge_278t" ? getVerifiedOgeTrades() : Promise.resolve([]),
+    esAgregado ? getInfoprobidadEmpresas() : Promise.resolve(null),
   ]);
+  const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsRaw) : holdingsRaw;
 
   const meta = CATEGORY_META[portfolio.category];
   const isPro = isPaidPlan(profile?.plan);
@@ -99,13 +141,13 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   // (role ya calculado arriba; holdings/alerts vienen recortados del servidor.)
   // Modo demo: sin Supabase configurado, los holdings vienen de demo-data.
   const isDemoData = !isSupabaseLive() && holdings.length > 0;
-  const locked = role === "anon";
+  const locked = role === "anon" && !publicDisclosure;
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
   const performanceReal = performance;
   const demoPoints =
-    performanceReal.length === 0 && !isSupabaseLive()
-      ? demoPerformance(portfolio.slug, portfolio.return_ytd ?? 0)
+    performanceReal.length === 0 && !isSupabaseLive() && portfolio.return_ytd !== null
+      ? demoPerformance(portfolio.slug, portfolio.return_ytd)
       : [];
   const showEvolution = performanceReal.length > 0 || demoPoints.length > 0;
   const evolution = performanceReal.length > 0 ? performanceReal : demoPoints;
@@ -134,6 +176,13 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
     weight: holding.weight,
   }));
   const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
+  // AFP Modelo: la fecha es el as_of más nuevo de los holdings que el
+  // muro ya entregó (get_portfolio_holdings). No se lee la tabla directa.
+  const esAfpModelo = portfolio.slug === AFP_MODELO_SLUG;
+  const corteAfp = esAfpModelo ? latestAsOf(holdings) : null;
+  const fechaAfp = esAfpModelo ? fechaCartera(corteAfp) : null;
+  const fuenteAfp = esAfpModelo ? urlFuenteAfpModelo(corteAfp) : null;
+  const benchmarkLabel = esAfpModelo ? ECH_PROXY_LABEL : perfPanelData.benchmarkLabel;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -149,7 +198,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
           keywords: [meta.label, ...portfolio.tags].join(", "),
           creator: portfolio.manager ? { "@type": "Person", name: portfolio.manager } : undefined,
           temporalCoverage: `${new Date().getFullYear()}`,
-          license: absoluteUrl("/disclaimer"),
+          license: esAgregado ? INFOPROBIDAD_LICENCIA_URL : absoluteUrl("/disclaimer"),
         }}
       />
       <JsonLd
@@ -209,8 +258,35 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                     <span className="num text-ink-900">{formatCompact(portfolio.followers)}</span>{" "}
                     seguidores
                   </span>
-                  <span>Fuente: {portfolio.source}</span>
+                  {esAgregado ? (
+                    <a
+                      href={INFOPROBIDAD_URL}
+                      className="text-ink-900 underline-offset-4 hover:underline"
+                      rel="noreferrer"
+                    >
+                      {INFOPROBIDAD_FUENTE}
+                    </a>
+                  ) : fuenteAfp ? (
+                    <a
+                      href={fuenteAfp}
+                      className="text-ink-900 underline-offset-4 hover:underline"
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Fuente: Superintendencia de Pensiones
+                    </a>
+                  ) : (
+                    <span>Fuente: {portfolio.source === "sec_form4" ? "SEC Form 4" : portfolio.source}</span>
+                  )}
                 </div>
+                {esAfpModelo ? (
+                  <div className="mt-5 border border-ink-200 px-4 py-3 text-[13px] leading-relaxed text-ink-500">
+                    {fechaAfp ? <p>Cartera al {fechaAfp}.</p> : null}
+                    <p>{AVISO_DESFASE_SP}</p>
+                    <p>{AVISO_SIMULACION}</p>
+                    <p>Referencia de mercado: {ECH_PROXY_LABEL}. No es el IPSA oficial.</p>
+                  </div>
+                ) : null}
               </div>
 
               {/* Retorno YTD + follow */}
@@ -256,13 +332,19 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
           {mentionsPromise ? (
             <TrumpMentionsList
               mentions={mentionsPromise}
+              notice={portfolio.source === "musk_mentions" ? MUSK_INSIDER_NOTICE : undefined}
+              metodologiaHref={
+                portfolio.source === "musk_mentions"
+                  ? "/metodologia#musk-dice"
+                  : "/metodologia#trump-dice"
+              }
               variant={portfolio.source === "cnbc_lightning_round" ? "cramer" : "trump"}
             />
           ) : null}
 
-          <PortfolioMetricsStrip holdings={holdings} />
+                    {esAgregado ? null : <PortfolioMetricsStrip holdings={holdings} />}
 
-          {showEvolution ? (
+          {showEvolution && !esAgregado ? (
             <div className="mb-12">
               <ChartSection title="Evolución">
                 <PortfolioEvolution data={evolution} />
@@ -270,19 +352,21 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             </div>
           ) : null}
 
-          <div className="mb-12">
-            <PerformancePanel
-              metrics={perfPanelData.metrics}
-              portfolioSeries={perfPanelData.portfolioSeries}
-              benchmarkSeries={perfPanelData.benchmarkSeries}
-              benchmarkLabel={perfPanelData.benchmarkLabel}
-              method={perfDemo ? "demo" : perfPanelData.method}
-              asOf={perfPanelData.precomputed?.as_of ?? null}
-              demo={perfDemo}
-            />
-          </div>
+          {!esAgregado ? (
+            <div className="mb-12">
+              <PerformancePanel
+                metrics={perfPanelData.metrics}
+                portfolioSeries={perfPanelData.portfolioSeries}
+                benchmarkSeries={perfPanelData.benchmarkSeries}
+                benchmarkLabel={benchmarkLabel}
+                method={perfDemo ? "demo" : perfPanelData.method}
+                asOf={perfPanelData.precomputed?.as_of ?? null}
+                demo={perfDemo}
+              />
+            </div>
+          ) : null}
 
-          {showComposition ? (
+          {showComposition && !esAgregado ? (
             <div className="mb-12">
               <ChartSection>
                 <PortfolioDetailCharts composition={composition} />
@@ -290,12 +374,44 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             </div>
           ) : null}
 
+          {isInsiders ? (
+            <InsiderTradesList
+              trades={locked ? [] : (insiderFeed?.trades ?? [])}
+              demo={insiderFeed?.demo ?? false}
+              locked={locked}
+            />
+          ) : null}
+
+          {portfolio.source === "oge_278t" ? (
+            <OgeTradesPanel trades={ogeTrades} demo={!isSupabaseLive()} />
+          ) : null}
+
+          {empresas ? (
+            <InfoprobidadEmpresas rows={empresas.rows} isDemo={empresas.isDemo} />
+          ) : null}
+
+          <SourcePanel
+            source={portfolio.source}
+            portfolioId={portfolio.id}
+            slug={portfolio.slug}
+          />
+
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
             {/* Holdings — censurados sin cuenta */}
             <section>
               <h2 className="text-[15px] font-medium text-ink-900">
-                Composición ({Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})
+                {esAgregado
+                  ? `Emisoras cotizadas (${holdings.length})`
+                  : `Composición${fechaAfp ? ` al ${fechaAfp}` : ""} (${Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})`}
               </h2>
+              {esAgregado ? (
+                <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+                  El peso es proporcional al número de autoridades que declaran la
+                  emisora. No es una cartera para copiar ni una recomendación de inversión.
+                </p>
+              ) : esAfpModelo ? (
+                <p className="mt-2 text-[13px] text-ink-500">{AVISO_DESFASE_SP}</p>
+              ) : null}
 
               <PaywallGate locked={locked} label="composición" className="mt-4">
                 {holdings.length > 0 ? (
@@ -321,7 +437,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                                 >
                                   {h.symbol}
                                 </Link>
-                                {h.return_pct !== null && (
+                                {!esAgregado && h.return_pct !== null && (
                                   <span
                                     className={
                                       "num text-xs " +
@@ -356,8 +472,9 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                   </table>
                 ) : (
                   <p className="mt-4 text-[15px] text-ink-500">
-                    La composición se actualizará cuando el scraper procese la próxima
-                    actualización de la fuente.
+                    {esAgregado
+                      ? "La canasta de emisoras cotizadas aparece cuando el scraper publica los pesos. Arriba está el agregado por empresa, sin fichas de personas."
+                      : "La composición se actualizará cuando el scraper procese la próxima actualización de la fuente."}
                   </p>
                 )}
               </PaywallGate>
@@ -371,6 +488,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                   <div className="flex flex-col gap-4">
                     {alerts.map((alert) => {
                       const lag = disclosureLagLabel(alert.payload);
+                      const fuenteAlerta = enlaceSpensiones(alert.payload?.source_url);
                       return (
                         <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
                           <p className="text-[13px] text-ink-500">{timeAgo(alert.created_at)}</p>
@@ -390,6 +508,16 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                             <p className="mt-1.5 text-[13px] text-ink-500">
                               Resumen AI disponible en Pro
                             </p>
+                          ) : null}
+                          {fuenteAlerta ? (
+                            <a
+                              href={fuenteAlerta}
+                              className="mt-1.5 inline-block text-[13px] text-ink-900 underline-offset-4 hover:underline"
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              Fuente: Superintendencia de Pensiones
+                            </a>
                           ) : null}
                         </div>
                       );
@@ -421,6 +549,9 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             recomendación de compra o venta de instrumentos financieros. Rentabilidades
             pasadas no garantizan resultados futuros.
           </p>
+          <div className="mt-6">
+            <LegalNotice kind="fintec" />
+          </div>
         </div>
       </main>
     </div>

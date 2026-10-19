@@ -20,7 +20,11 @@ el CLI, respetando el mismo orden).
 | 9 | `012_muro_pago.sql` | Muro de pago real: quita lectura pública de `holdings`/`portfolio_snapshots`, funciones `get_portfolio_holdings(p_slug)` y `get_portfolio_snapshots(p_slug)` con recorte por plan. **Incluir bloque `-- rollback` si se quiere revertir.** |
 | 10 | `013_portafolios_tematicos.sql` | Tres portafolios temáticos + holdings semilla. |
 | 11 | `014_trump_dice.sql` | Tabla `mentions` (lectura pública solo `status='verificada'`, sin políticas de escritura), portafolio `trump-dice`, 15 menciones y holdings semilla. |
-| 12 | `018_inverse_cramer.sql` | Amplía `mentions.kind` con `recomienda_compra` y `recomienda_venta`. Portafolio `inverse-cramer-real`, 27 picks y holdings semilla al 2026-10-16. El proxy `inverse-cramer` no se toca. La 015 queda reservada para F9. |
+| 12 | `016_insiders.sql` | Compras de ejecutivos (Form 4): tabla `insider_trades` (lectura pública, sin direcciones ni políticas de escritura) y portafolio `insiders-compras-1m`. |
+| 13 | `019_trump_compra.sql` | Tabla `disclosure_trades` (lectura pública solo `verificada`), portafolio `trump-compra` (`premium=false`, source `oge_278t`) y excepción de muro para `oge_278t` / `house_ptr` / `senate_ptr`. |
+| 14 | `020_afp_carteras.sql` | F14: portafolio `afp-modelo-acciones-cl` (AFP Modelo, acciones chilenas al 29-05-2026) y holdings semilla. No modifica `afp-consenso-chile`. |
+| 15 | `017_musk_dice.sql` | Amplía `mentions.kind` con `critica` y `empresa_propia`, portafolio `musk-dice`, 4 menciones (URL de X) y holdings ETSY/GME al 50%. Reutiliza la tabla de la 014. La 015 sigue reservada para F9. |
+| 16 | `018_inverse_cramer.sql` | Amplía `mentions.kind` con `recomienda_compra` y `recomienda_venta`. Portafolio `inverse-cramer-real`, 27 picks y holdings semilla al 2026-10-16. El proxy `inverse-cramer` no se toca. La 015 queda reservada para F9. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -37,6 +41,8 @@ fusionen las ramas, aplicar en este orden:
 | 012 | **Este frente (F6)** | Muro de pago (ya presente arriba) |
 | 013 | Portafolios | Nuevos portafolios/seed |
 | 015 | F9 — muro pago en /accion | RPC `get_symbol_holders(p_symbol)`: quién tiene un ticker. El rank se calcula sobre todas las posiciones del `as_of` vigente (`weight desc, id`) y después se filtra el símbolo; luego `rank <= holdings_limit_for_plan(current_user_plan())` y premium solo pagos. Aplicar después de 012. Re-ejecutable. |
+| 016 | F10 - compras de ejecutivos | `016_insiders.sql`: tabla `insider_trades` y portafolio `insiders-compras-1m`. Re-ejecutable. |
+| 020 | F14 | `020_afp_carteras.sql` — carteras AFP (este frente). |
 
 ## Duplicados conocidos (A8)
 
@@ -44,6 +50,13 @@ fusionen las ramas, aplicar en este orden:
   todos idempotentes. No renombrar (otros frentes pueden referenciarlos);
   el orden de la tabla de arriba es el correcto.
 - `prices.sql` no lleva número: aplicar tras `002_holdings_returns.sql`.
+
+## 021 — InfoProbidad agregado (F15)
+
+`021_infoprobidad_agregado.sql`: tabla pública `infoprobidad_empresas`
+(RUT, nombre de la sociedad, nemotécnico, autoridades, valor declarado,
+última declaración). Sin columnas de personas. El slug `infoProbidad-cl`
+no cambia. Aplicar después del esquema base. Idempotente.
 
 ## Revertir el muro de pago (012)
 

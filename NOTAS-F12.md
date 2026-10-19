@@ -64,3 +64,12 @@ Varias URLs del archivo original respondían 404. Se reemplazaron por el artícu
 - La semilla SQL está congelada al 2026-10-16 (corte del estudio). Una corrida real escribe otro `as_of` (hoy). El 2026-10-19 HWM ya no está abierto.
 - No se descuenta el costo de pedir prestadas las acciones. La UI lo dice.
 - SJIM se liquidó. La muestra de seis semanas no alcanza para concluir que irle a Cramer funcione.
+
+## Merge con `mejoras/integracion`
+- Trump dice, Musk dice e Inverse Cramer quedan sobre `public.mentions` y `TrumpMentionsList` (`notice`, `metodologiaHref`, `variant`).
+- Demo: Trump 15, Musk 4, Cramer 27. El id `d48` sigue siendo `inverse-cramer-real`. Musk pasa a `d49` y sus holdings a `h244` (ETSY) y `h245` (GME), porque `d48`/`h219`/`h220` ya eran de Cramer.
+- F12 no tenía ancla `#cramer` en metodología. Cramer solo pasa `variant="cramer"`. Trump usa `/metodologia#trump-dice` y Musk `/metodologia#musk-dice` más `MUSK_INSIDER_NOTICE`.
+- Etapas: `performance` → `trump_dice` → `insiders_form4` → `oge_trump` → `spensiones` → `musk_dice` → `inverse_cramer` → `radar_ia`. Sigue el descubrimiento de `stages/*.py` antes de `radar_ia`.
+- La fila 018 del README de migraciones queda en el orden 16, después de la 017.
+- La alerta demo `a-f10` traía el portafolio anidado con id `d47` (Trump dice). Quedó `d-f10`, el de Compras de ejecutivos.
+- No se tocó el proxy `inverse-cramer`. No hay push ni Supabase real.

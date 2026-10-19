@@ -7,7 +7,7 @@
  *  - primarySourceUrl, selectVerifiedMentions
  * Acceso:
  *  - getMentions: public.mentions con status verificada, o el respaldo demo
- *    (las 15 de la migración 014) si Supabase no está configurado.
+ *    (Trump 15, Musk 4, Cramer 27) si Supabase no está configurado.
  */
 
 import { createClient } from "@/lib/supabase/server";
@@ -54,7 +54,13 @@ const KIND_LABELS: Record<string, string> = {
   elogio_acuerdo: "Elogio al acuerdo",
   recomienda_compra: "Recomienda compra",
   recomienda_venta: "Recomienda venta",
+  critica: "Crítica",
+  empresa_propia: "Empresa propia",
 };
+
+/** Aviso de la ficha musk-dice. Esas menciones se ven, pero no son señal. */
+export const MUSK_INSIDER_NOTICE =
+  "Musk es insider de Tesla/SpaceX/xAI; esas menciones no son señal.";
 
 const MONTHS = [
   "ene",
@@ -435,6 +441,65 @@ export function demoCramerMentions(): MentionRow[] {
   return cramerRows().map((row) => ({ ...row, sourceUrls: [...row.sourceUrls] }));
 }
 
+/**
+ * Las 4 menciones de la migración 017. Respaldo demo de musk-dice.
+ * Tesla es empresa propia: se lista, no es una posición.
+ */
+const DEMO_MUSK_MENTIONS: readonly MentionRow[] = [
+  {
+    id: "demo-musk-tsla",
+    saidAt: "2020-05-01T15:11:00+00:00",
+    entryDate: "2020-05-01",
+    symbol: "TSLA",
+    company: "Tesla",
+    kind: "empresa_propia",
+    quote: "Tesla stock price is too high imo",
+    sourceUrls: ["https://x.com/elonmusk/status/1256239815256797184"],
+    status: "verificada",
+    externalId: "1256239815256797184",
+  },
+  {
+    id: "demo-musk-etsy",
+    saidAt: "2021-01-26T11:25:00+00:00",
+    entryDate: "2021-01-26",
+    symbol: "ETSY",
+    company: "Etsy",
+    kind: "elogio",
+    quote: "I kinda love Etsy",
+    sourceUrls: ["https://x.com/elonmusk/status/1354027651468550144"],
+    status: "verificada",
+    externalId: "1354027651468550144",
+  },
+  {
+    id: "demo-musk-gme",
+    saidAt: "2021-01-26T21:08:00+00:00",
+    entryDate: "2021-01-27",
+    symbol: "GME",
+    company: "GameStop",
+    kind: "elogio",
+    quote: "Gamestonk!!",
+    sourceUrls: ["https://x.com/elonmusk/status/1354174279894642703"],
+    status: "verificada",
+    externalId: "1354174279894642703",
+  },
+  {
+    id: "demo-musk-cdr",
+    saidAt: "2021-01-28T02:34:00+00:00",
+    entryDate: "2021-01-28",
+    symbol: "CDR",
+    company: "CD Projekt",
+    kind: "elogio",
+    quote: "It can play Cyberpunk",
+    sourceUrls: ["https://x.com/elonmusk/status/1354618772586426368"],
+    status: "verificada",
+    externalId: "1354618772586426368",
+  },
+];
+
+export function demoMuskMentions(): MentionRow[] {
+  return DEMO_MUSK_MENTIONS.map((row) => ({ ...row, sourceUrls: [...row.sourceUrls] }));
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
@@ -457,8 +522,9 @@ function rowFromDb(raw: Record<string, unknown>): MentionRow {
 
 /**
  * Menciones verificadas del portafolio, de más reciente a más antigua.
- * Sin Supabase: Trump dice si source es trump_mentions (o no viene);
- * Inverse Cramer si source es cnbc_lightning_round. isDemo true.
+ * Sin Supabase: Trump dice (15) si source es trump_mentions o no viene;
+ * Musk (4) si source es musk_mentions; Inverse Cramer (27) si source es
+ * cnbc_lightning_round. Otro source: lista vacía. isDemo true.
  * Con Supabase y sin filas (o si la consulta falla): lista vacía, isDemo false.
  * La consulta filtra por portfolio_id, así que cada cartera ve las suyas.
  */
@@ -466,6 +532,9 @@ export async function getMentions(portfolioId: string, source?: string): Promise
   if (!isSupabaseLive()) {
     if (source === "cnbc_lightning_round") {
       return { mentions: selectVerifiedMentions(cramerRows()), isDemo: true };
+    }
+    if (source === "musk_mentions") {
+      return { mentions: selectVerifiedMentions(DEMO_MUSK_MENTIONS), isDemo: true };
     }
     if (source === undefined || source === "trump_mentions") {
       return { mentions: selectVerifiedMentions(DEMO_TRUMP_MENTIONS), isDemo: true };

@@ -16,6 +16,14 @@ Etapas de mercado:
   prices             Cierres diarios Yahoo Finance → tabla prices
   compute_returns    return_pct de cada holding
   performance        Series históricas → portfolio_performance
+  trump_dice         Trump dice: menciones verificadas
+  insiders_form4     Compras de ejecutivos (SEC Form 4)
+  oge_trump          Trump compra: declaraciones OGE 278-T
+  spensiones         Carteras AFP (Superintendencia de Pensiones)
+  musk_dice          Elon Musk dice: menciones verificadas
+  inverse_cramer     Inverse Cramer: lightning round CNBC
+  stages/*.py        Etapas nuevas, orden alfabético, antes de radar_ia
+  radar_ia           Portafolio Radar IA (después de rendimientos)
 
 Uso:
     python run_all.py                          # todas las etapas default
@@ -37,6 +45,7 @@ import time
 import traceback
 
 from base import get_db, log
+from stages import discover_stages, insert_before_radar
 
 # Etapas en orden de ejecución. Etapas "posiciones" primero (los scrapers
 # escriben holdings), luego precios, luego rendimientos, luego snapshots.
@@ -53,11 +62,15 @@ STAGES: list[tuple[str, str, bool]] = [
     ("compute_returns", "Rendimientos por holding", False),
     ("performance", "Series de rendimiento históricas", False),
     ("trump_dice", "Trump dice: menciones verificadas", False),
+    # F10: después de performance y antes de radar_ia.
+    ("insiders_form4", "Compras de ejecutivos (SEC Form 4)", False),
+    ("oge_trump", "Trump compra: declaraciones OGE 278-T", False),
+    ("spensiones", "Carteras AFP (Superintendencia de Pensiones)", False),
+    ("musk_dice", "Elon Musk dice: menciones verificadas", False),
     ("inverse_cramer", "Inverse Cramer: lightning round CNBC", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
-STAGE_IDS = [s[0] for s in STAGES]
-CRITICAL = {s[0] for s in STAGES if s[2]}
+# STAGE_IDS y CRITICAL se arman después de descubrir scrapers/stages/*.py.
 
 # Capitol Trades quedó OBSOLETO: login wall (docs/sources.md). Se mantiene
 # capitol_trades.py en el repo por referencia pero no corre por defecto ni
@@ -225,6 +238,42 @@ def run_trump_dice(db, dry_run: bool) -> list[dict]:
     return [summary, {"source": "trump_dice", "mentions": resumen}]
 
 
+def run_insiders_form4(db, dry_run: bool) -> list[dict]:
+    from insiders_form4 import InsidersForm4Adapter
+
+    log("[insiders_form4] compras de ejecutivos (SEC Form 4)...")
+    adapter = InsidersForm4Adapter(dry_run=dry_run)
+    return [adapter.run(db)]
+
+
+def run_oge_trump(db, dry_run: bool) -> list[dict]:
+    from oge_trump import OgeTrumpAdapter
+
+    log("[oge_trump] declaraciones OGE 278-T...")
+    return [OgeTrumpAdapter(dry_run=dry_run).run(db)]
+
+
+def run_spensiones(db, dry_run: bool) -> list[dict]:
+    from spensiones import SpensionesAdapter
+
+    log("[spensiones] carteras AFP (Superintendencia de Pensiones)...")
+    adapter = SpensionesAdapter(dry_run=dry_run)
+    return [adapter.run(db)]
+
+
+def run_musk_dice(db, dry_run: bool) -> list[dict]:
+    # F11. En dry-run no escribe ni lee Supabase, igual que trump_dice.
+    # Los pesos se ven con `python musk_dice.py --dry-run` (no llama a Yahoo).
+    from musk_dice import MuskDiceAdapter, load_menciones, sync_musk_mentions
+
+    if dry_run:
+        log("[musk_dice] DRY-RUN: omitido (usar musk_dice.py --dry-run)")
+        return [{"source": "musk_dice", "status": "skipped", "dry_run": True}]
+    summary = MuskDiceAdapter(dry_run=False).run(db)
+    resumen = sync_musk_mentions(db, load_menciones(), dry_run=False)
+    return [summary, {"source": "musk_dice", "mentions": resumen}]
+
+
 def run_inverse_cramer(db, dry_run: bool) -> list[dict]:
     from inverse_cramer import InverseCramerAdapter, load_picks, sync_mentions
 
@@ -257,9 +306,19 @@ RUNNERS = {
     "compute_returns": run_compute_returns,
     "performance": run_performance,
     "trump_dice": run_trump_dice,
+    "insiders_form4": run_insiders_form4,
+    "oge_trump": run_oge_trump,
+    "spensiones": run_spensiones,
+    "musk_dice": run_musk_dice,
     "inverse_cramer": run_inverse_cramer,
     "radar_ia": run_radar_ia,
 }
+
+# Cada scrapers/stages/*.py define STAGE y run(). Orden alfabético, siempre
+# antes de radar_ia. Sin archivos ahí, --list y la corrida no cambian.
+STAGES, RUNNERS = insert_before_radar(STAGES, RUNNERS, discover_stages())
+STAGE_IDS = [s[0] for s in STAGES]
+CRITICAL = {s[0] for s in STAGES if s[2]}
 
 
 def main() -> None:
