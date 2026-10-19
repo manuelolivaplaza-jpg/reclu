@@ -94,3 +94,10 @@ Manual (cuando el orquestador levante el server): abrir
 - `d5c93c3` — `feat: add interactive portfolio backtest page`
 - `498b649` — `docs: add F47 backtest notes`
 - `ec7db5a` — `fix: load latest series in backtest page`
+
+## F47-B — recorte en el servidor
+
+Ver `NOTAS-F47B.md`. El recorte de la ventana gratuita y la exclusión de
+portafolios premium pasaron a `src/lib/backtest-window.ts`; la página ya no
+serializa historial completo para usuarios sin plan de pago (salvo fuentes de
+declaración pública). Commit `a7c9916`.
