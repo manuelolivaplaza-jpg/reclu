@@ -1,12 +1,16 @@
 import type { ComponentType } from "react";
+import { CorredorasClPanel } from "@/components/source-panels/corredoras-cl";
 
 export type SourcePanelProps = {
   portfolioId: string;
   slug: string;
 };
 
-// TODO(F13/F15): registrar panel
-export const SOURCE_PANELS: Record<string, ComponentType<SourcePanelProps>> = {};
+export const SOURCE_PANELS: Record<string, ComponentType<SourcePanelProps>> = {
+  corredoras_cl: CorredorasClPanel,
+  bice_cartera: CorredorasClPanel,
+  mbi_cartera: CorredorasClPanel,
+};
 
 export function SourcePanel({
   source,
