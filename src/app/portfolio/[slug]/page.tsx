@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
-import { getMentions } from "@/lib/mentions-queries";
+import { getMentions, MUSK_INSIDER_NOTICE } from "@/lib/mentions-queries";
 import { getInsiderTrades, holdingsAtLatestAsOf } from "@/lib/insider-queries";
 import { InsiderTradesList } from "@/components/insider-trades-list";
 import { demoPerformance } from "@/lib/demo-data";
@@ -99,9 +99,13 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) notFound();
 
-  // Arranca en paralelo con el perfil y las holdings. Solo Trump dice tiene menciones.
-  const mentionsPromise =
-    portfolio.source === "trump_mentions" ? getMentions(portfolio.id) : null;
+  // Arranca en paralelo con el perfil y las holdings.
+  // Trump dice y Elon Musk dice comparten public.mentions.
+  const mentionsSource =
+    portfolio.source === "trump_mentions" || portfolio.source === "musk_mentions"
+      ? portfolio.source
+      : null;
+  const mentionsPromise = mentionsSource ? getMentions(portfolio.id, mentionsSource) : null;
 
   // El perfil determina el rol ANTES de pedir holdings/alerts: el servidor
   // solo trae lo que el plan permite (nada de difuminar datos ya entregados).
@@ -323,7 +327,17 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
 
         <div className="container-page py-10">
-          {mentionsPromise ? <TrumpMentionsList mentions={mentionsPromise} /> : null}
+          {mentionsPromise ? (
+            <TrumpMentionsList
+              mentions={mentionsPromise}
+              notice={portfolio.source === "musk_mentions" ? MUSK_INSIDER_NOTICE : undefined}
+              metodologiaHref={
+                portfolio.source === "musk_mentions"
+                  ? "/metodologia#musk-dice"
+                  : "/metodologia#trump-dice"
+              }
+            />
+          ) : null}
 
                     {esAgregado ? null : <PortfolioMetricsStrip holdings={holdings} />}
 

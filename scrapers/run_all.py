@@ -63,6 +63,7 @@ STAGES: list[tuple[str, str, bool]] = [
     ("insiders_form4", "Compras de ejecutivos (SEC Form 4)", False),
     ("oge_trump", "Trump compra: declaraciones OGE 278-T", False),
     ("spensiones", "Carteras AFP (Superintendencia de Pensiones)", False),
+    ("musk_dice", "Elon Musk dice: menciones verificadas", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 # STAGE_IDS y CRITICAL se arman después de descubrir scrapers/stages/*.py.
@@ -256,6 +257,19 @@ def run_spensiones(db, dry_run: bool) -> list[dict]:
     return [adapter.run(db)]
 
 
+def run_musk_dice(db, dry_run: bool) -> list[dict]:
+    # F11. En dry-run no escribe ni lee Supabase, igual que trump_dice.
+    # Los pesos se ven con `python musk_dice.py --dry-run` (no llama a Yahoo).
+    from musk_dice import MuskDiceAdapter, load_menciones, sync_musk_mentions
+
+    if dry_run:
+        log("[musk_dice] DRY-RUN: omitido (usar musk_dice.py --dry-run)")
+        return [{"source": "musk_dice", "status": "skipped", "dry_run": True}]
+    summary = MuskDiceAdapter(dry_run=False).run(db)
+    resumen = sync_musk_mentions(db, load_menciones(), dry_run=False)
+    return [summary, {"source": "musk_dice", "mentions": resumen}]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -281,6 +295,7 @@ RUNNERS = {
     "insiders_form4": run_insiders_form4,
     "oge_trump": run_oge_trump,
     "spensiones": run_spensiones,
+    "musk_dice": run_musk_dice,
     "radar_ia": run_radar_ia,
 }
 

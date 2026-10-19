@@ -23,6 +23,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | Capitol Trades | (ninguno) | ⛔ OBSOLETO — login wall | Fuente muerta; se mantiene solo como referencia. NO integrar |
 | Invesco QQQ | (ninguno) | ⛔ 406 en todos los endpoints | Bloqueo HTTP 406 verificado 2026-10-18; sin CSV público accesible |
 | LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
+| X (@elonmusk) | musk-dice | 🔧 Archivo verificado; sin API en producción | Menciones en `scrapers/data/musk_menciones.json`. Solo id, fecha, cita y URL. La API de X exige plan de pago |
 
 ## Flujo automatizado (GitHub Actions + Vercel Cron)
 
@@ -268,6 +269,32 @@ empieza a enlazar PDFs `Donald-J-Trump*278T`, el scraper los suma.
   `new_trade` con `payload.source_url`.
 - Texto: `pdftotext -layout`, si no hay, pypdf. OCR con pytesseract solo
   si el PDF no trae capa de texto.
+
+---
+
+## X — Elon Musk dice (musk_dice.py)
+
+**URL:** posts públicos de `https://x.com/elonmusk`. La fuente de verdad de
+esta entrega es `scrapers/data/musk_menciones.json` (archivo completo, corte
+2026-10-19). Contexto: CNBC, 2021-01-29,
+`https://www.cnbc.com/2021/01/29/elon-musks-tweets-are-moving-markets.html`.
+
+**Estado:** 🔧 Menciones históricas ya verificadas. No se llama a la API de X
+desde el scraper: hace falta un plan de pago y los términos piden mostrar el
+post embebido o enlazado.
+
+- Portafolio `musk-dice`, `source` `musk_mentions`. Usa `public.mentions` de
+  la migración 014. No hay tabla nueva.
+- Cada fila guarda el id del post, la fecha, una cita corta y la URL de X.
+  La alerta `mention` lleva `payload.speaker = Elon Musk` y `payload.source_url`.
+- ETSY y GME entran al 50%. CDR (Varsovia, PLN) es solo mención. Tesla es
+  `empresa_propia`: se muestra como contexto y no genera holding ni alerta.
+- `--detectar` deja candidatas en `pendiente` (`$TICKER` o "buy" más el
+  nombre de una empresa del catálogo). Una pendiente no se inserta ni alerta.
+- `--dry-run` no escribe en Supabase. Etapa `musk_dice` en `run_all.py`,
+  después de `performance` y antes de `radar_ia`, no crítica.
+
+---
 
 ## Orquestador (run_all.py)
 

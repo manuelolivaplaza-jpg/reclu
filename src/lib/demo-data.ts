@@ -92,6 +92,7 @@ export const DEMO_PORTFOLIOS: Portfolio[] = [
     premium: false,
     tags: ["insiders", "form4", "sec", "ejecutivos"],
   }),
+  p({ id: "d48", slug: "musk-dice", name: "Elon Musk dice", description: "Simulación histórica de los elogios verificados de Elon Musk a acciones de terceros, con la cita y el enlace al post. Tesla se muestra como contexto: Musk es insider y no es una señal.", category: "model", source: "musk_mentions", manager: "Elon Musk", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["musk", "menciones", "x"] }),
 ];
 
 // Holdings de demostración por portfolio (id -> lista)
@@ -394,6 +395,11 @@ const DEMO_HOLDINGS: Record<string, Omit<Holding, "portfolio_id" | "as_of">[]> =
     { id: "h-f10-1", symbol: "TTD", name: "TTD", weight: 33.34, previous_weight: 0, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h-f10-2", symbol: "KKR", name: "KKR", weight: 33.33, previous_weight: 0, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h-f10-3", symbol: "MSCI", name: "MSCI", weight: 33.33, previous_weight: 33.33, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+  ],
+  // Semilla 017. previous_weight null: en demo no hay salto. CDR y Tesla no son holdings.
+  "musk-dice": [
+    { id: "h219", symbol: "ETSY", name: "Etsy", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h220", symbol: "GME", name: "GameStop", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
   ],
 };
 
