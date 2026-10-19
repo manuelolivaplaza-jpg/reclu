@@ -6,6 +6,7 @@
 //   RESEND_API_KEY, EMAIL_FROM
 //   SITE_URL o NEXT_PUBLIC_SITE_URL (base de enlaces de baja)
 //   TELEGRAM_BOT_TOKEN (opcional; se omite sin error si falta)
+//   DIGEST_SPONSOR_HTML (opcional; bloque HTML del resumen semanal)
 //
 // Sincronización: la lógica de routing replicada aquí debe coincidir con
 // `src/lib/plans.ts` + `src/lib/alert-routing.ts` (Deno no puede importar
@@ -86,7 +87,11 @@ function routeAlert(
 
   if (mode === "weekly") {
     const weeklyOk = profile.weekly_digest !== false;
-    return { email: weeklyOk && !unsubscribed, telegram: telegramReady && weeklyOk, frequency };
+    return {
+      email: weeklyOk && !unsubscribed,
+      telegram: telegramReady && weeklyOk && !unsubscribed,
+      frequency,
+    };
   }
   if (mode === "daily") {
     // El digest agrupa lo no entregado: el correo va para todas las
@@ -126,6 +131,9 @@ Deno.serve(async (req) => {
     );
     const resendKey = Deno.env.get("RESEND_API_KEY");
     const from = Deno.env.get("EMAIL_FROM") ?? "reclu.cl <alertas@reclu.cl>";
+    const telegramToken = Deno.env.get("TELEGRAM_BOT_TOKEN") ?? "";
+    const mode: Mode =
+      new URL(req.url).searchParams.get("mode") === "weekly" ? "weekly" : "instant";
 
     if (!resendKey) {
       return Response.json(
@@ -150,62 +158,100 @@ Deno.serve(async (req) => {
     let totalSent = 0;
     const alerts = pendingAlerts as AlertWithPortfolio[];
 
-    // Free users get one grouped digest. Pro users stay on the per-alert loop.
-    totalSent += await sendFreeDigests(supabase, alerts, resendKey, from);
+    // Followers con perfil ampliado (plans.ts: plan, trial, frecuencia, canal).
+    const { data: follows, error: followsErr } = await supabase
+      .from("follows")
+      .select(
+        "user_id, portfolio_id, profiles!inner(email, full_name, plan, trial_ends_at, " +
+          "alert_frequency, alert_channel, email_unsubscribed, telegram_chat_id, " +
+          "weekly_digest, unsubscribe_token)",
+      )
+      .in("portfolio_id", [...new Set(alerts.map((a) => a.portfolio_id))]);
+    if (followsErr) throw followsErr;
 
+    const deliveredRows = follows?.length
+      ? await supabase
+          .from("alert_deliveries")
+          .select("alert_id, user_id")
+          .in("alert_id", alerts.map((a) => a.id))
+      : { data: null };
+    const deliveredKeys = new Set(
+      ((deliveredRows.data ?? []) as { alert_id: string; user_id: string }[]).map(
+        (d) => `${d.alert_id}:${d.user_id}`,
+      ),
+    );
+
+    const alertsByPortfolio = new Map<string, AlertWithPortfolio[]>();
     for (const alert of alerts) {
-      // 2. Get followers of this portfolio
-      const { data: followers } = await supabase
-        .from("follows")
-        .select("user_id, profiles!inner(email, full_name, plan, alert_frequency)")
-        .eq("portfolio_id", alert.portfolio_id);
+      const list = alertsByPortfolio.get(alert.portfolio_id) ?? [];
+      list.push(alert);
+      alertsByPortfolio.set(alert.portfolio_id, list);
+    }
 
-      if (!followers || followers.length === 0) continue;
+    for (const row of follows ?? []) {
+      const profile = firstProfile(row.profiles);
+      if (!profile) continue;
+      const route = routeAlert(profile, mode);
+      if (!route.email && !route.telegram) continue;
 
-      // 3. Filter out users who already received this alert
-      const { data: delivered } = await supabase
-        .from("alert_deliveries")
-        .select("user_id")
-        .eq("alert_id", alert.id);
+      const portfolioAlerts = (alertsByPortfolio.get(row.portfolio_id) ?? []).filter(
+        (alert) => !deliveredKeys.has(`${alert.id}:${row.user_id}`),
+      );
+      if (portfolioAlerts.length === 0) continue;
 
-      const deliveredIds = new Set((delivered ?? []).map((d: { user_id: string }) => d.user_id));
+      const byEmail = profile.email.trim() !== "";
 
-      for (const row of followers ?? []) {
-        const profile = firstProfile(row.profiles);
-        if (!profile) continue;
-        if (deliveredIds.has(row.user_id)) continue;
-        // Free plans are handled by the digest above.
-        if (profile.plan !== "pro") continue;
+      // Realtime: un correo por alerta. Digests: un correo agrupado.
+      if (route.email && byEmail) {
+        if (mode === "instant") {
+          for (const alert of portfolioAlerts) {
+            const res = await sendEmail(
+              resendKey,
+              from,
+              profile.email,
+              `reclu.cl — ${alert.portfolio.name}: ${alert.title}`,
+              renderEmail(alert, profile, profile.unsubscribe_token),
+            );
+            if (res) {
+              totalSent++;
+              await markDelivery(supabase, alert.id, row.user_id);
+            }
+          }
+        } else {
+          const html =
+            mode === "weekly"
+              ? buildWeekly(profile, portfolioAlerts)
+              : buildDigest(portfolioAlerts, profile.full_name ?? "Hola");
+          const subject = mode === "weekly" ? "reclu.cl — Lo que movieron los grandes" : "Tu resumen reclu";
+          const res = html
+            ? await sendEmail(resendKey, from, profile.email, subject, html)
+            : null;
+          if (res) {
+            totalSent++;
+            for (const alert of portfolioAlerts) {
+              await markDelivery(supabase, alert.id, row.user_id);
+            }
+          }
+        }
+      }
 
-        const html = renderEmail(alert, profile.full_name ?? "Hola");
-
-        const res = await fetch("https://api.resend.com/emails", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${resendKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            from,
-            to: profile.email,
-            subject: `reclu.cl — ${alert.portfolio.name}: ${alert.title}`,
-            html,
-          }),
-        });
-
-        if (res.ok) {
-          totalSent++;
-          await supabase.from("alert_deliveries").insert({
-            alert_id: alert.id,
-            user_id: row.user_id,
-            email_sent: true,
-            sent_at: new Date().toISOString(),
-          });
+      // Telegram: un mensaje corto por alerta (solo pro/elite/prueba con chat).
+      if (route.telegram && telegramToken) {
+        for (const alert of portfolioAlerts) {
+          const ok = await sendTelegram(
+            telegramToken,
+            profile.telegram_chat_id ?? "",
+            telegramText(alert, siteUrl()),
+          );
+          if (ok) {
+            totalSent++;
+            await markDelivery(supabase, alert.id, row.user_id);
+          }
         }
       }
     }
 
-    return Response.json({ sent: totalSent }, { headers: corsHeaders });
+    return Response.json({ mode, sent: totalSent }, { headers: corsHeaders });
   } catch (err) {
     return Response.json(
       { error: err instanceof Error ? err.message : "Unknown error" },
@@ -213,6 +259,90 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+/** One email per alert: realtime, pro/elite or in-trial. */
+async function sendEmail(
+  resendKey: string,
+  from: string,
+  to: string,
+  subject: string,
+  html: string,
+  unsubscribeUrl?: string,
+): Promise<boolean> {
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${resendKey}`,
+    "Content-Type": "application/json",
+  };
+  if (unsubscribeUrl) {
+    headers["List-Unsubscribe"] = `<${unsubscribeUrl}>`;
+    headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  }
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ from, to, subject, html }),
+  });
+  return res.ok;
+}
+
+/** Canal Telegram vía Bot API. Sin token configurado devuelve false (sin error). */
+async function sendTelegram(token: string, chatId: string, text: string): Promise<boolean> {
+  if (!token || !chatId) return false;
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    }),
+  });
+  return res.ok;
+}
+
+/** Texto corto de alerta para Telegram (parse_mode HTML). */
+function telegramText(alert: AlertWithPortfolio, siteUrlBase: string): string {
+  const detail = tradeTimingNote(alert);
+  return [
+    `<b>${escapeHtml(alert.portfolio.name)}</b>`,
+    escapeHtml(alert.title),
+    detail,
+    `<a href="${siteUrlBase}/portfolio/${alert.portfolio.slug}">Ver portafolio</a>`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+/**
+ * Desfase entre la operación y su declaración (negocio de transparencia).
+ * Usa alert.payload: { tx_date, disclosed } o { traded_at, filed_at }.
+ */
+function tradeTimingNote(alert: AlertWithPortfolio): string {
+  const payload = (alert.payload ?? {}) as Record<string, unknown>;
+  const tx = payload.tx_date ?? payload.traded_at;
+  const filed = payload.disclosed ?? payload.filed_at;
+  if (typeof tx !== "string" || typeof filed !== "string") return "";
+  const txTime = Date.parse(tx);
+  const filedTime = Date.parse(filed);
+  if (!Number.isFinite(txTime) || !Number.isFinite(filedTime)) return "";
+  const days = Math.max(0, Math.floor((filedTime - txTime) / 86_400_000));
+  if (days === 0) return "Declarado el mismo día de la operación.";
+  if (days === 1) return "Se declaró 1 día después de la operación.";
+  return `Se declaró ${days} días después de la operación.`;
+}
+
+/** Marca la alerta como entregada a este usuario (alert_deliveries no distingue canal). */
+async function markDelivery(
+  supabase: SupabaseClient,
+  alertId: string,
+  userId: string,
+): Promise<void> {
+  await supabase.from("alert_deliveries").upsert(
+    { alert_id: alertId, user_id: userId, email_sent: true, sent_at: new Date().toISOString() },
+    { onConflict: "alert_id,user_id" },
+  );
+}
 
 const FONT =
   "'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif";
@@ -230,9 +360,13 @@ function colorizeReturns(escaped: string): string {
 }
 
 /** Render the alert email: white, 1px rules, black pill. No brand blue. */
-function renderEmail(alert: AlertWithPortfolio, _name: string): string {
-  const portfolioUrl = `https://reclu.cl/portfolio/${alert.portfolio.slug}`;
+function renderEmail(alert: AlertWithPortfolio, _profile: ProfileRoute, token?: string | null): string {
+  const portfolioUrl = `${siteUrl()}/portfolio/${alert.portfolio.slug}`;
   const title = colorizeReturns(escapeHtml(alert.title));
+  const timing = tradeTimingNote(alert);
+  const timingBlock = timing
+    ? `<p style="margin:14px 0 0;font-size:13px;line-height:1.5;color:#6b6b6b;">⏱ ${escapeHtml(timing)}</p>`
+    : "";
   const summaryBlock = alert.summary
     ? `<div style="margin:20px 0 0;padding:0 0 0 14px;border-left:2px solid #0a0a0a;background:#ffffff;">
          <p style="margin:0 0 6px;font-size:13px;font-weight:400;line-height:1.4;color:#6b6b6b;">Resumen AI</p>
@@ -257,12 +391,13 @@ function renderEmail(alert: AlertWithPortfolio, _name: string): string {
     <div style="background:#ffffff;border:1px solid #e6e6e6;border-radius:0;box-shadow:none;padding:24px;">
       <p style="margin:0 0 6px;font-size:13px;font-weight:400;line-height:1.4;color:#6b6b6b;">${escapeHtml(alert.portfolio.name)}</p>
       <h1 style="margin:0;font-size:20px;font-weight:600;letter-spacing:-0.03em;line-height:1.2;color:#0a0a0a;">${title}</h1>
+      ${timingBlock}
       ${summaryBlock}
       <a href="${portfolioUrl}" style="display:inline-block;margin-top:24px;background:#0a0a0a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:500;line-height:1;padding:14px 22px;border-radius:999px;">Ver portafolio</a>
     </div>
     <p style="margin:24px 0 0;font-size:11px;line-height:1.6;color:#6b6b6b;">
       Información pública con fines informativos. No constituye asesoría de inversión.
-      <a class="reclu-manage" href="https://reclu.cl/settings" style="color:#0a0a0a;text-decoration:none;">Administrar alertas</a>
+      <a class="reclu-manage" href="${siteUrl()}/settings" style="color:#0a0a0a;text-decoration:none;">Administrar alertas</a>${token ? ` · <a class="reclu-manage" href="${siteUrl()}/api/unsubscribe?token=${encodeURIComponent(token)}" style="color:#0a0a0a;text-decoration:none;">Dejar de recibir estos correos</a>` : ""}
     </p>
   </div>
 </body>
@@ -316,7 +451,7 @@ function buildDigest(alerts: AlertWithPortfolio[], name: string): string {
       </div>`;
     }).join("");
 
-    const portfolioUrl = `https://reclu.cl/portfolio/${group.portfolio.slug}`;
+    const portfolioUrl = `${siteUrl()}/portfolio/${group.portfolio.slug}`;
     return `<section style="margin-top:28px;">
       <p style="margin:0 0 4px;font-size:13px;font-weight:400;line-height:1.4;color:#6b6b6b;">${escapeHtml(group.portfolio.name)}</p>
       ${items}
@@ -339,8 +474,37 @@ function buildDigest(alerts: AlertWithPortfolio[], name: string): string {
     ${sections}
     <p style="margin:32px 0 0;padding-top:20px;border-top:1px solid #e6e6e6;font-size:11px;line-height:1.6;color:#6b6b6b;">
       Información pública con fines informativos. No constituye asesoría de inversión.
-      <a href="https://reclu.cl/settings" style="color:#0a0a0a;text-decoration:none;">Administrar alertas</a>
+      <a href="${siteUrl()}/settings" style="color:#0a0a0a;text-decoration:none;">Administrar alertas</a>
     </p>
+  </div>
+</body>
+</html>`;
+}
+
+/** Bloque opcional de patrocinador del resumen semanal (env var, vacío = nada). */
+function sponsorBlock(): string {
+  return DIGEST_SPONSOR_HTML;
+}
+
+/** Resumen semanal "Lo que movieron los grandes": agrupado por portafolio. */
+function buildWeekly(profile: ProfileRoute, alerts: AlertWithPortfolio[]): string {
+  if (alerts.length === 0) return "";
+  const name = (profile as unknown as { full_name?: string | null }).full_name ?? "Hola";
+  const inner = buildDigest(alerts, name).replace(/^[\s\S]*?<div style="max-width:560px([\s\S]*)<\/div>\s*<\/body>[\s\S]*$/, "$1");
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&display=swap">
+</head>
+<body style="margin:0;padding:0;background:#ffffff;color:#0a0a0a;font-family:${FONT};">
+  <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+    <p style="margin:0 0 24px;font-size:18px;font-weight:600;letter-spacing:-0.04em;line-height:1;color:#0a0a0a;">reclu</p>
+    <h1 style="margin:0 0 12px;font-size:28px;font-weight:500;letter-spacing:-0.04em;line-height:1;color:#0a0a0a;">Lo que movieron los grandes</h1>
+    <p style="margin:0;font-size:15px;line-height:1.5;color:#6b6b6b;">Resumen semanal de los cambios en los portafolios que sigues.</p>
+    ${sponsorBlock()}
+    ${inner}
   </div>
 </body>
 </html>`;
