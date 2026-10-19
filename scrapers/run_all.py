@@ -16,6 +16,7 @@ Etapas de mercado:
   prices             Cierres diarios Yahoo Finance → tabla prices
   compute_returns    return_pct de cada holding
   performance        Series históricas → portfolio_performance
+  insiders_form4     Compras de ejecutivos (SEC Form 4)
 
 Uso:
     python run_all.py                          # todas las etapas default
@@ -51,7 +52,9 @@ STAGES: list[tuple[str, str, bool]] = [
     ("etfs", "ETFs: ARK, Global X, iShares, VanEck", False),
     ("prices", "Precios EOD Yahoo Finance", False),
     ("compute_returns", "Rendimientos por holding", False),
-    ("performance", "Series de rendimiento históricas", False),
+    ("performance", "Series de rendimiento históricas", False),
+    # F10: después de performance y antes de radar_ia.
+    ("insiders_form4", "Compras de ejecutivos (SEC Form 4)", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 STAGE_IDS = [s[0] for s in STAGES]
@@ -210,6 +213,14 @@ def run_performance(db, dry_run: bool) -> list[dict]:
     return [{"source": "performance", "status": "ok"}]
 
 
+def run_insiders_form4(db, dry_run: bool) -> list[dict]:
+    from insiders_form4 import InsidersForm4Adapter
+
+    log("[insiders_form4] compras de ejecutivos (SEC Form 4)...")
+    adapter = InsidersForm4Adapter(dry_run=dry_run)
+    return [adapter.run(db)]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -231,6 +242,7 @@ RUNNERS = {
     "prices": run_prices,
     "compute_returns": run_compute_returns,
     "performance": run_performance,
+    "insiders_form4": run_insiders_form4,
     "radar_ia": run_radar_ia,
 }
 

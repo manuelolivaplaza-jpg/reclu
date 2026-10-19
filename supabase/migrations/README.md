@@ -18,6 +18,7 @@ el CLI, respetando el mismo orden).
 | 7 | `006_elite_plan_and_13f_portfolios.sql` | Plan Elite completo: cuotas diferenciadas, portafolios 13F Wave 2/3. **Reemplaza al 006 anterior en la práctica** (ambos son idempotentes; aplicar ambos no rompe, pero basta con este). |
 | 8 | `prices.sql` | Tabla de precios diarios por símbolo (sin número: aplicar después de 002). |
 | 9 | `012_muro_pago.sql` | Muro de pago real: quita lectura pública de `holdings`/`portfolio_snapshots`, funciones `get_portfolio_holdings(p_slug)` y `get_portfolio_snapshots(p_slug)` con recorte por plan. **Incluir bloque `-- rollback` si se quiere revertir.** |
+| 10 | `016_insiders.sql` | Compras de ejecutivos (Form 4): tabla `insider_trades` (lectura pública, sin direcciones ni políticas de escritura) y portafolio `insiders-compras-1m`. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -33,6 +34,9 @@ fusionen las ramas, aplicar en este orden:
 | 011 | Rendimiento | Índices y optimizaciones |
 | 012 | **Este frente (F6)** | Muro de pago (ya presente arriba) |
 | 013 | Portafolios | Nuevos portafolios/seed |
+| 014 | F8 | trump-dice (otro frente; no está en este worktree) |
+| 015 | F9 | fix-accion (reservada) |
+| 016 | **F10** | `016_insiders.sql` (ya en la tabla de arriba) |
 
 ## Duplicados conocidos (A8)
 
