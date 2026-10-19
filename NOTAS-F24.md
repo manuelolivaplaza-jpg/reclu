@@ -131,3 +131,6 @@ seguidas; la segunda no debe fallar ni duplicar filas.
 ## Commits
 - `feat: add broker consensus portfolio data and aggregation`
 - `feat: add broker consensus source panel`
+- `fix: compute panel consensus from loaded holdings`
+- `docs: document F24 consensus and verification`
+- `docs: note next typegen for typecheck`
