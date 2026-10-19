@@ -21,23 +21,23 @@ export default function manifest(): MetadataRoute.Manifest {
     categories: ["finance", "news", "productivity"],
     icons: [
       {
-        url: "/icons/icon-192.png",
+        src: "/icons/icon-192.png",
         sizes: "192x192",
         type: "image/png",
       },
       {
-        url: "/icons/icon-512.png",
+        src: "/icons/icon-512.png",
         sizes: "512x512",
         type: "image/png",
       },
       {
-        url: "/icons/icon-maskable-192.png",
+        src: "/icons/icon-maskable-192.png",
         sizes: "192x192",
         type: "image/png",
         purpose: "maskable",
       },
       {
-        url: "/icons/icon-maskable-512.png",
+        src: "/icons/icon-maskable-512.png",
         sizes: "512x512",
         type: "image/png",
         purpose: "maskable",

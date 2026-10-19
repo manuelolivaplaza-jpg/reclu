@@ -73,7 +73,7 @@ function buildItems(): PaletteItem[] {
     label: t.symbol,
     hint: `${t.count} cartera${t.count !== 1 ? "s" : ""}`,
     keywords: ["ticker", "acción"],
-    href: `/explore?simbolo=${encodeURIComponent(t.symbol)}`,
+    href: `/accion/${encodeURIComponent(t.symbol.toLowerCase())}`,
   }));
 
   return [...portfolios, ...tickers];
