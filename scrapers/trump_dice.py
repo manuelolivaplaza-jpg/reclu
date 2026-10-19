@@ -132,6 +132,9 @@ def build_trump_dice(
     prices: dict[str, dict[str, float]],
     monto: float = MONTO_DEFAULT,
     as_of: date | None = None,
+    skip_kinds: set[str] | None = None,
+    skip_symbols: set[str] | None = None,
+    equal_weight: bool = False,
 ) -> list[dict]:
     """
     Simulación pura: unidades = monto / cierre de entrada; valor actual =
@@ -141,16 +144,31 @@ def build_trump_dice(
     prices: {ticker: {iso_date: close}}; los tickers con cash_out se valorizan
     a su precio fijo. Devuelve filas [{symbol, name, weight, units, value,
     asset_class, entry_date}] ordenadas por peso descendente, suman ~100.
+
+    skip_kinds, skip_symbols y equal_weight son la extensión de F11. Con los
+    valores por defecto la simulación de Trump no cambia. equal_weight reparte
+    100 entre las menciones que quedan, sin mirar precios (un cupo por mención).
     """
     hoy = as_of or date.today()
     units_by_symbol: dict[str, float] = defaultdict(float)
     names: dict[str, str] = {}
     last_price: dict[str, float] = {}
+    blocked_kinds = skip_kinds or set()
+    blocked_symbols = skip_symbols or set()
 
     for m in menciones:
         if str(m.get("status") or "verificada") != "verificada":
             continue  # pendiente/descartada: ni holdings ni alertas
+        if str(m.get("tipo") or "") in blocked_kinds:
+            continue
         symbol = m["ticker"]
+        if symbol in blocked_symbols:
+            continue
+        if equal_weight:
+            units_by_symbol[symbol] += 1.0
+            names.setdefault(symbol, m.get("empresa") or symbol)
+            last_price[symbol] = 1.0
+            continue
         entry = entry_price(prices, m)
         if entry is None:
             log(f"[trump_dice] WARNING {m['id']}: sin precio de entrada para {symbol}")
@@ -294,7 +312,7 @@ def _quote_corta(quote: str, max_len: int = 80) -> str:
     return quote[: max_len - 1].rstrip() + "…"
 
 
-def mention_row(portfolio_id: str, m: dict) -> dict:
+def mention_row(portfolio_id: str, m: dict, speaker: str = "Donald Trump") -> dict:
     """Fila para public.mentions a partir de una mención del JSON."""
     hora = str(m.get("hora_et") or "")
     fecha = str(m.get("fecha") or m["entrada"])
@@ -306,7 +324,7 @@ def mention_row(portfolio_id: str, m: dict) -> dict:
         said_at = f"{fecha}T{hora[:5]}:00-04:00"
     return {
         "portfolio_id": portfolio_id,
-        "speaker": "Donald Trump",
+        "speaker": speaker,
         "said_at": said_at,
         "entry_date": str(m["entrada"])[:10],
         "symbol": m["ticker"],
@@ -320,14 +338,22 @@ def mention_row(portfolio_id: str, m: dict) -> dict:
     }
 
 
-def mention_alert(portfolio_id: str, m: dict) -> dict:
+def _alert_prefix(speaker: str) -> str:
+    """Trump conserva el título de F8. Otro speaker usa «Nombre dice»."""
+    if speaker == "Donald Trump":
+        return "Trump dice"
+    return f"{speaker} dice"
+
+
+def mention_alert(portfolio_id: str, m: dict, speaker: str = "Donald Trump") -> dict:
     """Alerta type='mention' para una mención verificada."""
     kind = str(m.get("tipo") or "")
+    urls = [u for u in m.get("fuentes", []) if str(u).startswith("http")]
     return {
         "portfolio_id": portfolio_id,
         "type": "mention",
         "severity": "high" if kind.startswith("compra_directa") else "medium",
-        "title": f'Trump dice: {m["ticker"]} — "{_quote_corta(m["cita"])}"',
+        "title": f'{_alert_prefix(speaker)}: {m["ticker"]} — "{_quote_corta(m["cita"])}"',
         "summary": None,
         "payload": {
             "symbol": m["ticker"],
@@ -337,20 +363,34 @@ def mention_alert(portfolio_id: str, m: dict) -> dict:
             "entry_date": str(m["entrada"])[:10],
             "channel": m.get("canal"),
             "kind": kind,
-            "source_urls": [u for u in m.get("fuentes", []) if str(u).startswith("http")],
-            "speaker": "Donald Trump",
+            "source_urls": urls,
+            "source_url": urls[0] if urls else None,
+            "speaker": speaker,
         },
         "is_published": True,  # ya está verificada a mano (con fuente)
     }
 
 
-def sync_mentions(db, menciones: list[dict], dry_run: bool = False) -> dict:
+def sync_mentions(
+    db,
+    menciones: list[dict],
+    dry_run: bool = False,
+    *,
+    speaker: str = "Donald Trump",
+    slug: str | None = None,
+    skip_alert_kinds: set[str] | None = None,
+    log_name: str = "trump_dice",
+) -> dict:
     """
     Inserta en public.mentions las menciones verificadas que no existan
     (match por external_id) y crea UNA alerta 'mention' por cada una nueva.
     Las 'pendiente' nunca se insertan ni generan alerta.
+    skip_alert_kinds (F11): la fila se guarda, pero ese tipo no alerta.
+    Con los valores por defecto el comportamiento de Trump no cambia.
     """
     result = {"insertadas": 0, "alertas": 0, "omitidas": 0}
+    portfolio_slug = slug or TRUMP_DICE_SLUG
+    blocked_alerts = skip_alert_kinds or set()
     if dry_run or db is None:
         existing: set[str] = set()
     else:
@@ -359,7 +399,7 @@ def sync_mentions(db, menciones: list[dict], dry_run: bool = False) -> dict:
 
     pf = None
     if db is not None and not dry_run:
-        pfr = db.table("portfolios").select("id").eq("slug", TRUMP_DICE_SLUG).maybe_single().execute()
+        pfr = db.table("portfolios").select("id").eq("slug", portfolio_slug).maybe_single().execute()
         pf = (pfr.data or {}).get("id") if pfr.data else None
     portfolio_id = pf or "dry-run"
 
@@ -370,18 +410,24 @@ def sync_mentions(db, menciones: list[dict], dry_run: bool = False) -> dict:
             continue
         if m["id"] in existing:
             continue
-        row = mention_row(portfolio_id, m)
-        alert = mention_alert(portfolio_id, m)
+        kind = str(m.get("tipo") or "")
+        row = mention_row(portfolio_id, m, speaker)
+        alert = None if kind in blocked_alerts else mention_alert(portfolio_id, m, speaker)
         if dry_run or db is None:
-            log(f"[trump_dice] DRY-RUN mención {m['id']} {m['ticker']}: {alert['title']}")
+            if alert is None:
+                log(f"[{log_name}] DRY-RUN mención {m['id']} {m['ticker']}: sin alerta ({kind})")
+            else:
+                log(f"[{log_name}] DRY-RUN mención {m['id']} {m['ticker']}: {alert['title']}")
         else:
             if portfolio_id == "dry-run" or portfolio_id is None:
-                log(f"[trump_dice] ERROR: portfolio {TRUMP_DICE_SLUG} no existe en DB")
+                log(f"[{log_name}] ERROR: portfolio {portfolio_slug} no existe en DB")
                 return result
             db.table("mentions").insert(row).execute()
-            db.table("alerts").insert(alert).execute()
+            if alert is not None:
+                db.table("alerts").insert(alert).execute()
         result["insertadas"] += 1
-        result["alertas"] += 1
+        if alert is not None:
+            result["alertas"] += 1
     return result
 
 
