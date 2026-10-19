@@ -185,6 +185,11 @@ export async function enforceAnonQuota(requestHeaders: Headers, now = Date.now()
   return anonAllowed(ANON_DAILY_CHAT_LIMIT - decision.bucket.count);
 }
 
+function supabaseIsLive(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  return url.startsWith("https://") && !url.includes("placeholder");
+}
+
 function clip(value: unknown, max: number): string {
   if (typeof value !== "string") return "";
   return value.replace(/\s+/g, " ").trim().slice(0, max);
@@ -233,6 +238,7 @@ export async function portfolioSystemContext(supabase: SupabaseClient, slug: str
     .maybeSingle();
 
   if (error || !portfolio?.id) {
+    if (supabaseIsLive()) return "";
     const demo = demoPortfolioBySlug(slug);
     if (!demo) return "";
     const holdings = demoHoldings(slug).slice(0, 15).map(holdingLine).filter((line): line is string => !!line);
