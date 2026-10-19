@@ -40,7 +40,7 @@ Ninguna.
 ## Deudas
 
 - Sin las filas de portafolio, una corrida real falla en `_resolve_portfolio_id`. Esta sesión solo usó `--dry-run`.
-- `scrapers/tests/test_stages_discovery.py::test_sin_etapas_el_orden_no_cambia` afirma `discover_stages() == []`. Con la etapa nueva falla (1 failed, 4 passed). No se tocó: el frente pide no editar archivos fuera de la lista. Al integrar, quitar ese assert; el resto del test ya cubre «sin etapas extra el orden no cambia».
+- `test_sin_etapas_el_orden_no_cambia` lee un directorio temporal vacío (`discover_stages(tmp_path)`). `test_corredoras_cl_aparece_antes_de_radar_ia` confirma, con `scrapers/stages/` real, que `corredoras_cl` queda antes de `radar_ia`.
 - Itaú y Credicorp figuran en el JSON como pesos parciales, sin PDF. No se parsean.
 - TODO(F16): no hay UI. Si estas carteras se muestran, el aviso va en el componente legal de F16. Esto no ejecuta órdenes ni arma una recomendación personalizada.
 - Fase 0 autorizó seguir sin confirmar las migraciones 008, 009 y 014–021. Esta tarea no las usa.
@@ -63,3 +63,8 @@ Hecho el 2026-10-19 en `v2/f23-corredoras-cl-parsers`:
 - pytest: 8 passed.
 - `--list` muestra `corredoras_cl        opcional  Carteras recomendadas BICE y MBI (PDF público)` antes de `radar_ia`.
 - `--dry-run` salió 0 y no escribió. BICE: 7 holdings, FALABELLA 20%, `as_of` 2026-10-05. MBI: 5 holdings, ITAUCL 20%, misma fecha, URL de arriba.
+
+## Para el orquestador
+
+- Los slugs `bice-acciones-destacadas` y `mbi-acciones-recomendadas` necesitan fila en `portfolios`. Sin esa fila, una corrida real falla en `_resolve_portfolio_id`.
+- No hay número de migración asignado a F23 en PLAN.md (022-042 están repartidos). Esta tarea no crea migración.
