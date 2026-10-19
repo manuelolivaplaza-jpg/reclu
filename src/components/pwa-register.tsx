@@ -3,15 +3,39 @@
 import { useEffect, useState } from "react";
 import { Share, Plus } from "lucide-react";
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+}
+
+/** ¿Es Safari en iOS? (Chrome/Firefox de iOS no soportan instalar PWAs). */
+function detectIosSafari(): boolean {
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent) &&
+    !/crios|fxios/i.test(navigator.userAgent)
+  );
+}
+
+/** ¿Ya está instalada como app? (standalone en iOS / display-mode en Android). */
+function detectInstalled(): boolean {
+  if (typeof window === "undefined") return false;
+  const nav = navigator as Navigator & { standalone?: boolean };
+  return (
+    nav.standalone === true ||
+    window.matchMedia("(display-mode: standalone)").matches
+  );
+}
+
 /**
  * PwaRegister — registra el service worker y expone el botón "Instalar app"
  * (beforeinstallprompt en Android/Chrome; guía para iOS Safari).
  * Renderiza null hasta que hay algo que mostrar: cero costo en desktop.
  */
 export function PwaRegister() {
-  const [deferredPrompt, setDeferredPrompt] = useState<(Event & { prompt: () => Promise<void> }) | null>(null);
-  const [installed, setInstalled] = useState(false);
-  const [isIos, setIsIos] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  // Inicializadores perezosos: se evalúan una vez en el cliente, sin
+  // setState síncrono dentro de effects.
+  const [isIos] = useState(detectIosSafari);
+  const [installed, setInstalled] = useState(detectInstalled);
   const [showIosHint, setShowIosHint] = useState(false);
 
   useEffect(() => {
@@ -20,11 +44,6 @@ export function PwaRegister() {
         /* registro falla silenciosamente: el sitio funciona igual */
       });
     }
-
-    const isIosSafari =
-      /iphone|ipad|ipod/i.test(navigator.userAgent) &&
-      !/crios|fxios/i.test(navigator.userAgent);
-    setIsIos(isIosSafari);
 
     const onPrompt = (e: Event) => {
       e.preventDefault();
@@ -45,6 +64,9 @@ export function PwaRegister() {
   // Ya instalada o sin prompt disponible: no renderizamos nada.
   if (installed) return null;
 
+  const buttonClass =
+    "fixed right-4 bottom-[calc(env(safe-area-inset-bottom)*2+1.25rem)] z-[60] inline-flex h-11 items-center gap-2 rounded-full bg-ink-900 px-5 text-sm font-medium text-white transition-colors hover:bg-black lg:bottom-6";
+
   if (deferredPrompt) {
     return (
       <button
@@ -53,7 +75,7 @@ export function PwaRegister() {
           deferredPrompt.prompt();
           setDeferredPrompt(null);
         }}
-        className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+env(safe-area-inset-bottom)+1.25rem)] z-[60] inline-flex h-11 items-center gap-2 rounded-full bg-ink-900 px-5 text-sm font-medium text-white transition-colors hover:bg-black lg:bottom-6"
+        className={buttonClass}
       >
         <Plus className="size-4" strokeWidth={2} />
         Instalar app
@@ -67,7 +89,8 @@ export function PwaRegister() {
         <button
           type="button"
           onClick={() => setShowIosHint((v) => !v)}
-          className="fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+env(safe-area-inset-bottom)+1.25rem)] z-[60] inline-flex h-11 items-center gap-2 rounded-full bg-ink-900 px-5 text-sm font-medium text-white transition-colors hover:bg-black lg:bottom-6"
+          className={buttonClass}
+          aria-expanded={showIosHint}
         >
           <Plus className="size-4" strokeWidth={2} />
           Instalar app

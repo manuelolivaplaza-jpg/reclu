@@ -4,6 +4,7 @@ import { BellRing, Plus, ArrowRight } from "lucide-react";
 import { getAlerts, getFollows, getPortfolios, getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { PortfolioCard } from "@/components/portfolio-card";
+import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { ButtonLink } from "@/components/ui/button";
 import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT, isPaidPlan } from "@/lib/types";
 
@@ -27,6 +28,13 @@ export default async function DashboardPage() {
 
   const followedIds = new Set(follows.map((f) => f.portfolio_id));
   const followed = allPortfolios.filter((p) => followedIds.has(p.id));
+  // Onboarding (E3): cuando no sigue nada, los 3 más populares no seguidos.
+  const onboardingSuggestions = followed.length === 0
+    ? [...allPortfolios]
+        .filter((p) => !followedIds.has(p.id) && !p.premium)
+        .sort((a, b) => b.followers - a.followers)
+        .slice(0, 3)
+    : [];
   const suggestions = allPortfolios
     .filter((p) => !followedIds.has(p.id))
     .slice(0, 3);
@@ -129,6 +137,11 @@ export default async function DashboardPage() {
             <ArrowRight className="size-4" />
           </ButtonLink>
         </div>
+      )}
+
+      {/* Onboarding E3: primer uso guiado cuando no sigue nada */}
+      {onboardingSuggestions.length > 0 && (
+        <OnboardingSuggestions suggestions={onboardingSuggestions} isPro={isPro} />
       )}
 
       {/* Recent alerts */}

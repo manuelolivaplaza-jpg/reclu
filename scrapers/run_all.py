@@ -23,7 +23,7 @@ def main() -> None:
     parser.add_argument(
         "--only",
         nargs="*",
-        choices=["capitol_trades", "house_disclosure", "renta4", "infoprobidad", "btg_pactual"],
+        choices=["capitol_trades", "house_disclosure", "renta4", "infoprobidad", "btg_pactual", "radar_ia"],
         help="Run only these scrapers (default: all)",
     )
     args = parser.parse_args()
@@ -37,6 +37,7 @@ def main() -> None:
         "renta4",
         "infoprobidad",
         "btg_pactual",
+        "radar_ia",
     ]
 
     if "capitol_trades" in scrapers:
@@ -96,6 +97,17 @@ def main() -> None:
         except Exception as e:
             log(f"btg_pactual failed: {e}")
             results.append({"source": "btg_pactual", "status": "error", "error": str(e)})
+
+    if "radar_ia" in scrapers:
+        try:
+            from radar_ia import RadarIaAdapter
+
+            log("Starting Radar IA (reglas consenso + momentum)...")
+            adapter = RadarIaAdapter()
+            results.append(adapter.run(db))
+        except Exception as e:
+            log(f"radar_ia failed: {e}")
+            results.append({"source": "radar_ia", "status": "error", "error": str(e)})
 
     # Summary
     print("\n" + "=" * 50)

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 
 export const metadata = {
@@ -16,12 +17,12 @@ export default function OfflinePage() {
           Revisa tu conexión a internet y vuelve a intentarlo. Las páginas que ya
           visitaste siguen disponibles sin conexión.
         </p>
-        <a
+        <Link
           href="/"
           className="mt-8 inline-flex h-12 items-center rounded-full bg-ink-900 px-[22px] text-[15px] font-medium text-white transition-colors hover:bg-black"
         >
           Volver al inicio
-        </a>
+        </Link>
         <p className="mt-10 max-w-md text-xs leading-relaxed text-ink-500">
           reclu muestra información pública con fines informativos. No constituye
           asesoría de inversión.
