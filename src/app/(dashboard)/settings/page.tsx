@@ -5,8 +5,12 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ButtonLink } from "@/components/ui/button";
 import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
+import { AlertRulesForm } from "@/components/alert-rules-form";
 import { TelegramConnect } from "@/components/telegram-connect";
 import { BillingStatus } from "@/components/billing-status";
+import { LegalNotice } from "@/components/legal/legal-notice";
+import { alertRuleLimitFor, parseAlertRuleRows } from "@/lib/alert-rules";
+import { canUseTelegram } from "@/lib/plans";
 import { isPaidPlan } from "@/lib/types";
 
 export const metadata = { title: "Ajustes" };
@@ -36,20 +40,32 @@ export default async function SettingsPage() {
   if (!profile) return null;
   const isPro = isPaidPlan(profile.plan);
 
-  // Suscripción activa del usuario (RLS permite SELECT propio).
-  let activeSubscription: SubscriptionRow | null = null;
-  if (isPro) {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("subscriptions")
-      .select("plan, period, status, provider, current_period_end, cancel_at_period_end")
-      .eq("user_id", profile.id)
-      .in("status", ["active", "past_due"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    activeSubscription = (data as SubscriptionRow | null) ?? null;
+  // Suscripción y reglas son lecturas independientes (RLS: solo lo propio).
+  const supabase = await createClient();
+  const subscriptionPromise = isPro
+    ? supabase
+        .from("subscriptions")
+        .select("plan, period, status, provider, current_period_end, cancel_at_period_end")
+        .eq("user_id", profile.id)
+        .in("status", ["active", "past_due"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+  const rulesPromise = supabase
+    .from("alert_rules")
+    .select("id, kind, value, channel, active")
+    .eq("user_id", profile.id)
+    .order("created_at", { ascending: false });
+  const [subscriptionResult, rulesResult] = await Promise.all([subscriptionPromise, rulesPromise]);
+  const activeSubscription = (subscriptionResult.data as SubscriptionRow | null) ?? null;
+  if (rulesResult.error) {
+    console.warn("[reclu] alert_rules:", rulesResult.error.message);
   }
+  const alertRules = parseAlertRuleRows(rulesResult.data);
+  const rulesUnavailable = rulesResult.error
+    ? "Todavía no podemos mostrar tus reglas. Inténtalo de nuevo en unos minutos."
+    : null;
 
   const planName =
     profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Gratis";
@@ -172,6 +188,31 @@ export default async function SettingsPage() {
       </Card>
 
       <TelegramConnect profile={profile} />
+
+      {/* Reglas a medida. No esconde datos públicos: solo elige el aviso. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Mis reglas</CardTitle>
+          <CardDescription>
+            Avisos cuando una fuente pública cumple un criterio que tú defines:
+            un símbolo en cualquier fuente, un portafolio, una fuente o un monto
+            en dólares. Las declaraciones de funcionarios de Estados Unidos siguen
+            siendo públicas; la regla solo elige de qué te avisamos. Guardamos
+            únicamente ese criterio, para enviarte el aviso.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-6">
+            <AlertRulesForm
+              rules={alertRules}
+              limit={alertRuleLimitFor(profile.plan, profile.trial_ends_at)}
+              canUseTelegram={canUseTelegram(profile.plan, profile.trial_ends_at)}
+              unavailable={rulesUnavailable}
+            />
+            <LegalNotice kind="fintec" />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
