@@ -11,7 +11,6 @@ import type {
 import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT } from "@/lib/types";
 import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts } from "@/lib/demo-data";
 import {
-  roleFor,
   HOLDING_LIMITS,
   ALERT_LIMITS,
   type AccessRole,
