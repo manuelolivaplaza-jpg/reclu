@@ -17,6 +17,12 @@ Issuer formats, all public and keyless:
   https://www.vaneck.com/us/en/etf/equity/{ticker-lower}/holdings/download/xlsx/
   Columns: Number,Ticker,Holding Name,...,'% of Net Assets' (as "20.06%").
   Verified live: SMH.
+- Subversive (NANC/GOP, F26): the issuer website returns 403 to curl and
+  loads holdings with JS. The official source is Form N-PORT on EDGAR
+  (CIK 1742912, Tidal Trust I). Verified live 2026-10-19:
+  NANC = series S000088363 ("Unusual Whales Subversive Democratic Trading
+  ETF"), GOP = series S000088364 ("Unusual Whales Subversive Republican
+  Trading ETF"). Each N-PORT covers one series; weight = pctVal.
 
 Not scrapeable (verified 2026-10-18): Invesco QQQ (406 on every holdings
 endpoint), ICOL (fund no longer exists in iShares catalog).
@@ -29,12 +35,16 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 import re
+import xml.etree.ElementTree as ET
 from datetime import date, datetime
 
 import httpx
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) reclu-scraper/1.0"
+# SEC exige un User-Agent identificable con contacto.
+SEC_USER_AGENT = "reclu-scraper/1.0 (contacto@reclu.cl)"
 
 # ARK family: slug -> URL of the daily holdings CSV
 ARK_FUNDS: dict[str, str] = {
@@ -70,10 +80,33 @@ VANECK_FUNDS: dict[str, str] = {
     "smh": "smh",  # VanEck Semiconductor
 }
 
+# Subversive ETFs (F26): slug -> series on the Tidal Trust I N-PORT.
+# Series ids verified live on EDGAR 2026-10-19. The series name is kept as a
+# fallback for when the trust changes an id.
+SUBVERSIVE_FUNDS: dict[str, dict[str, str]] = {
+    "nanc-etf": {
+        "series_id": "S000088363",
+        "series_name": "Unusual Whales Subversive Democratic Trading ETF",
+    },
+    "gop-etf": {
+        "series_id": "S000088364",
+        "series_name": "Unusual Whales Subversive Republican Trading ETF",
+    },
+}
+
+SUBVERSIVE_CIK = "1742912"
+SEC_SUBMISSIONS = "https://data.sec.gov/submissions/CIK{cik:0>10}.json"
+SEC_NPORT_DOC = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/primary_doc.xml"
+
 GLOBALX_LISTING = "https://www.globalxetfs.com/funds/{ticker}/"
 GLOBALX_HOLDINGS = "https://assets.globalxetfs.com/funds/holdings/{ticker}_full-holdings_{date}.csv"
 ISHARES_HOLDINGS = "https://www.ishares.com/us/products/{product_id}/{slug}/latest-holdings.csv"
 VANECK_HOLDINGS = "https://www.vaneck.com/us/en/etf/equity/{ticker}/holdings/download/xlsx/"
+
+# Caches scoped to one process: NANC and GOP share the trust's submissions
+# feed and most N-PORT candidate documents.
+_SUBMISSIONS_CACHE: dict[str, dict] = {}
+_NPORT_DOC_CACHE: dict[str, str] = {}
 
 
 def _get(url: str) -> str:
@@ -292,6 +325,165 @@ def fetch_vaneck(slug: str) -> list[dict]:
     return rows
 
 
+def _sec_get(url: str) -> httpx.Response:
+    resp = httpx.get(
+        url,
+        headers={"User-Agent": SEC_USER_AGENT, "Accept-Encoding": "gzip, deflate"},
+        timeout=30.0,
+        follow_redirects=True,
+    )
+    resp.raise_for_status()
+    return resp
+
+
+def _nport_accessions() -> list[str]:
+    """Recent NPORT-P accession numbers for the Subversive trust (newest first)."""
+    if SUBVERSIVE_CIK not in _SUBMISSIONS_CACHE:
+        resp = _sec_get(SEC_SUBMISSIONS.format(cik=SUBVERSIVE_CIK))
+        _SUBMISSIONS_CACHE[SUBVERSIVE_CIK] = resp.json()
+    recent = _SUBMISSIONS_CACHE[SUBVERSIVE_CIK].get("filings", {}).get("recent", {})
+    forms = recent.get("form", [])
+    accessions = recent.get("accessionNumber", [])
+    return [
+        accession
+        for form, accession in zip(forms, accessions)
+        if form == "NPORT-P" and accession
+    ]
+
+
+def _nport_series_id(xml_text: str) -> str | None:
+    m = re.search(r"<seriesId>\s*([^<\s]+)\s*</seriesId>", xml_text)
+    return m.group(1) if m else None
+
+
+def _latest_nport_doc(series_id: str, series_name: str) -> str:
+    """Newest N-PORT XML that belongs to the given series.
+
+    EDGAR publishes one primary_doc.xml per series, so the only way to map an
+    accession to NANC/GOP is to read the seriesId inside the document. Both
+    ETFs share the cache, which keeps the run to a few small requests.
+    """
+    for accession in _nport_accessions()[:80]:
+        doc = _NPORT_DOC_CACHE.get(accession)
+        if doc is None:
+            url = SEC_NPORT_DOC.format(
+                cik=SUBVERSIVE_CIK, accession=accession.replace("-", "")
+            )
+            try:
+                doc = _sec_get(url).text
+            except httpx.HTTPError:
+                continue
+            _NPORT_DOC_CACHE[accession] = doc
+        found = _nport_series_id(doc)
+        if found == series_id or (not found and series_name in doc):
+            return doc
+    raise ValueError(f"N-PORT no encontrado para la serie {series_id} ({series_name})")
+
+
+def parse_nport_holdings(xml_text: str, series_id: str | None = None) -> list[dict]:
+    """Parse an N-PORT primary_doc.xml into holdings rows.
+
+    `pctVal` is already a percentage of net assets (0.687 means 0.687%).
+    Positions without a ticker (cash, derivatives without a listed symbol)
+    are skipped: they cannot be tracked by symbol.
+    """
+    root = ET.fromstring(xml_text)
+
+    actual_series = root.findtext(".//{*}seriesId")
+    if series_id and actual_series and actual_series.strip() != series_id:
+        raise ValueError(
+            f"el N-PORT es de la serie {actual_series.strip()}, se esperaba {series_id}"
+        )
+
+    as_of_raw = (root.findtext(".//{*}repPdDate") or "").strip()
+    try:
+        as_of = date.fromisoformat(as_of_raw).isoformat()
+    except ValueError:
+        as_of = date.today().isoformat()
+
+    net_assets_raw = (root.findtext(".//{*}netAssets") or "").strip()
+    try:
+        net_assets = float(net_assets_raw)
+    except ValueError:
+        net_assets = 0.0
+
+    rows: list[dict] = []
+    for sec in root.findall(".//{*}invstOrSec"):
+        ticker_el = sec.find(".//{*}identifiers/{*}ticker")
+        ticker = (ticker_el.get("value") or "").strip() if ticker_el is not None else ""
+        if not ticker:
+            continue
+
+        weight_raw = (sec.findtext(".//{*}pctVal") or "").strip()
+        try:
+            weight = float(weight_raw)
+        except ValueError:
+            value_raw = (sec.findtext(".//{*}valUSD") or "").strip()
+            try:
+                value = float(value_raw)
+            except ValueError:
+                continue
+            if net_assets <= 0:
+                continue
+            weight = value / net_assets * 100
+        if weight <= 0 or weight > 100:
+            continue
+
+        currency = (sec.findtext(".//{*}curCd") or "USD").strip() or "USD"
+        if currency not in ("USD", "CLP", "EUR"):
+            currency = "USD"
+
+        name = (sec.findtext(".//{*}name") or "").strip() or ticker
+        rows.append(
+            {
+                "symbol": ticker,
+                "name": name,
+                "weight": weight,
+                "asset_class": "etf",
+                "currency": currency,
+                "as_of": as_of,
+            }
+        )
+    return rows
+
+
+def fetch_subversive(slug: str) -> list[dict]:
+    """Holdings for NANC/GOP from the trust's N-PORT on EDGAR.
+
+    The issuer website gives 403 to curl and renders holdings with JS, so the
+    official filing is the source of truth. Raises if no N-PORT is available;
+    the orchestrator turns that into a warning and keeps going.
+    """
+    cfg = SUBVERSIVE_FUNDS.get(slug)
+    if not cfg:
+        raise ValueError(f"unknown Subversive ETF: {slug}")
+    doc = _latest_nport_doc(cfg["series_id"], cfg["series_name"])
+    return parse_nport_holdings(doc, series_id=cfg["series_id"])
+
+
+def save_holdings(db, slug: str, rows: list[dict]) -> bool:
+    """Upsert rows into holdings. Returns False when the portfolio is missing."""
+    pf = db.table("portfolios").select("id").eq("slug", slug).maybe_single().execute()
+    if not pf.data:
+        print(f"WARNING {slug}: portfolio not in DB (run seed first)")
+        return False
+    payload = [
+        {
+            "portfolio_id": pf.data["id"],
+            "symbol": r["symbol"],
+            "name": r["name"],
+            "weight": r["weight"],
+            "asset_class": r["asset_class"],
+            "currency": r["currency"],
+            "as_of": r["as_of"],
+            "previous_weight": 0.0,
+        }
+        for r in rows
+    ]
+    db.table("holdings").upsert(payload, on_conflict="portfolio_id,symbol,as_of").execute()
+    return True
+
+
 def fetch_etf(slug: str) -> list[dict]:
     """Dispatch by slug prefix. Returns holdings list."""
     if slug in ARK_FUNDS:
@@ -302,6 +494,8 @@ def fetch_etf(slug: str) -> list[dict]:
         return fetch_ishares(slug)
     if slug in VANECK_FUNDS:
         return fetch_vaneck(slug)
+    if slug in SUBVERSIVE_FUNDS:
+        return fetch_subversive(slug)
     raise ValueError(f"unknown ETF: {slug}")
 
 
@@ -315,7 +509,13 @@ def main() -> None:
     parser.add_argument("--only", nargs="*", help="Limitar a estos slugs")
     args = parser.parse_args()
 
-    all_slugs = sorted(list(ARK_FUNDS) + list(GLOBALX_FUNDS) + list(ISHARES_FUNDS) + list(VANECK_FUNDS))
+    all_slugs = sorted(
+        list(ARK_FUNDS)
+        + list(GLOBALX_FUNDS)
+        + list(ISHARES_FUNDS)
+        + list(VANECK_FUNDS)
+        + list(SUBVERSIVE_FUNDS)
+    )
     slugs = args.only or all_slugs
     db = None if args.dry_run else get_db()
     ok = 0
@@ -331,24 +531,8 @@ def main() -> None:
                 print(f"DRY-RUN {slug}: {len(rows)} holdings ({preview})")
                 ok += 1
                 continue
-            pf = db.table("portfolios").select("id").eq("slug", slug).maybe_single().execute()
-            if not pf.data:
-                print(f"WARNING {slug}: portfolio not in DB (run seed first)")
+            if not save_holdings(db, slug, rows):
                 continue
-            payload = [
-                {
-                    "portfolio_id": pf.data["id"],
-                    "symbol": r["symbol"],
-                    "name": r["name"],
-                    "weight": r["weight"],
-                    "asset_class": r["asset_class"],
-                    "currency": r["currency"],
-                    "as_of": r["as_of"],
-                    "previous_weight": 0.0,
-                }
-                for r in rows
-            ]
-            db.table("holdings").upsert(payload, on_conflict="portfolio_id,symbol,as_of").execute()
             print(f"OK {slug}: {len(rows)} holdings")
             ok += 1
         except Exception as e:  # noqa: BLE001 - one bad ETF must not kill the run
