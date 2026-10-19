@@ -13,6 +13,8 @@ const ContentSecurityPolicy = [
   "font-src 'self' data:",
   // Supabase (auth + API), Resend (emails), OpenRouter (AI), Vercel (live)
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://openrouter.ai https://vercel.live",
+  // PWA: service worker propio (public/sw.js)
+  "worker-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

@@ -12,5 +12,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/terminos`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: `${base}/privacidad`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: `${base}/disclaimer`, lastModified: now, changeFrequency: "yearly", priority: 0.2 },
+    // Tickers más comunes (páginas por acción, F7) — el resto se descubre
+    // vía enlaces internos y canonical.
+    ...[
+      "nvda", "aapl", "msft", "tsla", "amzn", "googl",
+      "meta", "pltr", "sqm-b", "copec", "xom", "ba",
+    ].map((symbol) => ({
+      url: `${base}/accion/${symbol}`,
+      lastModified: now,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    })),
   ];
 }

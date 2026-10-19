@@ -236,7 +236,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                             <td className="py-3.5">
                               <div className="flex items-baseline gap-2">
                                 <Link
-                                  href={`/explore?simbolo=${encodeURIComponent(h.symbol)}`}
+                                  href={`/accion/${encodeURIComponent(h.symbol.toLowerCase())}`}
                                   className="font-medium text-ink-900 underline-offset-4 hover:underline"
                                 >
                                   {h.symbol}

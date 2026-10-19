@@ -118,7 +118,7 @@ function ConsensusRadar({ tickers }: { tickers: ConsensusTicker[] }) {
         {tickers.map((t, i) => (
           <li key={t.symbol} className="bg-white lg:border lg:border-ink-200 lg:bg-white">
             <Link
-              href={`/explore?simbolo=${encodeURIComponent(t.symbol)}`}
+              href={`/accion/${encodeURIComponent(t.symbol.toLowerCase())}`}
               className="group flex h-full flex-col justify-between gap-6 p-5 transition-colors hover:bg-ink-50"
             >
               <span className="num text-[11px] text-ink-400">

@@ -372,7 +372,8 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
               Aún no tienes activos. Sube un CSV o agrega uno manualmente.
             </p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-[420px] text-sm">
               <thead>
                 <tr className="border-b border-ink-200 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
                   <th className="pb-2">Símbolo</th>
@@ -396,7 +397,7 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
                     <td className="py-2.5 text-right">
                       <button
                         onClick={() => removeHolding(i)}
-                        className="rounded p-1 text-ink-400 hover:bg-ink-100 hover:text-negative"
+                        className="-m-3 inline-flex size-11 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-negative"
                         aria-label={`Eliminar ${h.symbol}`}
                       >
                         <X className="size-4" />
@@ -406,6 +407,7 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -541,7 +543,8 @@ function CrossPanel({
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <table className="w-full text-sm">
+                <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+                <table className="w-full min-w-[320px] text-sm">
                   <thead>
                     <tr className="border-b border-ink-200 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
                       <th className="pb-2">Símbolo</th>
@@ -563,6 +566,7 @@ function CrossPanel({
                     ))}
                   </tbody>
                 </table>
+                </div>
               </CardContent>
             </Card>
           )}

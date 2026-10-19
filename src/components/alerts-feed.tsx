@@ -282,7 +282,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                 {rawSymbol && (
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Link
-                      href={`/explore?simbolo=${encodeURIComponent(rawSymbol)}`}
+                      href={`/accion/${encodeURIComponent(rawSymbol.toLowerCase())}`}
                       className="inline-flex items-center gap-2 border border-ink-200 px-2.5 py-0.5 text-[12px] font-medium tabular-nums text-ink-900 transition-colors hover:border-ink-900"
                     >
                       <span>${rawSymbol}</span>
