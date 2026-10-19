@@ -1,4 +1,4 @@
-# NOTAS F8 — Portafolio "Trump dice" (sesión A: tests y limpieza)
+# NOTAS F8 — Portafolio "Trump dice" (sesiones A y B)
 
 Rama: `mejoras/f8-trump-dice` · Migración: `supabase/migrations/014_trump_dice.sql`
 
@@ -15,14 +15,21 @@ Rama: `mejoras/f8-trump-dice` · Migración: `supabase/migrations/014_trump_dice
 - El slug de la 013 ya estaba corregido a `defensa-aeroespacial` (insert y select). No se tocó en esta sesión.
 - `trump-trades` y `trump-truth-signals` no se modificaron.
 
-## Pendiente para sesión B (UI en portfolio/[slug], aviso, /metodologia)
+## Hecho en sesión B (UI)
 
-- En `src/app/portfolio/[slug]/page.tsx`, solo si `portfolio.source === 'trump_mentions'`: bloque "Menciones" (fecha, ticker con enlace a `/accion/[symbol]`, cita, tipo, enlace "Fuente" a `source_urls[0]`).
-- Componente nuevo `src/components/mentions-list.tsx` y consulta propia (por ejemplo `getMentions` en `src/lib/mentions-queries.ts`, sin tocar `queries.ts`), con fallback demo rotulado `isDemo`.
-- Aviso fijo: "Simulación histórica con fines informativos. No es recomendación de inversión."
-- Enlace a `/metodologia` y ahí una sección corta "Trump dice" copiada de `docs/trump-dice-metodologia.md`.
-- `tests/mentions-list.test.ts` si queda lógica pura en TS.
-- Correr `npm run lint`, `npm test`, `npm run build` (esta sesión no tocó TypeScript).
+- En `src/app/portfolio/[slug]/page.tsx`, solo si `portfolio.source === 'trump_mentions'`, se monta `TrumpMentionsList`. `getMentions` arranca antes del perfil y de las holdings.
+- Componente `src/components/trump-mentions-list.tsx` (el pedido de la sesión B usa este nombre). Consulta en `src/lib/mentions-queries.ts` (`getMentions`). No se tocó `queries.ts`.
+- Lee `public.mentions` con `status = 'verificada'`. Sin Supabase: las 15 menciones de la 014, con `isDemo` y `DemoBadge`. Con Supabase vacío o si la consulta falla: lista vacía (no se disfrazan de demo).
+- Cada fila: fecha (día del texto ISO), ticker con enlace a `/accion/[symbol]`, empresa, tipo, frase de hasta 80 caracteres y enlace "Fuente" a la primera URL http(s).
+- Aviso fijo: "Simulación histórica con fines informativos. No es recomendación de inversión." Enlace a `/metodologia#trump-dice`.
+- `/metodologia`: sección 7 "Trump dice", resumen de `docs/trump-dice-metodologia.md`.
+- Demo: portafolio `trump-dice` (`d47`, `source` `trump_mentions`, followers 0, `return_ytd` null) y los 8 holdings semilla. En demo `previous_weight` es null para no pintar un salto; en la 014 sigue en 0 para `new_trade`.
+- `trump-trades` y `trump-truth-signals` no se modificaron.
+- Lógica pura cubierta en `tests/mentions-list.test.ts`.
+
+## Pendiente
+
+Nada de la UI de esta tarea. Sigue pendiente lo de Manu (migración en el SQL Editor y decidir si desactiva los otros dos portafolios de Trump).
 
 ## Qué debe hacer Manu
 
@@ -30,8 +37,8 @@ Rama: `mejoras/f8-trump-dice` · Migración: `supabase/migrations/014_trump_dice
 2. Decidir si desactiva `trump-trades` y `trump-truth-signals` (`is_active=false`) cuando "Trump dice" tenga datos reales. No borrarlos.
 3. `USD-CASH`: `prices.py` no pide Yahoo para ese símbolo (lista fija, no está). `compute_returns.py` no distingue `asset_class='cash'`: si no hay precio, avisa y salta ese holding, sin tumbar la corrida. No se cambió ninguno de los dos archivos. El adapter de Trump dice no manda X a Yahoo; lo valoriza a US$55.
 
-## Verificación de esta sesión
+## Verificación
 
-- Pytest de scrapers: 15/15 OK.
-- `run_all.py --list`: `trump_dice` presente. `run_all.py` sigue en LF.
-- No se levantó servidor, no se hizo `git push`, no se abrió `.env*`.
+- Sesión A: pytest de scrapers 15/15. `run_all.py --list` muestra `trump_dice`. `run_all.py` sigue en LF.
+- Sesión B: `npm run lint` OK. `npm test` 124 tests (12 archivos) OK. `npm run build` OK (el typecheck de Next, dentro del build, también). `npm run typecheck` OK después de ese build: un `tsc` aislado, antes de que Next genere `LayoutProps`, falla solo en `src/app/layout.tsx` (conocido, no es de esta UI).
+- No se levantó servidor, no se hizo `git push`, no se abrió `.env*`. No se pudo revisar la página en el navegador.
