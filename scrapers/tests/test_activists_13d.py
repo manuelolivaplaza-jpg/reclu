@@ -253,3 +253,21 @@ def test_etapa_se_descubre() -> None:
         "Activistas: Schedule 13D (SEC EDGAR)",
         False,
     )
+
+
+def test_migracion_027_es_idempotente() -> None:
+    sql = (
+        Path(__file__).resolve().parent.parent.parent
+        / "supabase"
+        / "migrations"
+        / "027_activistas.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "create table if not exists public.activist_filings" in sql
+    assert "accession text not null unique" in sql
+    assert "insert into public.portfolios" in sql
+    assert "'activistas-13d'" in sql
+    assert "'activistas: últimos 90 días'" in sql
+    assert "on conflict (slug) do nothing" in sql
+    assert "drop policy if exists" in sql
+    assert "grant select on table public.activist_filings" in sql

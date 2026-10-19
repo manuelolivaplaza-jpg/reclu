@@ -402,29 +402,36 @@ class Activists13DAdapter(SourceAdapter):
         }
 
     def _known_accessions(self, db, accessions: list[str]) -> set[str]:
-        if not accessions:
-            return set()
-        result = (
-            db.table("activist_filings")
-            .select("accession")
-            .in_("accession", accessions)
-            .execute()
-        )
-        return {row.get("accession") for row in result.data or [] if row.get("accession")}
+        known: set[str] = set()
+        # PostgREST limita el largo de la URL: se consulta en tandas.
+        for start in range(0, len(accessions), 100):
+            chunk = accessions[start : start + 100]
+            result = (
+                db.table("activist_filings")
+                .select("accession")
+                .in_("accession", chunk)
+                .execute()
+            )
+            known.update(
+                row.get("accession") for row in result.data or [] if row.get("accession")
+            )
+        return known
 
-    def _event_already_alerted(self, db, portfolio_id: str, accession: str) -> bool:
-        if not accession:
-            return False
+    def _alerted_accessions(self, db, portfolio_id: str, cutoff: str) -> set[str]:
+        """Accessions que ya tienen una alerta new_trade en el período."""
         result = (
             db.table("alerts")
-            .select("id")
+            .select("payload")
             .eq("portfolio_id", portfolio_id)
             .eq("type", "new_trade")
-            .contains("payload", {"accession": accession})
-            .limit(1)
+            .gte("created_at", cutoff)
             .execute()
         )
-        return bool(result.data)
+        return {
+            (row.get("payload") or {}).get("accession")
+            for row in result.data or []
+            if (row.get("payload") or {}).get("accession")
+        }
 
     def _sync_holdings(self, db, portfolio_id: str) -> int:
         today = date.today()
@@ -500,15 +507,16 @@ class Activists13DAdapter(SourceAdapter):
 
         alerts = 0
         alert_cutoff = (date.today() - timedelta(days=ALERT_LOOKBACK_DAYS)).isoformat()
+        alerted = self._alerted_accessions(db, portfolio_id, alert_cutoff)
         for row in rows:
             if not row.get("symbol"):
                 continue
             if str(row.get("filed_at") or "") < alert_cutoff:
                 continue
+            if row["accession"] in alerted:
+                continue
             percent = row.get("percent_of_class")
             if percent is not None and percent < MIN_PERCENT:
-                continue
-            if self._event_already_alerted(db, portfolio_id, row["accession"]):
                 continue
             db.table("alerts").insert(
                 {
