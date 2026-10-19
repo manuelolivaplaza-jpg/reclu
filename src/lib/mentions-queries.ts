@@ -7,7 +7,7 @@
  *  - primarySourceUrl, selectVerifiedMentions
  * Acceso:
  *  - getMentions: public.mentions con status verificada, o el respaldo demo
- *    (las 15 de la migración 014) si Supabase no está configurado.
+ *    (Trump 15, Musk 4, Cramer 27) si Supabase no está configurado.
  */
 
 import { createClient } from "@/lib/supabase/server";
@@ -52,6 +52,8 @@ const KIND_LABELS: Record<string, string> = {
   elogio_con_ticker: "Elogio con ticker",
   elogio_producto: "Elogio al producto",
   elogio_acuerdo: "Elogio al acuerdo",
+  recomienda_compra: "Recomienda compra",
+  recomienda_venta: "Recomienda venta",
   critica: "Crítica",
   empresa_propia: "Empresa propia",
 };
@@ -101,6 +103,18 @@ export function shortQuote(quote: string, max = 80): string {
 export function mentionKindLabel(kind: string | null): string {
   if (!kind) return "Mención";
   return KIND_LABELS[kind] ?? "Mención";
+}
+
+/**
+ * Lado de Reclu frente a un pick de Cramer.
+ * recomienda_compra → corto. recomienda_venta → compra. Otro kind → null.
+ */
+export function recluActionLabel(kind: string | null, symbol: string): string | null {
+  const ticker = symbol.trim().toUpperCase();
+  if (!ticker) return null;
+  if (kind === "recomienda_compra") return `Corto ${ticker}`;
+  if (kind === "recomienda_venta") return `Compra ${ticker}`;
+  return null;
 }
 
 /** Fecha de calendario del texto ISO (no depende de la zona del servidor). */
@@ -375,6 +389,59 @@ export function demoTrumpMentions(): MentionRow[] {
 }
 
 /**
+ * Los 27 picks de la migración 018. Cita de hasta 10 palabras y URL de artículo.
+ * Respaldo demo cuando no hay Supabase. El proxy inverse-cramer no entra aquí.
+ */
+const CRAMER_SEED: readonly (readonly [string, string, string, string, string, string])[] = [
+  ["2026-09-02", "HWM", "recomienda_compra", "hold on to it or buy some", "https://www.cnbc.com/2026/09/02/cramers-lightning-round-buy-howmet-aerospace.html", "2026-09-03"],
+  ["2026-09-08", "TRN", "recomienda_compra", "pull the trigger", "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html", "2026-09-09"],
+  ["2026-09-08", "SPG", "recomienda_compra", "so great", "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html", "2026-09-09"],
+  ["2026-09-08", "FRT", "recomienda_compra", "excellent", "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html", "2026-09-09"],
+  ["2026-09-08", "JOBY", "recomienda_venta", "negativo", "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html", "2026-09-09"],
+  ["2026-09-08", "GRAB", "recomienda_venta", "never liked", "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html", "2026-09-09"],
+  ["2026-09-08", "AZN", "recomienda_venta", "not going to put my money", "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html", "2026-09-09"],
+  ["2026-09-14", "ET", "recomienda_compra", "buy, buy, buy", "https://www.cnbc.com/2026/09/14/cramers-lightning-round-buy-energy-transfer.html", "2026-09-15"],
+  ["2026-09-17", "BB", "recomienda_compra", "buy buy buy", "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html", "2026-09-18"],
+  ["2026-09-17", "GME", "recomienda_compra", "is a buy", "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html", "2026-09-18"],
+  ["2026-09-17", "CRDO", "recomienda_compra", "can buy", "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html", "2026-09-18"],
+  ["2026-09-17", "IRM", "recomienda_compra", "it's a buy", "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html", "2026-09-18"],
+  ["2026-09-17", "SNAP", "recomienda_venta", "negativo", "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html", "2026-09-18"],
+  ["2026-09-30", "KMI", "recomienda_compra", "I'm a buyer", "https://www.cnbc.com/2026/09/30/cramers-lightning-round-buy-kinder-morgan.html", "2026-10-01"],
+  ["2026-09-30", "GRAL", "recomienda_compra", "can go higher", "https://www.cnbc.com/2026/09/30/cramers-lightning-round-buy-kinder-morgan.html", "2026-10-01"],
+  ["2026-09-30", "POET", "recomienda_venta", "not recommending stocks that are losing money", "https://www.cnbc.com/2026/09/30/cramers-lightning-round-buy-kinder-morgan.html", "2026-10-01"],
+  ["2026-10-05", "CIEN", "recomienda_compra", "very good", "https://www.cnbc.com/2026/10/05/cramers-lightning-round-i-think-ciena-is-very-good.html", "2026-10-06"],
+  ["2026-10-05", "AVY", "recomienda_compra", "winner", "https://www.cnbc.com/2026/10/05/cramers-lightning-round-i-think-ciena-is-very-good.html", "2026-10-06"],
+  ["2026-10-06", "EPD", "recomienda_compra", "you should own it", "https://www.cnbc.com/2026/10/06/cramers-lightning-round-enterprise-products-partners-is-a-really-well-run-company.html", "2026-10-07"],
+  ["2026-10-06", "MTZ", "recomienda_venta", "not going to get in front", "https://www.cnbc.com/2026/10/06/cramers-lightning-round-enterprise-products-partners-is-a-really-well-run-company.html", "2026-10-07"],
+  ["2026-10-12", "AMBA", "recomienda_venta", "negativo", "https://www.cnbc.com/2026/10/12/cramers-lightning-round-i-like-blackberry-very-much.html", "2026-10-13"],
+  ["2026-10-12", "MDLZ", "recomienda_venta", "negativo", "https://www.cnbc.com/2026/10/12/cramers-lightning-round-i-like-blackberry-very-much.html", "2026-10-13"],
+  ["2026-10-13", "PENG", "recomienda_compra", "you can buy it", "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html", "2026-10-14"],
+  ["2026-10-13", "MTZ", "recomienda_compra", "buy MasTec", "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html", "2026-10-14"],
+  ["2026-10-13", "STWD", "recomienda_venta", "don't want to own", "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html", "2026-10-14"],
+  ["2026-10-15", "RDDT", "recomienda_compra", "buy", "https://www.cnbc.com/2026/10/15/cramers-lightning-round-buy-reddit.html", "2026-10-16"],
+  ["2026-10-15", "RKLB", "recomienda_venta", "sell, sell, sell", "https://www.cnbc.com/2026/10/15/cramers-lightning-round-buy-reddit.html", "2026-10-16"],
+];
+
+function cramerRows(): MentionRow[] {
+  return CRAMER_SEED.map(([fecha, symbol, kind, quote, url, entryDate]) => ({
+    id: `demo-${fecha}-${symbol}`,
+    saidAt: `${fecha}T22:55:00+00:00`,
+    entryDate,
+    symbol,
+    company: null,
+    kind,
+    quote,
+    sourceUrls: [url],
+    status: "verificada",
+    externalId: `${fecha}-${symbol}`,
+  }));
+}
+
+export function demoCramerMentions(): MentionRow[] {
+  return cramerRows().map((row) => ({ ...row, sourceUrls: [...row.sourceUrls] }));
+}
+
+/**
  * Las 4 menciones de la migración 017. Respaldo demo de musk-dice.
  * Tesla es empresa propia: se lista, no es una posición.
  */
@@ -455,17 +522,24 @@ function rowFromDb(raw: Record<string, unknown>): MentionRow {
 
 /**
  * Menciones verificadas del portafolio, de más reciente a más antigua.
- * Sin Supabase: las 15 de Trump dice, o las 4 de Musk si source es
- * musk_mentions. Con Supabase y sin filas (o si la consulta falla): lista
- * vacía, isDemo false.
+ * Sin Supabase: Trump dice (15) si source es trump_mentions o no viene;
+ * Musk (4) si source es musk_mentions; Inverse Cramer (27) si source es
+ * cnbc_lightning_round. Otro source: lista vacía. isDemo true.
+ * Con Supabase y sin filas (o si la consulta falla): lista vacía, isDemo false.
+ * La consulta filtra por portfolio_id, así que cada cartera ve las suyas.
  */
-export async function getMentions(
-  portfolioId: string,
-  source = "trump_mentions",
-): Promise<MentionsList> {
+export async function getMentions(portfolioId: string, source?: string): Promise<MentionsList> {
   if (!isSupabaseLive()) {
-    const rows = source === "musk_mentions" ? DEMO_MUSK_MENTIONS : DEMO_TRUMP_MENTIONS;
-    return { mentions: selectVerifiedMentions(rows), isDemo: true };
+    if (source === "cnbc_lightning_round") {
+      return { mentions: selectVerifiedMentions(cramerRows()), isDemo: true };
+    }
+    if (source === "musk_mentions") {
+      return { mentions: selectVerifiedMentions(DEMO_MUSK_MENTIONS), isDemo: true };
+    }
+    if (source === undefined || source === "trump_mentions") {
+      return { mentions: selectVerifiedMentions(DEMO_TRUMP_MENTIONS), isDemo: true };
+    }
+    return { mentions: [], isDemo: true };
   }
 
   try {

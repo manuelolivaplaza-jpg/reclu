@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { connection } from "next/server";
 import { notFound } from "next/navigation";
+import { connection } from "next/server";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import {

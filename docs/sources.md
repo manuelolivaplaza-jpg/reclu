@@ -24,6 +24,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | Invesco QQQ | (ninguno) | ⛔ 406 en todos los endpoints | Bloqueo HTTP 406 verificado 2026-10-18; sin CSV público accesible |
 | LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
 | X (@elonmusk) | musk-dice | 🔧 Archivo verificado; sin API en producción | Menciones en `scrapers/data/musk_menciones.json`. Solo id, fecha, cita y URL. La API de X exige plan de pago |
+| CNBC Lightning Round (Mad Money) | inverse-cramer-real | ✅ RSS verificado 2026-10-19 | Artículos públicos. Se guarda solo ticker, fecha, cita de hasta 10 palabras y URL. El proxy `inverse-cramer` (SQQQ/PSQ) no se toca. Términos de uso de CNBC: pendientes de que Manu los revise antes de lanzar |
 
 ## Flujo automatizado (GitHub Actions + Vercel Cron)
 
@@ -33,8 +34,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
     ↓ POSICIONES: house → senate → renta4 → btg → infoprobidad → 13f → etfs
     ↓ PRECIOS: prices (Yahoo EOD) → RENDIMIENTOS: compute_returns
     ↓ SNAPSHOTS: performance (series históricas)
-    ↓ INSIDERS: insiders_form4 (SEC Form 4, no crítica) → radar_ia
-    ↓ AFP: spensiones (cuadro 14, después de performance, antes de radar_ia)
+    ↓ trump_dice → insiders_form4 → oge_trump → spensiones → musk_dice → inverse_cramer → radar_ia
     ↓ holdings upsert con previous_weight (detección de cambios)
     ↓ curl GET /api/run-pipeline con CRON_SECRET
     ↓
@@ -296,11 +296,28 @@ post embebido o enlazado.
 
 ---
 
+## CNBC Lightning Round (inverse_cramer.py)
+
+RSS público de Mad Money, verificado el 2026-10-19:
+
+`https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15838459`
+
+El artículo sale hacia las 18:55 ET, con el mercado cerrado. La entrada
+simulada es el cierre del día hábil siguiente. Regla inversa, igual peso,
+30 días hábiles. Los cortos llevan peso positivo y el nombre `Corto: TICKER`
+(`holdings.weight` no admite negativos). Solo se persiste ticker, fecha,
+sentido, una cita de hasta 10 palabras y el enlace. Un artículo nuevo del
+RSS sin cita en el JSON queda `pendiente` y no genera alerta ni posición.
+
+El portafolio proxy `inverse-cramer` (SQQQ/PSQ en `load_thematic.py`) no se
+modifica.
+
 ## Orquestador (run_all.py)
 
 Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
 `btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
-`compute_returns` → `performance` → `spensiones` → `insiders_form4`  `oge_trump` → `radar_ia`.
+`compute_returns` → `performance` → `trump_dice` → `insiders_form4` →
+`oge_trump` → `spensiones` → `musk_dice` → `inverse_cramer` → `radar_ia`.
 
 - `--only <etapas>` / `--skip <etapas>`: selección de etapas.
 - `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.

@@ -101,9 +101,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   if (!portfolio) notFound();
 
   // Arranca en paralelo con el perfil y las holdings.
-  // Trump dice y Elon Musk dice comparten public.mentions.
+  // Trump dice, Elon Musk dice e Inverse Cramer comparten public.mentions.
   const mentionsSource =
-    portfolio.source === "trump_mentions" || portfolio.source === "musk_mentions"
+    portfolio.source === "trump_mentions" ||
+    portfolio.source === "musk_mentions" ||
+    portfolio.source === "cnbc_lightning_round"
       ? portfolio.source
       : null;
   const mentionsPromise = mentionsSource ? getMentions(portfolio.id, mentionsSource) : null;
@@ -344,6 +346,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                   ? "/metodologia#musk-dice"
                   : "/metodologia#trump-dice"
               }
+              variant={portfolio.source === "cnbc_lightning_round" ? "cramer" : "trump"}
             />
           ) : null}
 

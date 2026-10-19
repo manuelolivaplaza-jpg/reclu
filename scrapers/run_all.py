@@ -16,9 +16,12 @@ Etapas de mercado:
   prices             Cierres diarios Yahoo Finance → tabla prices
   compute_returns    return_pct de cada holding
   performance        Series históricas → portfolio_performance
+  trump_dice         Trump dice: menciones verificadas
   insiders_form4     Compras de ejecutivos (SEC Form 4)
   oge_trump          Trump compra: declaraciones OGE 278-T
   spensiones         Carteras AFP (Superintendencia de Pensiones)
+  musk_dice          Elon Musk dice: menciones verificadas
+  inverse_cramer     Inverse Cramer: lightning round CNBC
   stages/*.py        Etapas nuevas, orden alfabético, antes de radar_ia
   radar_ia           Portafolio Radar IA (después de rendimientos)
 
@@ -64,6 +67,7 @@ STAGES: list[tuple[str, str, bool]] = [
     ("oge_trump", "Trump compra: declaraciones OGE 278-T", False),
     ("spensiones", "Carteras AFP (Superintendencia de Pensiones)", False),
     ("musk_dice", "Elon Musk dice: menciones verificadas", False),
+    ("inverse_cramer", "Inverse Cramer: lightning round CNBC", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 # STAGE_IDS y CRITICAL se arman después de descubrir scrapers/stages/*.py.
@@ -270,6 +274,16 @@ def run_musk_dice(db, dry_run: bool) -> list[dict]:
     return [summary, {"source": "musk_dice", "mentions": resumen}]
 
 
+def run_inverse_cramer(db, dry_run: bool) -> list[dict]:
+    from inverse_cramer import InverseCramerAdapter, load_picks, sync_mentions
+
+    log("[inverse_cramer] lightning round CNBC...")
+    adapter = InverseCramerAdapter(dry_run=dry_run)
+    summary = adapter.run(db)
+    resumen = sync_mentions(db, load_picks(), dry_run=dry_run)
+    return [summary, {"source": "inverse_cramer", "mentions": resumen}]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -296,6 +310,7 @@ RUNNERS = {
     "oge_trump": run_oge_trump,
     "spensiones": run_spensiones,
     "musk_dice": run_musk_dice,
+    "inverse_cramer": run_inverse_cramer,
     "radar_ia": run_radar_ia,
 }
 

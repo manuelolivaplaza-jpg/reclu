@@ -78,6 +78,7 @@ export const DEMO_PORTFOLIOS: Portfolio[] = [
   p({ id: "d45", slug: "afp-consenso-chile", name: "Consenso AFP Chile — Acciones Nacionales", description: "Tenencias agregadas de los Fondos de Pensiones chilenos en renta variable local según reportes de la Superintendencia de Pensiones.", category: "public_disclosure", source: "spensiones", manager: "Fondos de Pensiones CL", country: "CL", followers: 8700, return_ytd: 14.2, premium: false, tags: ["chile", "afp", "ipsa", "institucional"] }),
   p({ id: "d46", slug: "cobre-superciclo", name: "Superciclo del Cobre & Red Eléctrica", description: "Productores de cobre y equipamiento de transmisión eléctrica ante el déficit estructural por electrificación y data centers.", category: "thematic", source: "model", manager: "Tesis Commodities", country: "Global", followers: 6900, return_ytd: 29.1, premium: true, tags: ["cobre", "mineria", "chile", "electrificacion"] }),
   p({ id: "d47", slug: "trump-dice", name: "Trump dice", description: "Compra simulada de US$1.000 al cierre cada vez que Donald Trump llama a comprar o elogia directamente una acción. Cada mención con su cita y su fuente.", category: "political_us", source: "trump_mentions", manager: "Donald Trump", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["trump", "menciones", "truth-social", "dichos"] }),
+  p({ id: "d48", slug: "inverse-cramer-real", name: "Inverse Cramer (real)", description: "Simulación: se vende en corto lo que Jim Cramer recomienda comprar en el Lightning Round de CNBC y se compra lo que recomienda vender. Igual peso, 30 días hábiles, sin costo de préstamo.", category: "model", source: "cnbc_lightning_round", manager: "Jim Cramer (invertido)", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["cramer", "inverse", "cnbc", "menciones"] }),
   p({
     id: "d-f10",
     slug: "insiders-compras-1m",
@@ -92,7 +93,7 @@ export const DEMO_PORTFOLIOS: Portfolio[] = [
     premium: false,
     tags: ["insiders", "form4", "sec", "ejecutivos"],
   }),
-  p({ id: "d48", slug: "musk-dice", name: "Elon Musk dice", description: "Simulación histórica de los elogios verificados de Elon Musk a acciones de terceros, con la cita y el enlace al post. Tesla se muestra como contexto: Musk es insider y no es una señal.", category: "model", source: "musk_mentions", manager: "Elon Musk", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["musk", "menciones", "x"] }),
+  p({ id: "d49", slug: "musk-dice", name: "Elon Musk dice", description: "Simulación histórica de los elogios verificados de Elon Musk a acciones de terceros, con la cita y el enlace al post. Tesla se muestra como contexto: Musk es insider y no es una señal.", category: "model", source: "musk_mentions", manager: "Elon Musk", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["musk", "menciones", "x"] }),
 ];
 
 // Holdings de demostración por portfolio (id -> lista)
@@ -391,6 +392,36 @@ const DEMO_HOLDINGS: Record<string, Omit<Holding, "portfolio_id" | "as_of">[]> =
     { id: "h217", symbol: "SPY", name: "SPDR S&P 500 ETF", weight: 5.08, previous_weight: null, asset_class: "etf", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h218", symbol: "USD-CASH", name: "Efectivo (U.S. Steel, compra de Nippon a US$55)", weight: 3.8, previous_weight: null, asset_class: "cash", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
   ],
+  // Semilla 018 al 16-10-2026. Igual peso. El corto va en el nombre: weight
+  // no puede ser negativo. previous_weight null en demo (en la 018 es 0).
+  // MTZ no está: largo y corto abiertos a la vez, se netean.
+  "inverse-cramer-real": [
+    { id: "h219", symbol: "AMBA", name: "AMBA", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h220", symbol: "AVY", name: "Corto: AVY", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h221", symbol: "AZN", name: "AZN", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h222", symbol: "BB", name: "Corto: BB", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h223", symbol: "CIEN", name: "Corto: CIEN", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h224", symbol: "CRDO", name: "Corto: CRDO", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h225", symbol: "EPD", name: "Corto: EPD", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h226", symbol: "ET", name: "Corto: ET", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h227", symbol: "FRT", name: "Corto: FRT", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h228", symbol: "GME", name: "Corto: GME", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h229", symbol: "GRAB", name: "GRAB", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h230", symbol: "GRAL", name: "Corto: GRAL", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h231", symbol: "HWM", name: "Corto: HWM", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h232", symbol: "IRM", name: "Corto: IRM", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h233", symbol: "JOBY", name: "JOBY", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h234", symbol: "KMI", name: "Corto: KMI", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h235", symbol: "MDLZ", name: "MDLZ", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h236", symbol: "PENG", name: "Corto: PENG", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h237", symbol: "POET", name: "POET", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h238", symbol: "RDDT", name: "Corto: RDDT", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h239", symbol: "RKLB", name: "RKLB", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h240", symbol: "SNAP", name: "SNAP", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h241", symbol: "SPG", name: "Corto: SPG", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h242", symbol: "STWD", name: "STWD", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h243", symbol: "TRN", name: "Corto: TRN", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+  ],
   "insiders-compras-1m": [
     { id: "h-f10-1", symbol: "TTD", name: "TTD", weight: 33.34, previous_weight: 0, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h-f10-2", symbol: "KKR", name: "KKR", weight: 33.33, previous_weight: 0, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
@@ -398,8 +429,8 @@ const DEMO_HOLDINGS: Record<string, Omit<Holding, "portfolio_id" | "as_of">[]> =
   ],
   // Semilla 017. previous_weight null: en demo no hay salto. CDR y Tesla no son holdings.
   "musk-dice": [
-    { id: "h219", symbol: "ETSY", name: "Etsy", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
-    { id: "h220", symbol: "GME", name: "GameStop", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h244", symbol: "ETSY", name: "Etsy", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h245", symbol: "GME", name: "GameStop", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
   ],
 };
 
@@ -415,7 +446,7 @@ export function demoHoldings(slug: string): Holding[] {
 
 const DEMO_ALERTS: Alert[] = [
   { id: "a1", portfolio_id: "d1", type: "new_trade", severity: "high", title: "Nancy Pelosi compró $1M–$5M en NVDA", summary: "La congresista Pelosi realizó una compra significativa de NVIDIA vía opciones call deep-in-the-money con vencimiento 2027, su tercera operación en semiconductores este trimestre.", payload: { symbol: "NVDA", tx_date: "2026-10-01", disclosed: "2026-10-09", traded_at: "2026-10-01", filed_at: "2026-10-09" }, created_at: "2026-10-09T14:00:00Z", portfolio: { id: "d1", slug: "pelosi-tracker", name: "Pelosi Tracker" } },
-  { id: "a-f10-1", portfolio_id: "d-f10", type: "new_trade", severity: "high", title: "Insider: Chief Executive Officer de TTD compró US$148.101.266", summary: null, payload: { symbol: "TTD", owner_name: "Jeff Green", owner_title: "Chief Executive Officer", value_usd: 148101266, trans_date: "2026-03-02", filed_at: "2026-03-04", source_url: "https://www.sec.gov/Archives/edgar/data/1671933/000167144526000004/wk-form4_1772674051.xml" }, created_at: "2026-03-04T21:00:00Z", portfolio: { id: "d47", slug: "insiders-compras-1m", name: "Compras de ejecutivos" } },
+  { id: "a-f10-1", portfolio_id: "d-f10", type: "new_trade", severity: "high", title: "Insider: Chief Executive Officer de TTD compró US$148.101.266", summary: null, payload: { symbol: "TTD", owner_name: "Jeff Green", owner_title: "Chief Executive Officer", value_usd: 148101266, trans_date: "2026-03-02", filed_at: "2026-03-04", source_url: "https://www.sec.gov/Archives/edgar/data/1671933/000167144526000004/wk-form4_1772674051.xml" }, created_at: "2026-03-04T21:00:00Z", portfolio: { id: "d-f10", slug: "insiders-compras-1m", name: "Compras de ejecutivos" } },
   { id: "a11", portfolio_id: "d35", type: "mention", severity: "high", title: "Trump en Truth Social: impulso a perforación en EE.UU. (XOM, CVX)", summary: "Donald Trump publicó en Truth Social un llamado directo a acelerar permisos federales de perforación y gas natural licuado ('DRILL, BABY, DRILL'), destacando a las integradas energéticas estadounidenses Exxon Mobil (XOM) y Chevron (CVX) como pilares para reducir costos industriales.", payload: { symbol: "XOM", filed_at: "2026-10-10", traded_at: "2026-10-10" }, created_at: "2026-10-10T11:30:00Z", portfolio: { id: "d35", slug: "trump-truth-signals", name: "Trump Truth & Tariffs Radar" } },
   { id: "a12", portfolio_id: "d2", type: "mention", severity: "high", title: "Trump ratifica tesis de Reserva Estratégica de Bitcoin (IBIT, COIN)", summary: "En declaración pública amplificada en Truth Social, Trump reiteró su compromiso de posicionar a EE.UU. como capital mundial cripto y mantener activos digitales en reserva estratégica, impulsando flujos institucionales hacia IBIT (+3.5pp en el radar).", payload: { symbol: "IBIT", filed_at: "2026-10-09", traded_at: "2026-10-09" }, created_at: "2026-10-09T18:15:00Z", portfolio: { id: "d2", slug: "trump-trades", name: "Trump Trades" } },
   { id: "a13", portfolio_id: "d35", type: "mention", severity: "high", title: "Amenaza de aranceles del 25% al acero importado impulsa a Nucor (NUE)", summary: "Trump anunció revisión inmediata de cuotas de importación de acero extranjero para proteger acerías locales. Nucor Corp (NUE) y productores domésticos registraron fuerte rotación compradora tras el comunicado.", payload: { symbol: "NUE", filed_at: "2026-10-09", traded_at: "2026-10-08" }, created_at: "2026-10-09T09:45:00Z", portfolio: { id: "d35", slug: "trump-truth-signals", name: "Trump Truth & Tariffs Radar" } },
