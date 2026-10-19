@@ -1,15 +1,15 @@
 const FAQ_ITEMS = [
   {
     q: "¿reclu.cl ejecuta operaciones por mí?",
-    a: "No. reclu.cl es una plataforma de seguimiento y alertas. Nunca ejecutamos órdenes, ni custodiados tus fondos ni tenemos acceso a tus cuentas de corretaje. Solo monitoreamos información pública y te avisamos por email.",
+    a: "No. reclu.cl es una plataforma de seguimiento y alertas. Nunca ejecutamos órdenes, ni custodiamos tus fondos ni tenemos acceso a tus cuentas de corretaje. Solo monitoreamos información pública y te avisamos por email o Telegram.",
   },
   {
     q: "¿De dónde salen los datos?",
-    a: "De fuentes públicas: Capitol Trades y disclosures oficiales para políticos de EE.UU., informes públicos de corredoras chilenas como Renta 4, LarrainVial y BTG Pactual, filings 13F de la SEC, y datos abiertos de InfoProbidad en Chile.",
+    a: "De fuentes públicas: las divulgaciones periódicas oficiales de la Cámara de Representantes de EE.UU. (House Disclosure), informes del Senado, filings 13F de la SEC, y las carteras recomendadas publicadas por corredoras chilenas como Renta 4 y BTG Pactual, además de fondos como ARK y Global X.",
   },
   {
     q: "¿Qué tan rápido llegan las alertas?",
-    a: "En el plan Pro, las alertas se envían en tiempo real cuando detectamos un cambio. En el plan gratuito, las alertas se agrupan en un resumen diario.",
+    a: "En Pro y Elite puedes recibir alertas en tiempo real apenas detectamos un cambio (por email o Telegram). En el plan gratuito las alertas se agrupan en un resumen diario o semanal, como prefieras en Ajustes. Nuevas cuentas tienen 7 días de prueba con beneficios Pro.",
   },
   {
     q: "¿Los resúmenes AI son consejos de inversión?",
@@ -21,7 +21,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "¿Qué pasa si supero el límite del plan gratuito?",
-    a: "El plan gratuito permite seguir hasta 2 portafolios. Si quieres seguir más, puedes actualizar a Pro en cualquier momento — tus alertas y datos se mantienen intactos.",
+    a: "El plan gratuito permite seguir hasta 2 portafolios y usar el asistente IA 5 veces al día. Si quieres seguir más portafolios, puedes actualizar a Pro en cualquier momento — tus alertas y datos se mantienen intactos.",
   },
 ];
 

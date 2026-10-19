@@ -126,6 +126,20 @@ export interface Profile {
   /** Stripe/customer id once billing is connected. */
   stripe_customer_id: string | null;
   alert_frequency: "realtime" | "daily" | "weekly";
+  /** Canal de alertas (migración 008): email | telegram | both. */
+  alert_channel?: "email" | "telegram" | "both" | null;
+  /** Solo de servidor (migración 008). Presente para usuarios en prueba. */
+  trial_ends_at?: string | null;
+  /** Solo de servidor (migración 008). No exponer al cliente. */
+  unsubscribe_token?: string | null;
+  /** True si el usuario se dio de baja de los correos. */
+  email_unsubscribed?: boolean | null;
+  /** Recibe el resumen semanal "lo que movieron los grandes". */
+  weekly_digest?: boolean | null;
+  /** Solo de servidor (migración 008). Chat id de Telegram vinculado. */
+  telegram_chat_id?: string | null;
+  /** Código de un solo uso para /start. Lo genera el servidor al vincular. */
+  telegram_link_code?: string | null;
   created_at: string;
   updated_at: string;
 }
