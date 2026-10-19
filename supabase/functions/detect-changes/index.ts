@@ -18,6 +18,26 @@ interface HoldingRow {
   name: string;
   weight: number;
   previous_weight: number | null;
+  as_of?: string | null;
+}
+
+interface PortfolioSource {
+  id: string;
+  slug: string;
+  source: string;
+}
+
+/** Misma URL que `urlCuadro14` en src/lib/afp-fuente.ts. Solo AFP Modelo. */
+function sourceUrlAfpModelo(slug: string, source: string, asOf: string | null | undefined): string | null {
+  if (source !== "spensiones" || slug !== "afp-modelo-acciones-cl" || !asOf) return null;
+  const match = /^(\d{4})-(\d{2})-\d{2}/.exec(asOf.trim());
+  if (!match) return null;
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return null;
+  return (
+    "https://www.spensiones.cl/apps/carteras/genera_desagregada_xsl.php" +
+    `?fecpro=${match[1]}${match[2]}&idu=50&listado=14`
+  );
 }
 
 const corsHeaders = {
@@ -50,6 +70,19 @@ Deno.serve(async (req) => {
     }
 
     const alertsToInsert: Array<Record<string, unknown>> = [];
+    const sourceByPortfolio = new Map<string, PortfolioSource>();
+    const portfolioIds = [...new Set((changed as HoldingRow[]).map((row) => row.portfolio_id))];
+    if (portfolioIds.length > 0) {
+      const { data: portfolios, error: portfolioError } = await supabase
+        .from("portfolios")
+        .select("id, slug, source")
+        .in("id", portfolioIds);
+      if (!portfolioError) {
+        for (const row of (portfolios ?? []) as PortfolioSource[]) {
+          if (row?.id) sourceByPortfolio.set(row.id, row);
+        }
+      }
+    }
 
     const portfolioIds = [...new Set((changed as HoldingRow[]).map((h) => h.portfolio_id))];
     const { data: sourceRows } = await supabase
@@ -92,6 +125,11 @@ Deno.serve(async (req) => {
             ? `Vendido: ${h.symbol}`
             : `${h.symbol}: ${delta > 0 ? "+" : ""}${delta.toFixed(1)}pp (ahora ${h.weight.toFixed(1)}%)`;
 
+      const portfolio = sourceByPortfolio.get(h.portfolio_id);
+      const sourceUrl = portfolio
+        ? sourceUrlAfpModelo(portfolio.slug, portfolio.source, h.as_of)
+        : null;
+
       alertsToInsert.push({
         portfolio_id: h.portfolio_id,
         type,
@@ -103,6 +141,7 @@ Deno.serve(async (req) => {
           weight: h.weight,
           previous_weight: h.previous_weight,
           delta,
+          ...(sourceUrl ? { source_url: sourceUrl } : {}),
         },
         is_published: false, // published after AI summary is generated
       });

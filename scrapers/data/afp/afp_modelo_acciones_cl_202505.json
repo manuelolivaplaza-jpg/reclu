@@ -1,0 +1,270 @@
+{
+ "fecha": "30-05-2025",
+ "fuente": "https://www.spensiones.cl/apps/carteras/genera_desagregada_xsl.php?fecpro=202505&idu=50&listado=14",
+ "filas": [
+  {
+   "nemo": "Â Â Â Â Â Â Â CENCOSUD",
+   "emisor": "CENCOSUD S.A.",
+   "tipo": "N",
+   "total_mmusd": 190.69,
+   "pct_fondo": 1.17,
+   "pct_emisor": 1.92
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â SQM-B",
+   "emisor": "SOCIEDAD QUIMICA Y MINERA DE CHILE S.A.",
+   "tipo": "S",
+   "total_mmusd": 113.74,
+   "pct_fondo": 0.7,
+   "pct_emisor": 2.51
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â BSANTANDER",
+   "emisor": "BANCO SANTANDER CHILE",
+   "tipo": "N",
+   "total_mmusd": 110.16,
+   "pct_fondo": 0.67,
+   "pct_emisor": 0.96
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â BCI",
+   "emisor": "BANCO DE CREDITO E INVERSIONES",
+   "tipo": "N",
+   "total_mmusd": 99.71,
+   "pct_fondo": 0.61,
+   "pct_emisor": 1.14
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â CHILE",
+   "emisor": "BANCO DE CHILE",
+   "tipo": "N",
+   "total_mmusd": 93.22,
+   "pct_fondo": 0.57,
+   "pct_emisor": 0.61
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â LTM",
+   "emisor": "LATAM AIRLINES GROUP S.A.",
+   "tipo": "N",
+   "total_mmusd": 91.34,
+   "pct_fondo": 0.56,
+   "pct_emisor": 0.8
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â FALABELLA",
+   "emisor": "FALABELLA S.A.",
+   "tipo": "N",
+   "total_mmusd": 88.34,
+   "pct_fondo": 0.54,
+   "pct_emisor": 0.72
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â COPEC",
+   "emisor": "EMPRESAS COPEC S.A.",
+   "tipo": "N",
+   "total_mmusd": 86.99,
+   "pct_fondo": 0.53,
+   "pct_emisor": 0.92
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â CENCOMALLS",
+   "emisor": "CENCOSUD SHOPPING SA",
+   "tipo": "N",
+   "total_mmusd": 75.03,
+   "pct_fondo": 0.46,
+   "pct_emisor": 2.07
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â MALLPLAZA",
+   "emisor": "PLAZA S.A.",
+   "tipo": "N",
+   "total_mmusd": 68.2,
+   "pct_fondo": 0.42,
+   "pct_emisor": 1.41
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ENELAM",
+   "emisor": "ENEL AMERICAS S.A.",
+   "tipo": "S",
+   "total_mmusd": 66.91,
+   "pct_fondo": 0.41,
+   "pct_emisor": 0.63
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â COLBUN",
+   "emisor": "COLBUN S.A.",
+   "tipo": "S",
+   "total_mmusd": 48.89,
+   "pct_fondo": 0.3,
+   "pct_emisor": 1.75
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ENELCHILE",
+   "emisor": "ENEL CHILE S.A.",
+   "tipo": "S",
+   "total_mmusd": 35.75,
+   "pct_fondo": 0.22,
+   "pct_emisor": 0.7
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â CMPC",
+   "emisor": "EMPRESAS CMPC S.A.",
+   "tipo": "N",
+   "total_mmusd": 31.88,
+   "pct_fondo": 0.2,
+   "pct_emisor": 0.79
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â PARAUCO",
+   "emisor": "PARQUE ARAUCO S.A.",
+   "tipo": "N",
+   "total_mmusd": 28.12,
+   "pct_fondo": 0.17,
+   "pct_emisor": 1.43
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ECL",
+   "emisor": "ENGIE ENERGIA CHILE S.A.",
+   "tipo": "N",
+   "total_mmusd": 20.84,
+   "pct_fondo": 0.13,
+   "pct_emisor": 1.47
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â SK",
+   "emisor": "SIGDO KOPPERS S.A.",
+   "tipo": "N",
+   "total_mmusd": 20.76,
+   "pct_fondo": 0.13,
+   "pct_emisor": 1.45
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â AGUAS-A",
+   "emisor": "AGUAS ANDINAS S.A.",
+   "tipo": "N",
+   "total_mmusd": 17.25,
+   "pct_fondo": 0.11,
+   "pct_emisor": 0.8
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â SMU",
+   "emisor": "SMU S.A.",
+   "tipo": "N",
+   "total_mmusd": 15.21,
+   "pct_fondo": 0.09,
+   "pct_emisor": 1.38
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ANDINA-B",
+   "emisor": "EMBOTELLADORA ANDINA S.A.",
+   "tipo": "N",
+   "total_mmusd": 13.51,
+   "pct_fondo": 0.08,
+   "pct_emisor": 0.64
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ENTEL",
+   "emisor": "EMPRESA NACIONAL DE TELECOMUNICACIONES S.A.",
+   "tipo": "S",
+   "total_mmusd": 13.32,
+   "pct_fondo": 0.08,
+   "pct_emisor": 1.49
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â RIPLEY",
+   "emisor": "RIPLEY CORP S.A.",
+   "tipo": "N",
+   "total_mmusd": 13.08,
+   "pct_fondo": 0.08,
+   "pct_emisor": 1.4
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â CONCHATORO",
+   "emisor": "VINA CONCHA Y TORO S.A.",
+   "tipo": "N",
+   "total_mmusd": 11.99,
+   "pct_fondo": 0.07,
+   "pct_emisor": 1.32
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â SMSAAM",
+   "emisor": "SOCIEDAD MATRIZ SAAM S.A.",
+   "tipo": "N",
+   "total_mmusd": 11.1,
+   "pct_fondo": 0.07,
+   "pct_emisor": 0.88
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ANDINA-A",
+   "emisor": "EMBOTELLADORA ANDINA S.A.",
+   "tipo": "N",
+   "total_mmusd": 9.84,
+   "pct_fondo": 0.06,
+   "pct_emisor": 0.59
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â EMBONOR-B",
+   "emisor": "COCA-COLA EMBONOR S.A.",
+   "tipo": "N",
+   "total_mmusd": 9.47,
+   "pct_fondo": 0.06,
+   "pct_emisor": 2.39
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â FORUS",
+   "emisor": "FORUS S.A.",
+   "tipo": "N",
+   "total_mmusd": 9.23,
+   "pct_fondo": 0.06,
+   "pct_emisor": 1.41
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â BESALCO",
+   "emisor": "BESALCO S.A.",
+   "tipo": "N",
+   "total_mmusd": 6.84,
+   "pct_fondo": 0.04,
+   "pct_emisor": 1.37
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â QUINENCO",
+   "emisor": "QUINENCO S.A.",
+   "tipo": "N",
+   "total_mmusd": 4.88,
+   "pct_fondo": 0.03,
+   "pct_emisor": 0.07
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ANTARCHILE",
+   "emisor": "ANTARCHILE S.A.",
+   "tipo": "N",
+   "total_mmusd": 3.44,
+   "pct_fondo": 0.02,
+   "pct_emisor": 0.09
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â ALMENDRAL",
+   "emisor": "ALMENDRAL S.A.",
+   "tipo": "N",
+   "total_mmusd": 2.38,
+   "pct_fondo": 0.01,
+   "pct_emisor": 0.69
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â MOLLER",
+   "emisor": "EMPRESA CONSTRUCTORA MOLLER Y PEREZ-COTAPOS S.A.",
+   "tipo": "N",
+   "total_mmusd": 0.59,
+   "pct_fondo": 0.0,
+   "pct_emisor": 0.95
+  },
+  {
+   "nemo": "Â Â Â Â Â Â Â VAPORES",
+   "emisor": "COMPANIA SUDAMERICANA DE VAPORES S.A.",
+   "tipo": "N",
+   "total_mmusd": 0.33,
+   "pct_fondo": 0.0,
+   "pct_emisor": 0.01
+  }
+ ]
+}
