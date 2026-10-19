@@ -1,9 +1,13 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { createHmac } from "node:crypto";
 import { signFlowParams } from "@/lib/billing/flow";
 import { verifyMercadoPagoSignature } from "@/lib/billing/mercadopago";
-import { createMockProvider } from "@/lib/billing/mock";
-import { getPaymentProvider, getProviderById } from "@/lib/billing";
+import {
+  getPaymentProvider,
+  getProviderById,
+  isMockAllowed,
+  PaymentsNotConfiguredError,
+} from "@/lib/billing";
 import { PLAN_PRICES_CLP, formatCLP } from "@/lib/billing/prices";
 
 // ---- Firma HMAC de Flow ----
@@ -173,13 +177,6 @@ describe("proveedor mock", () => {
     expect(verification.state?.status).toBe("active");
   });
 
-  it("es el proveedor por defecto sin claves configuradas", async () => {
-    delete process.env.FLOW_API_KEY;
-    delete process.env.MP_ACCESS_TOKEN;
-    const provider = getPaymentProvider();
-    expect(provider.id).toBe("mock");
-    expect(getProviderById("flow").id).toBe("mock");
-  });
 });
 
 // ---- Precios ----
@@ -190,5 +187,105 @@ describe("prices", () => {
     expect(PLAN_PRICES_CLP.elite.monthly).toBe(16990);
     expect(PLAN_PRICES_CLP.pro.annualMonthly).toBeLessThan(PLAN_PRICES_CLP.pro.monthly);
     expect(formatCLP(12990)).toBe("$12.990");
+  });
+});
+
+// ---- Fail closed: mock solo en desarrollo ----
+
+const PAYMENT_ENV = [
+  "PAYMENT_PROVIDER",
+  "PAYMENT_MODE",
+  "VERCEL_ENV",
+  "ALLOW_MOCK_PAYMENTS",
+  "FLOW_API_KEY",
+  "FLOW_SECRET_KEY",
+  "MP_ACCESS_TOKEN",
+] as const;
+
+/** Aísla el entorno de pagos. No lee `.env.local`. */
+function stubPaymentEnv(overrides: Record<string, string | undefined> = {}) {
+  for (const key of PAYMENT_ENV) vi.stubEnv(key, undefined);
+  vi.stubEnv("NODE_ENV", "development");
+  for (const [key, value] of Object.entries(overrides)) vi.stubEnv(key, value);
+}
+
+describe("fail closed del proveedor", () => {
+  beforeEach(() => {
+    stubPaymentEnv();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("sin PAYMENT_PROVIDER y en desarrollo usa mock", () => {
+    const provider = getPaymentProvider();
+    expect(isMockAllowed()).toBe(true);
+    expect(provider.id).toBe("mock");
+  });
+
+  it("VERCEL_ENV=production bloquea mock aunque ALLOW_MOCK_PAYMENTS=true", () => {
+    stubPaymentEnv({
+      PAYMENT_PROVIDER: "mock",
+      VERCEL_ENV: "production",
+      ALLOW_MOCK_PAYMENTS: "true",
+    });
+    expect(isMockAllowed()).toBe(false);
+    expect(() => getPaymentProvider()).toThrow(PaymentsNotConfiguredError);
+    expect(() => getProviderById("mock")).toThrow(PaymentsNotConfiguredError);
+  });
+
+  it("NODE_ENV=production exige ALLOW_MOCK_PAYMENTS y cede si VERCEL_ENV no es production", () => {
+    stubPaymentEnv({ NODE_ENV: "production", PAYMENT_PROVIDER: "mock" });
+    expect(isMockAllowed()).toBe(false);
+    expect(() => getPaymentProvider()).toThrow(PaymentsNotConfiguredError);
+
+    stubPaymentEnv({
+      NODE_ENV: "production",
+      PAYMENT_PROVIDER: "mock",
+      ALLOW_MOCK_PAYMENTS: "true",
+    });
+    expect(isMockAllowed()).toBe(true);
+    expect(getPaymentProvider().id).toBe("mock");
+  });
+
+  it("flow sin claves lanza PaymentsNotConfiguredError y no cae a mock", () => {
+    stubPaymentEnv({ PAYMENT_PROVIDER: "flow" });
+    expect(isMockAllowed()).toBe(false);
+    expect(() => getPaymentProvider()).toThrow(PaymentsNotConfiguredError);
+    expect(() => getProviderById("flow")).toThrow(PaymentsNotConfiguredError);
+    try {
+      getPaymentProvider();
+    } catch (err) {
+      expect(err).toBeInstanceOf(PaymentsNotConfiguredError);
+      expect((err as PaymentsNotConfiguredError).providerId).toBe("flow");
+    }
+  });
+
+  it("mercadopago sin claves lanza PaymentsNotConfiguredError y no cae a mock", () => {
+    stubPaymentEnv({ PAYMENT_PROVIDER: "mercadopago" });
+    expect(isMockAllowed()).toBe(false);
+    expect(() => getPaymentProvider()).toThrow(PaymentsNotConfiguredError);
+    try {
+      getProviderById("mercadopago");
+    } catch (err) {
+      expect((err as PaymentsNotConfiguredError).providerId).toBe("mercadopago");
+    }
+  });
+
+  it("el webhook mock responde 404 cuando mock no está permitido", async () => {
+    stubPaymentEnv({ VERCEL_ENV: "production", ALLOW_MOCK_PAYMENTS: "true" });
+    expect(isMockAllowed()).toBe(false);
+    const { POST } = await import("@/app/api/billing/webhook/[provider]/route");
+    const res = await POST(
+      new Request("http://localhost/api/billing/webhook/mock", {
+        method: "POST",
+        body: JSON.stringify({ mockPaymentId: "mock_forged" }),
+      }),
+      { params: Promise.resolve({ provider: "mock" }) },
+    );
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { ok: boolean };
+    expect(body.ok).toBe(false);
   });
 });
