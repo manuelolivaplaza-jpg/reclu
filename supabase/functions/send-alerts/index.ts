@@ -1,9 +1,15 @@
-// Supabase Edge Function: send alert emails via Resend
+// Supabase Edge Function: send alert emails (Resend) + Telegram messages.
 // Deploy: supabase functions deploy send-alerts
 //
 // Env vars:
 //   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 //   RESEND_API_KEY, EMAIL_FROM
+//   SITE_URL o NEXT_PUBLIC_SITE_URL (base de enlaces de baja)
+//   TELEGRAM_BOT_TOKEN (opcional; se omite sin error si falta)
+//
+// Sincronización: la lógica de routing replicada aquí debe coincidir con
+// `src/lib/plans.ts` + `src/lib/alert-routing.ts` (Deno no puede importar
+// desde src/). Si cambian planes o frecuencias, cambia ambas copias.
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
@@ -14,8 +20,93 @@ interface AlertWithPortfolio {
   severity: string;
   title: string;
   summary: string | null;
+  /** Datos crudos del cambio (alert.payload): usado para el desfase. */
+  payload?: Record<string, unknown> | null;
   created_at: string;
   portfolio: { id: string; slug: string; name: string };
+}
+
+// ---- Copia mínima de plans.ts + alert-routing.ts (ver comentario arriba) ----
+
+const ALL_FREQUENCIES = ["realtime", "daily", "weekly"] as const;
+
+function isPaidPlan(plan?: string | null): boolean {
+  return plan === "pro" || plan === "elite";
+}
+
+function isTrialPro(plan?: string | null, trialEndsAt?: string | null): boolean {
+  if (isPaidPlan(plan) || typeof trialEndsAt !== "string" || trialEndsAt.length === 0) {
+    return false;
+  }
+  const ends = Date.parse(trialEndsAt);
+  return Number.isFinite(ends) && ends > Date.now();
+}
+
+function canUseRealtime(plan?: string | null, trialEndsAt?: string | null): boolean {
+  return isPaidPlan(plan) || isTrialPro(plan, trialEndsAt);
+}
+
+/** Normaliza la frecuencia pedida a una válida para el plan (cae a daily). */
+function normalizeFrequency(
+  plan: string,
+  requested: string | null | undefined,
+  trialEndsAt?: string | null,
+): (typeof ALL_FREQUENCIES)[number] {
+  const wanted = ALL_FREQUENCIES.includes(requested as (typeof ALL_FREQUENCIES)[number])
+    ? (requested as (typeof ALL_FREQUENCIES)[number])
+    : "daily";
+  if (wanted === "realtime" && !canUseRealtime(plan, trialEndsAt)) return "daily";
+  return wanted;
+}
+
+interface ProfileRoute {
+  plan: string;
+  trial_ends_at?: string | null;
+  alert_frequency: string;
+  alert_channel?: string | null;
+  email_unsubscribed?: boolean | null;
+  telegram_chat_id?: string | null;
+  weekly_digest?: boolean | null;
+}
+
+type Mode = "instant" | "daily" | "weekly";
+
+/** Equivalente a routeAlert() de src/lib/alert-routing.ts. */
+function routeAlert(
+  profile: ProfileRoute,
+  mode: Mode,
+): { email: boolean; telegram: boolean; frequency: string } {
+  const frequency = normalizeFrequency(profile.plan, profile.alert_frequency, profile.trial_ends_at);
+  const unsubscribed = profile.email_unsubscribed === true;
+  const telegramReady =
+    (profile.alert_channel === "telegram" || profile.alert_channel === "both") &&
+    typeof profile.telegram_chat_id === "string" &&
+    profile.telegram_chat_id.length > 0 &&
+    canUseRealtime(profile.plan, profile.trial_ends_at);
+
+  if (mode === "weekly") {
+    const weeklyOk = profile.weekly_digest !== false;
+    return { email: weeklyOk && !unsubscribed, telegram: telegramReady && weeklyOk, frequency };
+  }
+  if (mode === "daily") {
+    // El digest agrupa lo no entregado: el correo va para todas las
+    // frecuencias; Telegram solo para quienes NO son realtime (ya avisados).
+    return { email: !unsubscribed, telegram: telegramReady && frequency !== "realtime", frequency };
+  }
+  // instant: solo quienes eligieron (y pueden) tiempo real.
+  if (frequency !== "realtime") {
+    return { email: false, telegram: false, frequency };
+  }
+  return { email: !unsubscribed, telegram: telegramReady, frequency };
+}
+
+/** Bloque HTML opcional de patrocinador del resumen semanal (vacío = nada). */
+const DIGEST_SPONSOR_HTML = Deno.env.get("DIGEST_SPONSOR_HTML") ?? "";
+
+/** URL base del sitio para enlaces de baja/administración. */
+function siteUrl(): string {
+  return (Deno.env.get("SITE_URL") ?? Deno.env.get("NEXT_PUBLIC_SITE_URL") ?? "https://reclu.cl")
+    .replace(/\/+$/, "");
 }
 
 const corsHeaders = {
