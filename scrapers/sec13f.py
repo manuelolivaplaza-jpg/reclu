@@ -39,6 +39,11 @@ FUNDS: dict[str, int] = {
     "Renaissance Technologies": 1037389,  # 3,140 lines — institutional book, not Medallion
     "Bridgewater Associates": 1350694,    # 997 lines — All Weather long-only cut
     "Soros Fund Management": 1029160,     # 266 lines — family office
+    # --- Nuevos fondos (docs/expansion-portfolios-2.md, CIK verificados) ---
+    "DME Capital Management": 1489933,    # Greenlight/Einhorn — el filer vivo (1079114 está muerto)
+    "AKO Capital": 1376879,               # Nicolai Tangen — infotable no estándar, valor en MILES
+    "HHLR Advisors": 1762304,             # ex Hillhouse — libro corto
+    "Temasek Holdings": 1021944,           # soberano de Singapur, libro largo
 }
 
 # Funds whose 13F XML infotable has a non-standard filename or

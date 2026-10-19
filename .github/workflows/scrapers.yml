@@ -1,0 +1,119 @@
+name: Scrapers
+
+# Pipeline diario de datos de reclu.cl:
+#   1. Corre los scrapers Python (posiciones) y las etapas de mercado.
+#   2. Sube el log completo como artifact.
+#   3. Si APP_URL + CRON_SECRET están configurados, llama al endpoint
+#      /api/run-pipeline (detect-changes + send-alerts) para cerrar el ciclo.
+#
+# Cron: GitHub Actions usa UTC. 11:00 UTC = 08:00 Chile (verano) — corre
+# de lunes a viernes para capturar los PTRs del fin de semana. El job
+# "live" (todo) corre L-V; "light" (posiciones rápidas + precios) los
+# demás días vía schedule propio (ver abajo).
+#
+# Secrets requeridos (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL               — URL del proyecto Supabase
+#   SUPABASE_SERVICE_ROLE_KEY  — service role key (SOLO en Actions, nunca client)
+#   CRON_SECRET                — el mismo de Vercel (para llamar /api/run-pipeline)
+#   APP_URL                    — https://reclu.cl (omítelo para saltar el pipeline)
+#
+# Nota: efdsearch.senate.gov (Senado de EE.UU.) bloquea IPs fuera de
+# EE.UU. — github-hosted runners ejecutan en EE.UU., así que funciona.
+# Si un runner sale fuera, la etapa senate_disclosure fallará sin tumbar
+# la corrida (es tolerante a fallos por diseño).
+
+on:
+  schedule:
+    # L-V 11:00 UTC (08:00 Chile): corrida completa
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Solo probar (no escribir en Supabase)'
+        type: boolean
+        default: false
+
+concurrency:
+  group: scrapers-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  scrapers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    # GitHub Actions NO permite usar `secrets.*` dentro de un `if:` (el
+    # workflow no valida). La condición se precalcula aquí como env de job
+    # y el paso la lee con env.HAS_APP_URL == 'true'.
+    env:
+      HAS_APP_URL: ${{ secrets.APP_URL != '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: scrapers/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r scrapers/requirements.txt
+
+      - name: Run scrapers (full pipeline)
+        if: ${{ inputs.dry_run != true }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          cd scrapers
+          python run_all.py 2>&1 | tee ../scraper-run.log
+
+      - name: Run scrapers (dry-run, sin escribir en la DB)
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          cd scrapers
+          python run_all.py --dry-run 2>&1 | tee ../scraper-run.log
+
+      - name: Upload scraper log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-run-${{ github.run_id }}
+          path: scraper-run.log
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Trigger alert pipeline (/api/run-pipeline)
+        # Después de que los scrapers escribieron holdings con
+        # previous_weight, el endpoint corre detect-changes (alertas + AI)
+        # y send-alerts (emails). Solo si APP_URL está configurado.
+        if: ${{ inputs.dry_run != true && env.HAS_APP_URL == 'true' }}
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          echo "Calling $APP_URL/api/run-pipeline ..."
+          code=$(curl -s -o pipeline-response.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            --max-time 240 \
+            "${APP_URL%/}/api/run-pipeline")
+          echo "HTTP $code"
+          cat pipeline-response.json || true
+          if [ "$code" != "200" ]; then
+            echo "::warning::Pipeline endpoint responded $code (see pipeline-response.json)"
+          fi
+
+      - name: Upload pipeline response
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-response-${{ github.run_id }}
+          path: pipeline-response.json
+          retention-days: 14
+          if-no-files-found: ignore

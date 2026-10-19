@@ -1,123 +1,140 @@
 """
-InfoProbidad scraper — Chilean public disclosures (declaraciones de patrimonio).
+InfoProbidad scraper — declaraciones de patrimonio de autoridades chilenas.
 
-Source: https://www.infoprobidad.cl (open data / public declarations)
-Feeds portfolio: infoProbidad-cl
+Fuente REAL (verificada en vivo 2026-10-18): el portal publica Datos
+Abiertos Enlazados con un endpoint SPARQL público en
+    https://datos.cplt.cl/sparql
+(Consejo para la Transparencia — infoprobidad.cl, licencia CC 4.0,
+actualización semanal los martes y viernes).
 
-InfoProbidad publishes declarations of assets/interests of Chilean public
-officials. We track notable declarations as "mentions" alerts.
+El CSV hipotético `/descargas/declaraciones-<año>.csv` que usaba la versión
+anterior NO existe (404 verificado). Este adapter consulta el SPARQL real:
+    Persona → ip:declara → Declaración → ip:tieneAccionDerecho
+    → ip:derechoSobre (Entidad con rdfs:label) + ip:valorPlaza (Money:
+      ip:valor + ip:moneda)
 
-NOTE: The site offers datasets in CSV/JSON. This adapter targets the public
-dataset download endpoints. Update URLs if the portal changes.
+Portafolio: infoProbidad-cl — canasta de las entidades (empresas) en que
+las autoridades declaran tener acciones, ponderadas por valor declarado.
+Es información pública de patrimonio, NO un portafolio de inversión ni
+una recomendación.
 """
 
 from __future__ import annotations
 
-import csv
-import io
+from collections import defaultdict
 from datetime import date
 
+import httpx
+
 from base import Holding, SourceAdapter, log
+
+SPARQL_ENDPOINT = "https://datos.cplt.cl/sparql"
+
+# Query: acciones/derechos declarados por cualquier autoridad, con la
+# entidad emisora y su valor de plaza (CLP). Traemos las más recientes.
+HOLDINGS_QUERY = """
+PREFIX ip: <http://datos.cplt.cl/ontologias/infoprobidad/>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+SELECT ?entidad ?valor WHERE {
+  ?p ip:declara ?d .
+  ?d ip:tieneAccionDerecho ?ad .
+  ?ad ip:derechoSobre ?ent . ?ent rdfs:label ?entidad .
+  ?ad ip:valorPlaza ?m . ?m ip:valor ?valor .
+  FILTER(?valor > 0)
+}
+LIMIT 2000
+"""
 
 
 class InfoProbidadAdapter(SourceAdapter):
     name = "infoprobidad"
     portfolio_slug = "infoProbidad-cl"
 
-    BASE_URL = "https://www.infoprobidad.cl"
+    def __init__(self, dry_run: bool = False, top_n: int = 25) -> None:
+        super().__init__(dry_run=dry_run)
+        self.top_n = top_n
 
     def fetch_raw(self) -> list[dict]:
-        """
-        Fetch the public declarations dataset.
-        InfoProbidad publishes downloadable datasets (CSV) per year.
-        """
-        year = date.today().year
-        url = f"{self.BASE_URL}/descargas/declaraciones-{year}.csv"
+        """Consulta el SPARQL y devuelve filas {entidad, valor}."""
         try:
-            resp = self.client.get(url)
-            if resp.status_code == 404:
-                # Fallback: try without year suffix
-                url = f"{self.BASE_URL}/descargas/declaraciones.csv"
-                resp = self.client.get(url)
+            resp = self.client.post(
+                SPARQL_ENDPOINT,
+                data={
+                    "query": HOLDINGS_QUERY,
+                    "format": "application/sparql-results+json",
+                },
+                headers={"Accept": "application/sparql-results+json"},
+                timeout=60.0,
+            )
             resp.raise_for_status()
-            reader = csv.DictReader(io.StringIO(resp.text))
-            return list(reader)[:500]  # cap at 500 rows
+            data = resp.json()
         except Exception as e:
-            log(f"[{self.name}] fetch error: {e}")
+            log(f"[{self.name}] SPARQL error: {e}")
             return []
 
-    def normalize(self, raw: list[dict]) -> list[Holding]:
-        """
-        Extract notable asset declarations.
-        InfoProbidad columns vary by dataset; we look for common fields:
-        - tipo de bien / tipo_activo
-        - valor / monto
-        - funcionario / nombre
-
-        We approximate a "portfolio" by grouping by asset type and
-        weighting by declared value.
-        """
-        from collections import defaultdict
-
-        by_type: dict[str, dict] = defaultdict(lambda: {"value": 0.0, "count": 0})
-
-        for row in raw:
-            # Try multiple possible column names
-            asset_type = (
-                row.get("tipo_bien")
-                or row.get("tipo_activo")
-                or row.get("Tipo de Bien")
-                or row.get("tipo")
-                or ""
-            ).strip()
-            if not asset_type:
+        rows: list[dict] = []
+        for b in data.get("results", {}).get("bindings", []):
+            entidad = (b.get("entidad") or {}).get("value", "").strip()
+            raw_val = (b.get("valor") or {}).get("value", "0")
+            try:
+                valor = float(raw_val)
+            except (TypeError, ValueError):
                 continue
+            if entidad and valor > 0:
+                rows.append({"entidad": entidad, "valor": valor})
+        log(f"[{self.name}] {len(rows)} acciones/derechos declarados (SPARQL)")
+        return rows
 
-            value_raw = (
-                row.get("valor")
-                or row.get("monto")
-                or row.get("Valor")
-                or "0"
-            )
-            value = self._parse_clp(value_raw)
+    def normalize(self, raw: list[dict]) -> list[Holding]:
+        """Agrega por entidad: peso = valor declarado total / suma.
 
-            entry = by_type[asset_type]
-            entry["value"] += value
-            entry["count"] += 1
+        Solo las top_n entidades por valor declarado, renormalizadas a 100%.
+        Los "símbolos" son nombres de empresas chilenas (no tickers): esta
+        fuente no tiene tickers, y mostrar qué empresas concentran las
+        declaraciones de las autoridades es el dato de interés.
+        """
+        by_entity: dict[str, float] = defaultdict(float)
+        for r in raw:
+            by_entity[r["entidad"].upper()] += r["valor"]
 
-        total = sum(e["value"] for e in by_type.values())
+        if not by_entity:
+            return []
+
+        top = sorted(by_entity.items(), key=lambda kv: -kv[1])[: self.top_n]
+        total = sum(v for _, v in top)
         if total <= 0:
             return []
 
         holdings = []
-        for asset_type, e in by_type.items():
-            weight = (e["value"] / total) * 100
+        for entidad, valor in top:
+            weight = (valor / total) * 100
             if weight < 0.5:
                 continue
+            # symbol: slug corto y estable del nombre de la entidad
+            symbol = (
+                entidad.split()[0][:12].replace(".", "").replace(",", "")
+            )
             holdings.append(
                 Holding(
-                    symbol=asset_type[:12].upper().replace(" ", ""),
-                    name=asset_type,
+                    symbol=symbol,
+                    name=entidad.title(),
                     weight=round(weight, 2),
-                    asset_class="other",
+                    asset_class="equity",
+                    exchange="CL",
                     currency="CLP",
                 )
             )
+        log(f"[{self.name}] {len(holdings)} entidades en la canasta")
         return holdings
-
-    @staticmethod
-    def _parse_clp(value_str: str) -> float:
-        """Parse Chilean-formatted currency: '$ 1.500.000' -> 1500000.0"""
-        if not value_str:
-            return 0.0
-        s = str(value_str).replace("$", "").replace(".", "").replace(",", ".").strip()
-        try:
-            return float(s)
-        except ValueError:
-            return 0.0
 
 
 if __name__ == "__main__":
-    adapter = InfoProbidadAdapter()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="InfoProbidad SPARQL → reclu.cl")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    adapter = InfoProbidadAdapter(dry_run=args.dry_run)
     result = adapter.run()
     log(f"[{adapter.name}] Result: {result}")

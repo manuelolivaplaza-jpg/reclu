@@ -36,6 +36,11 @@ FUND_SLUG = {
     "Renaissance Technologies": "renaissance-13f",
     "Bridgewater Associates": "bridgewater-13f",
     "Soros Fund Management": "soros-13f",
+    # --- Nuevos (F3, ver docs/expansion-portfolios-2.md) ---
+    "DME Capital Management": "dme-greenlight-13f",
+    "AKO Capital": "ako-13f",
+    "HHLR Advisors": "hhlr-13f",
+    "Temasek Holdings": "temasek-13f",
 }
 
 

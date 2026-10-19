@@ -35,6 +35,15 @@ POLITICIANS: dict[str, str] = {
 CONGRESS_BUYS_SLUG = "congress-buys"
 MIN_MEMBERS_FOR_BUYS = 2
 
+# Senadores de EE.UU. seguidos por el scraper del Senado (efdsearch).
+# Nombre como aparece en el filing ("First Last") -> portfolio slug.
+# Verificados como activos en expansion-portfolios.md (Tuberville, McCormick).
+SENATORS: dict[str, str] = {
+    "Tommy Tuberville": "tuberville-tracker",
+    "David McCormick": "mccormick-tracker",
+    "Markwayne Mullin": "mullin-tracker",
+}
+
 
 def upsert_holdings(db, slug: str, rows: list[dict]) -> int:
     """Upsert holdings for a portfolio slug. Returns count written."""

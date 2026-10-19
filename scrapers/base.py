@@ -54,12 +54,14 @@ class SourceAdapter(ABC):
     # Portfolio slug this adapter feeds (must exist in portfolios table)
     portfolio_slug: str = ""
 
-    def __init__(self) -> None:
+    def __init__(self, dry_run: bool = False) -> None:
         self.client = httpx.Client(
             headers=DEFAULT_HEADERS,
             timeout=30.0,
             follow_redirects=True,
         )
+        # --dry-run: nunca escribir en Supabase (pruebas sin side effects)
+        self.dry_run = dry_run
 
     # --- Subclass implements these ---
 
@@ -76,15 +78,30 @@ class SourceAdapter(ABC):
     # --- Shared logic ---
 
     def run(self, db: Client | None = None) -> dict[str, Any]:
-        """Full pipeline: fetch -> normalize -> upsert. Returns a summary."""
-        db = db or get_db()
-        portfolio_id = self._resolve_portfolio_id(db)
-
+        """Full pipeline: fetch -> normalize -> (upsert | dry-run). Returns a summary."""
+        if db is None and not self.dry_run:
+            db = get_db()
         raw = self.fetch_raw()
         holdings = self.normalize(raw)
 
         if not holdings:
             return {"source": self.name, "holdings": 0, "status": "empty"}
+
+        if self.dry_run:
+            log(
+                f"[{self.name}] DRY-RUN: {len(holdings)} holdings NO escritos "
+                f"(portfolio {self.portfolio_slug}, top: "
+                f"{holdings[0].symbol} {holdings[0].weight}%)"
+            )
+            return {
+                "source": self.name,
+                "portfolio": self.portfolio_slug,
+                "holdings": len(holdings),
+                "status": "ok",
+                "dry_run": True,
+            }
+
+        portfolio_id = self._resolve_portfolio_id(db)
 
         updated = 0
         created = 0

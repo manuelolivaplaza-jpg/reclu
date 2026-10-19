@@ -1,64 +1,157 @@
 # Fuentes de datos — reclu.cl
 
 Documentación de cada fuente scrapeada, su estado y limitaciones conocidas.
+Estado verificado en vivo el **2026-10-18** (frente F3).
 
 ## Resumen
 
 | Fuente | Portafolio | Estado | Notas |
 |---|---|---|---|
-| House Disclosure (oficial) | pelosi-tracker, trump-trades | ✅ Funcional (verificado en vivo) | disclosures-clerk.house.gov, sin login, PTRs en PDF |
-| Capitol Trades | pelosi-tracker, trump-trades | ⚠️ Login wall | Streaming RSC parseado; requiere auth |
+| House Disclosure (oficial) | pelosi-tracker | ✅ Funcional (verificado en vivo) | disclosures-clerk.house.gov, sin login, PTRs en PDF. Trump NO se scrapea: no es miembro de la Cámara |
+| Senate eFD (oficial) | tuberville, mccormick, mullin-tracker | ✅ Funcional (requiere curl_cffi) | efdsearch.senate.gov — Akamai geo-bloquea IPs no-EE.UU. y rechaza httpx por huella TLS; funciona desde GitHub Actions (IPs de EE.UU.) |
 | Renta 4 | renta4-moderada, renta4-moderada-ampliada | ✅ Funcional (verificado) | Hub → artículo → PDF semanal |
-| BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado 2026-10-16) | PDF estático público S3: Cartera_Concentrada_RVL.pdf |
+| BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado) | PDF estático público S3 |
+| InfoProbidad | infoProbidad-cl | ✅ Funcional (SPARQL verificado 2026-10-18) | El CSV de la versión anterior NO existe; la fuente real es el endpoint SPARQL datos.cplt.cl/sparql |
+| SEC 13F (EDGAR) | 25 fondos (ver `load_13f.py`) | ✅ Funcional | data.sec.gov, sin login. CIK verificados en docs de expansión |
+| ARK Invest | arkk, arkg, arkw, arkq, arkf | ✅ Funcional (verificado 2026-10-18) | CSV diario del emisor con pesos exactos |
+| Global X | copx, lit, bug, hero | ✅ Funcional | CSV con fecha, se sondea hacia atrás |
+| iShares (BlackRock) | ech, eww, ewz, ibit | ✅ Funcional (verificado 2026-10-18) | CSV oficial: /us/products/{id}/{slug}/latest-holdings.csv |
+| VanEck | smh | ✅ Funcional (verificado 2026-10-18) | XLSX diario de holdings del emisor |
+| Capitol Trades | (ninguno) | ⛔ OBSOLETO — login wall | Fuente muerta; se mantiene solo como referencia. NO integrar |
+| Invesco QQQ | (ninguno) | ⛔ 406 en todos los endpoints | Bloqueo HTTP 406 verificado 2026-10-18; sin CSV público accesible |
 | LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
-| InfoProbidad | infoProbidad-cl | 🔧 Dataset URL a confirmar | CSV público |
 
-## House Financial Disclosure (house_disclosure.py) — RECOMENDADO
+## Flujo automatizado (GitHub Actions + Vercel Cron)
+
+```
+.github/workflows/scrapers.yml (L-V 11:00 UTC = 08:00 Chile)
+    ↓ python run_all.py
+    ↓ POSICIONES: house → senate → renta4 → btg → infoprobidad → 13f → etfs
+    ↓ PRECIOS: prices (Yahoo EOD) → RENDIMIENTOS: compute_returns
+    ↓ SNAPSHOTS: performance (series históricas)
+    ↓ holdings upsert con previous_weight (detección de cambios)
+    ↓ curl GET /api/run-pipeline con CRON_SECRET
+    ↓
+Vercel Cron (diario 13:00 UTC) también llama GET /api/run-pipeline con
+    Authorization: Bearer ${CRON_SECRET}
+    ↓
+/api/run-pipeline → Edge detect-changes: delta ≥0.5pp → alerts
+    (is_published=false) → resúmenes OpenRouter → is_published=true
+    → Edge send-alerts: Resend emails a followers según plan
+```
+
+El endpoint `/api/run-pipeline` SIEMPRE exige el Bearer token (GET y POST).
+Sin `CRON_SECRET` configurado responde 503 y no ejecuta nada.
+
+## House Financial Disclosure (house_disclosure.py)
 
 **URL:** `https://disclosures-clerk.house.gov/FinancialDisclosure`
 
-**Estado:** ✅ Funcional, verificado en vivo (Pelosi 2025: 4 PTRs extraídos).
+**Estado:** ✅ Funcional, verificado en vivo.
 
-Es la **fuente oficial** del Congreso de EE.UU. para trades de congresistas —
-sin login wall, a diferencia de Capitol Trades.
+Fuente **oficial** de la Cámara de EE.UU. — sin login wall.
 
 - Buscador: `/FinancialDisclosure/ViewSearch` (form → POST a
-  `ViewMemberSearchResult` con `LastName`, `FilingYear`, `State`, `District`
-  y un `__RequestVerificationToken` CSRF).
-- Reportes:
-  - `public_disc/ptr-pdfs/{year}/{id}.pdf` — **PTR** (Periodic Transaction
-    Reports) = las compras/ventas reales.
-  - `public_disc/financial-pdfs/{year}/{id}.pdf` — reporte de patrimonio anual.
-- El adapter busca por apellido, descarga los PTRs del año, extrae el texto
-  con pypdf y parsea las filas `(<TICKER>) [ST|OP] <P|S|E> <fecha> <monto>`.
-- Equivalente Senado (separado): `efdsearch.senate.gov`.
-
-**Por qué importa:** es el camino real para que `pelosi-tracker` y
-`trump-trades` tengan datos vivos sin depender de scrapers con login.
+  `ViewMemberSearchResult` con `LastName`, `FilingYear`, `State`,
+  `District` y un `__RequestVerificationToken` CSRF).
+- PTRs: `public_disc/ptr-pdfs/{year}/{id}.pdf` (Periodic Transaction
+  Reports = las compras/ventas reales).
+- El adapter busca por apellido, descarga los PTRs del año, extrae texto
+  con pypdf y parsea `(<TICKER>) [ST|OP] <P|S|E> <fecha> <monto>`.
+- Trump se ELIMINÓ de la lista: no es miembro de la Cámara y no presenta
+  PTRs ahí (su tracker se alimenta de menciones públicas, no de PTRs).
 
 ---
 
-## Capitol Trades (capitol_trades.py)
-**URL:** `https://www.capitoltrades.com/trades?politician=<slug>`
+## Senate eFD (senate_disclosure.py) — NUEVO
 
-**Arquitectura:** React Server Components (Next.js App Router). Los datos
-viajan en el stream `self.__next_f.push([1,"..."])`, NO en `__NEXT_DATA__`
-(era la arquitectura anterior, Pages Router).
+**URL:** `https://efdsearch.senate.gov`
 
-**Limitación conocida:** Las páginas públicas devuelven `"data":[]` /
-`"totalCount":0` — Capitol Trades requiere login para ver trades recientes.
-El adaptador detecta esto y lo reporta claramente en los logs.
+**Estado:** ✅ Funcional con `curl_cffi` (flujo verificado contra el
+endpoint público `/search/report/data/`).
 
-### Alternativas si se necesita datos sin auth
-1. **House Financial Disclosure (oficial, gratuito):**
-   `https://disclosures-clerk.house.gov/FinancialDisclosure`
-   Fuente primaria del gobierno de EE.UU. Reportes en PDF por miembro.
-2. **Quiver Quant API:** requiere API key (tier gratuito limitado).
-3. **Unusual Whales:** requiere auth.
+Fuente **oficial** del Senado — Periodic Transaction Reports electrónicos.
 
-### Para habilitar datos reales
-Opción A: obtener credenciales de Capitol Trades (no recomendado — TOS).
-Opción B: implementar el scraper de House Financial Disclosure (recomendado).
+- **Aviso legal obligatorio**: el sitio exige aceptar el aviso del Ethics
+  in Government Act antes de buscar. El scraper hace el POST
+  `{prohibition_agreement: 1, csrfmiddlewaretoken}` en cada corrida.
+- Búsqueda: POST a `/search/report/data/` con `report_types=[11]` (PTR)
+  y ventana de fechas → filas `[first, last, office, <link>, filed]`.
+- Reportes: `/search/view/ptr/{uuid}` — tabla HTML con transacciones
+  (fecha, ticker, activo, tipo, monto rango). Los PDFs escaneados
+  (`/search/view/paper/`) se omiten y quedan registrados en el log.
+- **Por qué curl_cffi**: Akamai rechaza httpx/requests/curl con 403 por la
+  huella TLS. curl_cffi impersona Chrome. Además geo-bloquea IPs fuera de
+  EE.UU. — por eso esta etapa corre bien en GitHub Actions (IPs EE.UU.)
+  pero no desde redes locales de Chile.
+- Senadores seguidos: `SENATORS` en `politicians.py` (Tuberville,
+  McCormick, Mullin). Mismos montos-rango y rezago de 45 días que House.
+- Nota legal (E.G.A. §105(c)): los reportes no pueden usarse con fines
+  comerciales, de crédito ni políticos.
+
+---
+
+## InfoProbidad (infoprobidad.py) — REESCRITO
+
+**URL:** `https://datos.cplt.cl/sparql` (portal www.infoprobidad.cl)
+
+**Estado:** ✅ Funcional (verificado en vivo 2026-10-18).
+
+La versión anterior apuntaba a un CSV (`/descargas/declaraciones-<año>.csv`)
+que **no existe** (404). La fuente real: el Consejo para la Transparencia
+publica **Datos Abiertos Enlazados** con endpoint SPARQL público (licencia
+CC 4.0, actualización semanal martes/viernes).
+
+- El adapter consulta: Persona → `declara` → Declaración →
+  `tieneAccionDerecho` → entidad (`derechoSobre`) y valor (`valorPlaza`,
+  Money con valor + moneda CLP).
+- Portafolio `infoProbidad-cl`: canasta de las entidades en que las
+  autoridades chilenas declaran acciones, ponderadas por valor declarado.
+- Es **información pública de patrimonio**, no un portafolio de inversión
+  ni recomendación.
+- Limitación: el SPARQL es un Virtuoso público y puede tardar/limitar;
+  el adapter tolera fallos y la etapa NO es crítica.
+
+---
+
+## SEC 13F (sec13f.py + load_13f.py)
+
+**URL:** `https://data.sec.gov` (submissions JSON + info-table XML)
+
+**Estado:** ✅ Funcional. 25 fondos configurados.
+
+Fondos (CIK verificados en `docs/expansion-portfolios*.md`): Berkshire,
+Scion, Pershing Square, Appaloosa, Tiger Global, Coatue, Duquesne,
+Third Point, Baupost, Viking, TCI, PIF, Cevian, Egerton, SoftBank,
+SB Investment Advisers, Mubadala, Lansdowne, Renaissance, Bridgewater,
+Soros + los nuevos de F3: **DME Capital (Greenlight/Einhorn, 1489933 —
+el CIK histórico 1079114 dejó de presentar en 2024), AKO Capital
+(1376879), HHLR Advisors (1762304), Temasek (1021944)**.
+
+- El 13F es el libro largo 13(f) trimestral con hasta 45 días de rezago;
+  no incluye cortos, derivados ni caja.
+- AKO: infotable no estándar (`13F_report_*.xml`) y valor en **miles**
+  (ver `SPECIAL_INFOTABLE` en sec13f.py).
+
+---
+
+## ETFs de emisor (etfs.py)
+
+Cuatro emisores, todos públicos y sin key:
+
+| Emisor | Formato | Ejemplo verificado |
+|---|---|---|
+| ARK Invest | CSV diario estable por fondo | arkk (2026-10-16, TSLA 9.76%) |
+| Global X | CSV con fecha (se sondea 1-5 días atrás) | copx, lit, bug, hero |
+| iShares | `latest-holdings.csv` por product id | ECH 239618 (Banco de Chile 12.17%), EWW 239670, EWZ 239612, IBIT 333011 (BTC 100%) |
+| VanEck | XLSX diario de holdings | SMH (NVDA 20.06%) |
+
+- iShares: el slug del path se ignora; manda el **product id** numérico.
+  Descubierto 2026-10-18 leyendo el link oculto `holdings-csv-link` de la
+  ficha del fondo.
+- QQQ (Invesco): **no accesible** (406 en todos los endpoints probados,
+  con y sin headers de navegador). Documentado como fuente muerta.
+- ICOL (Colombia): el fondo ya no existe en el catálogo de iShares.
 
 ---
 
@@ -66,44 +159,46 @@ Opción B: implementar el scraper de House Financial Disclosure (recomendado).
 
 **URL base:** `https://www.renta4.cl`
 
-**Estado:** El parser usa regex genérico para tablas HTML con tickers chilenos
-(patrón `.SN` / IPSA) y porcentajes de peso. Si Renta 4 cambia su layout,
-ajustar `_parse_table` en el código.
+**Estado:** ✅ Funcional (verificado). Hub → artículo → PDF semanal público.
 
-**Tickers chilenos:** BCS (Bolsa de Comercio de Santiago). Formato: `COPEC.SN`,
-`SQM-B.SN`, etc. El adapter normaliza quitando el sufijo.
+Tickers chilenos: BCS, formato `COPEC.SN`, `SQM-B.SN`. El adapter
+normaliza quitando el sufijo.
 
 ---
 
-## InfoProbidad (infoprobidad.py)
+## BTG Pactual Chile (btg_pactual.py)
 
-**URL base:** `https://www.infoprobidad.cl`
+**URL:** PDF estático público en S3 (`Cartera_Concentrada_RVL.pdf`).
 
-**Estado:** Portal de datos abiertos de Chile. El adapter intenta descargar
-un CSV de declaraciones (`/descargas/declaraciones-<año>.csv`). Las columnas
-del dataset varían por año; el parser acepta múltiples nombres de columna
-(`tipo_bien`/`tipo_activo`/`Tipo de Bien`, `valor`/`monto`/`Valor`).
+**Estado:** ✅ Funcional (verificado 2026-10-16).
 
 ---
 
-## Flujo de datos
+## Capitol Trades (capitol_trades.py) — OBSOLETO
 
-```
-scraper.run()
-    ↓ fetch_raw()      — descarga de la fuente
-    ↓ normalize()      — convierte a Holding[]
-    ↓ upsert()         — guarda en Supabase, detecta cambios
-                           (peso anterior → previous_weight)
-                           ↓
-              Edge Function detect-changes (pg_cron, diario)
-                           ↓ genera alerts (is_published=false)
-                           ↓
-              OpenRouter genera resumen AI → is_published=true
-                           ↓
-              Edge Function send-alerts (pg_cron, cada hora)
-                           ↓
-              Resend envía email a seguidores
-```
+**URL:** `https://www.capitoltrades.com`
+
+**Estado:** ⛔ Login wall. Las páginas públicas devuelven `data:[]`.
+
+Se mantiene el archivo por referencia, pero **no está en ninguna etapa**
+de `run_all.py`. Si algún día reabre el dataset público, agregar una
+etapa no-crítica.
+
+---
+
+## Orquestador (run_all.py)
+
+Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
+`btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
+`compute_returns` → `performance`.
+
+- `--only <etapas>` / `--skip <etapas>`: selección de etapas.
+- `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.
+- `--list`: lista las etapas.
+- Etapas **críticas** (house, senate, renta4, btg): su fallo cambia el
+  exit code a 1. Las demás fallan con warning y la corrida sigue.
+- Capitol Trades NO corre por defecto (obsoleto). Trump se eliminó de
+  House (no es miembro de la Cámara).
 
 ## Cómo correr
 
@@ -113,18 +208,24 @@ pip install -r requirements.txt
 export SUPABASE_URL="https://<proj>.supabase.co"
 export SUPABASE_SERVICE_ROLE_KEY="<service-role-key>"
 
-# Todas las fuentes
+# Todo (escribe en Supabase)
 python run_all.py
 
-# Solo una
-python run_all.py --only capitol_trades
+# Solo probar, sin escribir nada
+python run_all.py --dry-run
+
+# Solo una etapa
+python run_all.py --only etfs
+
+# Ver etapas disponibles
+python run_all.py --list
 ```
 
-## Programar con cron
+## Programación
 
-```bash
-# Diario a las 7am CLT (10:00 UTC)
-0 10 * * * cd /path/to/reclu/scrapers && /usr/bin/python3 run_all.py >> scraper.log 2>&1
-```
-
-O vía GitHub Actions / Vercel Cron (ver README).
+- **GitHub Actions** (recomendado): `.github/workflows/scrapers.yml` —
+  L-V 11:00 UTC, con `workflow_dispatch` manual, cache de pip, artifact
+  con el log y el disparo final de `/api/run-pipeline`. Secrets:
+  `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`, `CRON_SECRET`.
+- **Vercel Cron**: `vercel.json` → GET `/api/run-pipeline` diario 13:00
+  UTC (solo detección + alertas + emails; los scrapers corren en Actions).
