@@ -1,13 +1,14 @@
 """Carteras recomendadas de BICE y MBI a partir de sus PDF públicos.
 
 Se guardan solo el nemotécnico, el peso, la fecha del informe y la URL.
-El PDF no se sube a la base: no hay columna para el archivo y esta etapa
-no trae migración.
+El PDF no se sube a la base: no hay columna para el archivo. La migración
+024 deja la foto de octubre 2026 y el portafolio agregado
+`consenso-corredoras-cl`; este módulo calcula ese consenso con
+`build_consenso` (solo carteras completas).
 
-TODO(F16): no hay pantalla en este módulo. Si el sitio muestra estas
-carteras, el aviso va en el componente legal de F16. Esto no ejecuta
-órdenes ni arma una recomendación personalizada: es el reporte público
-de la corredora.
+El aviso legal vive en `src/components/source-panels/corredoras-cl.tsx`
+(F16/F24). Esto no ejecuta órdenes ni arma una recomendación personalizada:
+es el reporte público de la corredora.
 """
 
 from __future__ import annotations
@@ -374,6 +375,8 @@ def build_consenso(
     """
     if carteras is None or isinstance(carteras, (str, Path)):
         carteras = cargar_carteras(carteras)
+    elif isinstance(carteras, Mapping):
+        carteras = carteras.get("carteras", [])
 
     completas = [
         cartera
@@ -409,6 +412,8 @@ def referencia_parciales(
     """Carteras incompletas: se muestran como referencia, no promedian."""
     if carteras is None or isinstance(carteras, (str, Path)):
         carteras = cargar_carteras(carteras)
+    elif isinstance(carteras, Mapping):
+        carteras = carteras.get("carteras", [])
 
     referencia: list[dict[str, Any]] = []
     for cartera in carteras:
