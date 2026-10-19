@@ -77,7 +77,7 @@ def test_sin_etapas_el_orden_no_cambia(tmp_path: Path) -> None:
     assert discover_stages(tmp_path) == []
 
 
-def test_corredoras_cl_aparece_antes_de_radar_ia() -> None:
+def test_corredoras_cl_aparece_antes_de_radar_ia(tmp_path: Path) -> None:
     stages = [("house_disclosure", "Cámara", True), ("radar_ia", "Radar", False)]
     runners = {"house_disclosure": lambda db, dry_run: [], "radar_ia": lambda db, dry_run: []}
     discovered = discover_stages()

@@ -40,10 +40,10 @@ Rama `v2/f24b-unificar-slugs` (worktree `C:\reclu-work\f23`). Sin push.
 
 - `uv run --no-project --with pytest --with-requirements scrapers/requirements.txt pytest scrapers/tests/test_migracion_024.py scrapers/tests/test_migracion_044.py scrapers/tests/test_consenso.py scrapers/tests/test_corredoras_cl.py -q`:
   **25 passed**.
-- Suite Python completa: **103 passed, 1 skipped, 1 failed**. El fallo es
-  ajeno a esta tarea y ya venía de la base:
-  `test_stages_discovery.py::test_corredoras_cl_aparece_antes_de_radar_ia`
-  usa `tmp_path` sin recibirlo como fixture (`NameError`).
+- Suite Python completa: **104 passed, 1 skipped**. Se corrigió además un
+  fallo previo de `test_stages_discovery.py::test_corredoras_cl_aparece_antes_de_radar_ia`
+  (le faltaba recibir `tmp_path` como fixture); no tiene relación con los
+  slugs, pero dejaba la suite en rojo.
 - `npm run lint`: verde.
 - `npm test`: **344 passed** (31 suites).
 - `npm run typecheck`: verde.
@@ -55,7 +55,6 @@ Rama `v2/f24b-unificar-slugs` (worktree `C:\reclu-work\f23`). Sin push.
   son los de F24/F23 y la 044.
 - Sigue vigente la deuda 2 de `NOTAS-F24.md` (el consenso no se reescribe
   solo en cada corrida) y la deuda 3 (bajas sin alerta).
-- El fallo de `test_stages_discovery.py` no se tocó: queda para su tarea.
 
 ## Cómo probar
 
