@@ -47,6 +47,10 @@ import traceback
 from base import get_db, log
 from stages import discover_stages, insert_before_radar
 
+# La consola de Windows usa cp1252 por defecto y el resumen imprime ✓/✗.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 # Etapas en orden de ejecución. Etapas "posiciones" primero (los scrapers
 # escriben holdings), luego precios, luego rendimientos, luego snapshots.
 STAGES: list[tuple[str, str, bool]] = [
