@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  demoCramerMentions,
   demoTrumpMentions,
   formatMentionDate,
   mentionKindLabel,
   primarySourceUrl,
+  recluActionLabel,
   selectVerifiedMentions,
   shortQuote,
   type MentionRow,
@@ -56,6 +58,21 @@ describe("mentionKindLabel", () => {
   it("un tipo desconocido o vacío queda como Mención", () => {
     expect(mentionKindLabel(null)).toBe("Mención");
     expect(mentionKindLabel("rumor")).toBe("Mención");
+  });
+
+  it("traduce los tipos de Inverse Cramer", () => {
+    expect(mentionKindLabel("recomienda_compra")).toBe("Recomienda compra");
+    expect(mentionKindLabel("recomienda_venta")).toBe("Recomienda venta");
+  });
+});
+
+describe("recluActionLabel", () => {
+  it("invierte el lado de Cramer y no inventa un lado para Trump", () => {
+    expect(recluActionLabel("recomienda_compra", "hwm")).toBe("Corto HWM");
+    expect(recluActionLabel("recomienda_venta", "RKLB")).toBe("Compra RKLB");
+    expect(recluActionLabel("compra_directa", "DELL")).toBeNull();
+    expect(recluActionLabel("recomienda_compra", "  ")).toBeNull();
+    expect(recluActionLabel(null, "MTZ")).toBeNull();
   });
 });
 
@@ -122,5 +139,20 @@ describe("selectVerifiedMentions", () => {
     expect(counts.get("DELL")).toBe(5);
     expect(counts.get("INTC")).toBe(4);
     expect(counts.get("X")).toBe(1);
+  });
+
+  it("el respaldo de Inverse Cramer son 27 citas cortas con fuente, y un pendiente no se muestra", () => {
+    const demo = demoCramerMentions();
+    expect(demo).toHaveLength(27);
+    expect(demo.every((mention) => (mention.quote.trim().match(/\S+/g) ?? []).length <= 10)).toBe(true);
+    expect(demo.every((mention) => mention.sourceUrls[0]?.includes("/cramers-lightning-round-"))).toBe(true);
+    const shown = selectVerifiedMentions([
+      ...demo,
+      row({ id: "pend", status: "pendiente", kind: "recomienda_compra", symbol: "WAIT", quote: "hold" }),
+    ]);
+    expect(shown).toHaveLength(27);
+    expect(shown.some((mention) => mention.symbol === "WAIT")).toBe(false);
+    const rddt = shown.find((mention) => mention.externalId === "2026-10-15-RDDT");
+    expect(recluActionLabel(rddt?.kind ?? null, rddt?.symbol ?? "")).toBe("Corto RDDT");
   });
 });

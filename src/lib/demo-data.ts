@@ -77,6 +77,7 @@ export const DEMO_PORTFOLIOS: Portfolio[] = [
   p({ id: "d45", slug: "afp-consenso-chile", name: "Consenso AFP Chile — Acciones Nacionales", description: "Tenencias agregadas de los Fondos de Pensiones chilenos en renta variable local según reportes de la Superintendencia de Pensiones.", category: "public_disclosure", source: "spensiones", manager: "Fondos de Pensiones CL", country: "CL", followers: 8700, return_ytd: 14.2, premium: false, tags: ["chile", "afp", "ipsa", "institucional"] }),
   p({ id: "d46", slug: "cobre-superciclo", name: "Superciclo del Cobre & Red Eléctrica", description: "Productores de cobre y equipamiento de transmisión eléctrica ante el déficit estructural por electrificación y data centers.", category: "thematic", source: "model", manager: "Tesis Commodities", country: "Global", followers: 6900, return_ytd: 29.1, premium: true, tags: ["cobre", "mineria", "chile", "electrificacion"] }),
   p({ id: "d47", slug: "trump-dice", name: "Trump dice", description: "Compra simulada de US$1.000 al cierre cada vez que Donald Trump llama a comprar o elogia directamente una acción. Cada mención con su cita y su fuente.", category: "political_us", source: "trump_mentions", manager: "Donald Trump", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["trump", "menciones", "truth-social", "dichos"] }),
+  p({ id: "d48", slug: "inverse-cramer-real", name: "Inverse Cramer (real)", description: "Simulación: se vende en corto lo que Jim Cramer recomienda comprar en el Lightning Round de CNBC y se compra lo que recomienda vender. Igual peso, 30 días hábiles, sin costo de préstamo.", category: "model", source: "cnbc_lightning_round", manager: "Jim Cramer (invertido)", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["cramer", "inverse", "cnbc", "menciones"] }),
 ];
 
 // Holdings de demostración por portfolio (id -> lista)
@@ -374,6 +375,36 @@ const DEMO_HOLDINGS: Record<string, Omit<Holding, "portfolio_id" | "as_of">[]> =
     { id: "h216", symbol: "PLTR", name: "Palantir Technologies", weight: 5.22, previous_weight: null, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h217", symbol: "SPY", name: "SPDR S&P 500 ETF", weight: 5.08, previous_weight: null, asset_class: "etf", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h218", symbol: "USD-CASH", name: "Efectivo (U.S. Steel, compra de Nippon a US$55)", weight: 3.8, previous_weight: null, asset_class: "cash", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+  ],
+  // Semilla 018 al 16-10-2026. Igual peso. El corto va en el nombre: weight
+  // no puede ser negativo. previous_weight null en demo (en la 018 es 0).
+  // MTZ no está: largo y corto abiertos a la vez, se netean.
+  "inverse-cramer-real": [
+    { id: "h219", symbol: "AMBA", name: "AMBA", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h220", symbol: "AVY", name: "Corto: AVY", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h221", symbol: "AZN", name: "AZN", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h222", symbol: "BB", name: "Corto: BB", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h223", symbol: "CIEN", name: "Corto: CIEN", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h224", symbol: "CRDO", name: "Corto: CRDO", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h225", symbol: "EPD", name: "Corto: EPD", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h226", symbol: "ET", name: "Corto: ET", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h227", symbol: "FRT", name: "Corto: FRT", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h228", symbol: "GME", name: "Corto: GME", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h229", symbol: "GRAB", name: "GRAB", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h230", symbol: "GRAL", name: "Corto: GRAL", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h231", symbol: "HWM", name: "Corto: HWM", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h232", symbol: "IRM", name: "Corto: IRM", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h233", symbol: "JOBY", name: "JOBY", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h234", symbol: "KMI", name: "Corto: KMI", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h235", symbol: "MDLZ", name: "MDLZ", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h236", symbol: "PENG", name: "Corto: PENG", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h237", symbol: "POET", name: "POET", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h238", symbol: "RDDT", name: "Corto: RDDT", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h239", symbol: "RKLB", name: "RKLB", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h240", symbol: "SNAP", name: "SNAP", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h241", symbol: "SPG", name: "Corto: SPG", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h242", symbol: "STWD", name: "STWD", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h243", symbol: "TRN", name: "Corto: TRN", weight: 4, previous_weight: null, asset_class: "equity", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
   ],
 };
 

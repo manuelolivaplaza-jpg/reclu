@@ -6,7 +6,7 @@ export function SourceLine() {
   return (
     <div className="border-y border-ink-200 py-6 md:py-7">
       <p className="label-line container-page text-center text-pretty tracking-[0.015em]">
-        Capitol Trades · Renta 4 · LarrainVial · BTG Pactual · InfoProbidad · SEC 13F
+        Capitol Trades · Renta 4 · LarrainVial · BTG Pactual · InfoProbidad · SEC 13F · CNBC
       </p>
     </div>
   );

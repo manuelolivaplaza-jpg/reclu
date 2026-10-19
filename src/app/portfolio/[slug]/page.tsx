@@ -69,9 +69,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) notFound();
 
-  // Arranca en paralelo con el perfil y las holdings. Solo Trump dice tiene menciones.
-  const mentionsPromise =
-    portfolio.source === "trump_mentions" ? getMentions(portfolio.id) : null;
+  // Arranca en paralelo con el perfil y las holdings.
+  const mentionsSource =
+    portfolio.source === "trump_mentions" || portfolio.source === "cnbc_lightning_round"
+      ? portfolio.source
+      : null;
+  const mentionsPromise = mentionsSource ? getMentions(portfolio.id, mentionsSource) : null;
 
   // El perfil determina el rol ANTES de pedir holdings/alerts: el servidor
   // solo trae lo que el plan permite (nada de difuminar datos ya entregados).
@@ -250,7 +253,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
 
         <div className="container-page py-10">
-          {mentionsPromise ? <TrumpMentionsList mentions={mentionsPromise} /> : null}
+          {mentionsPromise ? (
+            <TrumpMentionsList
+              mentions={mentionsPromise}
+              variant={portfolio.source === "cnbc_lightning_round" ? "cramer" : "trump"}
+            />
+          ) : null}
 
           <PortfolioMetricsStrip holdings={holdings} />
 
