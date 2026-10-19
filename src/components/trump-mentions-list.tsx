@@ -9,14 +9,18 @@ import {
 } from "@/lib/mentions-queries";
 
 /**
- * Lista de menciones verificadas. Solo se monta si el portafolio tiene
- * source trump_mentions. La consulta arranca en la página para no esperar
- * al resto de los datos.
+ * Lista de menciones verificadas. Se monta si el portafolio es Trump dice
+ * o Elon Musk dice. La consulta arranca en la página para no esperar
+ * al resto de los datos. `notice` es el aviso de empresas propias (F11).
  */
 export async function TrumpMentionsList({
   mentions,
+  notice,
+  metodologiaHref = "/metodologia#trump-dice",
 }: {
   mentions: Promise<MentionsList>;
+  notice?: string;
+  metodologiaHref?: string;
 }) {
   const data = await mentions;
 
@@ -31,12 +35,15 @@ export async function TrumpMentionsList({
       <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-ink-600">
         Simulación histórica con fines informativos. No es recomendación de inversión.{" "}
         <Link
-          href="/metodologia#trump-dice"
+          href={metodologiaHref}
           className="font-medium text-ink-900 underline underline-offset-4"
         >
           Cómo se calcula
         </Link>
       </p>
+      {notice ? (
+        <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-600">{notice}</p>
+      ) : null}
       {data.mentions.length === 0 ? (
         <p className="mt-4 text-[15px] text-ink-500">Sin menciones verificadas todavía.</p>
       ) : (

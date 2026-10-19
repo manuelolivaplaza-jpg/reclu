@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 export const metadata: Metadata = {
   title: "Metodología",
   description:
-    "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, y la simulación Trump dice.",
+    "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, y las simulaciones Trump dice y Elon Musk dice.",
 };
 
 /**
@@ -36,6 +36,7 @@ export default function MetodologiaPage() {
             <a href="#politicos" className="underline underline-offset-4">Por qué los políticos son estimaciones</a>
             <a href="#limites" className="underline underline-offset-4">Límites y sesgos</a>
             <a href="#trump-dice" className="underline underline-offset-4">Trump dice</a>
+            <a href="#musk-dice" className="underline underline-offset-4">Elon Musk dice</a>
           </nav>
 
           <section id="datos" className="mt-14">
@@ -271,6 +272,44 @@ export default function MetodologiaPage() {
                 compras, muy concentradas en Dell e Intel: el resultado depende de
                 dos acciones, y las menciones más citadas son las que más se movieron.
                 Es información histórica. No es una recomendación de inversión.
+              </p>
+            </div>
+          </section>
+
+          <section id="musk-dice" className="mt-14">
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+              8. Elon Musk dice
+            </h2>
+            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+              <p>
+                <strong className="font-medium text-ink-900">Elon Musk dice</strong> no
+                es una cartera de señales. En el archivo de posts de @elonmusk solo hay
+                tres menciones claras a acciones de terceros, todas de enero de 2021:
+                Etsy, GameStop y CD Projekt. Cada una se guarda con el id del post, la
+                fecha, una cita corta y el enlace a X.
+              </p>
+              <p>
+                Si el post salió antes del cierre de Nueva York (16:00 ET) en un día
+                hábil, la entrada de la simulación es el cierre de ese día. Si salió
+                después del cierre, o en fin de semana, entra al cierre del día hábil
+                siguiente. Etsy entra el 26-01-2021. GameStop, publicado después del
+                cierre, entra el 27-01, cuando el salto ya había pasado. CD Projekt
+                cotiza en Varsovia en zloty: queda solo como mención, fuera de la
+                composición. Etsy y GameStop pesan 50% cada uno.
+              </p>
+              <p>
+                Musk es insider de Tesla, SpaceX y xAI. Esas menciones se muestran
+                como contexto y no son señal de compra ni de venta. El comentario de
+                mayo de 2020 sobre el precio de Tesla entra en ese grupo. Comprar
+                cuando elogió una acción ajena perdió en los tres casos.
+              </p>
+              <p>
+                Quedan fuera, entre otras, “Use Signal” (subió Signal Advance por
+                confusión), la canción Sandstorm, las bromas sobre Ryanair, y los
+                textos que no nombran una empresa. Una candidata automática
+                (un ticker con $ o la palabra buy junto al nombre de una empresa del
+                catálogo) queda pendiente de revisión y no genera alerta. Es
+                información histórica. No es una recomendación de inversión.
               </p>
             </div>
           </section>

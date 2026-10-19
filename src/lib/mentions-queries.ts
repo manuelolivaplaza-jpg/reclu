@@ -52,7 +52,13 @@ const KIND_LABELS: Record<string, string> = {
   elogio_con_ticker: "Elogio con ticker",
   elogio_producto: "Elogio al producto",
   elogio_acuerdo: "Elogio al acuerdo",
+  critica: "Crítica",
+  empresa_propia: "Empresa propia",
 };
+
+/** Aviso de la ficha musk-dice. Esas menciones se ven, pero no son señal. */
+export const MUSK_INSIDER_NOTICE =
+  "Musk es insider de Tesla/SpaceX/xAI; esas menciones no son señal.";
 
 const MONTHS = [
   "ene",
@@ -368,6 +374,65 @@ export function demoTrumpMentions(): MentionRow[] {
   return DEMO_TRUMP_MENTIONS.map((row) => ({ ...row, sourceUrls: [...row.sourceUrls] }));
 }
 
+/**
+ * Las 4 menciones de la migración 017. Respaldo demo de musk-dice.
+ * Tesla es empresa propia: se lista, no es una posición.
+ */
+const DEMO_MUSK_MENTIONS: readonly MentionRow[] = [
+  {
+    id: "demo-musk-tsla",
+    saidAt: "2020-05-01T15:11:00+00:00",
+    entryDate: "2020-05-01",
+    symbol: "TSLA",
+    company: "Tesla",
+    kind: "empresa_propia",
+    quote: "Tesla stock price is too high imo",
+    sourceUrls: ["https://x.com/elonmusk/status/1256239815256797184"],
+    status: "verificada",
+    externalId: "1256239815256797184",
+  },
+  {
+    id: "demo-musk-etsy",
+    saidAt: "2021-01-26T11:25:00+00:00",
+    entryDate: "2021-01-26",
+    symbol: "ETSY",
+    company: "Etsy",
+    kind: "elogio",
+    quote: "I kinda love Etsy",
+    sourceUrls: ["https://x.com/elonmusk/status/1354027651468550144"],
+    status: "verificada",
+    externalId: "1354027651468550144",
+  },
+  {
+    id: "demo-musk-gme",
+    saidAt: "2021-01-26T21:08:00+00:00",
+    entryDate: "2021-01-27",
+    symbol: "GME",
+    company: "GameStop",
+    kind: "elogio",
+    quote: "Gamestonk!!",
+    sourceUrls: ["https://x.com/elonmusk/status/1354174279894642703"],
+    status: "verificada",
+    externalId: "1354174279894642703",
+  },
+  {
+    id: "demo-musk-cdr",
+    saidAt: "2021-01-28T02:34:00+00:00",
+    entryDate: "2021-01-28",
+    symbol: "CDR",
+    company: "CD Projekt",
+    kind: "elogio",
+    quote: "It can play Cyberpunk",
+    sourceUrls: ["https://x.com/elonmusk/status/1354618772586426368"],
+    status: "verificada",
+    externalId: "1354618772586426368",
+  },
+];
+
+export function demoMuskMentions(): MentionRow[] {
+  return DEMO_MUSK_MENTIONS.map((row) => ({ ...row, sourceUrls: [...row.sourceUrls] }));
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
@@ -390,12 +455,17 @@ function rowFromDb(raw: Record<string, unknown>): MentionRow {
 
 /**
  * Menciones verificadas del portafolio, de más reciente a más antigua.
- * Sin Supabase: las 15 de Trump dice, rotuladas isDemo.
- * Con Supabase y sin filas (o si la consulta falla): lista vacía, isDemo false.
+ * Sin Supabase: las 15 de Trump dice, o las 4 de Musk si source es
+ * musk_mentions. Con Supabase y sin filas (o si la consulta falla): lista
+ * vacía, isDemo false.
  */
-export async function getMentions(portfolioId: string): Promise<MentionsList> {
+export async function getMentions(
+  portfolioId: string,
+  source = "trump_mentions",
+): Promise<MentionsList> {
   if (!isSupabaseLive()) {
-    return { mentions: selectVerifiedMentions(DEMO_TRUMP_MENTIONS), isDemo: true };
+    const rows = source === "musk_mentions" ? DEMO_MUSK_MENTIONS : DEMO_TRUMP_MENTIONS;
+    return { mentions: selectVerifiedMentions(rows), isDemo: true };
   }
 
   try {

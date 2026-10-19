@@ -77,6 +77,7 @@ export const DEMO_PORTFOLIOS: Portfolio[] = [
   p({ id: "d45", slug: "afp-consenso-chile", name: "Consenso AFP Chile — Acciones Nacionales", description: "Tenencias agregadas de los Fondos de Pensiones chilenos en renta variable local según reportes de la Superintendencia de Pensiones.", category: "public_disclosure", source: "spensiones", manager: "Fondos de Pensiones CL", country: "CL", followers: 8700, return_ytd: 14.2, premium: false, tags: ["chile", "afp", "ipsa", "institucional"] }),
   p({ id: "d46", slug: "cobre-superciclo", name: "Superciclo del Cobre & Red Eléctrica", description: "Productores de cobre y equipamiento de transmisión eléctrica ante el déficit estructural por electrificación y data centers.", category: "thematic", source: "model", manager: "Tesis Commodities", country: "Global", followers: 6900, return_ytd: 29.1, premium: true, tags: ["cobre", "mineria", "chile", "electrificacion"] }),
   p({ id: "d47", slug: "trump-dice", name: "Trump dice", description: "Compra simulada de US$1.000 al cierre cada vez que Donald Trump llama a comprar o elogia directamente una acción. Cada mención con su cita y su fuente.", category: "political_us", source: "trump_mentions", manager: "Donald Trump", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["trump", "menciones", "truth-social", "dichos"] }),
+  p({ id: "d48", slug: "musk-dice", name: "Elon Musk dice", description: "Simulación histórica de los elogios verificados de Elon Musk a acciones de terceros, con la cita y el enlace al post. Tesla se muestra como contexto: Musk es insider y no es una señal.", category: "model", source: "musk_mentions", manager: "Elon Musk", country: "US", followers: 0, return_ytd: null, premium: false, tags: ["musk", "menciones", "x"] }),
 ];
 
 // Holdings de demostración por portfolio (id -> lista)
@@ -374,6 +375,11 @@ const DEMO_HOLDINGS: Record<string, Omit<Holding, "portfolio_id" | "as_of">[]> =
     { id: "h216", symbol: "PLTR", name: "Palantir Technologies", weight: 5.22, previous_weight: null, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h217", symbol: "SPY", name: "SPDR S&P 500 ETF", weight: 5.08, previous_weight: null, asset_class: "etf", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
     { id: "h218", symbol: "USD-CASH", name: "Efectivo (U.S. Steel, compra de Nippon a US$55)", weight: 3.8, previous_weight: null, asset_class: "cash", exchange: null, currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+  ],
+  // Semilla 017. previous_weight null: en demo no hay salto. CDR y Tesla no son holdings.
+  "musk-dice": [
+    { id: "h219", symbol: "ETSY", name: "Etsy", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NASDAQ", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
+    { id: "h220", symbol: "GME", name: "GameStop", weight: 50, previous_weight: null, asset_class: "equity", exchange: "NYSE", currency: "USD", price_at_disclosure: null, price_current: null, return_pct: null },
   ],
 };
 
