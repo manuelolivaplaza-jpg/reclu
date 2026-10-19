@@ -15,7 +15,11 @@ from senate_disclosure import (  # noqa: E402
     SenateDisclosureAdapter,
     SenateTrade,
 )
-from infoprobidad import InfoProbidadAdapter  # noqa: E402
+from infoprobidad import (  # noqa: E402
+    EmpresaAgregada,
+    InfoProbidadAdapter,
+    holdings_desde_agregado,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -85,27 +89,6 @@ def test_senate_normalize_empty():
     assert adapter.normalize([]) == []
 
 
-# ---------------------------------------------------------------------------
-# InfoProbidad: respuesta SPARQL (fixture con el binding real del endpoint
-# datos.cplt.cl/sparql)
-# ---------------------------------------------------------------------------
-SPARQL_RESPONSE = {
-    "head": {"vars": ["entidad", "valor"]},
-    "results": {"bindings": [
-        {"entidad": {"type": "literal", "value": "BANCO DE CHILE"},
-         "valor": {"type": "literal", "value": "110412506"}},
-        {"entidad": {"type": "literal", "value": "SOCIEDAD QUIMICA Y MINERA DE CHILE S.A."},
-         "valor": {"type": "literal", "value": "108262596"}},
-        {"entidad": {"type": "literal", "value": "LATAM AIRLINES GROUP SA"},
-         "valor": {"type": "literal", "value": "99132132"}},
-        {"entidad": {"type": "literal", "value": "BANCO DE CHILE"},
-         "valor": {"type": "literal", "value": "50000000"}},
-        {"entidad": {"type": "literal", "value": "EMPRESA SIN VALOR"},
-         "valor": {"type": "literal", "value": "0"}},
-    ]},
-}
-
-
 class _FakeResponse:
     def __init__(self, payload):
         self._payload = payload
@@ -126,33 +109,36 @@ class _FakeClient:
 
 
 def test_infoprobidad_normalize_weights():
-    adapter = InfoProbidadAdapter()
-    # Simular fetch_raw extrayendo del fixture SPARQL
-    rows = []
-    for b in SPARQL_RESPONSE["results"]["bindings"]:
-        entidad = b["entidad"]["value"]
-        valor = float(b["valor"]["value"])
-        if entidad and valor > 0:
-            rows.append({"entidad": entidad, "valor": valor})
-    holdings = adapter.normalize(rows)
-    # 3 entidades con valor > 0 (EMPRESA SIN VALOR se filtra por valor 0)
-    assert len(holdings) == 3
-    # Banco de Chile suma 160M y va primero
-    assert holdings[0].symbol == "BANCO"
-    total = sum(h.weight for h in holdings)
-    assert abs(total - 100.0) < 0.5  # pesos renormalizados
+    # Peso proporcional a autoridades, solo filas con nemotécnico.
+    rows = [
+        EmpresaAgregada("97004000", "BANCO DE CHILE", 70, None, "2026-10-07", "CHILE"),
+        EmpresaAgregada("89862200", "LATAM", 106, None, "2026-10-07", "LTM"),
+        EmpresaAgregada("82878900", "COOPERATIVA", 122, None, "2026-10-08", None),
+    ]
+    holdings = holdings_desde_agregado(rows)
+    assert len(holdings) == 2
+    assert holdings[0].symbol == "LTM"
     assert holdings[0].currency == "CLP"
+    total = sum(h.weight for h in holdings)
+    assert abs(total - 100.0) < 0.5
 
 
 def test_infoprobidad_fetch_raw_parses_bindings():
     adapter = InfoProbidadAdapter()
-    adapter.client = _FakeClient(SPARQL_RESPONSE)
+    payload = {
+        "results": {"bindings": [
+            {"rut": {"value": "89862200"}, "nombre": {"value": "LATAM"},
+             "declarantes": {"value": "106"}, "ultima": {"value": "2026-10-07T00:00:00"}},
+            {"rut": {"value": "0"}, "nombre": {"value": "SIN RUT"},
+             "declarantes": {"value": "73"}, "ultima": {"value": "2026-10-07T00:00:00"}},
+        ]},
+    }
+    adapter.client = _FakeClient(payload)
     rows = adapter.fetch_raw()
-    # 4 bindings con valor > 0 (Banco de Chile declarado 2 veces; el de
-    # valor 0 se filtra). La agregación por entidad ocurre en normalize.
-    assert len(rows) == 4
-    assert rows[0]["entidad"] == "BANCO DE CHILE"
-    assert rows[0]["valor"] == 110412506.0
+    assert len(rows) == 1
+    assert rows[0].rut == "89862200"
+    assert rows[0].autoridades == 106
+    assert rows[0].symbol == "LTM"
 
 
 # ---------------------------------------------------------------------------

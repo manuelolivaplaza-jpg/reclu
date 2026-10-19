@@ -47,6 +47,13 @@ fusionen las ramas, aplicar en este orden:
   el orden de la tabla de arriba es el correcto.
 - `prices.sql` no lleva número: aplicar tras `002_holdings_returns.sql`.
 
+## 021 — InfoProbidad agregado (F15)
+
+`021_infoprobidad_agregado.sql`: tabla pública `infoprobidad_empresas`
+(RUT, nombre de la sociedad, nemotécnico, autoridades, valor declarado,
+última declaración). Sin columnas de personas. El slug `infoProbidad-cl`
+no cambia. Aplicar después del esquema base. Idempotente.
+
 ## Revertir el muro de pago (012)
 
 Al final de `012_muro_pago.sql` hay un bloque comentado `-- rollback`:
