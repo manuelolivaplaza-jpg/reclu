@@ -83,7 +83,7 @@ function parseOAuthHeader(header: string): Record<string, string> {
 describe("OAuth 1.0a: vector de la documentación de X", () => {
   /**
    * Ejemplo "Creating a signature" de la documentación oficial de X:
-   * https://developer.x.com/en/docs/authentication/oauth-1-0a/creating-a-signature
+   * https://docs.x.com/fundamentals/authentication/oauth-1-0a/creating-a-signature
    *
    * Ese ejemplo es form-encoded (v1.1), así que `status` y
    * `include_entities` entran en la base de firma. Aquí se comprueba

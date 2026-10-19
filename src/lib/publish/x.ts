@@ -8,7 +8,7 @@
  *
  * Documentación oficial:
  * - Endpoint: https://docs.x.com/x-api/posts/create-post
- * - Firma: https://developer.x.com/en/docs/authentication/oauth-1-0a/creating-a-signature
+ * - Firma: https://docs.x.com/fundamentals/authentication/oauth-1-0a/creating-a-signature
  *
  * El cuerpo JSON `{ text }` NO entra en la base de firma: OAuth 1.0a solo
  * firma los parámetros del protocolo y de la query string. Tampoco se
