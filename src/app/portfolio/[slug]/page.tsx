@@ -20,6 +20,14 @@ import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
+import { InfoprobidadEmpresas } from "@/components/infoprobidad-empresas";
+import {
+  getInfoprobidadEmpresas,
+  INFOPROBIDAD_FUENTE,
+  INFOPROBIDAD_LICENCIA_URL,
+  INFOPROBIDAD_SLUG,
+  INFOPROBIDAD_URL,
+} from "@/lib/infoprobidad";
 
 export const instant = false;
 
@@ -72,7 +80,8 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const profile = await getProfile();
   const role = roleFor(profile);
 
-  const [holdings, alerts, following, performance, perfData] = await Promise.all([
+  const esAgregado = portfolio.slug === INFOPROBIDAD_SLUG;
+  const [holdings, alerts, following, performance, perfData, empresas] = await Promise.all([
     getHoldings(portfolio.id, { role }),
     getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
@@ -81,6 +90,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       portfolioId: portfolio.id,
       country: portfolio.country,
     }),
+    esAgregado ? getInfoprobidadEmpresas() : Promise.resolve(null),
   ]);
 
   const meta = CATEGORY_META[portfolio.category];
@@ -140,7 +150,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
           keywords: [meta.label, ...portfolio.tags].join(", "),
           creator: portfolio.manager ? { "@type": "Person", name: portfolio.manager } : undefined,
           temporalCoverage: `${new Date().getFullYear()}`,
-          license: absoluteUrl("/disclaimer"),
+          license: esAgregado ? INFOPROBIDAD_LICENCIA_URL : absoluteUrl("/disclaimer"),
         }}
       />
       <JsonLd
@@ -200,7 +210,17 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                     <span className="num text-ink-900">{formatCompact(portfolio.followers)}</span>{" "}
                     seguidores
                   </span>
-                  <span>Fuente: {portfolio.source}</span>
+                  {esAgregado ? (
+                    <a
+                      href={INFOPROBIDAD_URL}
+                      className="text-ink-900 underline-offset-4 hover:underline"
+                      rel="noreferrer"
+                    >
+                      {INFOPROBIDAD_FUENTE}
+                    </a>
+                  ) : (
+                    <span>Fuente: {portfolio.source}</span>
+                  )}
                 </div>
               </div>
 
@@ -244,9 +264,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
 
         <div className="container-page py-10">
-          <PortfolioMetricsStrip holdings={holdings} />
+          {esAgregado && holdings.length === 0 ? null : (
+            <PortfolioMetricsStrip holdings={holdings} />
+          )}
 
-          {showEvolution ? (
+          {showEvolution && !esAgregado ? (
             <div className="mb-12">
               <ChartSection title="Evolución">
                 <PortfolioEvolution data={evolution} />
@@ -254,24 +276,30 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             </div>
           ) : null}
 
-          <div className="mb-12">
-            <PerformancePanel
-              metrics={perfPanelData.metrics}
-              portfolioSeries={perfPanelData.portfolioSeries}
-              benchmarkSeries={perfPanelData.benchmarkSeries}
-              benchmarkLabel={perfPanelData.benchmarkLabel}
-              method={perfDemo ? "demo" : perfPanelData.method}
-              asOf={perfPanelData.precomputed?.as_of ?? null}
-              demo={perfDemo}
-            />
-          </div>
+          {!esAgregado ? (
+            <div className="mb-12">
+              <PerformancePanel
+                metrics={perfPanelData.metrics}
+                portfolioSeries={perfPanelData.portfolioSeries}
+                benchmarkSeries={perfPanelData.benchmarkSeries}
+                benchmarkLabel={perfPanelData.benchmarkLabel}
+                method={perfDemo ? "demo" : perfPanelData.method}
+                asOf={perfPanelData.precomputed?.as_of ?? null}
+                demo={perfDemo}
+              />
+            </div>
+          ) : null}
 
-          {showComposition ? (
+          {showComposition && !esAgregado ? (
             <div className="mb-12">
               <ChartSection>
                 <PortfolioDetailCharts composition={composition} />
               </ChartSection>
             </div>
+          ) : null}
+
+          {empresas ? (
+            <InfoprobidadEmpresas rows={empresas.rows} isDemo={empresas.isDemo} />
           ) : null}
 
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
@@ -340,8 +368,9 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                   </table>
                 ) : (
                   <p className="mt-4 text-[15px] text-ink-500">
-                    La composición se actualizará cuando el scraper procese la próxima
-                    actualización de la fuente.
+                    {esAgregado
+                      ? "La canasta de emisoras cotizadas aparece cuando el scraper publica los pesos. Arriba está el agregado por empresa, sin fichas de personas."
+                      : "La composición se actualizará cuando el scraper procese la próxima actualización de la fuente."}
                   </p>
                 )}
               </PaywallGate>

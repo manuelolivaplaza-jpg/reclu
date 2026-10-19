@@ -91,26 +91,34 @@ Fuente **oficial** del Senado — Periodic Transaction Reports electrónicos.
 
 ---
 
-## InfoProbidad (infoprobidad.py) — REESCRITO
+## InfoProbidad (infoprobidad.py) — agregado por RUT
 
-**URL:** `https://datos.cplt.cl/sparql` (portal www.infoprobidad.cl)
+**URL:** `https://datos.cplt.cl/sparql` (portal [www.infoprobidad.cl](https://www.infoprobidad.cl/))
 
-**Estado:** ✅ Funcional (verificado en vivo 2026-10-18).
+**Estado:** ✅ Endpoint SPARQL verificado. Licencia **CC BY 4.0** (atribución obligatoria).
 
-La versión anterior apuntaba a un CSV (`/descargas/declaraciones-<año>.csv`)
-que **no existe** (404). La fuente real: el Consejo para la Transparencia
-publica **Datos Abiertos Enlazados** con endpoint SPARQL público (licencia
-CC 4.0, actualización semanal martes/viernes).
+La versión anterior agrupaba por el nombre de la sociedad y partía el
+símbolo de la primera palabra, así que "LATAM" y "LATAM AIRLINES GROUP S.A."
+salían duplicadas. Ahora la consulta agrupa por `ip:rutJuridica`, filtra
+`ip:ultimaDecDeclarante` y descarta `rut=0` y sociedades deportivas.
 
-- El adapter consulta: Persona → `declara` → Declaración →
-  `tieneAccionDerecho` → entidad (`derechoSobre`) y valor (`valorPlaza`,
-  Money con valor + moneda CLP).
-- Portafolio `infoProbidad-cl`: canasta de las entidades en que las
-  autoridades chilenas declaran acciones, ponderadas por valor declarado.
-- Es **información pública de patrimonio**, no un portafolio de inversión
-  ni recomendación.
-- Limitación: el SPARQL es un Virtuoso público y puede tardar/limitar;
-  el adapter tolera fallos y la etapa NO es crítica.
+- Se publica solo el agregado: cuántas autoridades declaran acciones de
+  cada empresa, el valor total declarado (`ip:valorPlaza`) y la fecha más
+  reciente. La consulta no pide dirección, estado civil, régimen
+  patrimonial, bienes, pasivos ni datos de familiares.
+- Nombres de autoridades: flag `INFOPROBIDAD_NOMBRES` apagado (`0`). Aunque
+  se ponga en `1`, esta versión no los consulta ni los guarda.
+- Portafolio `infoProbidad-cl` (el slug no cambia): canasta solo de
+  emisoras con nemotécnico en `scrapers/data/infoprobidad/rut_nemotecnico.json`,
+  peso proporcional al número de autoridades. No es una cartera para copiar
+  ni hay rendimiento simulado.
+- Alerta `threshold` si una empresa sube 5 o más autoridades entre corridas.
+  El payload no lleva nombres de personas.
+- Tabla `infoprobidad_empresas` (migración 021), lectura pública.
+- Limitación: el SPARQL es un Virtuoso público y puede tardar; la etapa
+  no es crítica. El docstring histórico dice martes y viernes; no hay
+  página oficial que lo confirme. La declaración más reciente vista el
+  2026-10-19 es del 2026-10-10.
 
 ---
 
