@@ -11,7 +11,6 @@ import {
 } from "@/components/backtest-form";
 import { getPortfolios, getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
-import { getBenchmarkSeries } from "@/lib/performance-queries";
 import { demoPerformance } from "@/lib/demo-data";
 import { fromPctToLevel, type SeriesPoint } from "@/lib/performance";
 import { isPaidPlan } from "@/lib/types";
@@ -75,6 +74,35 @@ function cleanPerformanceRows(rows: unknown): SeriesPoint[] {
   return points;
 }
 
+/**
+ * Últimos cierres del benchmark, en orden ascendente. Se pide descendente y
+ * se invierte para que un tope de filas nunca deje fuera la cola reciente.
+ */
+async function loadBenchmark(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  symbol: string,
+): Promise<SeriesPoint[]> {
+  const { data, error } = await supabase
+    .from("benchmark_prices")
+    .select("date, close")
+    .eq("symbol", symbol)
+    .order("date", { ascending: false })
+    .limit(MAX_SERIES_POINTS);
+  if (error) {
+    console.warn("[reclu] backtest benchmark error:", error.message);
+    return [];
+  }
+  if (!Array.isArray(data)) return [];
+  const points: SeriesPoint[] = [];
+  for (const row of data) {
+    const close = Number(row?.close);
+    if (typeof row?.date === "string" && Number.isFinite(close) && close > 0) {
+      points.push({ date: row.date.slice(0, 10), value: close });
+    }
+  }
+  return points.reverse();
+}
+
 export default async function BacktestPage() {
   await connection();
 
@@ -100,13 +128,13 @@ export default async function BacktestPage() {
             .from("portfolio_performance")
             .select("date, value_pct")
             .eq("portfolio_id", portfolio.id)
-            .order("date", { ascending: true })
+            .order("date", { ascending: false })
             .limit(MAX_SERIES_POINTS);
           if (error) {
             console.warn("[reclu] backtest performance error:", error.message);
             return;
           }
-          const points = cleanPerformanceRows(data);
+          const points = cleanPerformanceRows(data).reverse();
           if (points.length >= 2) seriesById.set(portfolio.id, points);
         }),
       );
@@ -128,9 +156,9 @@ export default async function BacktestPage() {
       .filter((option): option is BacktestPortfolio => option !== null);
 
     const [gspc, ipsaSeries, spy] = await Promise.all([
-      getBenchmarkSeries("^GSPC", MAX_SERIES_POINTS),
-      getBenchmarkSeries("^IPSA", MAX_SERIES_POINTS),
-      getBenchmarkSeries("SPY", MAX_SERIES_POINTS),
+      loadBenchmark(supabase, "^GSPC"),
+      loadBenchmark(supabase, "^IPSA"),
+      loadBenchmark(supabase, "SPY"),
     ]);
     sp500 = gspc.length >= 2 ? gspc : spy;
     ipsa = ipsaSeries;
