@@ -95,8 +95,7 @@ export function sanitizeExplainText(value: unknown, max: number): string {
 }
 
 /** Texto multilínea del modelo: conserva saltos, sin controles ni exceso. */
-export function normalizeExplanation(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+export function normalizeExplanation(value: unknown): string | null {  if (typeof value !== "string") return null;
   const clean = value
     .replace(/\r\n?/g, "\n")
     .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "")
@@ -233,17 +232,27 @@ export function explainSources(alert: ExplainAlertInput): ExplainSource[] {
   return [{ label: "Datos públicos de reclu.cl", href: null }];
 }
 
+/**
+ * Neutraliza los delimitadores del bloque de datos. Si un título trae
+ * "</alerta>" no puede cerrar el bloque ni inyectar instrucciones nuevas.
+ */
+function promptValue(value: unknown, max: number): string {
+  return sanitizeExplainText(value, max).replace(/</g, "‹").replace(/>/g, "›");
+}
+
 function payloadBlock(summary: ExplainPayloadSummary): string {
   if (summary.lines.length === 0) return "Datos declarados: no disponibles.";
-  return `Datos declarados:\n${summary.lines.map((line) => `- ${line}`).join("\n")}`;
+  return `Datos declarados:\n${summary.lines
+    .map((line) => `- ${promptValue(line, EXPLAIN_MAX_PAYLOAD_VALUE + 20)}`)
+    .join("\n")}`;
 }
 
 /** Prompt de usuario con la alerta delimitada como datos, no instrucciones. */
 export function buildExplainUserPrompt(alert: ExplainAlertInput): string {
-  const title = sanitizeExplainText(alert.title, EXPLAIN_MAX_TITLE);
-  const summary = sanitizeExplainText(alert.summary ?? "", EXPLAIN_MAX_SUMMARY);
-  const manager = sanitizeExplainText(alert.portfolio.manager ?? "", 160);
-  const createdAt = sanitizeExplainText(alert.createdAt ?? "", 60);
+  const title = promptValue(alert.title, EXPLAIN_MAX_TITLE);
+  const summary = promptValue(alert.summary ?? "", EXPLAIN_MAX_SUMMARY);
+  const manager = promptValue(alert.portfolio.manager ?? "", 160);
+  const createdAt = promptValue(alert.createdAt ?? "", 60);
   const payload = summarizeExplainPayload(alert.payload);
   const sources = explainSources(alert);
 
@@ -261,7 +270,7 @@ export function buildExplainUserPrompt(alert: ExplainAlertInput): string {
   return `<alerta>
 Tipo de alerta: ${alert.type}
 Severidad: ${alert.severity ?? "no indicada"}
-Portafolio: ${sanitizeExplainText(alert.portfolio.name, 160)}
+Portafolio: ${promptValue(alert.portfolio.name, 160)}
 Gestor o fuente: ${manager || "no indicado"}
 Categoría: ${alert.portfolio.category ?? "no indicada"}
 Fecha de la alerta: ${createdAt || "no indicada"}
