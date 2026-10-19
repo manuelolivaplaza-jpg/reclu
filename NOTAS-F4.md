@@ -31,6 +31,13 @@
 
 ## Pendiente (lo siguiente de este frente, en orden)
 
+0. **HECHO en la sesión del 19-10 (commiteado)**: pricing.tsx, faq.tsx,
+   alert-frequency-form.tsx y settings.ts ya consumían plans.ts (verificados
+   leyendo los archivos); followPortfolio documenta el límite vía plans.ts
+   (sin cambio de lógica, trial no aplica a follows); .env.example con
+   TELEGRAM_BOT_TOKEN/BOT_USERNAME/WEBHOOK_SECRET. La FAQ ya lista fuentes
+   correctas (House Disclosure, Senado, SEC 13F, ARK/Global X, Renta 4, BTG)
+   sin Capitol Trades ni LarrainVial.
 1. **`supabase/functions/send-alerts/index.ts`**: reescribir con
    `routeAlert` equivalente en Deno (copia mínima de plans/alert-routing con
    comentario de sincronización), realtime para pro/elite/prueba, respetar
