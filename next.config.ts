@@ -50,12 +50,26 @@ const securityHeaders = [
   },
 ];
 
+// F5: gráficos incrustables para medios/creadores. Solo /embed/* puede ir
+// dentro de un iframe; el resto del sitio mantiene frame-ancestors 'none'.
+const embedHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value: [...ContentSecurityPolicy.replace(/frame-ancestors 'none';/u, "frame-ancestors *;")].join("; "),
+  },
+  // sin X-Frame-Options en embed: CSP frame-ancestors es el control moderno.
+];
+
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
   async headers() {
     return [
+      {
+        source: "/embed/:path*",
+        headers: embedHeaders,
+      },
       {
         source: "/(.*)",
         headers: securityHeaders,

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Alert, Portfolio } from "@/lib/types";
 import { cn, formatPercent } from "@/lib/utils";
+import type { BeatMarketRow } from "@/lib/performance-queries";
+import { BeatMarketRanking } from "@/components/beat-market-ranking";
 
 const ROW_LIMIT = 5;
 const RADAR_LIMIT = 7;
@@ -28,10 +30,13 @@ export function ExploreRankings({
   portfolios,
   alerts,
   consensus = [],
+  beatMarket = [],
 }: {
   portfolios: Portfolio[];
   alerts: Alert[];
   consensus?: ConsensusTicker[];
+  /** F5: ranking por exceso de retorno vs S&P 500 / IPSA (null si no hay datos). */
+  beatMarket?: BeatMarketRow[];
 }) {
   const alertCount = new Map<string, number>();
   for (const alert of alerts) {
@@ -84,6 +89,8 @@ export function ExploreRankings({
         <RankingTable title="Mejor retorno" rows={bestReturn} />
         <RankingTable title="Más alertas" rows={mostAlerts} />
       </div>
+
+      {beatMarket.length > 0 && <BeatMarketRanking rows={beatMarket} />}
 
       {consensus.length > 0 && (
         <ConsensusRadar tickers={consensus.slice(0, RADAR_LIMIT)} />
