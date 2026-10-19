@@ -13,6 +13,11 @@ import { getPortfolios, getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { demoPerformance } from "@/lib/demo-data";
 import { fromPctToLevel, type SeriesPoint } from "@/lib/performance";
+import {
+  FREE_BACKTEST_WINDOW_DAYS,
+  filterBacktestCandidates,
+  trimSeriesToWindow,
+} from "@/lib/backtest-window";
 import { isPaidPlan } from "@/lib/types";
 
 export const metadata: Metadata = {
@@ -24,13 +29,10 @@ export const metadata: Metadata = {
 // Lee la sesión para decidir la ventana de historial: nunca se prerenderiza.
 export const instant = false;
 
-/** La ventana gratuita se recorta en el servidor, antes de serializar. */
-const FREE_WINDOW_DAYS = 90;
 /** Techo de consultas por request: prioriza los portafolios más seguidos. */
 const MAX_SERIES_PORTFOLIOS = 32;
 const MAX_SERIES_POINTS = 2000;
 const CONCURRENCY = 8;
-const DAY_MS = 86_400_000;
 
 function isSupabaseLive(): boolean {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -40,23 +42,6 @@ function isSupabaseLive(): boolean {
 function toTime(date: string): number {
   const iso = date.includes("T") ? date : `${date.slice(0, 10)}T00:00:00Z`;
   return Date.parse(iso);
-}
-
-/**
- * Recorta una serie a la ventana reciente. Si deja menos de dos puntos,
- * conserva los dos últimos para que el backtest tenga algo que dibujar.
- */
-function truncateToWindow(points: SeriesPoint[], days: number | null): SeriesPoint[] {
-  if (!days || points.length <= 2) return points;
-  const clean = points.filter(
-    (point) => Number.isFinite(point.value) && Number.isFinite(toTime(point.date)),
-  );
-  if (clean.length <= 2) return clean.length > 0 ? clean : points;
-  const latest = clean.reduce((max, point) => Math.max(max, toTime(point.date)), -Infinity);
-  if (!Number.isFinite(latest)) return points;
-  const cutoff = latest - (days - 1) * DAY_MS;
-  const recent = clean.filter((point) => toTime(point.date) >= cutoff);
-  return recent.length >= 2 ? recent : clean.slice(-2);
 }
 
 function cleanPerformanceRows(rows: unknown): SeriesPoint[] {
@@ -108,10 +93,14 @@ export default async function BacktestPage() {
 
   const [profile, portfolios] = await Promise.all([getProfile(), getPortfolios()]);
   const paid = isPaidPlan(profile?.plan);
-  const windowDays = paid ? null : FREE_WINDOW_DAYS;
+  const windowDays = paid ? null : FREE_BACKTEST_WINDOW_DAYS;
   const live = isSupabaseLive();
 
-  const candidates = portfolios.slice(0, MAX_SERIES_PORTFOLIOS);
+  // Quien no paga no recibe ni la serie de un portafolio premium.
+  const candidates = filterBacktestCandidates(portfolios, paid).slice(
+    0,
+    MAX_SERIES_PORTFOLIOS,
+  );
   let options: BacktestPortfolio[] = [];
   let sp500: SeriesPoint[] = [];
   let ipsa: SeriesPoint[] = [];
@@ -142,8 +131,11 @@ export default async function BacktestPage() {
 
     options = candidates
       .map((portfolio): BacktestPortfolio | null => {
-        const series = seriesById.get(portfolio.id);
-        if (!series || series.length < 2) return null;
+        const raw = seriesById.get(portfolio.id);
+        if (!raw || raw.length < 2) return null;
+        // El recorte ocurre antes de serializar: el cliente no ve más historial.
+        const series = trimSeriesToWindow(raw, windowDays, portfolio.source);
+        if (series.length < 2) return null;
         return {
           id: portfolio.id,
           slug: portfolio.slug,
@@ -160,8 +152,8 @@ export default async function BacktestPage() {
       loadBenchmark(supabase, "^IPSA"),
       loadBenchmark(supabase, "SPY"),
     ]);
-    sp500 = gspc.length >= 2 ? gspc : spy;
-    ipsa = ipsaSeries;
+    sp500 = trimSeriesToWindow(gspc.length >= 2 ? gspc : spy, windowDays);
+    ipsa = trimSeriesToWindow(ipsaSeries, windowDays);
   } else {
     // Modo demo: series ilustrativas, rotuladas como tales en la pantalla.
     options = candidates
@@ -172,19 +164,14 @@ export default async function BacktestPage() {
         name: portfolio.name,
         country: portfolio.country,
         returnYtd: portfolio.return_ytd,
-        series: demoPerformance(portfolio.slug, portfolio.return_ytd ?? 0, 120),
+        series: trimSeriesToWindow(
+          demoPerformance(portfolio.slug, portfolio.return_ytd ?? 0, 120),
+          windowDays,
+          portfolio.source,
+        ),
       }));
-    sp500 = fromPctToLevel(demoPerformance("bench-sp500", 12, 120));
-    ipsa = fromPctToLevel(demoPerformance("bench-ipsa", 8, 120));
-  }
-
-  if (windowDays) {
-    options = options.map((option) => ({
-      ...option,
-      series: truncateToWindow(option.series, windowDays),
-    }));
-    sp500 = truncateToWindow(sp500, windowDays);
-    ipsa = truncateToWindow(ipsa, windowDays);
+    sp500 = trimSeriesToWindow(fromPctToLevel(demoPerformance("bench-sp500", 12, 120)), windowDays);
+    ipsa = trimSeriesToWindow(fromPctToLevel(demoPerformance("bench-ipsa", 8, 120)), windowDays);
   }
 
   const benchmarks: BacktestBenchmark[] = [
@@ -230,7 +217,7 @@ export default async function BacktestPage() {
                 portfolios={options}
                 benchmarks={benchmarks}
                 paid={paid}
-                windowDays={windowDays ?? FREE_WINDOW_DAYS}
+                windowDays={windowDays ?? FREE_BACKTEST_WINDOW_DAYS}
                 demo={!live}
               />
             )}
