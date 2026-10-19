@@ -3,16 +3,22 @@ import type { NextConfig } from "next";
 /**
  * Content Security Policy.
  * Note: Next.js requires 'unsafe-inline' for styles (styled-jsx / inline
- * styles). If you later add analytics (Plausible, GA), extend connect-src.
+ * styles). Plausible (analítica sin cookies) va en script-src/connect-src;
+ * si se define NEXT_PUBLIC_PLAUSIBLE_DOMAIN se carga script.tagged-events.
  */
+const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? "";
+
 const ContentSecurityPolicy = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'" +
+    (PLAUSIBLE_DOMAIN ? " https://plausible.io" : ""),
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data:",
   // Supabase (auth + API), Resend (emails), OpenRouter (AI), Vercel (live)
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://openrouter.ai https://vercel.live",
+  // + Plausible (eventos de analítica, solo si hay dominio configurado)
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.resend.com https://openrouter.ai https://vercel.live" +
+    (PLAUSIBLE_DOMAIN ? " https://plausible.io" : ""),
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

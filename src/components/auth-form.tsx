@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { signIn, signUp, signInWithGoogle } from "@/app/actions/auth";
+import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LogoLockup } from "@/components/logo";
@@ -90,7 +91,13 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       {/* Google OAuth */}
       <form action={signInWithGoogle} className="mt-8">
-        <Button type="submit" variant="outline" className="w-full" size="lg">
+        <Button
+          type="submit"
+          variant="outline"
+          className="w-full"
+          size="lg"
+          onClick={() => track("signup", { method: "google", plan: plan ?? "free" })}
+        >
           <GoogleIcon />
           Continuar con Google
         </Button>
@@ -104,6 +111,7 @@ export function AuthForm({ mode }: AuthFormProps) {
 
       {/* Email form */}
       <form action={formAction} className="flex flex-col gap-4">
+        {/* Medición: signup al enviar el formulario (email o Google). */}
         <input type="hidden" name="next" value={next} />
         {!isLogin && (
           <Input
@@ -138,7 +146,13 @@ export function AuthForm({ mode }: AuthFormProps) {
           </p>
         )}
 
-        <Button type="submit" loading={isPending} size="lg" className="mt-2 w-full">
+        <Button
+          type="submit"
+          loading={isPending}
+          size="lg"
+          className="mt-2 w-full"
+          onClick={() => track("signup", { method: "email", plan: plan ?? "free" })}
+        >
           {isLogin ? "Entrar" : "Crear cuenta"}
         </Button>
       </form>

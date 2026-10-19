@@ -1,4 +1,4 @@
-import { getPortfolios, getFollows, getProfile, getHoldings, getAlerts } from "@/lib/queries";
+import { getPortfolios, getFollows, getProfile, getAlerts, getAllHoldingsAdmin } from "@/lib/queries";
 import { PortfolioCard } from "@/components/portfolio-card";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -99,7 +99,9 @@ async function buildConsensus(
   const counts = new Map<string, number>();
   await Promise.all(
     catalog.map(async (portfolio) => {
-      const holdings = await getHoldings(portfolio.id);
+      // Agregado del servidor: holdings completos solo para contar símbolos.
+      // Nunca se envían crudos al navegador.
+      const holdings = await getAllHoldingsAdmin(portfolio.id);
       const seen = new Set<string>();
       for (const holding of holdings) {
         const symbol = holding.symbol.trim().toUpperCase();
@@ -119,7 +121,9 @@ async function buildConsensus(
 async function filterByHoldingSymbol(portfolios: Portfolio[], symbol: string): Promise<Portfolio[]> {
   const matches = await Promise.all(
     portfolios.map(async (portfolio) => {
-      const holdings = await getHoldings(portfolio.id);
+      // Agregado del servidor (client de servicio): solo para decidir
+      // coincidencia sí/no, sin exponer holdings al navegador.
+      const holdings = await getAllHoldingsAdmin(portfolio.id);
       return holdings.some((holding) => holding.symbol.trim().toUpperCase() === symbol);
     }),
   );

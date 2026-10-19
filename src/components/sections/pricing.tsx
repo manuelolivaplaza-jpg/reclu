@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { FadeIn, StaggerList, StaggerItem } from "@/components/ui/motion";
+import { track } from "@/lib/analytics";
 
 type Billing = "monthly" | "annual";
 
@@ -76,6 +77,12 @@ const WHITE_FILET = "rgba(255,255,255,0.16)";
 export function Pricing() {
   const [billing, setBilling] = useState<Billing>("monthly");
   const annual = billing === "annual";
+
+  // Medición: la sección de precios entró en viewport.
+  useEffect(() => {
+    track("pricing_view", { billing });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const proPrice = annual ? "$10.390" : "$12.990";
   const proSuffix = annual ? "CLP / mes · facturado anual" : "CLP / mes";
@@ -170,7 +177,7 @@ export function Pricing() {
                 ))}
               </StaggerList>
 
-              <ButtonLink href="/signup?plan=pro" className="mt-10 w-full">
+              <ButtonLink href="/signup?plan=pro" className="mt-10 w-full" onClick={() => track("checkout_click", { plan: "pro", source: "pricing" })}>
                 Elegir Pro
               </ButtonLink>
             </div>
@@ -199,6 +206,7 @@ export function Pricing() {
               <ButtonLink
                 href="/signup?plan=elite"
                 className="mt-10 w-full bg-white text-ink-900 hover:opacity-90"
+                onClick={() => track("checkout_click", { plan: "elite", source: "pricing" })}
               >
                 Pasar a Elite
               </ButtonLink>

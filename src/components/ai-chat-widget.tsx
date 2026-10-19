@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isPaidPlan } from "@/lib/types";
 import { ChatGateModal, type GateReason } from "./chat-gate-modal";
+import { track } from "@/lib/analytics";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -346,7 +347,10 @@ export function AiChatWidget() {
         {!open && (
           <motion.button
             type="button"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              track("chat_open");
+              setOpen(true);
+            }}
             className={
               "fixed right-5 z-50 flex h-12 items-center gap-2 rounded-full bg-ink-900 pr-4 pl-3.5 text-[14px] font-medium text-white " +
               (isDashboardRoute ? "bottom-20 lg:bottom-5" : "bottom-5")

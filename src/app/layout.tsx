@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Instrument_Sans } from "next/font/google";
 import { AiChatWidget } from "@/components/ai-chat-widget";
+import { siteUrl } from "@/lib/site";
+import { plausibleDomain } from "@/lib/analytics";
 import "./globals.css";
 
 const instrument = Instrument_Sans({
@@ -10,8 +12,10 @@ const instrument = Instrument_Sans({
   display: "swap",
 });
 
+const SITE = siteUrl();
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://reclu.cl"),
+  metadataBase: new URL(SITE),
   title: {
     default: "reclu.cl — Seguimiento de portafolios y alertas inteligentes",
     template: "%s · reclu.cl",
@@ -35,11 +39,14 @@ export const metadata: Metadata = {
     ],
     apple: "/icon.svg",
   },
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     title: "reclu.cl — Seguimiento de portafolios y alertas inteligentes",
     description:
       "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
-    url: "https://reclu.cl",
+    url: SITE,
     siteName: "reclu.cl",
     locale: "es_CL",
     type: "website",
@@ -67,6 +74,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Saltar al contenido
         </a>
         {children}
+        {/* Analítica sin cookies: Plausible solo si NEXT_PUBLIC_PLAUSIBLE_DOMAIN
+            está definido (script exempt, tagged-events para track()).
+            Vercel Analytics: habilitar en el dashboard (ver NOTAS-F6.md). */}
+        {plausibleDomain() && (
+          <script
+            defer
+            data-domain={plausibleDomain() ?? ""}
+            src="https://plausible.io/js/script.tagged-events.js"
+          />
+        )}
         <AiChatWidget />
       </body>
     </html>

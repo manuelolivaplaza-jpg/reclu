@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 import type { Plan } from "@/lib/types";
 
 export type UpgradePlanChoice = "pro" | "elite";
@@ -107,6 +108,8 @@ export function UpgradeCheckout({
 
   function handleActivate(e: React.FormEvent) {
     e.preventDefault();
+    // Medición: intención de pago confirmada en /upgrade.
+    track("checkout_click", { plan: selectedPlan, billing, method: paymentMethod });
     const prefix = selectedPlan === "elite" ? "ELITE" : "PRO";
     const cycleCode = billing === "annual" ? "ANUAL" : "MES";
     const suffix = (userEmail || "RECLU")

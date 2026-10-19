@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type {
   Portfolio,
   Holding,
@@ -9,6 +10,12 @@ import type {
 } from "@/lib/types";
 import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT } from "@/lib/types";
 import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts } from "@/lib/demo-data";
+import {
+  roleFor,
+  HOLDING_LIMITS,
+  ALERT_LIMITS,
+  type AccessRole,
+} from "@/lib/access";
 
 /** True cuando Supabase está configurado con valores reales (no placeholder). */
 function isSupabaseLive(): boolean {
@@ -129,14 +136,43 @@ export async function getPerformance(
 }
 
 // ---- Holdings ----
-export async function getHoldings(portfolioId: string): Promise<Holding[]> {
+/**
+ * Holdings ordenados por peso descendente.
+ *
+ * Muro de pago (migración 012): usa la función security definer
+ * `get_portfolio_holdings` que recorta según el plan de auth.uid().
+ * Si la función aún no existe (migración sin aplicar), cae a la lectura
+ * anon directa y recorta en el servidor — la página nunca envía al
+ * navegador más de lo que el plan permite.
+ */
+export async function getHoldings(
+  portfolioId: string,
+  opts?: { role?: AccessRole },
+): Promise<Holding[]> {
   // En modo demo, portfolioId es el slug (d1, d7...). Resolvemos por slug.
   if (!isSupabaseLive()) {
     const slug = DEMO_PORTFOLIOS.find((p) => p.id === portfolioId)?.slug ?? portfolioId;
-    return demoHoldings(slug);
+    return sliceHoldings(demoHoldings(slug), opts?.role);
   }
 
   const supabase = await createClient();
+
+  // Camino con migración 012 aplicada: RPC con recorte en la base.
+  const slugRow = await supabase
+    .from("portfolios")
+    .select("slug")
+    .eq("id", portfolioId)
+    .maybeSingle();
+  if (slugRow.data?.slug) {
+    const { data: rpc, error: rpcError } = await supabase
+      .rpc("get_portfolio_holdings", { p_slug: slugRow.data.slug });
+    if (!rpcError && Array.isArray(rpc)) {
+      return rpc as Holding[];
+    }
+    // Si la función no existe, seguimos por el camino legacy de abajo.
+  }
+
+  // Fallback (migración no aplicada): lectura directa + recorte servidor.
   const { data, error } = await supabase
     .from("holdings")
     .select("*")
@@ -149,14 +185,54 @@ export async function getHoldings(portfolioId: string): Promise<Holding[]> {
   if (!data || data.length === 0) {
     // Buscar el slug real para servir demo si la DB está vacía.
     const { data: pf } = await supabase.from("portfolios").select("slug").eq("id", portfolioId).maybeSingle();
-    return pf ? demoHoldings(pf.slug) : [];
+    return pf ? sliceHoldings(demoHoldings(pf.slug), opts?.role) : [];
   }
-  return data;
+  return sliceHoldings(data, opts?.role);
+}
+
+/** Recorte en servidor según rol (muro de pago real). */
+function sliceHoldings(list: Holding[], role: AccessRole | undefined): Holding[] {
+  if (!role) return list;
+  const limit = HOLDING_LIMITS[role];
+  return Number.isFinite(limit) ? list.slice(0, limit) : list;
+}
+
+/**
+ * Holdings COMPLETOS con cliente de servicio — solo agregados del servidor
+ * (radar de consenso, filtros por símbolo, comparador). El resultado se
+ * agrega antes de llegar al navegador; nunca se expone crudo.
+ * Requiere migración 012 aplicada si el catálogo vive tras el muro.
+ */
+export async function getAllHoldingsAdmin(portfolioId: string): Promise<Holding[]> {
+  const admin = createAdminClient();
+  if (!admin) return getHoldings(portfolioId);
+  const { data, error } = await admin
+    .from("holdings")
+    .select("*")
+    .eq("portfolio_id", portfolioId)
+    .order("weight", { ascending: false });
+  if (error) {
+    console.warn("[reclu] getAllHoldingsAdmin error:", error.message);
+    return [];
+  }
+  return (data ?? []) as Holding[];
 }
 
 // ---- Alerts ----
-export async function getAlerts(portfolioId?: string, limit = 20): Promise<Alert[]> {
-  if (!isSupabaseLive()) return demoAlerts(portfolioId).slice(0, limit);
+/**
+ * Alertas publicadas. Muro de pago: acepta un rol para recortar cuántas
+ * ve el usuario (anónimo 3, free 10, pago todo). `limit` general se
+ * mantiene para listados internos (dashboard, rankings).
+ */
+export async function getAlerts(
+  portfolioId?: string,
+  limit = 20,
+  opts?: { role?: AccessRole },
+): Promise<Alert[]> {
+  if (!isSupabaseLive()) {
+    const demo = demoAlerts(portfolioId);
+    return sliceAlerts(demo, opts?.role).slice(0, limit);
+  }
 
   const supabase = await createClient();
   let query = supabase
@@ -168,11 +244,15 @@ export async function getAlerts(portfolioId?: string, limit = 20): Promise<Alert
     `,
     )
     .eq("is_published", true)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: false });
 
   if (portfolioId) {
     query = query.eq("portfolio_id", portfolioId);
+  }
+  if (opts?.role && Number.isFinite(ALERT_LIMITS[opts.role])) {
+    query = query.limit(Math.min(limit, ALERT_LIMITS[opts.role]));
+  } else {
+    query = query.limit(limit);
   }
 
   const { data, error } = await query;
@@ -181,6 +261,13 @@ export async function getAlerts(portfolioId?: string, limit = 20): Promise<Alert
     return [];
   }
   return data ?? [];
+}
+
+/** Recorte de alertas según rol (muro de pago real). */
+function sliceAlerts(list: Alert[], role: AccessRole | undefined): Alert[] {
+  if (!role) return list;
+  const limit = ALERT_LIMITS[role];
+  return Number.isFinite(limit) ? list.slice(0, limit) : list;
 }
 
 // ---- Profile ----
