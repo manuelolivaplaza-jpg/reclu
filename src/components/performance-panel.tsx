@@ -2,6 +2,9 @@
 
 import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from "react";
 import Link from "next/link";
+import { LagBadge } from "@/components/lag-badge";
+import { LegalNotice } from "@/components/legal/legal-notice";
+import { returnSincePublication } from "@/lib/entry-at-publication";
 import type { PerformanceMetrics, SeriesPoint } from "@/lib/performance";
 
 export interface PerformancePanelProps {
@@ -19,6 +22,17 @@ export interface PerformancePanelProps {
   asOf?: string | null;
   /** Aviso cuando los datos no son reales (modo demo). */
   demo?: boolean;
+  /** Cuándo se publicó la cartera o su último filing (ISO). */
+  publishedAt?: string | null;
+  /** Instante en que Reclu registró esa publicación, si la fecha oficial no trae hora. */
+  recordedAt?: string | null;
+  /** Días entre la operación y la publicación. */
+  disclosureLagDays?: number | null;
+  /**
+   * Serie de niveles para "si entraste al publicarse".
+   * Si no viene, se usa portfolioSeries.
+   */
+  entrySeries?: SeriesPoint[];
 }
 
 const VB_W = 640;
@@ -316,9 +330,25 @@ export function PerformancePanel({
   method,
   asOf,
   demo = false,
+  publishedAt = null,
+  recordedAt = null,
+  disclosureLagDays = null,
+  entrySeries,
 }: PerformancePanelProps) {
   const hasMetrics = metrics !== null;
   const hasChart = portfolioSeries.length >= 2;
+  const seriesForEntry = entrySeries && entrySeries.length >= 2 ? entrySeries : portfolioSeries;
+  const sincePublication = publishedAt
+    ? returnSincePublication(seriesForEntry, publishedAt)
+    : null;
+  const publicationBlock = publishedAt ? (
+    <PublicationEntry
+      publishedAt={publishedAt}
+      recordedAt={recordedAt}
+      lagDays={disclosureLagDays}
+      sincePublication={sincePublication}
+    />
+  ) : null;
 
   if (!hasMetrics && !hasChart) {
     return (
@@ -336,6 +366,7 @@ export function PerformancePanel({
           </Link>
           .
         </p>
+        {publicationBlock}
       </section>
     );
   }
@@ -405,6 +436,8 @@ export function PerformancePanel({
         <MetricCell label="Le gana al índice" value={winRate !== null ? `${winRate.toFixed(0)}% de los días` : null} />
       </dl>
 
+      {publicationBlock}
+
       {metrics && metrics.reasons.length > 0 ? (
         <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
           {metrics.reasons.join(" ")}
@@ -420,6 +453,56 @@ export function PerformancePanel({
         .
       </p>
     </section>
+  );
+}
+
+function PublicationEntry({
+  publishedAt,
+  recordedAt,
+  lagDays,
+  sincePublication,
+}: {
+  publishedAt: string;
+  recordedAt: string | null;
+  lagDays: number | null;
+  sincePublication: number | null;
+}) {
+  const tone =
+    sincePublication === null
+      ? "text-ink-900"
+      : sincePublication > 0
+        ? "text-positive"
+        : sincePublication < 0
+          ? "text-negative"
+          : "text-ink-900";
+
+  return (
+    <>
+    <div className="mt-px border border-ink-200">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 bg-white p-4">
+        <div>
+          <p className="text-[12px] text-ink-500">Si entraste al publicarse</p>
+          <LagBadge
+            className="mt-1 block"
+            publishedAt={publishedAt}
+            recordedAt={recordedAt}
+            lagDays={lagDays}
+          />
+        </div>
+        <p className={`num text-[17px] leading-none tracking-[-0.02em] ${tone}`}>
+          {fmt(sincePublication) ?? <span className="text-ink-400">—</span>}
+        </p>
+      </div>
+      {sincePublication === null ? (
+        <p className="border-t border-ink-200 px-4 py-3 text-[12px] leading-relaxed text-ink-500">
+          Sin cotización de ese día en la serie. No se muestra un retorno estimado.
+        </p>
+      ) : null}
+    </div>
+    <div className="mt-3">
+      <LegalNotice kind="simulation" />
+    </div>
+    </>
   );
 }
 

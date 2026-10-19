@@ -13,6 +13,7 @@ import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
+import { LagBadge } from "@/components/lag-badge";
 import { PerformancePanel } from "@/components/performance-panel";
 import { getPortfolioPerformanceData } from "@/lib/performance-queries";
 import { computePerformanceMetrics, fromPctToLevel } from "@/lib/performance";
@@ -22,7 +23,7 @@ import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
-import { disclosureLagLabel } from "@/lib/disclosure-lag";
+import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
 import { OgeTradesPanel } from "@/components/oge-trades-panel";
 import { getVerifiedOgeTrades } from "@/lib/disclosure-trades";
@@ -181,6 +182,13 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const fechaAfp = esAfpModelo ? fechaCartera(corteAfp) : null;
   const fuenteAfp = esAfpModelo ? urlFuenteAfpModelo(corteAfp) : null;
   const benchmarkLabel = esAfpModelo ? ECH_PROXY_LABEL : perfPanelData.benchmarkLabel;
+  const entrySeries =
+    perfPanelData.portfolioSeries.length >= 2
+      ? perfPanelData.portfolioSeries
+      : perfSourceSeries.length >= 2
+        ? fromPctToLevel(perfSourceSeries)
+        : [];
+  const publication = latestDisclosureStamp(alerts);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -359,6 +367,10 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 method={perfDemo ? "demo" : perfPanelData.method}
                 asOf={perfPanelData.precomputed?.as_of ?? null}
                 demo={perfDemo}
+                publishedAt={publication?.publishedAt ?? null}
+                recordedAt={publication?.recordedAt ?? null}
+                disclosureLagDays={publication?.lagDays ?? null}
+                entrySeries={entrySeries}
               />
             </div>
           ) : null}
@@ -484,18 +496,18 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 {alerts.length > 0 ? (
                   <div className="flex flex-col gap-4">
                     {alerts.map((alert) => {
-                      const lag = disclosureLagLabel(alert.payload);
                       const fuenteAlerta = enlaceSpensiones(alert.payload?.source_url);
                       return (
                         <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
                           <p className="text-[13px] text-ink-500">{timeAgo(alert.created_at)}</p>
                           <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
                             <h3 className="text-[15px] font-medium text-ink-900">{alert.title}</h3>
-                            {lag ? (
-                              <p className="text-[13px] font-normal leading-snug text-[#6b6b6b]">
-                                {lag}
-                              </p>
-                            ) : null}
+                            <LagBadge
+                              publishedAt={publishedAtFromPayload(alert.payload)}
+                              recordedAt={alert.created_at}
+                              lagDays={lagDays(alert.payload)}
+                              className="font-normal leading-snug text-[#6b6b6b]"
+                            />
                           </div>
                           {alert.summary ? (
                             <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-ink-500">
