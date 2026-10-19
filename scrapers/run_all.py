@@ -17,6 +17,7 @@ Etapas de mercado:
   compute_returns    return_pct de cada holding
   performance        Series históricas → portfolio_performance
   insiders_form4     Compras de ejecutivos (SEC Form 4)
+  stages/*.py        Etapas nuevas, orden alfabético, antes de radar_ia
 
 Uso:
     python run_all.py                          # todas las etapas default
@@ -38,6 +39,7 @@ import time
 import traceback
 
 from base import get_db, log
+from stages import discover_stages, insert_before_radar
 
 # Etapas en orden de ejecución. Etapas "posiciones" primero (los scrapers
 # escriben holdings), luego precios, luego rendimientos, luego snapshots.
@@ -58,8 +60,7 @@ STAGES: list[tuple[str, str, bool]] = [
     ("insiders_form4", "Compras de ejecutivos (SEC Form 4)", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
-STAGE_IDS = [s[0] for s in STAGES]
-CRITICAL = {s[0] for s in STAGES if s[2]}
+# STAGE_IDS y CRITICAL se arman después de descubrir scrapers/stages/*.py.
 
 # Capitol Trades quedó OBSOLETO: login wall (docs/sources.md). Se mantiene
 # capitol_trades.py en el repo por referencia pero no corre por defecto ni
@@ -260,6 +261,12 @@ RUNNERS = {
     "insiders_form4": run_insiders_form4,
     "radar_ia": run_radar_ia,
 }
+
+# Cada scrapers/stages/*.py define STAGE y run(). Orden alfabético, siempre
+# antes de radar_ia. Sin archivos ahí, --list y la corrida no cambian.
+STAGES, RUNNERS = insert_before_radar(STAGES, RUNNERS, discover_stages())
+STAGE_IDS = [s[0] for s in STAGES]
+CRITICAL = {s[0] for s in STAGES if s[2]}
 
 
 def main() -> None:
