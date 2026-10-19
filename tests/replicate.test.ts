@@ -11,9 +11,7 @@ function holding(partial: Partial<Holding> & Pick<Holding, "symbol" | "weight">)
   return {
     id: partial.symbol,
     portfolio_id: "p1",
-    symbol: partial.symbol,
-    name: partial.name ?? partial.symbol,
-    weight: partial.weight,
+    name: partial.symbol,
     previous_weight: null,
     asset_class: "equity",
     exchange: null,
@@ -23,6 +21,8 @@ function holding(partial: Partial<Holding> & Pick<Holding, "symbol" | "weight">)
     price_current: null,
     return_pct: null,
     ...partial,
+    symbol: partial.symbol,
+    weight: partial.weight,
   };
 }
 

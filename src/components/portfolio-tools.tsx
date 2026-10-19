@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download } from "lucide-react";
+import { Download, ListPlus } from "lucide-react";
 import type { Holding } from "@/lib/types";
+import { ReplicateList } from "@/components/replicate-list";
 
 const CAPITAL_OPTIONS = [
   { label: "$1.000.000", value: 1_000_000 },
@@ -112,6 +113,7 @@ export function PortfolioTools({
   isElite,
 }: PortfolioToolsProps) {
   const [capital, setCapital] = useState<number>(1_000_000);
+  const [showReplicate, setShowReplicate] = useState(false);
   const router = useRouter();
 
   const finalValue = useMemo(
@@ -160,6 +162,7 @@ export function PortfolioTools({
   }
 
   return (
+    <>
     <div className="mt-12 grid gap-12 border-t border-ink-200 pt-10 lg:grid-cols-[1.6fr_1fr]">
       {/* Simulador de Capital YTD */}
       <section aria-labelledby="simulator-heading">
@@ -238,6 +241,28 @@ export function PortfolioTools({
           </p>
         )}
       </section>
+
+      {/* Lista de compras ("Copiar en mi corredora") */}
+      <div className="lg:col-span-2">
+        <button
+          type="button"
+          onClick={() => setShowReplicate((open) => !open)}
+          aria-expanded={showReplicate}
+          className="inline-flex h-12 items-center gap-2 rounded-full border border-ink-900 px-6 text-[15px] font-medium text-ink-900 transition-colors hover:bg-ink-900 hover:text-white"
+        >
+          <ListPlus className="size-4" strokeWidth={1.8} />
+          Copiar en mi corredora
+        </button>
+      </div>
     </div>
+
+    {showReplicate ? (
+      <ReplicateList
+        slug={slug}
+        portfolioName={portfolioName}
+        holdings={holdings}
+      />
+    ) : null}
+    </>
   );
 }
