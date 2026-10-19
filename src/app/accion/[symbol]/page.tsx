@@ -18,6 +18,10 @@ interface AccionPageProps {
   params: Promise<{ symbol: string }>;
 }
 
+// Con Supabase vivo, getTickerOverview lee cookies (auth) — nunca prerender
+// instantáneo total; PPR mantiene el shell estático (misma regla que /explore).
+export const instant = false;
+
 /** Símbolos más buscados — prerender estático (SEO + respuesta instantánea). */
 const COMMON_SYMBOLS = [
   "NVDA",
