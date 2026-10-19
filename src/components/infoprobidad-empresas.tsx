@@ -5,6 +5,7 @@ import {
   INFOPROBIDAD_FUENTE,
   INFOPROBIDAD_LICENCIA_URL,
   INFOPROBIDAD_URL,
+  formatAutoridades,
   formatFechaDeclaracion,
   formatValorClp,
   type EmpresaPublica,
@@ -52,7 +53,7 @@ export function InfoprobidadEmpresas({
                   <td className="py-3.5 text-ink-900">{row.nombre}</td>
                   <td className="py-3.5 text-ink-500">{row.symbol ?? "—"}</td>
                   <td className="py-3.5 text-right tabular-nums text-ink-900">
-                    {row.autoridades}
+                    {formatAutoridades(row.autoridades)}
                   </td>
                   <td className="py-3.5 text-right tabular-nums text-ink-900">
                     {formatValorClp(row.valorDeclaradoClp)}

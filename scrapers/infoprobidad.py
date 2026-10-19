@@ -5,9 +5,10 @@ Fuente: SPARQL público del Consejo para la Transparencia
 https://datos.cplt.cl/sparql (licencia CC BY 4.0).
 
 Se publica solo el agregado: autoridades que declaran acciones de cada
-empresa, valor total declarado y fecha más reciente. La consulta no pide
-dirección, estado civil, régimen patrimonial, bienes, pasivos ni datos
-de cónyuge o familiares.
+empresa, valor total declarado y fecha más reciente. Con menos de
+MIN_AUTORIDADES (3) no se guardan valor ni fecha: alcanzan a señalar
+a una persona. La consulta no pide dirección, estado civil, régimen
+patrimonial, bienes, pasivos ni datos de cónyuge o familiares.
 
 Portafolio infoProbidad-cl (el slug no cambia): canasta de emisoras
 cotizadas, peso proporcional al número de autoridades. No es una cartera
@@ -28,6 +29,8 @@ SOURCE_URL = SPARQL_ENDPOINT
 LICENCIA = "CC BY 4.0"
 PORTFOLIO_SLUG = "infoProbidad-cl"
 UMBRAL_AUTORIDADES = 5
+# 1 o 2 declarantes reidentifican (valor y fecha). El mismo piso está en TS.
+MIN_AUTORIDADES = 3
 
 # Sociedades deportivas y RUT vacío. El agregado las descarta.
 RUT_DESCARTADOS = frozenset({
@@ -112,6 +115,17 @@ def _fecha(raw: str) -> str | None:
     return raw[:10] if raw else None
 
 
+def campos_publicos(
+    autoridades: int,
+    valor: float | None,
+    fecha: str | None,
+) -> tuple[float | None, str | None]:
+    """Bajo el piso, valor y fecha quedan fuera del agregado guardado."""
+    if autoridades < MIN_AUTORIDADES:
+        return None, None
+    return valor, fecha
+
+
 def parse_bindings(data: dict) -> list[EmpresaAgregada]:
     """Una fila por RUT. Descarta rut 0, vacíos y sociedades deportivas."""
     bindings = (data or {}).get("results", {}).get("bindings", [])
@@ -135,12 +149,15 @@ def parse_bindings(data: dict) -> list[EmpresaAgregada]:
                 valor = parsed if parsed > 0 else None
             except ValueError:
                 valor = None
+        valor, fecha = campos_publicos(
+            autoridades, valor, _fecha(_valor(binding, "ultima"))
+        )
         row = EmpresaAgregada(
             rut=rut,
             nombre=nombre.strip(),
             autoridades=autoridades,
             valor_declarado_clp=valor,
-            ultima_declaracion=_fecha(_valor(binding, "ultima")),
+            ultima_declaracion=fecha,
         )
         prev = by_rut.get(rut)
         if prev is None or row.autoridades > prev.autoridades:
@@ -210,6 +227,8 @@ def alertas_umbral(
     """threshold si las autoridades suben >= umbral entre corridas. Sin personas."""
     alerts: list[dict] = []
     for row in actuales:
+        if row.autoridades < MIN_AUTORIDADES:
+            continue
         prev = anteriores.get(row.rut)
         if prev is None:
             continue
@@ -299,14 +318,19 @@ class InfoProbidadAdapter(SourceAdapter):
         }
         alerts = alertas_umbral(anteriores, empresas)
         for empresa in empresas:
+            valor, fecha = campos_publicos(
+                empresa.autoridades,
+                empresa.valor_declarado_clp,
+                empresa.ultima_declaracion,
+            )
             db.table("infoprobidad_empresas").upsert(
                 {
                     "rut": empresa.rut,
                     "nombre": empresa.nombre,
                     "symbol": empresa.symbol,
                     "autoridades": empresa.autoridades,
-                    "valor_declarado_clp": empresa.valor_declarado_clp,
-                    "ultima_declaracion": empresa.ultima_declaracion,
+                    "valor_declarado_clp": valor,
+                    "ultima_declaracion": fecha,
                 },
                 on_conflict="rut",
             ).execute()

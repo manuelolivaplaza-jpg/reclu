@@ -12,8 +12,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from infoprobidad import (  # noqa: E402
+    MIN_AUTORIDADES,
     PREDICADOS_PROHIBIDOS,
     alertas_umbral,
+    campos_publicos,
     consulta_publica,
     consulta_sin_datos_personales,
     holdings_desde_agregado,
@@ -118,3 +120,40 @@ def test_alerta_umbral_sin_datos_personales():
     for pred in PREDICADOS_PROHIBIDOS:
         assert pred not in blob
     assert "apellido" not in blob.lower()
+
+
+def test_bajo_min_autoridades_oculta_valor_fecha_y_no_alerta():
+    assert MIN_AUTORIDADES == 3
+    data = {
+        "results": {"bindings": [
+            {"rut": {"value": "11111111"}, "nombre": {"value": "PEQUEÑA"},
+             "declarantes": {"value": "2"}, "ultima": {"value": "2026-10-01"},
+             "valor": {"value": "5000000"}},
+            {"rut": {"value": "22222222"}, "nombre": {"value": "TRES"},
+             "declarantes": {"value": "3"}, "ultima": {"value": "2026-10-02"},
+             "valor": {"value": "9000000"}},
+        ]},
+    }
+    rows = parse_bindings(data)
+    pequena = next(row for row in rows if row.rut == "11111111")
+    assert pequena.autoridades == 2
+    assert pequena.valor_declarado_clp is None
+    assert pequena.ultima_declaracion is None
+    tres = next(row for row in rows if row.rut == "22222222")
+    assert tres.autoridades == 3
+    assert tres.valor_declarado_clp == 9000000
+    assert tres.ultima_declaracion == "2026-10-02"
+    assert campos_publicos(1, 1000.0, "2026-10-01") == (None, None)
+    assert campos_publicos(3, 1000.0, "2026-10-02") == (1000.0, "2026-10-02")
+
+    # umbral=1 haría saltar a PEQUEÑA (2-1). El piso de reidentificación la deja fuera.
+    actuales = [
+        EmpresaAgregada("11111111", "PEQUEÑA", 2, 5_000_000, "2026-10-01", None),
+        EmpresaAgregada("22222222", "TRES", 8, 9_000_000, "2026-10-02", None),
+    ]
+    alerts = alertas_umbral({"11111111": 1, "22222222": 3}, actuales, umbral=1)
+    assert [alert["payload"]["rut"] for alert in alerts] == ["22222222"]
+    blob = json.dumps(alerts)
+    assert "PEQUEÑA" not in blob
+    assert "2026-10-01" not in blob
+    assert "5000000" not in blob

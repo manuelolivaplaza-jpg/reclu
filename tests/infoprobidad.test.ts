@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
+  MIN_AUTORIDADES,
+  formatAutoridades,
   formatFechaDeclaracion,
   formatValorClp,
   toEmpresaPublica,
@@ -44,5 +46,39 @@ describe("InfoProbidad agregado", () => {
       autoridades: 1,
     });
     expect(conDv?.rut).toBe("89862200");
+    expect(conDv?.valorDeclaradoClp).toBeNull();
+    expect(conDv?.ultimaDeclaracion).toBeNull();
+  });
+
+  it("oculta valor y fecha si hay menos de 3 autoridades", () => {
+    expect(MIN_AUTORIDADES).toBe(3);
+    expect(formatAutoridades(1)).toBe("menos de 3");
+    expect(formatAutoridades(2)).toBe("menos de 3");
+    expect(formatAutoridades(3)).toBe("3");
+    const pequena = toEmpresaPublica({
+      rut: "11111111",
+      nombre: "PEQUEÑA",
+      autoridades: 2,
+      valor_declarado_clp: 5_000_000,
+      ultima_declaracion: "2026-10-01",
+    });
+    expect(pequena).toEqual({
+      rut: "11111111",
+      nombre: "PEQUEÑA",
+      symbol: null,
+      autoridades: 2,
+      valorDeclaradoClp: null,
+      ultimaDeclaracion: null,
+    });
+    const tres = toEmpresaPublica({
+      rut: "22222222",
+      nombre: "TRES",
+      autoridades: 3,
+      valor_declarado_clp: 9_000_000,
+      ultima_declaracion: "2026-10-02",
+    });
+    expect(tres?.valorDeclaradoClp).toBe(9_000_000);
+    expect(tres?.ultimaDeclaracion).toBe("2026-10-02");
+    expect(formatAutoridades(tres?.autoridades ?? 0)).toBe("3");
   });
 });

@@ -1,6 +1,7 @@
 /**
  * Agregado público de InfoProbidad: empresas, no personas.
  * Sin dirección, estado civil, régimen patrimonial, bienes ni pasivos.
+ * Con menos de MIN_AUTORIDADES no se muestran valor ni fecha.
  */
 
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +16,9 @@ export const AVISO_FINALIDAD =
   "Transparencia sobre posibles conflictos de interés. No es una recomendación de inversión.";
 export const AVISO_SIMULACION =
   "Simulación histórica con fines informativos. No es recomendación de inversión.";
+
+/** Mismo piso que scrapers/infoprobidad.py. 1 o 2 declarantes reidentifican. */
+export const MIN_AUTORIDADES = 3;
 
 const MESES = [
   "ene", "feb", "mar", "abr", "may", "jun",
@@ -69,6 +73,11 @@ export function formatFechaDeclaracion(iso: string | null): string {
   return `${Number(match[3])} ${month} ${match[1]}`;
 }
 
+export function formatAutoridades(value: number): string {
+  if (!Number.isFinite(value) || value < MIN_AUTORIDADES) return "menos de 3";
+  return String(Math.round(value));
+}
+
 export function toEmpresaPublica(row: Record<string, unknown>): EmpresaPublica | null {
   const rawRut = String(row.rut ?? "").trim().replace(/\./g, "");
   const cuerpo = rawRut.includes("-") ? (rawRut.split("-")[0] ?? "") : rawRut;
@@ -79,6 +88,8 @@ export function toEmpresaPublica(row: Record<string, unknown>): EmpresaPublica |
   if (!Number.isFinite(autoridades) || autoridades < 0) return null;
   const symbolRaw = row.symbol;
   const symbol = typeof symbolRaw === "string" && symbolRaw.trim() ? symbolRaw.trim() : null;
+  const autoridadesRedondeadas = Math.round(autoridades);
+  const visible = autoridadesRedondeadas >= MIN_AUTORIDADES;
   const valorRaw = row.valor_declarado_clp;
   const valorNum = valorRaw === null || valorRaw === undefined || valorRaw === "" ? null : Number(valorRaw);
   const fechaRaw = row.ultima_declaracion;
@@ -87,9 +98,10 @@ export function toEmpresaPublica(row: Record<string, unknown>): EmpresaPublica |
     rut,
     nombre,
     symbol,
-    autoridades: Math.round(autoridades),
-    valorDeclaradoClp: valorNum !== null && Number.isFinite(valorNum) && valorNum > 0 ? valorNum : null,
-    ultimaDeclaracion: fecha,
+    autoridades: autoridadesRedondeadas,
+    valorDeclaradoClp:
+      visible && valorNum !== null && Number.isFinite(valorNum) && valorNum > 0 ? valorNum : null,
+    ultimaDeclaracion: visible ? fecha : null,
   };
 }
 

@@ -59,6 +59,7 @@ El slug `infoProbidad-cl` no cambia. No se corrió el scraper ni SQL contra Supa
    - El calendario "martes y viernes" del docstring viejo no está confirmado en una página oficial. La declaración más reciente vista el 2026-10-19 es del 2026-10-10.
 
 ## Decisiones documentadas
+- Con menos de 3 autoridades (`MIN_AUTORIDADES`) no se guarda ni muestra el valor declarado ni la última declaración, el conteo se ve como "menos de 3" y las alertas threshold no describen esa empresa.
 - Nombres de autoridades (aunque sean ministros o jefes de servicio) no se publican en esta versión. El flag existe y está apagado; encenderlo no abre una consulta de personas.
 - El valor declarado es la suma de `ip:valorPlaza`. Si el endpoint no trae monto, la UI muestra "—". No se inventa un rendimiento.
 - Sociedades deportivas y RUT `0` se descartan. El resto del top 50 se publica agregado, coticen o no.
