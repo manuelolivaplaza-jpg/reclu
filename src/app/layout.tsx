@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Instrument_Sans } from "next/font/google";
 import { AiChatWidget } from "@/components/ai-chat-widget";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const instrument = Instrument_Sans({
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </a>
         {children}
         <AiChatWidget />
+        <PwaRegister />
       </body>
     </html>
   );
