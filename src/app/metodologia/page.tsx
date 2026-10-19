@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 export const metadata: Metadata = {
   title: "Metodología",
   description:
-    "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída y comparación contra S&P 500 e IPSA.",
+    "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, y la simulación Trump dice.",
 };
 
 /**
@@ -35,6 +35,7 @@ export default function MetodologiaPage() {
             <a href="#benchmarks" className="underline underline-offset-4">Benchmarks</a>
             <a href="#politicos" className="underline underline-offset-4">Por qué los políticos son estimaciones</a>
             <a href="#limites" className="underline underline-offset-4">Límites y sesgos</a>
+            <a href="#trump-dice" className="underline underline-offset-4">Trump dice</a>
           </nav>
 
           <section id="datos" className="mt-14">
@@ -229,6 +230,49 @@ export default function MetodologiaPage() {
                 cambiaria ni cobertura de FX.
               </li>
             </ul>
+          </section>
+
+          <section id="trump-dice" className="mt-14">
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+              7. Trump dice
+            </h2>
+            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+              <p>
+                <strong className="font-medium text-ink-900">Trump dice</strong> es un
+                portafolio simulado. Cada vez que Donald Trump, en un dicho público
+                propio (Truth Social, X, discurso o entrevista), llama a comprar una
+                empresa cotizada o el mercado, o elogia de forma directa e individual
+                a una empresa o a su acción, se anota una compra de US$1.000 al cierre.
+              </p>
+              <p>
+                Si el dicho ocurrió después de las 16:00 ET, en fin de semana o en
+                feriado, la compra usa el cierre del siguiente día hábil. Si la hora
+                no está confirmada, se usa el cierre del mismo día. La excepción es
+                Apple el 06-08-2025: el evento fue en la tarde y, por prudencia, la
+                entrada es el 07-08. Se compra y se mantiene. Una empresa nombrada
+                varias veces (Dell cinco veces, Intel cuatro) suma una compra nueva
+                en cada mención.
+              </p>
+              <p>
+                Cada mención publicada trae la cita y al menos una fuente con URL.
+                Quedan fuera las empresas privadas, los actos de gobierno sin un dicho
+                de Trump y los elogios colectivos dentro de una lista de empresas. El
+                conjunto no es exhaustivo: son los llamados de compra y elogios
+                directos verificados entre marzo de 2025 y octubre de 2026. El corte
+                de la composición publicada es el cierre del 16-10-2026.
+              </p>
+              <p>
+                U.S. Steel (X) dejó de cotizar. Desde el 18-06-2025 esa posición queda
+                en efectivo a US$55 por acción, el precio pagado por Nippon Steel. En
+                la cartera aparece como efectivo, no como la acción.
+              </p>
+              <p>
+                La simulación no incluye costos, impuestos ni tipo de cambio. Son 15
+                compras, muy concentradas en Dell e Intel: el resultado depende de
+                dos acciones, y las menciones más citadas son las que más se movieron.
+                Es información histórica. No es una recomendación de inversión.
+              </p>
+            </div>
           </section>
 
           <section className="mt-16 border-t border-ink-200 pt-8">
