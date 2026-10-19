@@ -68,3 +68,21 @@ Hecho el 2026-10-19 en `v2/f23-corredoras-cl-parsers`:
 
 - Los slugs `bice-acciones-destacadas` y `mbi-acciones-recomendadas` necesitan fila en `portfolios`. Sin esa fila, una corrida real falla en `_resolve_portfolio_id`.
 - No hay número de migración asignado a F23 en PLAN.md (022-042 están repartidos). Esta tarea no crea migración.
+
+## 044 — Slugs en `portfolios` (M44)
+
+Hecho el 2026-10-19 en `v2/m44-corredoras-cl-slugs`:
+
+- `supabase/migrations/044_corredoras_cl.sql` crea las dos filas
+  (`broker_cl`, `CL`, `premium=false`, `followers=0`, `return_ytd=null`).
+  `source` = `bice_cartera` / `mbi_cartera` (nombre del adaptador). Sin
+  holdings semilla: los carga la etapa `corredoras_cl`.
+- Idempotente: `on conflict (slug) do update` de `description` y `source`
+  únicamente. Nunca pisa `followers` ni `return_ytd`.
+- `supabase/migrations/README.md`: fila 17 + sección `## 044`. Aplicar después
+  de `021` (y de la `043` si existe); independiente de `022-042`.
+- `scrapers/tests/test_migracion_044.py`: 4 tests que leen el SQL como texto y
+  comparan slugs/source con los del parser. Suite completa: `75 passed, 1 skipped`.
+
+Ya no hay deuda de filas: una corrida real de la etapa puede resolver el
+`portfolio_id`. Sigue en pie el TODO(F16) de UI/aviso legal.
