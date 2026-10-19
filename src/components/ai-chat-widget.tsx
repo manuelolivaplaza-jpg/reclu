@@ -235,15 +235,36 @@ export function AiChatWidget() {
     if (!user) bumpAnonCount();
 
     try {
+      const rawSlug = portfolioSlugFromPathname(pathname);
+      const slug = rawSlug?.toLowerCase();
+      const safeSlug = slug && /^[a-z0-9-]{1,80}$/.test(slug) ? slug : undefined;
+      const payloadMessages = nextMessages
+        .slice(-20)
+        .map((message) => ({ role: message.role, content: message.content.trim().slice(0, 2000) }))
+        .filter((message) => message.content.length > 0);
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: nextMessages }),
+        body: JSON.stringify({
+          messages: payloadMessages,
+          ...(safeSlug ? { slug: safeSlug } : {}),
+        }),
       });
 
-      // 429 = límite alcanzado (registrado). Pop-up de upgrade o de renovación.
+      // 429 = cupo del servidor. El texto dice cuándo se renueva.
       if (res.status === 429) {
-        setGate({ open: true, reason: "limit" });
+        let errMsg = "Alcanzaste el límite del asistente.";
+        let upgrade = true;
+        try {
+          const data = await res.json();
+          if (typeof data.error === "string") errMsg = data.error;
+          if (data.upgrade === false) upgrade = false;
+        } catch {
+          /* respuesta sin JSON */
+        }
+        setMessages([...nextMessages, { role: "assistant", content: errMsg }]);
+        if (!user || upgrade) setGate({ open: true, reason: user ? "limit" : "register" });
         setLoading(false);
         return;
       }

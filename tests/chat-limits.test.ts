@@ -4,6 +4,7 @@ import {
   DAY_MS,
   chatQuotaDecision,
   clientIpFromHeaders,
+  consumeAnonBucket,
   formatTimeUntilReset,
   hashIp,
   normalizeChatPlan,
@@ -131,6 +132,21 @@ describe("formatTimeUntilReset", () => {
     expect(formatTimeUntilReset(NOW + 5 * 60 * 1000, NOW)).toBe("en 5 minutos");
     expect(formatTimeUntilReset(NOW + 3 * 60 * 60 * 1000, NOW)).toBe("en 3 h");
     expect(formatTimeUntilReset(NOW + 26 * 60 * 60 * 1000, NOW)).toBe("en 1 días y 2 h");
+  });
+});
+
+describe("consumeAnonBucket", () => {
+  it("permite 2 y corta al tercero, y reinicia al cambiar el día", () => {
+    const first = consumeAnonBucket(undefined, "2026-10-19", 2);
+    const second = consumeAnonBucket(first.bucket, "2026-10-19", 2);
+    const third = consumeAnonBucket(second.bucket, "2026-10-19", 2);
+    expect(first.allowed).toBe(true);
+    expect(second.allowed).toBe(true);
+    expect(third.allowed).toBe(false);
+    expect(third.bucket.count).toBe(2);
+    const nextDay = consumeAnonBucket(third.bucket, "2026-10-20", 2);
+    expect(nextDay.allowed).toBe(true);
+    expect(nextDay.bucket.count).toBe(1);
   });
 });
 
