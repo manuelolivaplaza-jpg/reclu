@@ -1,0 +1,66 @@
+{
+  "fuente": "Mapa RUT jurídico (sin DV) → nemotécnico BCS. Solo emisoras verificadas. symbol null si no cotiza o no se pudo verificar.",
+  "verificado": "2026-10-19",
+  "empresas": [
+    {
+      "rut": "82878900",
+      "nombre": "Cooperativa del Personal de la U. de Chile",
+      "symbol": null,
+      "verificacion": "No es emisor de oferta pública. Queda en el agregado, fuera de la canasta."
+    },
+    {
+      "rut": "89862200",
+      "nombre": "LATAM Airlines Group S.A.",
+      "symbol": "LTM",
+      "verificacion": "RUT 89.862.200-2, emisora supervisada por la CMF. Nemotécnico BCS LTM."
+    },
+    {
+      "rut": "97004000",
+      "nombre": "Banco de Chile",
+      "symbol": "CHILE",
+      "verificacion": "RUT 97.004.000-5. Nemotécnico BCS CHILE."
+    },
+    {
+      "rut": "90160000",
+      "nombre": "Compañía Sud Americana de Vapores S.A.",
+      "symbol": "VAPORES",
+      "verificacion": "Listado CMF de emisores: 90160000-7 COMPAÑIA SUD AMERICANA DE VAPORES S.A. Nemotécnico BCS VAPORES."
+    },
+    {
+      "rut": "91081000",
+      "nombre": "Enel Generación Chile S.A.",
+      "symbol": "ENELGXCH",
+      "verificacion": "Ficha CMF RUT 91081000-6: nombre con que transa en bolsa ENELGXCH."
+    },
+    {
+      "rut": "94271000",
+      "nombre": "Enel Américas S.A.",
+      "symbol": "ENELAM",
+      "verificacion": "Listado CMF de emisores: 94271000-3 ENEL AMERICAS S.A. Nemotécnico BCS ENELAM."
+    },
+    {
+      "rut": "97036000",
+      "nombre": "Banco Santander-Chile",
+      "symbol": "BSANTANDER",
+      "verificacion": "RUT 97.036.000-K Banco Santander-Chile. Nemotécnico BCS BSANTANDER. La etiqueta SPARQL de este RUT ya es BSANTANDER."
+    },
+    {
+      "rut": "90222000",
+      "nombre": "Empresas CMPC S.A.",
+      "symbol": "CMPC",
+      "verificacion": "Listado CMF de emisores: 90222000-3 EMPRESAS CMPC S.A. Nemotécnico BCS CMPC."
+    },
+    {
+      "rut": "93007000",
+      "nombre": "Sociedad Química y Minera de Chile S.A.",
+      "symbol": "SQM-B",
+      "verificacion": "RUT 93.007.000-9. Serie líquida en la BCS: SQM-B."
+    },
+    {
+      "rut": "93834000",
+      "nombre": "Cencosud S.A.",
+      "symbol": "CENCOSUD",
+      "verificacion": "RUT 93.834.000-5. Nemotécnico BCS CENCOSUD."
+    }
+  ]
+}
