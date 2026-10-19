@@ -6,8 +6,12 @@ import { Upload, Plus, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { saveUserHoldings, clearUserHoldings } from "@/app/actions/holdings";
-import Papa from "papaparse";
+import {
+  saveUserHoldings,
+  clearUserHoldings,
+  importHoldings as importHoldingsCsv,
+} from "@/app/actions/holdings";
+import { OverlapPanel } from "@/components/overlap-panel";
 
 interface Holding {
   symbol: string;
@@ -132,39 +136,35 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
       : null;
 
   const totalWeight = holdings.reduce((s, h) => s + h.weight, 0);
+  const overlapSymbols = useMemo(() => holdings.map((h) => h.symbol), [holdings]);
 
-  function handleCsv(file: File) {
-    Papa.parse<Record<string, string>>(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: (results) => {
-        const parsed: Holding[] = [];
-        for (const row of results.data) {
-          // Accept common column names
-          const symbol =
-            row.symbol ?? row.ticker ?? row.Symbol ?? row.Ticker ?? row["Símbolo"] ?? "";
-          const name = row.name ?? row.Name ?? row["Nombre"] ?? "";
-          const weightRaw =
-            row.weight ?? row.Weight ?? row["Peso"] ?? row["Ponderación"] ?? row.percentage ?? "";
-          const weight = parseFloat(String(weightRaw).replace(/[%,\s]/g, ""));
-          if (symbol && !isNaN(weight)) {
-            parsed.push({ symbol: symbol.trim(), name: name.trim(), weight });
-          }
-        }
-        if (parsed.length === 0) {
-          setMessage({
-            type: "error",
-            text: "No se encontraron filas válidas. Usa columnas: symbol/ticker, name, weight.",
-          });
-          return;
-        }
-        setHoldings(parsed);
-        setMessage({ type: "success", text: `${parsed.length} activos importados del CSV.` });
-      },
-      error: (err) => {
-        setMessage({ type: "error", text: `Error al leer el CSV: ${err.message}` });
-      },
+  async function handleImport(file: File) {
+    if (file.size > 1_000_000) {
+      setMessage({ type: "error", text: "El CSV supera 1 MB. Divídelo en archivos más chicos." });
+      return;
+    }
+    setLoading(true);
+    const text = await file.text();
+    const result = await importHoldingsCsv(text);
+    setLoading(false);
+    if (result.error) {
+      setMessage({ type: "error", text: result.error });
+      return;
+    }
+    setHoldings(
+      (result.holdings ?? []).map((row) => ({
+        symbol: row.symbol,
+        name: "",
+        weight: row.weight,
+      })),
+    );
+    setMessage({
+      type: "success",
+      text:
+        (result.success ?? "Cartera importada.") +
+        (result.warnings ? ` ${result.warnings} fila(s) con problemas se ignoraron.` : ""),
     });
+    router.refresh();
   }
 
   function addHolding() {
@@ -277,26 +277,33 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
       <div className="grid gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Subir CSV</CardTitle>
+            <CardTitle className="text-base">Importar CSV</CardTitle>
             <CardDescription>
-              Columnas: symbol, name, weight. También acepta ticker, peso, ponderación.
+              Columnas: símbolo y cantidad (por ejemplo AAPL, 12). También acepta
+              ticker, shares o acciones. Hasta 100 activos.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <input
               ref={fileRef}
               type="file"
-              accept=".csv"
+              accept=".csv,text/csv"
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) handleCsv(file);
+                // Permite volver a elegir el mismo archivo.
+                e.target.value = "";
+                if (file) void handleImport(file);
               }}
             />
-            <Button variant="outline" onClick={() => fileRef.current?.click()}>
+            <Button variant="outline" onClick={() => fileRef.current?.click()} loading={loading}>
               <Upload className="size-4" />
-              Elegir archivo CSV
+              Importar CSV
             </Button>
+            <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+              La cantidad se convierte en peso relativo para comparar. Tu
+              cartera es privada y no se publica.
+            </p>
           </CardContent>
         </Card>
 
@@ -411,6 +418,8 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
           )}
         </CardContent>
       </Card>
+
+      <OverlapPanel symbols={overlapSymbols} />
         </>
       )}
     </div>
