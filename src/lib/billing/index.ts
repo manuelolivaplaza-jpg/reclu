@@ -24,7 +24,10 @@ export class PaymentsNotConfiguredError extends Error {
         "pagos no disponibles (fail closed, no se cae a mock).",
     );
     this.name = "PaymentsNotConfiguredError";
+    this.providerId = providerId;
   }
+  /** Proveedor que quedó sin configuración (para mensajes según entorno). */
+  readonly providerId: string;
 }
 
 export function getPaymentMode(): PaymentMode {

@@ -38,7 +38,27 @@ export async function POST(request: Request) {
     );
   }
 
-  const provider = getPaymentProvider();
+  let provider;
+  try {
+    provider = getPaymentProvider();
+  } catch (err) {
+    // FAIL CLOSED: sin claves del proveedor pedido no hay fallback a mock.
+    // Si el no-configurado es el mock (entorno productivo), la respuesta no
+    // revela nada; en desarrollo el mensaje sí es explícito.
+    if (err instanceof PaymentsNotConfiguredError && err.providerId === "mock") {
+      return Response.json(
+        { ok: false, error: "Pagos no configurados." },
+        { status: 503 },
+      );
+    }
+    if (err instanceof PaymentsNotConfiguredError) {
+      return Response.json(
+        { ok: false, error: "Pagos no configurados: falta configurar las claves del proveedor." },
+        { status: 503 },
+      );
+    }
+    throw err;
+  }
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   try {

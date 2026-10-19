@@ -11,8 +11,15 @@ export const instant = false;
 
 export default async function UpgradePendientePage() {
   await connection();
-  const provider = getPaymentProvider();
-  const isMock = provider.id === "mock";
+  let isMock = false;
+  let providerLabel = "el proveedor de pagos";
+  try {
+    const provider = getPaymentProvider();
+    isMock = provider.id === "mock";
+    providerLabel = provider.label;
+  } catch {
+    // FAIL CLOSED: sin proveedor configurado la página no debe crashear.
+  }
 
   return (
     <div className="flex max-w-xl flex-col gap-6">
