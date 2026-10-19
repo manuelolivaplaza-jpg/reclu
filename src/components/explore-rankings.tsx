@@ -81,9 +81,17 @@ export function ExploreRankings({
 
   return (
     <section className="mt-16" aria-labelledby="rankings-heading">
-      <h2 id="rankings-heading" className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[26px]">
-        Lo más seguido
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <h2 id="rankings-heading" className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[26px]">
+          Lo más seguido
+        </h2>
+        <Link
+          href="/ranking"
+          className="text-[13px] text-ink-500 underline underline-offset-4 hover:text-ink-900"
+        >
+          Ranking honesto: todas contra su benchmark →
+        </Link>
+      </div>
       <div className="mt-8 grid grid-cols-1 gap-12 lg:grid-cols-3 lg:gap-10">
         <RankingTable title="Top seguidos" rows={topFollowed} />
         <RankingTable title="Mejor retorno" rows={bestReturn} />
