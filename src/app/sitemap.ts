@@ -2,9 +2,12 @@ import type { MetadataRoute } from "next";
 import { getPortfolios } from "@/lib/queries";
 import { absoluteUrl } from "@/lib/site";
 
-// El sitemap consulta la base por request; con cacheComponents no puede
-// quedar prerenderizado con datos viejos.
-export const instant = false;
+/**
+ * Sin segment config: `instant` y `revalidate` no son compatibles con
+ * cacheComponents en rutas de metadata (Next 16 los rechaza en build).
+ * El sitemap consulta la base sin cachear, así que Next lo regenera
+ * solos en cada request — no queda congelado con datos viejos.
+ */
 
 /**
  * Sitemap dinámico: páginas estáticas + todas las páginas de portafolio

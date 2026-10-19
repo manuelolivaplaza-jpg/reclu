@@ -170,7 +170,15 @@ Verificación: ver "Verificaciones" al final.
 
 ## Verificaciones
 - `npm ci` re-ejecutado (node_modules estaba incompleto en el worktree).
-- Estado de `lint/typecheck/test/build` al cierre: ver último commit /
-  mensajes del orquestador; si alguno quedó pendiente por corte de sesión,
-  correrlos antes de fusionar (los archivos nuevos son TS estricto y el
-  patrón `instant = false` ya se usa en el resto del repo).
+- **Corrección build (esta sesión)**: `sitemap.ts` no puede usar
+  `export const instant` ni `export const revalidate` — con
+  `cacheComponents`, Next 16.4 rechaza ambos en rutas de metadata
+  ("Route segment config not compatible with nextConfig.cacheComponents").
+  Se quitó el export por completo: el handler consulta la base sin cachear
+  y Next lo regenera por request. Nota: la frase "el patrón
+  `instant = false` ya se usa en el resto del repo" sigue siendo cierta
+  para PAGES (explore, dashboard, alerts, etc. compilan bien); solo las
+  rutas de metadata (sitemap/robots) no lo aceptan.
+- Estado de lint/typecheck/test tras la corrección: RE-VERIFICAR antes de
+  fusionar (la corrección del sitemap quedó aplicada; por corte de sesión
+  no se alcanzó a correr la batería completa con el fix puesto).
