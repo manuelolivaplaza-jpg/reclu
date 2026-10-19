@@ -51,7 +51,18 @@ Deno.serve(async (req) => {
 
     const alertsToInsert: Array<Record<string, unknown>> = [];
 
+    const portfolioIds = [...new Set((changed as HoldingRow[]).map((h) => h.portfolio_id))];
+    const { data: sourceRows } = await supabase
+      .from("portfolios")
+      .select("id, source")
+      .in("id", portfolioIds);
+    const sourceByPortfolio = new Map(
+      (sourceRows ?? []).map((row: { id: string; source: string }) => [row.id, row.source]),
+    );
+
     for (const h of changed as HoldingRow[]) {
+      // F13: el scraper oge_trump ya inserta la alerta con el tramo oficial.
+      if (sourceByPortfolio.get(h.portfolio_id) === "oge_278t") continue;
       // BUGFIX: null previous_weight means the holding was just created by the
       // scraper (new trade) — treat it as a full-weight change, not as noise.
       const isNewHolding = h.previous_weight === null;

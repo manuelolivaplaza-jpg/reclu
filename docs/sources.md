@@ -8,6 +8,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | Fuente | Portafolio | Estado | Notas |
 |---|---|---|---|
 | House Disclosure (oficial) | pelosi-tracker | ✅ Funcional (verificado en vivo) | disclosures-clerk.house.gov, sin login, PTRs en PDF. Trump NO se scrapea: no es miembro de la Cámara |
+| OGE 278-T (oficial) | trump-compra | ✅ PDF público, parser OCR | extapps2.oge.gov, formulario 278-T de Donald Trump. Montos en tramos. Todo queda `pendiente` hasta revisión manual. Premium false (5 U.S.C. § 13107). |
 | Senate eFD (oficial) | tuberville, mccormick, mullin-tracker | ✅ Funcional (requiere curl_cffi) | efdsearch.senate.gov — Akamai geo-bloquea IPs no-EE.UU. y rechaza httpx por huella TLS; funciona desde GitHub Actions (IPs de EE.UU.) |
 | Renta 4 | renta4-moderada, renta4-moderada-ampliada | ✅ Funcional (verificado) | Hub → artículo → PDF semanal |
 | BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado) | PDF estático público S3 |
@@ -221,11 +222,28 @@ etapa no-crítica.
 
 ---
 
+## OGE 278-T (oge_trump.py)
+
+Informe periódico de transacciones del presidente. El índice PAS de
+nominados no lista a Trump; el PDF vive igual en `Presiden.nsf` y está
+anotado en `scrapers/data/trump_oge/known_reports.json`. Si el índice
+empieza a enlazar PDFs `Donald-J-Trump*278T`, el scraper los suma.
+
+- Parser puro `parse_278t`. Fechas que no calzan con `M/D/2026` quedan
+  `trans_date_uncertain`. "lourchaso" y variantes OCR → purchase.
+- Ticker en `scrapers/data/trump_oge/descripcion_ticker.json`. Sin ticker
+  no entra a holdings (la mayoría son bonos municipales).
+- Cada fila se guarda `pendiente`. Solo `verificada` (revisión humana)
+  crea holdings de compras ≥ US$1M en acciones/ETF y la alerta
+  `new_trade` con `payload.source_url`.
+- Texto: `pdftotext -layout`, si no hay, pypdf. OCR con pytesseract solo
+  si el PDF no trae capa de texto.
+
 ## Orquestador (run_all.py)
 
 Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
 `btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
-`compute_returns` → `performance` → `insiders_form4` → `radar_ia`.
+`compute_returns` → `performance` → `insiders_form4`  `oge_trump` → `radar_ia`.
 
 - `--only <etapas>` / `--skip <etapas>`: selección de etapas.
 - `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.

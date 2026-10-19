@@ -21,6 +21,7 @@ el CLI, respetando el mismo orden).
 | 10 | `013_portafolios_tematicos.sql` | Tres portafolios temáticos + holdings semilla. |
 | 11 | `014_trump_dice.sql` | Tabla `mentions` (lectura pública solo `status='verificada'`, sin políticas de escritura), portafolio `trump-dice`, 15 menciones y holdings semilla. |
 | 12 | `016_insiders.sql` | Compras de ejecutivos (Form 4): tabla `insider_trades` (lectura pública, sin direcciones ni políticas de escritura) y portafolio `insiders-compras-1m`. |
+| 13 | `019_trump_compra.sql` | Tabla `disclosure_trades` (lectura pública solo `verificada`), portafolio `trump-compra` (`premium=false`, source `oge_278t`) y excepción de muro para `oge_278t` / `house_ptr` / `senate_ptr`. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 

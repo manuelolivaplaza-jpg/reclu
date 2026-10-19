@@ -17,6 +17,7 @@ Etapas de mercado:
   compute_returns    return_pct de cada holding
   performance        Series históricas → portfolio_performance
   insiders_form4     Compras de ejecutivos (SEC Form 4)
+  oge_trump          Trump compra: declaraciones OGE 278-T
 
 Uso:
     python run_all.py                          # todas las etapas default
@@ -56,6 +57,7 @@ STAGES: list[tuple[str, str, bool]] = [
     ("trump_dice", "Trump dice: menciones verificadas", False),
     # F10: después de performance y antes de radar_ia.
     ("insiders_form4", "Compras de ejecutivos (SEC Form 4)", False),
+    ("oge_trump", "Trump compra: declaraciones OGE 278-T", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 STAGE_IDS = [s[0] for s in STAGES]
@@ -235,6 +237,13 @@ def run_insiders_form4(db, dry_run: bool) -> list[dict]:
     return [adapter.run(db)]
 
 
+def run_oge_trump(db, dry_run: bool) -> list[dict]:
+    from oge_trump import OgeTrumpAdapter
+
+    log("[oge_trump] declaraciones OGE 278-T...")
+    return [OgeTrumpAdapter(dry_run=dry_run).run(db)]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -258,6 +267,7 @@ RUNNERS = {
     "performance": run_performance,
     "trump_dice": run_trump_dice,
     "insiders_form4": run_insiders_form4,
+    "oge_trump": run_oge_trump,
     "radar_ia": run_radar_ia,
 }
 

@@ -6,3 +6,4 @@ supabase>=2.4.0        # Supabase Python client (service-role upserts)
 pypdf>=4.0.0           # PDF text extraction (Renta 4 / House PTR PDFs)
 curl_cffi>=0.7.0        # Senate eFD: Akamai rechaza httpx por huella TLS (impersona Chrome)
 openpyxl>=3.1.0         # VanEck SMH: holdings diarios se publican como XLSX
+pytesseract>=0.3.13     # OCR opcional de 278-T si el PDF no trae capa de texto (requiere el binario tesseract)

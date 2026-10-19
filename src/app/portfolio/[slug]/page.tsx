@@ -24,6 +24,9 @@ import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
+import { OgeTradesPanel } from "@/components/oge-trades-panel";
+import { getVerifiedOgeTrades } from "@/lib/disclosure-trades";
+import { isPublicDisclosureSource } from "@/lib/public-disclosure";
 
 export const instant = false;
 
@@ -80,10 +83,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const profile = await getProfile();
   const role = roleFor(profile);
 
+  const publicDisclosure = isPublicDisclosureSource(portfolio.source);
   // Form 4: el libro sale de get_portfolio_holdings (muro 012). Si quedara
   // más de un as_of por símbolo, nos quedamos con el más reciente.
   const isInsiders = portfolio.source === "sec_form4";
-  const [holdingsRaw, alerts, following, performance, perfData, insiderFeed] = await Promise.all([
+  const [holdingsRaw, alerts, following, performance, perfData, insiderFeed, ogeTrades] = await Promise.all([
     getHoldings(portfolio.id, { role }),
     getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
@@ -93,6 +97,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       country: portfolio.country,
     }),
     isInsiders ? getInsiderTrades() : Promise.resolve(null),
+    portfolio.source === "oge_278t" ? getVerifiedOgeTrades() : Promise.resolve([]),
   ]);
   const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsRaw) : holdingsRaw;
 
@@ -103,7 +108,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   // (role ya calculado arriba; holdings/alerts vienen recortados del servidor.)
   // Modo demo: sin Supabase configurado, los holdings vienen de demo-data.
   const isDemoData = !isSupabaseLive() && holdings.length > 0;
-  const locked = role === "anon";
+  const locked = role === "anon" && !publicDisclosure;
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
   const performanceReal = performance;
@@ -295,6 +300,10 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
               demo={insiderFeed?.demo ?? false}
               locked={locked}
             />
+          ) : null}
+
+          {portfolio.source === "oge_278t" ? (
+            <OgeTradesPanel trades={ogeTrades} demo={!isSupabaseLive()} />
           ) : null}
 
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
