@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { track } from "@/lib/analytics";
 
 interface FollowButtonProps {
   portfolioId: string;
@@ -36,6 +37,7 @@ export function FollowButton({
 
     setError(null);
     startTransition(async () => {
+      track("follow", { portfolioId, following: !following });
       const res = await fetch("/api/follow", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

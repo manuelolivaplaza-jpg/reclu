@@ -66,6 +66,24 @@ export default function PrivacidadPage() {
             </section>
 
             <section>
+              <h2 className="text-lg font-semibold text-ink-900">Analítica y cookies</h2>
+              <p className="mt-2 leading-relaxed">
+                Usamos <strong className="text-ink-900">analítica sin cookies</strong> para
+                medir visitas y eventos de uso (registro, seguir portafolios, apertura del
+                asistente). La herramienta de medición (Plausible) no guarda cookies ni
+                identificadores persistentes, no comparte datos con redes publicitarias y
+                respeta Do Not Track. Puedes ver más en{" "}
+                <a
+                  href="https://plausible.io/data-policy"
+                  className="font-medium text-ink-900 underline-offset-4 hover:underline"
+                >
+                  su política de datos
+                </a>
+                .
+              </p>
+            </section>
+
+            <section>
               <h2 className="text-lg font-semibold text-ink-900">Retención y eliminación</h2>
               <p className="mt-2 leading-relaxed">
                 Conservamos tus datos mientras tu cuenta esté activa. Puedes eliminar tu

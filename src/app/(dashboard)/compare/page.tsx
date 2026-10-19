@@ -1,5 +1,5 @@
 import { connection } from "next/server";
-import { getUserHoldings, getPortfolios, getHoldings } from "@/lib/queries";
+import { getUserHoldings, getPortfolios, getAllHoldingsAdmin } from "@/lib/queries";
 import { PortfolioManager, type CatalogPortfolio } from "@/components/portfolio-manager";
 import { AlignmentPanel } from "@/components/alignment-panel";
 
@@ -15,9 +15,11 @@ export default async function ComparePage() {
   ]);
 
   // Catálogo con holdings para el modo "Cruzar dos carteras".
+  // Página autenticada, pero el catálogo se lee con el cliente de servicio
+  // (agregado del servidor): holdings completos solo para el cruce.
   const withHoldings = await Promise.all(
     catalog.map(async (portfolio): Promise<CatalogPortfolio> => {
-      const list = await getHoldings(portfolio.id);
+      const list = await getAllHoldingsAdmin(portfolio.id);
       return {
         slug: portfolio.slug,
         name: portfolio.name,

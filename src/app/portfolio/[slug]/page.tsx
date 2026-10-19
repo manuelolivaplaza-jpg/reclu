@@ -13,7 +13,11 @@ import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-to
 import { PerformancePanel } from "@/components/performance-panel";
 import { getPortfolioPerformanceData } from "@/lib/performance-queries";
 import { computePerformanceMetrics, fromPctToLevel } from "@/lib/performance";
+import { DemoBadge } from "@/components/demo-badge";
+import { JsonLd } from "@/components/json-ld";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
+import { roleFor, HOLDING_LIMITS } from "@/lib/access";
+import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
 
@@ -33,9 +37,27 @@ export async function generateMetadata({ params }: PortfolioPageProps) {
   const { slug } = await params;
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) return { title: "Portafolio no encontrado" };
+  const year = new Date().getFullYear();
+  const title = `Qué compró ${portfolio.name} — cartera ${year} | Reclu`;
+  const description = `Composición, pesos y movimientos de ${portfolio.name}. ${portfolio.description}`;
   return {
-    title: portfolio.name,
-    description: portfolio.description,
+    title,
+    description,
+    alternates: {
+      canonical: `/portfolio/${portfolio.slug}`,
+    },
+    openGraph: {
+      title,
+      description,
+      url: absoluteUrl(`/portfolio/${portfolio.slug}`),
+      type: "article",
+      locale: "es_CL",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 
@@ -45,10 +67,14 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) notFound();
 
-  const [holdings, alerts, profile, following, performance, perfData] = await Promise.all([
-    getHoldings(portfolio.id),
-    getAlerts(portfolio.id, 10),
-    getProfile(),
+  // El perfil determina el rol ANTES de pedir holdings/alerts: el servidor
+  // solo trae lo que el plan permite (nada de difuminar datos ya entregados).
+  const profile = await getProfile();
+  const role = roleFor(profile);
+
+  const [holdings, alerts, following, performance, perfData] = await Promise.all([
+    getHoldings(portfolio.id, { role }),
+    getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
     getPerformance(portfolio.id),
     getPortfolioPerformanceData({
@@ -60,9 +86,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const meta = CATEGORY_META[portfolio.category];
   const isPro = isPaidPlan(profile?.plan);
   const isElite = isElitePlan(profile?.plan);
-  // Sin cuenta => tabla de acciones, heatmap, comparación y alertas van censurados.
-  // El retorno YTD y la evolución (real, o ilustrativa en demo) quedan visibles.
-  const locked = !profile;
+  // Muro de pago real: anon top 5 + 3 alertas · free top 10 + 10 · pago todo.
+  // (role ya calculado arriba; holdings/alerts vienen recortados del servidor.)
+  // Modo demo: sin Supabase configurado, los holdings vienen de demo-data.
+  const isDemoData = !isSupabaseLive() && holdings.length > 0;
+  const locked = role === "anon";
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
   const performanceReal = performance;
@@ -100,6 +128,37 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
 
   return (
     <div className="flex min-h-screen flex-col">
+      {/* SEO: Dataset + BreadcrumbList (schema.org) */}
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Dataset",
+          name: portfolio.name,
+          description: portfolio.description,
+          url: absoluteUrl(`/portfolio/${portfolio.slug}`),
+          inLanguage: "es-CL",
+          keywords: [meta.label, ...portfolio.tags].join(", "),
+          creator: portfolio.manager ? { "@type": "Person", name: portfolio.manager } : undefined,
+          temporalCoverage: `${new Date().getFullYear()}`,
+          license: absoluteUrl("/disclaimer"),
+        }}
+      />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Inicio", item: absoluteUrl("/") },
+            { "@type": "ListItem", position: 2, name: "Portafolios", item: absoluteUrl("/explore") },
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: portfolio.name,
+              item: absoluteUrl(`/portfolio/${portfolio.slug}`),
+            },
+          ],
+        }}
+      />
       <SiteHeader />
 
       <main className="flex-1">
@@ -121,6 +180,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 </p>
 
                 <h1 className="type-section mt-3 text-ink-900">{portfolio.name}</h1>
+                {isDemoData && (
+                  <p className="mt-3">
+                    <DemoBadge />
+                  </p>
+                )}
                 <p className="type-body mt-4">
                   {portfolio.description}
                 </p>
@@ -214,7 +278,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             {/* Holdings — censurados sin cuenta */}
             <section>
               <h2 className="text-[15px] font-medium text-ink-900">
-                Composición ({holdings.length} activos)
+                Composición ({Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})
               </h2>
 
               <PaywallGate locked={locked} label="composición" className="mt-4">
