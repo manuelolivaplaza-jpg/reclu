@@ -172,7 +172,7 @@ Cada fila: filete superior 1px `#e6e6e6`. Grid de tres columnas en desktop (nomb
 
 Una sola línea, no una sección con título. Filete superior e inferior. Padding vertical 1.25rem. Texto 13px `#6b6b6b`, centrado, separado por puntos medios:
 
-`Capitol Trades · Renta 4 · LarrainVial · BTG Pactual · InfoProbidad · SEC 13F`
+`Capitol Trades · Renta 4 · LarrainVial · BTG Pactual · InfoProbidad · SEC 13F · Superintendencia de Pensiones`
 
 Sin chips, sin sombras, sin stats “10+”.
 

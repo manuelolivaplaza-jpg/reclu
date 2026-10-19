@@ -12,6 +12,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | Renta 4 | renta4-moderada, renta4-moderada-ampliada | ✅ Funcional (verificado) | Hub → artículo → PDF semanal |
 | BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado) | PDF estático público S3 |
 | InfoProbidad | infoProbidad-cl | ✅ Funcional (SPARQL verificado 2026-10-18) | El CSV de la versión anterior NO existe; la fuente real es el endpoint SPARQL datos.cplt.cl/sparql |
+| Superintendencia de Pensiones | afp-modelo-acciones-cl | ✅ Modo A (cuadro 14, verificado 2026-10-19) | AFP Modelo, acciones chilenas, hasta mayo 2026. Desde junio el portal cifra el parámetro. No se guardan CUSIP. `afp-consenso-chile` sigue siendo la semilla demo de la 006 |
 | SEC 13F (EDGAR) | 25 fondos (ver `load_13f.py`) | ✅ Funcional | data.sec.gov, sin login. CIK verificados en docs de expansión |
 | ARK Invest | arkk, arkg, arkw, arkq, arkf | ✅ Funcional (verificado 2026-10-18) | CSV diario del emisor con pesos exactos |
 | Global X | copx, lit, bug, hero | ✅ Funcional | CSV con fecha, se sondea hacia atrás |
@@ -29,6 +30,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
     ↓ POSICIONES: house → senate → renta4 → btg → infoprobidad → 13f → etfs
     ↓ PRECIOS: prices (Yahoo EOD) → RENDIMIENTOS: compute_returns
     ↓ SNAPSHOTS: performance (series históricas)
+    ↓ AFP: spensiones (cuadro 14, después de performance, antes de radar_ia)
     ↓ holdings upsert con previous_weight (detección de cambios)
     ↓ curl GET /api/run-pipeline con CRON_SECRET
     ↓
@@ -166,6 +168,26 @@ normaliza quitando el sufijo.
 
 ---
 
+## Superintendencia de Pensiones (spensiones.py)
+
+**URL:** `https://www.spensiones.cl/apps/carteras/genera_desagregada_xsl.php?fecpro=AAAAMM&idu=50&listado=14`
+
+**Estado:** ✅ Modo A verificado en `--dry-run` el 2026-10-19. El modo navegador queda detrás de `--navegador` y no está verificado en vivo.
+
+Fuente pública de la Superintendencia de Pensiones. El portafolio `afp-modelo-acciones-cl` es el Cuadro 14: diversificación de AFP Modelo en acciones nacionales, por tipo de fondo y sector. Cifras en MMUS$. El peso en reclu es la participación del emisor en esa cartera de acciones chilenas, no el porcentaje del fondo completo.
+
+- `idu=50` es solo AFP Modelo. Otros `idu` probados (0–15 y 30–70) no devolvieron datos. El consolidado de todas las AFP no se consigue por esta vía.
+- Hasta mayo de 2026 el endpoint antiguo responde el cuadro. Desde junio de 2026 devuelve vacío (0 o ~363 bytes): el portal pasa a `genera_desagregada_xsl_v2.0.php?param=…` con el parámetro cifrado, y curl no lo baja.
+- El scraper camina el mes en curso hacia atrás (hasta 18 meses) hasta una respuesta de más de 1000 bytes que contenga "CUADRO".
+- **No se publican códigos CUSIP.** La página trae aviso de copyright de CUSIP (American Bankers Association / FactSet). Solo se guardan el nemotécnico y el emisor.
+- Desfase: la cartera de cada mes aparece varias semanas después. El desfase exacto no se midió. La ficha lo dice: "La SP publica con desfase; no es la cartera de hoy."
+- Referencia de mercado en la ficha: **ECH en CLP (proxy del IPSA)**. Yahoo `^IPSA` no trae datos. ECH es iShares MSCI Chile (ya está en la etapa `etfs`). No es el IPSA oficial. Los precios `.SN` de Yahoo no traen volumen desde el 2026-09-16.
+- `afp-consenso-chile` (migración 006) no se modifica: seguidores y retorno de demostración. Propuesta: alimentarlo con el consolidado cuando el modo navegador funcione, o desactivarlo.
+- Términos de reutilización: no se encontraron condiciones explícitas. Revisarlas antes de tratar la fuente como cerrada.
+- Etapa opcional en `run_all.py`, después de `performance` y antes de `radar_ia`. El cron no invoca `--navegador`.
+
+---
+
 ## BTG Pactual Chile (btg_pactual.py)
 
 **URL:** PDF estático público en S3 (`Cartera_Concentrada_RVL.pdf`).
@@ -190,7 +212,7 @@ etapa no-crítica.
 
 Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
 `btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
-`compute_returns` → `performance`.
+`compute_returns` → `performance` → `spensiones` → `radar_ia`.
 
 - `--only <etapas>` / `--skip <etapas>`: selección de etapas.
 - `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.
