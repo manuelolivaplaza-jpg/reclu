@@ -24,6 +24,8 @@ import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
+import { LegalNotice } from "@/components/legal/legal-notice";
+import { SourcePanel } from "@/components/source-panels";
 
 export const instant = false;
 
@@ -297,6 +299,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             />
           ) : null}
 
+          <SourcePanel
+            source={portfolio.source}
+            portfolioId={portfolio.id}
+            slug={portfolio.slug}
+          />
+
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
             {/* Holdings — censurados sin cuenta */}
             <section>
@@ -428,6 +436,9 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             recomendación de compra o venta de instrumentos financieros. Rentabilidades
             pasadas no garantizan resultados futuros.
           </p>
+          <div className="mt-6">
+            <LegalNotice kind="fintec" />
+          </div>
         </div>
       </main>
     </div>
