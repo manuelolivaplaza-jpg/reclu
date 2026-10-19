@@ -51,7 +51,7 @@ STAGES: list[tuple[str, str, bool]] = [
     ("etfs", "ETFs: ARK, Global X, iShares, VanEck", False),
     ("prices", "Precios EOD Yahoo Finance", False),
     ("compute_returns", "Rendimientos por holding", False),
-    ("performance", "Series de rendimiento históricas", False),
+    ("performance", "Series de rendimiento históricas", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 STAGE_IDS = [s[0] for s in STAGES]
