@@ -49,7 +49,6 @@ async function insertPendingSubscription(
 
   const { error } = await supabase.from("subscriptions").insert({
     user_id: req.userId,
-    providerCustomerEmail: req.email,
     provider: "mock",
     provider_customer_id: null,
     provider_subscription_id: mockPaymentId,

@@ -37,7 +37,7 @@ export function getPaymentMode(): PaymentMode {
 /**
  * ¿Está permitido el proveedor mock (pagos simulados sin cobro)?
  * True SOLO si se cumplen TODAS:
- *  - PAYMENT_PROVIDER=mock explícito
+ *  - PAYMENT_PROVIDER ausente o "mock" (flow/mercadopago nunca habilitan mock)
  *  - PAYMENT_MODE !== "production"
  *  - VERCEL_ENV !== "production"
  *  - NODE_ENV !== "production" o ALLOW_MOCK_PAYMENTS === "true"
@@ -45,7 +45,8 @@ export function getPaymentMode(): PaymentMode {
  * responde 404 y el checkout nunca lo selecciona.
  */
 export function isMockAllowed(): boolean {
-  if ((process.env.PAYMENT_PROVIDER ?? "").toLowerCase() !== "mock") return false;
+  const requested = (process.env.PAYMENT_PROVIDER ?? "").trim().toLowerCase();
+  if (requested !== "" && requested !== "mock") return false;
   if (process.env.PAYMENT_MODE === "production") return false;
   if (process.env.VERCEL_ENV === "production") return false;
   if (process.env.NODE_ENV === "production" && process.env.ALLOW_MOCK_PAYMENTS !== "true") {

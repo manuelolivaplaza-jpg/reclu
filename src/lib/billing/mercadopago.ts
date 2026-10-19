@@ -185,9 +185,10 @@ export function createMercadoPagoProvider(): PaymentProvider {
         return { ok: false, providerSubscriptionId: null, state: null, eventId: null, eventType: null };
       }
 
-      // Resolvemos la suscripción desde el id del body SOLO para saber a
-      // quién preguntarle; el estado se consulta al API (no se usa el body).
-      let providerSubscriptionId: string | null = null;
+      // La firma cubre el data.id del query, no el cuerpo. Consultamos
+      // ESE id. Si el body trae otro, se rechaza (no se puede redirigir
+      // la consulta a una suscripción distinta de la notificada).
+      let bodyId = "";
       let eventType = "subscription.updated";
       try {
         const body = JSON.parse(input.rawBody) as Record<string, unknown>;
@@ -196,22 +197,25 @@ export function createMercadoPagoProvider(): PaymentProvider {
           eventType = "plan.updated";
         }
         const data = (body.data ?? {}) as Record<string, unknown>;
-        providerSubscriptionId =
-          String(data.id ?? "") || input.query.get("id") || null;
+        bodyId = String(data.id ?? "");
       } catch {
-        providerSubscriptionId = dataId;
+        bodyId = "";
       }
 
-      if (!providerSubscriptionId) {
+      const signedId = (dataId ?? "").trim();
+      if (!signedId) {
+        return { ok: false, providerSubscriptionId: null, state: null, eventId: null, eventType: null };
+      }
+      if (bodyId && bodyId.toLowerCase() !== signedId.toLowerCase()) {
         return { ok: false, providerSubscriptionId: null, state: null, eventId: null, eventType: null };
       }
 
-      const state = await this.getSubscriptionState(providerSubscriptionId);
+      const state = await this.getSubscriptionState(signedId);
       return {
         ok: state !== null,
-        providerSubscriptionId,
+        providerSubscriptionId: signedId,
         state,
-        eventId: `mercadopago:${providerSubscriptionId}:${state?.status ?? "unknown"}`,
+        eventId: `mercadopago:${signedId}:${state?.status ?? "unknown"}`,
         eventType,
       };
     },
