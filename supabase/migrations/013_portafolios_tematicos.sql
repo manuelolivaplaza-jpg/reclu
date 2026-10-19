@@ -70,7 +70,7 @@ declare
   radar_id uuid;
   today date := current_date;
 begin
-  select id into defensa_id from public.portfolios where slug = 'defensa-aeroespacional';
+  select id into defensa_id from public.portfolios where slug = 'defensa-aeroespacial';
   select id into consenso_id from public.portfolios where slug = 'consenso-de-los-grandes';
   select id into radar_id from public.portfolios where slug = 'radar-ia';
 
