@@ -25,6 +25,7 @@ el CLI, respetando el mismo orden).
 | 14 | `020_afp_carteras.sql` | F14: portafolio `afp-modelo-acciones-cl` (AFP Modelo, acciones chilenas al 29-05-2026) y holdings semilla. No modifica `afp-consenso-chile`. |
 | 15 | `017_musk_dice.sql` | Amplía `mentions.kind` con `critica` y `empresa_propia`, portafolio `musk-dice`, 4 menciones (URL de X) y holdings ETSY/GME al 50%. Reutiliza la tabla de la 014. La 015 sigue reservada para F9. |
 | 16 | `018_inverse_cramer.sql` | Amplía `mentions.kind` con `recomienda_compra` y `recomienda_venta`. Portafolio `inverse-cramer-real`, 27 picks y holdings semilla al 2026-10-16. El proxy `inverse-cramer` no se toca. La 015 queda reservada para F9. |
+| 17 | `044_corredoras_cl.sql` | F23: portafolios `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Solo filas de `portfolios`; los holdings los carga la etapa `corredoras_cl`. Aplicar después de `021_infoprobidad_agregado.sql` (y de la `043` si existe); independiente de `022-042`. Re-ejecutable. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -57,6 +58,17 @@ fusionen las ramas, aplicar en este orden:
 (RUT, nombre de la sociedad, nemotécnico, autoridades, valor declarado,
 última declaración). Sin columnas de personas. El slug `infoProbidad-cl`
 no cambia. Aplicar después del esquema base. Idempotente.
+
+## 044 — Carteras BICE y MBI (F23)
+
+`044_corredoras_cl.sql`: filas de `portfolios` para `bice-acciones-destacadas`
+y `mbi-acciones-recomendadas` (`category='broker_cl'`, `country='CL'`,
+`premium=false`, `source` = `bice_cartera` / `mbi_cartera`, que es el nombre
+de cada adaptador). No trae holdings semilla: los carga la etapa
+`corredoras_cl` (`scrapers/stages/corredoras_cl.py`) desde los PDF públicos de
+cada corredora. Aplicar después de `021_infoprobidad_agregado.sql` (y de la
+`043` si existe); independiente de `022-042`. El `on conflict (slug) do update`
+toca solo `description` y `source`, nunca `followers` ni `return_ytd`.
 
 ## Revertir el muro de pago (012)
 
