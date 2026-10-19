@@ -1,0 +1,271 @@
+ticker,emisor,comprador,cargo,fecha_presentacion,fecha_entrada,valor_compra_usd,precio_entrada,precio_ultimo,ultimo_dato,ret_1s_pct,ret_1m_pct,ret_total_pct,spy_total_pct,fuente
+ZBIO,"Zenas BioPharma, Inc.",Lu Hongbo,,2026-02-13,2026-02-17,1084408,26.77,24.84,2026-10-16,-2.61,-13.97,-7.21,12.65,https://www.sec.gov/Archives/edgar/data/1953926/000110465926015387/
+PSEC,PROSPECT CAPITAL CORP,Eliasek M Grier,Chief Operating Officer,2026-02-13,2026-02-17,2752976,2.65,1.6,2026-10-16,-4.98,-12.24,-39.58,12.65,https://www.sec.gov/Archives/edgar/data/1287032/000128703226000069/
+ARE,"ALEXANDRIA REAL ESTATE EQUITIES, INC.",MARCUS JOEL S,Executive Chairman,2026-02-13,2026-02-17,1347889,52.08,41.62,2026-10-16,-1.27,-11.21,-20.09,12.65,https://www.sec.gov/Archives/edgar/data/1035443/000121695526000011/
+MSCI,MSCI Inc.,Fernandez Henry A,Chairman and CEO,2026-02-17,2026-02-18,3560239,541.35,569.08,2026-10-16,2.13,2.02,5.12,12.08,https://www.sec.gov/Archives/edgar/data/1408198/000141675026000006/
+VANI,"Vivani Medical, Inc.",Williams Gregg,,2026-02-17,2026-02-18,1983333,1.3,1.12,2026-10-16,-2.31,-11.54,-13.85,12.08,https://www.sec.gov/Archives/edgar/data/1266806/000175392626000323/
+DKNG,DraftKings Inc.,SLOAN HARRY,,2026-02-18,2026-02-19,2185000,22.49,18.9,2026-10-16,4.45,5.25,-15.96,12.38,https://www.sec.gov/Archives/edgar/data/1883685/000125824826000008/
+KKR,KKR & Co. Inc.,Cohler Matt,Co-Chief Executive Officer,2026-02-18,2026-02-19,30121046,101.25,86.21,2026-10-16,-7.89,-11.45,-14.85,12.38,https://www.sec.gov/Archives/edgar/data/1404912/000114036126006058/
+FAF,First American Financial Corp,KENNEDY PARKER S,,2026-02-18,2026-02-19,4049886,64.85,64.92,2026-10-16,2.63,-13.86,0.1,12.38,https://www.sec.gov/Archives/edgar/data/1472787/000119312526057792/
+MSFT,MICROSOFT CORP,STANTON JOHN W,,2026-02-18,2026-02-19,1986750,396.85,529.05,2026-10-16,0.82,-4.16,33.31,12.38,https://www.sec.gov/Archives/edgar/data/789019/000078901926000028/
+AAT,"American Assets Trust, Inc.",RADY ERNEST S,Executive Chairman,2026-02-19,2026-02-20,3007686,18.65,21.28,2026-10-16,-0.15,-2.53,14.11,11.57,https://www.sec.gov/Archives/edgar/data/1500217/000122135926000004/
+MSCI,MSCI Inc.,Ashe Robert G.,,2026-02-20,2026-02-23,1999556,534.54,569.08,2026-10-16,6.59,-0.14,6.46,12.72,https://www.sec.gov/Archives/edgar/data/1408198/000141431026000002/
+F,FORD MOTOR CO,FORD WILLIAM CLAY JR,Executive Chair and Chair,2026-02-23,2026-02-24,1934800,13.87,12.43,2026-10-16,-10.56,-17.82,-10.4,11.91,https://www.sec.gov/Archives/edgar/data/37996/000003799626000020/
+PODD,INSULET CORP,McEvoy Ashley,President and CEO,2026-02-23,2026-02-24,1029205,245.25,141.1,2026-10-16,-1.39,-11.93,-42.47,11.91,https://www.sec.gov/Archives/edgar/data/1145197/000114519726000031/
+ARDX,"ARDELYX, INC.",MOTT DAVID M,,2026-02-23,2026-02-24,1946665,6.56,3.09,2026-10-16,-5.18,-14.02,-52.9,11.91,https://www.sec.gov/Archives/edgar/data/1437402/000161071726000066/
+TLSI,"TriSalus Life Sciences, Inc.",Patience David,Chief Financial Officer,2026-02-23,2026-02-24,1785488,5.32,3.63,2026-10-16,-7.14,-24.62,-31.77,11.91,https://www.sec.gov/Archives/edgar/data/1826667/000162828026010606/
+LPX,LOUISIANA-PACIFIC CORP,GRASBERGER F NICHOLAS  III,,2026-02-23,2026-02-24,1709800,84.27,70.05,2026-10-16,-2.72,-12.43,-16.87,11.91,https://www.sec.gov/Archives/edgar/data/60519/000119312526064500/
+FIG,"Figma, Inc.",Reed Andrew Phillips,,2026-02-24,2026-02-25,36533649,31.24,21.49,2026-10-16,-5.12,-29.1,-31.21,10.97,https://www.sec.gov/Archives/edgar/data/1579878/000199099726000002/
+RYAN,"RYAN SPECIALTY HOLDINGS, INC.",RYAN PATRICK G JR,,2026-02-24,2026-02-25,1033975,37.7,40.75,2026-10-16,4.03,-12.98,8.1,10.97,https://www.sec.gov/Archives/edgar/data/1849253/000114503826000002/
+HLNE,Hamilton Lane INC,Hirsch Erik R.,Co-Chief Executive Officer,2026-02-24,2026-02-25,3217604,104.17,81.84,2026-10-16,1.1,-7.7,-21.43,10.97,https://www.sec.gov/Archives/edgar/data/1433642/000162828026011070/
+TZOO,TRAVELZOO,BARTEL HOLGER,Global Chief Executive Officer,2026-02-24,2026-02-25,1077000,6.37,5.03,2026-10-16,-1.41,-2.83,-21.04,10.97,https://www.sec.gov/Archives/edgar/data/1133311/000162828026011158/
+UBER,"Uber Technologies, Inc",Krishnamurthy Balaji (A),Chief Financial Officer,2026-02-24,2026-02-25,1599780,72.83,70.35,2026-10-16,5.25,-3.13,-3.41,10.97,https://www.sec.gov/Archives/edgar/data/1543151/000211186726000005/
+AAT,"American Assets Trust, Inc.",RADY ERNEST S,Executive Chairman,2026-02-24,2026-02-25,1599720,18.77,21.28,2026-10-16,1.12,-4.16,13.36,10.97,https://www.sec.gov/Archives/edgar/data/1500217/000122135926000007/
+POOL,POOL CORP,St Romain Kenneth G,Senior Vice President,2026-02-25,2026-02-26,1215810,218.9,172.57,2026-10-16,-2.41,-10.47,-21.17,11.59,https://www.sec.gov/Archives/edgar/data/945841/000094584126000037/
+HLNE,Hamilton Lane INC,BERKMAN DAVID J,,2026-02-25,2026-02-26,1010000,106.01,81.84,2026-10-16,1.77,-11.87,-22.8,11.59,https://www.sec.gov/Archives/edgar/data/1433642/000143364226000010/
+CADL,"Candel Therapeutics, Inc.",Manning Paul B,,2026-02-26,2026-02-27,2999996,5.25,8.19,2026-10-16,-5.9,-14.67,56.0,12.13,https://www.sec.gov/Archives/edgar/data/1841387/000119312526078246/
+LOGC,ContextLogic Holdings Inc.,Bobbili Raja,,2026-02-26,2026-02-27,24623116,8.09,15.1,2026-10-16,-2.35,-3.34,86.65,12.13,https://www.sec.gov/Archives/edgar/data/2064307/000119312526078396/
+TWN,TAIWAN FUND INC,Kirby William C.,,2026-02-27,2026-03-02,3289580,65.75,94.18,2026-10-16,-7.68,-0.02,43.24,12.07,https://www.sec.gov/Archives/edgar/data/804123/000119312526083648/
+FRHC,Freedom Holding Corp.,Lukyanov Sergey,*See Remarks,2026-02-27,2026-03-02,2410320,125.35,181.57,2026-10-16,5.46,15.58,44.85,12.07,https://www.sec.gov/Archives/edgar/data/924805/000092963826000766/
+SKWD,"Skyward Specialty Insurance Group, Inc.",Robinson Andrew S,"Chairman & CEO, Skyward Group",2026-02-27,2026-03-02,1033370,48.58,61.23,2026-10-16,-4.78,-10.09,26.04,12.07,https://www.sec.gov/Archives/edgar/data/1519449/000141583326000010/
+TNC,TENNANT CO,Glerum James T Jr.,PRESIDENT AND CEO,2026-03-02,2026-03-03,1261662,61.5,65.35,2026-10-16,1.84,11.44,6.27,13.06,https://www.sec.gov/Archives/edgar/data/97134/000203688626000005/
+ACVA,ACV Auctions Inc.,Waterman Michael,Chief Sales Officer,2026-03-02,2026-03-03,1000036,5.54,10.5,2026-10-16,-6.86,-22.92,89.53,13.06,https://www.sec.gov/Archives/edgar/data/1637873/000185149526000005/
+IDYA,"IDEAYA Biosciences, Inc.",Stein Jeffrey,,2026-03-02,2026-03-03,1648000,34.31,32.85,2026-10-16,1.25,-5.33,-4.26,13.06,https://www.sec.gov/Archives/edgar/data/1676725/000161071726000078/
+CSGP,"COSTAR GROUP, INC.",FLORANCE ANDREW C,President and CEO,2026-03-02,2026-03-03,2480654,46.78,32.31,2026-10-16,-0.96,-15.28,-30.93,13.06,https://www.sec.gov/Archives/edgar/data/1057352/000106606126000006/
+SOFI,"SoFi Technologies, Inc.",Noto Anthony,Chief Executive Officer,2026-03-02,2026-03-03,1001280,18.61,14.55,2026-10-16,-1.72,-16.01,-21.82,13.06,https://www.sec.gov/Archives/edgar/data/1818874/000161343826000002/
+NOW,"ServiceNow, Inc.",McDermott William R,Chairman & CEO,2026-03-02,2026-03-03,3000144,113.19,141.97,2026-10-16,3.02,-8.08,25.43,13.06,https://www.sec.gov/Archives/edgar/data/1373715/000133494426000020/
+NMFC,New Mountain Finance Corp,KLINSKY STEVEN B,"EVP, CAO and Director",2026-03-03,2026-03-04,2839370,7.3,6.74,2026-10-16,-1.47,1.6,-7.69,12.27,https://www.sec.gov/Archives/edgar/data/1496099/000158064226001367/
+LAW,"CS Disco, Inc.",GOODMAN ROBERT P,,2026-03-03,2026-03-04,3275173,4.19,4.44,2026-10-16,3.1,-10.02,5.97,12.27,https://www.sec.gov/Archives/edgar/data/1625641/000119312526089363/
+AUPH,Aurinia Pharmaceuticals Inc.,TANG KEVIN,,2026-03-03,2026-03-04,12688806,15.04,16.51,2026-10-16,-1.53,3.79,9.77,12.27,https://www.sec.gov/Archives/edgar/data/1600620/000117857926000001/
+VNO,VORNADO REALTY TRUST,TISCH DANIEL R,,2026-03-03,2026-03-04,4171100,28.54,32.93,2026-10-16,-7.6,-11.18,15.38,12.27,https://www.sec.gov/Archives/edgar/data/899689/000111179426000008/
+KKR,KKR & Co. Inc.,NUTTALL SCOTT C,Co-Chief Executive Officer,2026-03-03,2026-03-04,10840086,93.47,86.21,2026-10-16,-7.14,-2.77,-7.77,12.27,https://www.sec.gov/Archives/edgar/data/1404912/000114036126007579/
+TTD,"Trade Desk, Inc.",Green Jeffrey Terry,President and CEO,2026-03-04,2026-03-05,148101266,29.79,12.23,2026-10-16,-10.96,-25.44,-58.95,12.9,https://www.sec.gov/Archives/edgar/data/1671933/000167144526000004/
+BWIN,"Baldwin Insurance Group, Inc.",Sparks Paul Eugene,,2026-03-04,2026-03-05,1001760,22.24,31.91,2026-10-16,-6.43,-0.49,43.48,12.9,https://www.sec.gov/Archives/edgar/data/1781755/000210371926000005/
+POOL,POOL CORP,PEREZ DE LA MESA MANUEL J,,2026-03-04,2026-03-05,1090000,213.62,172.57,2026-10-16,-5.77,-5.51,-19.22,12.9,https://www.sec.gov/Archives/edgar/data/945841/000094584126000063/
+NMFC,New Mountain Finance Corp,KLINSKY STEVEN B,,2026-03-05,2026-03-06,3515944,7.15,6.74,2026-10-16,-1.0,5.2,-5.73,14.4,https://www.sec.gov/Archives/edgar/data/1496099/000158064226001523/
+KKR,KKR & Co. Inc.,BARAKETT TIMOTHY R,,2026-03-05,2026-03-06,4723500,90.98,86.21,2026-10-16,-5.91,-0.64,-5.24,14.4,https://www.sec.gov/Archives/edgar/data/1404912/000114036126008123/
+SLRC,SLR Investment Corp.,GROSS MICHAEL S,See Remarks,2026-03-05,2026-03-06,3090972,13.39,11.38,2026-10-16,-1.72,4.11,-15.0,14.4,https://www.sec.gov/Archives/edgar/data/1418076/000119312526093912/
+WGS,GeneDx Holdings Corp.,Meister Keith A.,,2026-03-05,2026-03-06,13460090,88.11,63.61,2026-10-16,-11.72,-24.08,-27.81,14.4,https://www.sec.gov/Archives/edgar/data/1818331/000119312526094527/
+CSX,CSX CORP,ANGEL STEPHEN F,President & CEO,2026-03-06,2026-03-09,1006750,40.37,48.68,2026-10-16,-2.02,3.79,20.6,13.41,https://www.sec.gov/Archives/edgar/data/277948/000119312526096732/
+NMFC,New Mountain Finance Corp,KLINSKY STEVEN B,,2026-03-06,2026-03-09,1926771,7.14,6.74,2026-10-16,-2.38,4.29,-5.61,13.41,https://www.sec.gov/Archives/edgar/data/1496099/000158064226001605/
+TPC,TUTOR PERINI CORP,ARKLEY PETER,,2026-03-06,2026-03-09,1824002,71.85,77.65,2026-10-16,-0.93,11.89,8.07,13.41,https://www.sec.gov/Archives/edgar/data/77543/000007754326000039/
+FIS,"Fidelity National Information Services, Inc.",Ferris Stephanie,CEO and President,2026-03-09,2026-03-10,1000040,49.39,36.01,2026-10-16,-0.59,-10.37,-27.09,13.59,https://www.sec.gov/Archives/edgar/data/1136893/000119312526099107/
+ABG,ASBURY AUTOMOTIVE GROUP INC,Hult David W,President & CEO,2026-03-09,2026-03-10,1026706,199.4,170.05,2026-10-16,-5.16,1.33,-14.72,13.59,https://www.sec.gov/Archives/edgar/data/1144980/000114498026000055/
+AMRZ,Amrize Ltd,Jenisch Jan Philipp,Chairman & CEO,2026-03-09,2026-03-10,3483000,58.45,37.82,2026-10-16,-4.65,-3.01,-35.29,13.59,https://www.sec.gov/Archives/edgar/data/2035989/000203598926000027/
+BR,"BROADRIDGE FINANCIAL SOLUTIONS, INC.",Gokey Timothy C,CEO,2026-03-09,2026-03-10,1030797,183.23,175.11,2026-10-16,-4.0,-16.6,-4.43,13.59,https://www.sec.gov/Archives/edgar/data/1383312/000122520826003435/
+TSLX,"Sixth Street Specialty Lending, Inc.",Waxman Alan,Vice President,2026-03-09,2026-03-10,5530000,17.1,17.03,2026-10-16,1.59,-0.25,-0.44,13.59,https://www.sec.gov/Archives/edgar/data/1508655/000119312526098557/
+VSNT,"Versant Media Group, Inc.",NOVAK DAVID C,,2026-03-09,2026-03-10,5269550,35.44,31.77,2026-10-16,3.66,7.07,-10.35,13.59,https://www.sec.gov/Archives/edgar/data/2067876/000162828026016141/
+PRCT,PROCEPT BioRobotics Corp,Desai Antal Rohit,,2026-03-09,2026-03-10,10483420,24.17,17.57,2026-10-16,13.2,-3.72,-27.31,13.59,https://www.sec.gov/Archives/edgar/data/1588978/000090514826001209/
+SSII,"SS Innovations International, Inc.",MOLL FREDERIC H,Chairman and CEO,2026-03-10,2026-03-11,5196999,4.85,2.53,2026-10-16,4.95,-11.34,-47.84,13.73,https://www.sec.gov/Archives/edgar/data/1676163/000121390026025795/
+TSLX,"Sixth Street Specialty Lending, Inc.",Waxman Alan,Vice President,2026-03-11,2026-03-12,4467150,16.74,17.03,2026-10-16,3.39,3.9,1.71,15.49,https://www.sec.gov/Archives/edgar/data/1508655/000119312526102222/
+LOGC,ContextLogic Holdings Inc.,Bobbili Raja,,2026-03-11,2026-03-12,1978253,8.0,15.1,2026-10-16,0.37,4.56,88.75,15.49,https://www.sec.gov/Archives/edgar/data/2064307/000119312526102729/
+GO,Grocery Outlet Holding Corp.,Jaros Carey F.,,2026-03-11,2026-03-12,2593100,6.08,12.87,2026-10-16,-4.11,15.79,111.68,15.49,https://www.sec.gov/Archives/edgar/data/1771515/000182356126000001/
+AMR,"Alpha Metallurgical Resources, Inc.",Courtis Kenneth S.,,2026-03-11,2026-03-12,4405651,189.48,166.73,2026-10-16,4.98,2.43,-12.01,15.49,https://www.sec.gov/Archives/edgar/data/1704715/000181274626000001/
+AVTR,"Avantor, Inc.",MEHRA SANJEEV K,,2026-03-11,2026-03-12,1001250,7.9,16.42,2026-10-16,-3.67,3.54,107.85,15.49,https://www.sec.gov/Archives/edgar/data/1722482/000162828026016904/
+AMR,"Alpha Metallurgical Resources, Inc.",Courtis Kenneth S.,,2026-03-12,2026-03-13,2727673,187.86,166.73,2026-10-16,3.1,-0.53,-11.25,16.14,https://www.sec.gov/Archives/edgar/data/1704715/000181274626000002/
+IP,INTERNATIONAL PAPER CO /NEW/,GUSTAFSSON ANDERS,,2026-03-12,2026-03-13,1000064,36.29,34.05,2026-10-16,-9.37,-1.91,-6.17,16.14,https://www.sec.gov/Archives/edgar/data/51434/000005143426000058/
+NMFC,New Mountain Finance Corp,KLINSKY STEVEN B,,2026-03-12,2026-03-13,4025000,7.08,6.74,2026-10-16,1.78,8.51,-4.77,16.14,https://www.sec.gov/Archives/edgar/data/1496099/000158064226001781/
+KOS,Kosmos Energy Ltd.,Ogunlesi Adebayo O.,SVP and CFO,2026-03-12,2026-03-13,6999999,2.33,2.78,2026-10-16,21.89,7.3,19.31,16.14,https://www.sec.gov/Archives/edgar/data/1509991/000150999126000021/
+CVSA,Covista Inc.,MALAFRONTE MICHAEL W,,2026-03-12,2026-03-13,3635302,105.11,126.75,2026-10-16,1.31,8.05,20.59,16.14,https://www.sec.gov/Archives/edgar/data/730464/000073046426000012/
+LOAR,Loar Holdings Inc.,Charles Dirkson R,See Remarks,2026-03-12,2026-03-13,2967831,64.67,62.21,2026-10-16,-8.41,3.83,-3.8,16.14,https://www.sec.gov/Archives/edgar/data/2000178/000119312526104753/
+PATK,PATRICK INDUSTRIES INC,WELCH M SCOTT,,2026-03-12,2026-03-13,1136800,113.08,68.04,2026-10-16,-5.34,-2.55,-39.83,16.14,https://www.sec.gov/Archives/edgar/data/76605/000118942226000017/
+FOX,Fox Corp,MURDOCH LACHLAN K,"Executive Chair, CEO",2026-03-13,2026-03-16,10632804,51.89,57.22,2026-10-16,-1.0,9.4,10.26,14.97,https://www.sec.gov/Archives/edgar/data/1754301/000162828026017855/
+CPNG,"Coupang, Inc.",MEHTA NEIL,,2026-03-13,2026-03-16,136566051,20.45,14.27,2026-10-16,-5.57,4.11,-30.22,14.97,https://www.sec.gov/Archives/edgar/data/1834584/000184089026000001/
+PTLO,Portillo's Inc.,LEE EUGENE I JR,,2026-03-13,2026-03-16,1481480,5.65,4.66,2026-10-16,-4.42,-2.3,-17.52,14.97,https://www.sec.gov/Archives/edgar/data/1871509/000124284326000004/
+LOAR,Loar Holdings Inc.,Carpenito Anthony,,2026-03-13,2026-03-16,3492150,66.29,62.21,2026-10-16,-11.24,-1.19,-6.15,14.97,https://www.sec.gov/Archives/edgar/data/2000178/000119312526106500/
+GOGO,Gogo Inc.,TOWNSEND CHARLES C,,2026-03-13,2026-03-16,1139758,4.41,2.13,2026-10-16,1.59,7.26,-51.7,14.97,https://www.sec.gov/Archives/edgar/data/1537054/000121390026027820/
+AMR,"Alpha Metallurgical Resources, Inc.",Courtis Kenneth S.,,2026-03-13,2026-03-16,1868707,187.25,166.73,2026-10-16,7.15,3.36,-10.96,14.97,https://www.sec.gov/Archives/edgar/data/1704715/000181274626000003/
+BLDR,"Builders FirstSource, Inc.",LEVY PAUL S,,2026-03-16,2026-03-17,4386500,90.68,54.65,2026-10-16,-7.43,-7.48,-39.73,14.67,https://www.sec.gov/Archives/edgar/data/1316835/000119312526108577/
+VANI,"Vivani Medical, Inc.",Williams Gregg,,2026-03-16,2026-03-17,1683335,1.21,1.12,2026-10-16,-7.44,8.26,-7.44,14.67,https://www.sec.gov/Archives/edgar/data/1266806/000175392626000475/
+ULBI,ULTRALIFE CORP,WHITMORE BRADFORD T,President and CEO,2026-03-16,2026-03-17,1208668,6.93,6.02,2026-10-16,-7.22,7.94,-13.13,14.67,https://www.sec.gov/Archives/edgar/data/875657/000093343026000002/
+IFF,INTERNATIONAL FLAVORS & FRAGRANCES INC,FRIBOURG PAUL J,Chief Executive Officer,2026-03-16,2026-03-17,11966983,70.16,90.68,2026-10-16,-4.18,1.69,29.25,14.67,https://www.sec.gov/Archives/edgar/data/51253/000122520826003697/
+MTN,VAIL RESORTS INC,Korch Angela A,EVP & Chief Financial Officer,2026-03-16,2026-03-17,4967926,137.63,151.01,2026-10-16,-9.96,-8.91,9.72,14.67,https://www.sec.gov/Archives/edgar/data/812011/000195995326000005/
+RDDT,"Reddit, Inc.",FARRELL SARAH E,,2026-03-17,2026-03-18,1388730,142.79,156.14,2026-10-16,-2.21,14.71,9.35,16.3,https://www.sec.gov/Archives/edgar/data/1713445/000171344526000032/
+LOAR,Loar Holdings Inc.,LEVY PAUL S,,2026-03-17,2026-03-18,4867500,65.94,62.21,2026-10-16,-9.75,2.34,-5.66,16.3,https://www.sec.gov/Archives/edgar/data/2000178/000119312526110847/
+POOL,POOL CORP,PEREZ DE LA MESA MANUEL J,,2026-03-17,2026-03-18,1025000,202.91,172.57,2026-10-16,-1.75,10.62,-14.95,16.3,https://www.sec.gov/Archives/edgar/data/945841/000094584126000065/
+NSP,"INSPERITY, INC.",SARVADI PAUL J,Chairman of the Board & CEO,2026-03-19,2026-03-20,4688790,23.75,51.38,2026-10-16,8.26,30.12,116.31,18.28,https://www.sec.gov/Archives/edgar/data/1000753/000100075326000037/
+CORT,CORCEPT THERAPEUTICS INC,BAKER G LEONARD JR,,2026-03-19,2026-03-20,3313562,34.64,110.16,2026-10-16,8.55,30.2,218.01,18.28,https://www.sec.gov/Archives/edgar/data/1088856/000120171526000007/
+GO,Grocery Outlet Holding Corp.,Potter Jason J. N.,President and CEO,2026-03-20,2026-03-23,1687972,6.45,12.87,2026-10-16,5.12,25.12,99.53,17.05,https://www.sec.gov/Archives/edgar/data/1771515/000205588426000004/
+SBSW,Sibanye Stillwater Ltd,Keyter Charl,Chief Financial Officer,2026-03-20,2026-03-23,1730765,10.87,10.11,2026-10-16,-1.76,13.84,-7.0,17.05,https://www.sec.gov/Archives/edgar/data/1786909/000211571426000005/
+AMR,"Alpha Metallurgical Resources, Inc.",Courtis Kenneth S.,,2026-03-20,2026-03-23,1528550,200.63,166.73,2026-10-16,6.78,3.99,-16.9,17.05,https://www.sec.gov/Archives/edgar/data/1704715/000181274626000004/
+PICS,PicS N.V.,Pruett William Rodney,,2026-03-24,2026-03-25,1180000,11.3,13.17,2026-10-16,-1.42,12.83,16.55,16.79,https://www.sec.gov/Archives/edgar/data/1841644/000121390026033308/
+FRPH,"FRP HOLDINGS, INC.",BAKER JOHN D II,,2026-03-25,2026-03-26,9999981,21.74,19.24,2026-10-16,1.47,-1.33,-11.5,18.92,https://www.sec.gov/Archives/edgar/data/844059/000119008926000007/
+BORR,Borr Drilling Ltd,Currie Jeffrey,,2026-03-26,2026-03-27,3927500,6.05,4.54,2026-10-16,-1.82,0.66,-24.96,20.98,https://www.sec.gov/Archives/edgar/data/1715497/000162828026021241/
+PICS,PicS N.V.,Chedid Simoes Eduardo,Chief Executive Officer,2026-03-27,2026-03-30,1008058,9.92,13.17,2026-10-16,9.27,19.46,32.76,21.38,https://www.sec.gov/Archives/edgar/data/1841644/000121390026035225/
+IAUX,i-80 Gold Corp.,Savarie David Roger,"EVP, General Counsel",2026-03-27,2026-03-30,1409100,1.41,1.52,2026-10-16,17.73,4.26,7.8,21.38,https://www.sec.gov/Archives/edgar/data/1853962/000091228226000514/
+PANW,Palo Alto Networks Inc,Arora Nikesh,Chief Executive Officer,2026-03-27,2026-03-30,9999705,154.35,342.0,2026-10-16,10.06,17.62,121.57,21.38,https://www.sec.gov/Archives/edgar/data/1327567/000146823326000005/
+IPX,IPERIONX Ltd,Symonds Toby Edgcumbe,President,2026-03-30,2026-03-31,2876821,26.04,14.2,2026-10-16,18.86,28.57,-45.47,17.96,https://www.sec.gov/Archives/edgar/data/1898601/000161943726000004/
+NAVN,"Navan, Inc.",Williams Anre D,,2026-03-31,2026-04-01,1200000,12.64,25.38,2026-10-16,-1.27,46.12,100.79,17.07,https://www.sec.gov/Archives/edgar/data/1639723/000130317026000003/
+QFIN,"Qfin Holdings, Inc.",Chen Xiaohuan,,2026-03-31,2026-04-01,3197900,11.61,5.67,2026-10-16,5.93,9.32,-51.17,17.07,https://www.sec.gov/Archives/edgar/data/1741530/000110465926037373/
+FUND,SPROTT FOCUS TRUST INC.,GEORGE W WHITNEY,,2026-03-31,2026-04-01,1209868,9.4,9.7,2026-10-16,1.65,4.55,3.22,17.07,https://www.sec.gov/Archives/edgar/data/825202/000119312526133610/
+MLYS,"Mineralys Therapeutics, Inc.",Shah Rajeev M.,,2026-03-31,2026-04-01,8762797,26.41,20.3,2026-10-16,2.88,10.79,-23.14,17.07,https://www.sec.gov/Archives/edgar/data/1933414/000123191926000300/
+ZBIO,"Zenas BioPharma, Inc.",MOULDER LEON O JR,Chief Executive Officer,2026-03-31,2026-04-01,2521140,20.36,24.84,2026-10-16,4.52,-4.91,22.0,17.07,https://www.sec.gov/Archives/edgar/data/1953926/000110465926038031/
+PAGS,PagSeguro Digital Ltd.,Frias Luis,,2026-03-31,2026-04-01,4967552,9.98,11.0,2026-10-16,1.14,-4.02,10.18,17.07,https://www.sec.gov/Archives/edgar/data/1712807/000129281426002037/
+CNTB,Connect Biopharma Holdings Ltd,Huang James,,2026-04-01,2026-04-02,4002000,2.99,0.91,2026-10-16,-5.69,-17.06,-69.7,16.97,https://www.sec.gov/Archives/edgar/data/1835268/000119312526138012/
+ZBIO,"Zenas BioPharma, Inc.",Kiselak Tomas,,2026-04-01,2026-04-02,3000000,21.46,24.84,2026-10-16,-4.75,0.47,15.75,16.97,https://www.sec.gov/Archives/edgar/data/1953926/000110465926038546/
+FGBI,"First Guaranty Bancshares, Inc.",Smith Edgar R. III,,2026-04-02,2026-04-06,1572920,9.58,8.22,2026-10-16,-1.04,-3.02,-14.18,16.42,https://www.sec.gov/Archives/edgar/data/1408534/000143774926011112/
+BNR,Burning Rock Biotech Ltd,Han Yusheng,,2026-04-02,2026-04-06,5466143,16.3,12.9,2026-10-16,10.0,4.45,-20.86,16.42,https://www.sec.gov/Archives/edgar/data/1792267/000119312526138961/
+ANVS,"Annovis Bio, Inc.",Hoffman Michael B,,2026-04-03,2026-04-06,1498980,2.35,0.99,2026-10-16,-29.36,-3.4,-57.87,16.42,https://www.sec.gov/Archives/edgar/data/1477845/000110465926039675/
+OSCR,"Oscar Health, Inc.",Bertolini Mark T,Chief Executive Officer,2026-04-07,2026-04-08,11920000,14.64,31.89,2026-10-16,6.49,42.55,117.83,13.48,https://www.sec.gov/Archives/edgar/data/1568651/000135255226000008/
+MESO,MESOBLAST LTD,George Gregory,,2026-04-10,2026-04-13,26135093,14.7,13.28,2026-10-16,12.99,-1.77,-9.66,11.81,https://www.sec.gov/Archives/edgar/data/1345099/000199937126008124/
+SMC,Summit Midstream Corp,Herring Edward,,2026-04-13,2026-04-14,37946131,29.29,30.7,2026-10-16,-1.16,3.62,4.81,10.46,https://www.sec.gov/Archives/edgar/data/2024218/000121390026042978/
+MNR,MACH NATURAL RESOURCES LP,WARD TOM L.,See Remarks,2026-04-13,2026-04-14,1999991,11.77,11.07,2026-10-16,1.98,11.94,-5.92,10.46,https://www.sec.gov/Archives/edgar/data/1980088/000121390026043053/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-04-13,2026-04-14,35332457,24.96,11.34,2026-10-16,-3.65,2.96,-54.57,10.46,https://www.sec.gov/Archives/edgar/data/1659494/000110465926042369/
+NKE,"NIKE, Inc.",Hill Elliott,PRESIDENT & CEO,2026-04-14,2026-04-15,2060868,44.56,37.13,2026-10-16,0.53,-7.53,-16.68,9.6,https://www.sec.gov/Archives/edgar/data/320187/000032018726000051/
+VANI,"Vivani Medical, Inc.",Williams Gregg,,2026-04-16,2026-04-17,1999999,1.34,1.12,2026-10-16,0.75,-14.93,-16.42,8.02,https://www.sec.gov/Archives/edgar/data/1266806/000175392626000672/
+BORR,Borr Drilling Ltd,Troim Tor Olav,,2026-04-17,2026-04-20,2790000,5.54,4.54,2026-10-16,3.79,11.19,-18.05,8.24,https://www.sec.gov/Archives/edgar/data/1715497/000162828026025616/
+HOMB,HOME BANCSHARES INC,ALLISON JOHN W,Chairman & CEO,2026-04-20,2026-04-21,2696000,26.45,29.2,2026-10-16,0.71,-0.25,10.41,8.95,https://www.sec.gov/Archives/edgar/data/1331520/000119101026000005/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-04-22,2026-04-23,9557599,25.9,11.34,2026-10-16,10.81,1.93,-56.22,8.28,https://www.sec.gov/Archives/edgar/data/1659494/000110465926046800/
+BURU,"Nuburu, Inc.",Zamboni Alessandro,Co-Chief Executive Officer,2026-04-22,2026-04-23,1516384,0.37,0.59,2026-10-16,-13.75,-46.9,59.03,8.28,https://www.sec.gov/Archives/edgar/data/1814215/000119312526170692/
+PRLD,Prelude Therapeutics Inc,Bonita David P,,2026-04-23,2026-04-24,12499999,4.7,3.26,2026-10-16,0.0,-12.98,-30.64,7.45,https://www.sec.gov/Archives/edgar/data/1678660/000094787126000462/
+RZLV,REZOLVE AI PLC,Wagner Daniel Maurice,Chief Executive Officer,2026-04-23,2026-04-24,3251824,2.62,1.75,2026-10-16,1.91,-0.76,-33.21,7.45,https://www.sec.gov/Archives/edgar/data/1920294/000095013026000179/
+TORO,TORO CORP.,Panagiotidis Petros Panagiotis,Chief Executive Officer,2026-04-24,2026-04-27,14250939,6.63,4.14,2026-10-16,-9.35,-22.02,-37.56,7.26,https://www.sec.gov/Archives/edgar/data/1941131/000114036126016783/
+EFOR,Everforth Inc,Obermaier Patricia L,"EVP, Chief Financial Officer",2026-04-27,2026-04-28,1796760,22.12,38.36,2026-10-16,-4.97,-5.52,73.42,7.79,https://www.sec.gov/Archives/edgar/data/890564/000202721126000004/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-04-27,2026-04-28,3644185,27.94,11.34,2026-10-16,0.25,-7.66,-59.41,7.79,https://www.sec.gov/Archives/edgar/data/1659494/000110465926049054/
+CHTR,"CHARTER COMMUNICATIONS, INC. /MO/",Nair Balan,President and CEO,2026-04-28,2026-04-29,1370047,158.65,110.11,2026-10-16,-1.34,-9.2,-30.6,7.8,https://www.sec.gov/Archives/edgar/data/1091667/000139890526000010/
+ZBIO,"Zenas BioPharma, Inc.",MOULDER LEON O JR,Chief Executive Officer,2026-04-29,2026-04-30,1067200,19.32,24.84,2026-10-16,-0.26,-5.95,28.57,6.74,https://www.sec.gov/Archives/edgar/data/1953926/000110465926051889/
+IBATF,INTERNATIONAL BATTERY METALS LTD.,WARNOCK JACOB AARON,,2026-04-30,2026-05-01,2745237,0.11,0.07,2026-10-16,-7.08,-11.5,-37.17,6.45,https://www.sec.gov/Archives/edgar/data/1786318/000119312526197752/
+SUNE,"SUNation Energy, Inc.",Brennan James Robert,Chief Financial Officer,2026-05-01,2026-05-04,1200000,1.43,2.05,2026-10-16,12.59,-14.69,43.36,6.84,https://www.sec.gov/Archives/edgar/data/22701/000121390026050835/
+CECO,CECO ENVIRONMENTAL CORP,WALLMAN RICHARD F,,2026-05-01,2026-05-04,1101500,78.17,56.72,2026-10-16,4.26,1.66,-27.44,6.84,https://www.sec.gov/Archives/edgar/data/3197/000119312526201388/
+SRAD,Sportradar Group AG,Koerl Carsten,Chief Executive Officer,2026-05-04,2026-05-05,4668332,13.43,11.91,2026-10-16,-5.73,5.96,-11.32,5.99,https://www.sec.gov/Archives/edgar/data/1836470/000110465926054872/
+CSGP,"COSTAR GROUP, INC.",FLORANCE ANDREW C,President and CEO,2026-05-04,2026-05-05,2514208,34.9,32.31,2026-10-16,-5.3,-3.55,-7.42,5.99,https://www.sec.gov/Archives/edgar/data/1057352/000106606126000012/
+FGBI,"First Guaranty Bancshares, Inc.",Smith Edgar R. III,,2026-05-04,2026-05-05,1999995,9.29,8.22,2026-10-16,-2.04,1.61,-11.5,5.99,https://www.sec.gov/Archives/edgar/data/1408534/000143774926014649/
+TMUS,"T-Mobile US, Inc.",Almeida Andre,"Chief Broadband, Ent. & Emerg",2026-05-04,2026-05-05,1000016,192.15,159.1,2026-10-16,-0.52,-8.4,-17.2,5.99,https://www.sec.gov/Archives/edgar/data/1283699/000128369926000069/
+SPGI,S&P Global Inc.,Moritz Robert Edward Jr.,"CEO, S&P Dow Jones Indices",2026-05-04,2026-05-05,1578478,399.18,429.64,2026-10-16,0.07,-0.65,7.63,5.99,https://www.sec.gov/Archives/edgar/data/64040/000203383426000014/
+PATK,PATRICK INDUSTRIES INC,Augsburger Blake,Chief Executive Officer,2026-05-06,2026-05-07,2305819,94.33,68.04,2026-10-16,-1.28,-10.33,-27.87,4.86,https://www.sec.gov/Archives/edgar/data/76605/000138065926000006/
+ALKT,"ALKAMI TECHNOLOGY, INC.",General Atlantic GenPar (Lux) SCSp,,2026-05-06,2026-05-07,34664924,17.43,13.73,2026-10-16,-4.65,-9.06,-21.23,4.86,https://www.sec.gov/Archives/edgar/data/1529274/000095014226001306/
+SRAD,Sportradar Group AG,Koerl Carsten,Chief Executive Officer,2026-05-06,2026-05-07,4552360,13.64,11.91,2026-10-16,-6.89,11.88,-12.68,4.86,https://www.sec.gov/Archives/edgar/data/1836470/000110465926056245/
+NSP,"INSPERITY, INC.",SARVADI PAUL J,Chairman of the Board & CEO,2026-05-06,2026-05-07,2873236,31.73,51.38,2026-10-16,-11.5,8.14,61.92,4.86,https://www.sec.gov/Archives/edgar/data/1000753/000100075326000053/
+SRAD,Sportradar Group AG,Koerl Carsten,Chief Executive Officer,2026-05-07,2026-05-08,2128735,13.04,11.91,2026-10-16,-4.22,25.77,-8.67,4.0,https://www.sec.gov/Archives/edgar/data/1836470/000110465926057135/
+GEHC,GE HealthCare Technologies Inc.,CULP H LAWRENCE JR,,2026-05-07,2026-05-08,5061903,63.43,69.57,2026-10-16,-4.27,4.0,9.67,4.0,https://www.sec.gov/Archives/edgar/data/1932393/000120524726000006/
+UPST,"Upstart Holdings, Inc.",Girouard Dave,,2026-05-08,2026-05-11,5000066,28.69,23.56,2026-10-16,-2.61,5.61,-17.88,3.76,https://www.sec.gov/Archives/edgar/data/1647639/000183280526000004/
+PAM,Pampa Energy Inc.,Mariani Gustavo,Vice President,2026-05-08,2026-05-11,4060500,81.9,81.1,2026-10-16,1.06,2.08,-0.98,3.76,https://www.sec.gov/Archives/edgar/data/1469395/000202891726000002/
+POOL,POOL CORP,PEREZ DE LA MESA MANUEL J,,2026-05-08,2026-05-11,2183281,182.2,172.57,2026-10-16,-1.1,3.54,-5.29,3.76,https://www.sec.gov/Archives/edgar/data/945841/000094584126000114/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-05-08,2026-05-11,12221026,27.0,11.34,2026-10-16,1.85,-18.52,-58.0,3.76,https://www.sec.gov/Archives/edgar/data/1659494/000110465926057920/
+OLED,UNIVERSAL DISPLAY CORP \PA\,Premutico Mauro,SVP & CLO,2026-05-11,2026-05-12,1372804,91.11,77.95,2026-10-16,-4.97,-2.51,-14.44,3.92,https://www.sec.gov/Archives/edgar/data/1005284/000119312526216690/
+WGS,GeneDx Holdings Corp.,Meister Keith A.,,2026-05-11,2026-05-12,46806729,39.49,63.61,2026-10-16,6.69,54.44,61.08,3.92,https://www.sec.gov/Archives/edgar/data/1818331/000101143826000276/
+TXO,"TXO Partners, L.P.",ADAMS WILLIAM H III,,2026-05-11,2026-05-12,9577966,12.17,14.22,2026-10-16,7.17,4.29,16.85,3.92,https://www.sec.gov/Archives/edgar/data/1559432/000118269526000001/
+PLSE,"PULSE BIOSCIENCES, INC.",LAVIOLETTE PAUL A,Chief Executive Officer,2026-05-11,2026-05-12,13295338,23.3,44.43,2026-10-16,7.08,15.41,90.69,3.92,https://www.sec.gov/Archives/edgar/data/1625101/000143774926016190/
+HUBS,HUBSPOT INC,NORRINGTON LORRIE M,Chief Technology Officer,2026-05-12,2026-05-13,2585781,179.0,230.94,2026-10-16,13.63,5.02,29.02,3.34,https://www.sec.gov/Archives/edgar/data/1404655/000119312526219463/
+FCNCA,FIRST CITIZENS BANCSHARES INC /DE/,HOLDING FRANK B JR,Chairman and CEO,2026-05-12,2026-05-13,10257311,1905.71,2123.74,2026-10-16,3.31,10.54,11.44,3.34,https://www.sec.gov/Archives/edgar/data/798941/000119312526220236/
+MRP,"Millrose Properties, Inc.",Presa Rachel,General Counsel and Secretary,2026-05-13,2026-05-14,6494672,25.74,22.5,2026-10-16,0.92,6.48,-12.59,2.53,https://www.sec.gov/Archives/edgar/data/2017206/000119312526221992/
+NOMD,Nomad Foods Ltd,Gottesman Noam,,2026-05-13,2026-05-14,6631000,9.65,11.76,2026-10-16,3.47,5.41,21.9,2.53,https://www.sec.gov/Archives/edgar/data/1651717/000141619226000007/
+KHC,Kraft Heinz Co,CAHILLANE STEVEN A,Chief Executive Officer,2026-05-13,2026-05-14,4999467,22.53,23.68,2026-10-16,0.99,4.78,5.08,2.53,https://www.sec.gov/Archives/edgar/data/1637459/000141639026000012/
+TKO,"TKO Group Holdings, Inc.",Emanuel Ariel,Chief Executive Officer,2026-05-13,2026-05-14,4499696,190.97,175.5,2026-10-16,-0.45,4.92,-8.1,2.53,https://www.sec.gov/Archives/edgar/data/1973266/000119312526221765/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-05-13,2026-05-14,2922713,24.56,11.34,2026-10-16,9.93,-20.01,-53.83,2.53,https://www.sec.gov/Archives/edgar/data/1659494/000110465926059790/
+WCN,"Waste Connections, Inc.",MITTELSTAEDT RONALD J,President & CEO,2026-05-13,2026-05-14,7612000,154.59,167.9,2026-10-16,0.55,0.04,8.61,2.53,https://www.sec.gov/Archives/edgar/data/1318220/000106429926000005/
+FCN,"FTI CONSULTING, INC",Linton Paul Alderman,Chief Strategy/Transf. Officer,2026-05-14,2026-05-15,2076584,143.76,148.53,2026-10-16,7.19,7.49,3.32,3.78,https://www.sec.gov/Archives/edgar/data/887936/000088793626000066/
+UPST,"Upstart Holdings, Inc.",Gu Paul,Chief Executive Officer,2026-05-14,2026-05-15,1375000,29.51,23.56,2026-10-16,-3.22,9.25,-20.16,3.78,https://www.sec.gov/Archives/edgar/data/1647639/000183281226000006/
+POOL,POOL CORP,PEREZ DE LA MESA MANUEL J,,2026-05-14,2026-05-15,1759500,174.21,172.57,2026-10-16,5.3,12.96,-0.94,3.78,https://www.sec.gov/Archives/edgar/data/945841/000094584126000118/
+AAT,"American Assets Trust, Inc.",RADY ERNEST S,Executive Chairman,2026-05-14,2026-05-15,3589826,20.16,21.28,2026-10-16,9.68,19.22,5.57,3.78,https://www.sec.gov/Archives/edgar/data/1500217/000122135926000014/
+LODE,Comstock Inc.,Pei Steven Yu-Tsung,,2026-05-14,2026-05-15,1438987,3.49,1.79,2026-10-16,9.46,23.5,-48.71,3.78,https://www.sec.gov/Archives/edgar/data/1120970/000143774926017150/
+PFX,PhenixFIN Corp,Lorber David A,CHAIRMAN AND CEO,2026-05-14,2026-05-15,1680497,41.55,44.05,2026-10-16,7.11,5.55,6.02,3.78,https://www.sec.gov/Archives/edgar/data/1490349/000121390026056877/
+AMR,"Alpha Metallurgical Resources, Inc.",Courtis Kenneth S.,,2026-05-15,2026-05-18,2838325,182.3,166.73,2026-10-16,5.78,6.07,-8.54,3.85,https://www.sec.gov/Archives/edgar/data/1704715/000181274626000006/
+WGS,GeneDx Holdings Corp.,Meister Keith A.,,2026-05-15,2026-05-18,13765345,42.69,63.61,2026-10-16,15.81,32.16,49.0,3.85,https://www.sec.gov/Archives/edgar/data/1818331/000101143826000351/
+ONON,On Holding AG,Bernhard Olivier,Executive Officer,2026-05-15,2026-05-18,6593601,38.1,34.75,2026-10-16,5.83,-1.0,-8.79,3.85,https://www.sec.gov/Archives/edgar/data/1858985/000185988926000004/
+TXO,"TXO Partners, L.P.",SIMPSON BOB R,,2026-05-15,2026-05-18,3912760,13.14,14.22,2026-10-16,-1.63,-7.1,8.23,3.85,https://www.sec.gov/Archives/edgar/data/1559432/000118268426000006/
+TLSI,"TriSalus Life Sciences, Inc.",Wahlstrom Mats,CEO and President,2026-05-18,2026-05-19,1821429,3.15,3.63,2026-10-16,1.27,29.52,15.24,4.55,https://www.sec.gov/Archives/edgar/data/1826667/000162828026035996/
+SHAK,Shake Shack Inc.,Silverman Josh,Chief Executive Officer,2026-05-18,2026-05-19,3232509,64.12,69.99,2026-10-16,0.41,-7.86,9.15,4.55,https://www.sec.gov/Archives/edgar/data/1620533/000152535826000014/
+ZBIO,"Zenas BioPharma, Inc.",MOULDER LEON O JR,Chief Executive Officer,2026-05-18,2026-05-19,1012800,17.84,24.84,2026-10-16,1.4,10.87,39.24,4.55,https://www.sec.gov/Archives/edgar/data/1953926/000110465926063362/
+AAT,"American Assets Trust, Inc.",RADY ERNEST S,Executive Chairman,2026-05-18,2026-05-19,2104922,20.64,21.28,2026-10-16,5.92,14.74,3.09,4.55,https://www.sec.gov/Archives/edgar/data/1500217/000122135926000016/
+BKKT,"Bakkt, Inc.",ALFRED MICHAEL,,2026-05-18,2026-05-19,4848100,9.68,5.59,2026-10-16,18.7,-4.75,-42.25,4.55,https://www.sec.gov/Archives/edgar/data/1820302/000181673926000002/
+DINO,HF Sinclair Corp,MYERS FRANKLIN,CEO and President,2026-05-18,2026-05-19,1036650,71.38,125.29,2026-10-16,-5.21,-10.19,75.53,4.55,https://www.sec.gov/Archives/edgar/data/1915657/000119312526229159/
+ADC,AGREE REALTY CORP,Lehmkuhl Greg,PRESIDENT & CEO,2026-05-18,2026-05-19,1058893,74.25,67.04,2026-10-16,-0.93,-2.77,-9.72,4.55,https://www.sec.gov/Archives/edgar/data/917251/000174830326000006/
+NOMD,Nomad Foods Ltd,BALDEW RUBEN,Chief Financial Officer,2026-05-18,2026-05-19,1611538,10.15,11.76,2026-10-16,-1.94,-2.72,15.87,4.55,https://www.sec.gov/Archives/edgar/data/1651717/000211199926000007/
+NIQ,NIQ Global Intelligence plc,Peck James M,See Remarks,2026-05-18,2026-05-19,1000009,8.56,18.6,2026-10-16,-1.4,-3.27,117.29,4.55,https://www.sec.gov/Archives/edgar/data/2054696/000164577326000007/
+AMRZ,Amrize Ltd,Jenisch Jan Philipp,Chairman & CEO,2026-05-18,2026-05-19,1407571,48.17,37.82,2026-10-16,9.96,14.62,-21.49,4.55,https://www.sec.gov/Archives/edgar/data/2035989/000206810426000003/
+CHTR,"CHARTER COMMUNICATIONS, INC. /MO/",Ramos Mauricio,,2026-05-18,2026-05-19,1399294,142.5,110.11,2026-10-16,3.28,-11.42,-22.73,4.55,https://www.sec.gov/Archives/edgar/data/1091667/000134040626000005/
+MSCI,MSCI Inc.,Fernandez Henry A,Chairman and CEO,2026-05-18,2026-05-19,2249591,575.63,569.08,2026-10-16,4.46,0.61,-1.14,4.55,https://www.sec.gov/Archives/edgar/data/1408198/000141675026000011/
+DRS,"Leonardo DRS, Inc.",Jeffery Reuben III,,2026-05-19,2026-05-20,1069250,44.47,35.42,2026-10-16,8.64,0.96,-20.35,3.49,https://www.sec.gov/Archives/edgar/data/1833756/000149228026000010/
+VANI,"Vivani Medical, Inc.",Williams Gregg,,2026-05-19,2026-05-20,1999999,1.19,1.12,2026-10-16,8.4,-5.04,-5.88,3.49,https://www.sec.gov/Archives/edgar/data/1266806/000175392626000910/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-05-19,2026-05-20,2140178,27.38,11.34,2026-10-16,-5.77,-42.99,-58.58,3.49,https://www.sec.gov/Archives/edgar/data/1659494/000110465926063515/
+UUU,"UNIVERSAL SAFETY PRODUCTS, INC.",AULT MILTON C III,,2026-05-19,2026-05-20,1063750,6.5,5.29,2026-10-16,6.46,-27.54,-18.62,3.49,https://www.sec.gov/Archives/edgar/data/102109/000121465926006581/
+ADC,AGREE REALTY CORP,RAKOLTA JOHN JR,,2026-05-19,2026-05-20,1491400,74.19,67.04,2026-10-16,-1.31,-2.5,-9.63,3.49,https://www.sec.gov/Archives/edgar/data/917251/000152815326000007/
+FBIN,"Fortune Brands Innovations, Inc.",GARDEN EDWARD P,,2026-05-20,2026-05-21,13656552,35.84,40.04,2026-10-16,8.02,12.76,11.71,3.28,https://www.sec.gov/Archives/edgar/data/1519751/000121390026059773/
+TXO,"TXO Partners, L.P.",SIMPSON BOB R,,2026-05-20,2026-05-21,1970695,13.36,14.22,2026-10-16,-7.49,-7.56,6.42,3.28,https://www.sec.gov/Archives/edgar/data/1559432/000118268426000008/
+LOGC,ContextLogic Holdings Inc.,Bobbili Raja,,2026-05-21,2026-05-22,1311347,8.55,15.1,2026-10-16,5.85,0.82,76.61,2.88,https://www.sec.gov/Archives/edgar/data/2064307/000119312526235184/
+FBIN,"Fortune Brands Innovations, Inc.",GARDEN EDWARD P,,2026-05-21,2026-05-22,2002686,37.43,40.04,2026-10-16,3.8,18.59,6.97,2.88,https://www.sec.gov/Archives/edgar/data/1519751/000121390026060183/
+AAT,"American Assets Trust, Inc.",RADY ERNEST S,Executive Chairman,2026-05-21,2026-05-22,1699774,22.11,21.28,2026-10-16,2.81,8.56,-3.74,2.88,https://www.sec.gov/Archives/edgar/data/1500217/000122135926000020/
+APCX,AppTech Payments Corp.,LORD ALBERT L,,2026-05-22,2026-05-26,1015364,0.34,0.14,2026-10-16,17.39,-2.9,-59.42,2.2,https://www.sec.gov/Archives/edgar/data/1070050/000168316826004253/
+NCLH,Norwegian Cruise Line Holdings Ltd.,CHIDSEY JOHN,President and CEO,2026-05-26,2026-05-27,2504610,18.15,15.05,2026-10-16,0.0,17.02,-17.08,2.22,https://www.sec.gov/Archives/edgar/data/1513761/000110465926066326/
+HIMS,"Hims & Hers Health, Inc.",WELLS DAVID B,,2026-05-26,2026-05-27,1173216,25.2,28.07,2026-10-16,9.17,34.68,11.39,2.22,https://www.sec.gov/Archives/edgar/data/1773751/000177375126000086/
+TXO,"TXO Partners, L.P.",SIMPSON BOB R,,2026-05-26,2026-05-27,5258906,12.54,14.22,2026-10-16,4.19,-3.02,13.43,2.22,https://www.sec.gov/Archives/edgar/data/1559432/000118268426000011/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-05-26,2026-05-27,4185772,26.43,11.34,2026-10-16,-6.39,-42.75,-57.09,2.22,https://www.sec.gov/Archives/edgar/data/1659494/000110465926065999/
+BLND,"Blend Labs, Inc.",SHETH BRIAN NIRANJAN,,2026-05-27,2026-05-28,1539709,1.72,0.9,2026-10-16,0.0,-1.74,-47.67,1.66,https://www.sec.gov/Archives/edgar/data/1855747/000119312526242341/
+SYY,SYSCO CORP,Hinshaw John M,,2026-05-27,2026-05-28,1000062,74.89,82.22,2026-10-16,-2.07,9.85,9.79,1.66,https://www.sec.gov/Archives/edgar/data/96021/000153478726000006/
+COR,"Cencora, Inc.",DURCAN DERMOT MARK,,2026-05-28,2026-05-29,1065040,268.84,340.92,2026-10-16,2.11,5.06,26.81,1.41,https://www.sec.gov/Archives/edgar/data/1140859/000120235826000004/
+LOGC,ContextLogic Holdings Inc.,Bobbili Raja,,2026-05-28,2026-05-29,1135368,8.98,15.1,2026-10-16,1.89,-0.89,68.15,1.41,https://www.sec.gov/Archives/edgar/data/2064307/000119312526245910/
+PSEC,PROSPECT CAPITAL CORP,Barry John F,CHIEF EXECUTIVE OFFICER,2026-05-28,2026-05-29,1004590,2.26,1.6,2026-10-16,-7.47,-2.65,-29.31,1.41,https://www.sec.gov/Archives/edgar/data/1287032/000129435726000008/
+SCHW,SCHWAB CHARLES CORP,Wurster Richard A,President & CEO,2026-05-28,2026-05-29,1849607,87.1,91.96,2026-10-16,1.71,5.63,5.58,1.41,https://www.sec.gov/Archives/edgar/data/316709/000188926326000005/
+HLNE,Hamilton Lane INC,Rogers Hartley R.,Executive Co-Chairman,2026-05-28,2026-05-29,9992338,85.9,81.84,2026-10-16,-7.66,-8.85,-4.72,1.41,https://www.sec.gov/Archives/edgar/data/1433642/000143364226000021/
+CDW,CDW Corp,NELMS DAVID W,,2026-05-29,2026-06-01,2005740,140.31,150.48,2026-10-16,-4.38,-1.82,7.25,1.13,https://www.sec.gov/Archives/edgar/data/1402057/000140205726000040/
+AAT,"American Assets Trust, Inc.",RADY ERNEST S,Executive Chairman,2026-05-29,2026-06-01,2415798,22.73,21.28,2026-10-16,4.12,9.28,-6.37,1.13,https://www.sec.gov/Archives/edgar/data/1500217/000122135926000029/
+SLMT,Brera Holdings PLC,Sade Ron,Chief Executive Officer,2026-05-29,2026-06-01,11421060,6.38,2.83,2026-10-16,-21.47,-14.26,-55.64,1.13,https://www.sec.gov/Archives/edgar/data/1939965/000121390026063068/
+ANNX,"Annexon, Inc.",Satter Muneer A,,2026-05-29,2026-06-01,3319019,5.58,3.41,2026-10-16,-8.24,-0.54,-38.89,1.13,https://www.sec.gov/Archives/edgar/data/1528115/000131579726000001/
+CDNL,Cardinal Infrastructure Group Inc.,Wood Benjamin,CHIEF OPERATING OFFICER,2026-05-29,2026-06-01,1025900,54.24,14.62,2026-10-16,13.07,58.55,-73.05,1.13,https://www.sec.gov/Archives/edgar/data/2079999/000121390026062942/
+OTLK,"Outlook Therapeutics, Inc.",GMS Ventures & Investments,,2026-06-01,2026-06-02,5038428,0.81,0.49,2026-10-16,-13.39,78.13,-40.05,0.99,https://www.sec.gov/Archives/edgar/data/1649989/000089914026000620/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-06-01,2026-06-02,4847653,25.56,11.34,2026-10-16,-14.05,-37.01,-55.63,0.99,https://www.sec.gov/Archives/edgar/data/1659494/000110465926068566/
+QTTB,Q32 Bio Inc.,Xu Diyong,,2026-06-01,2026-06-02,15000000,12.64,7.52,2026-10-16,-5.93,3.56,-40.51,0.99,https://www.sec.gov/Archives/edgar/data/1661998/000094787126000594/
+VTS,"Vitesse Energy, Inc.",STEINBERG JOSEPH S,,2026-06-01,2026-06-02,1005006,17.35,18.25,2026-10-16,-3.13,-12.91,5.17,0.99,https://www.sec.gov/Archives/edgar/data/1944558/000162828026039545/
+HOOD,"Robinhood Markets, Inc.",Malka Meyer,,2026-06-01,2026-06-02,20017110,88.16,98.87,2026-10-16,-4.98,27.87,12.15,0.99,https://www.sec.gov/Archives/edgar/data/1783879/000110465926068980/
+AUPH,Aurinia Pharmaceuticals Inc.,TANG KEVIN,Chief Executive Officer,2026-06-02,2026-06-03,12455227,15.67,16.51,2026-10-16,-0.06,-1.15,5.36,1.71,https://www.sec.gov/Archives/edgar/data/1600620/000117857926000004/
+IFF,INTERNATIONAL FLAVORS & FRAGRANCES INC,FRIBOURG PAUL J,,2026-06-02,2026-06-03,20318415,72.83,90.68,2026-10-16,0.91,13.12,24.51,1.71,https://www.sec.gov/Archives/edgar/data/51253/000122520826005748/
+RDN,RADIAN GROUP INC,Weinbach Michael S,Chief Executive Officer- Elect,2026-06-02,2026-06-03,5768727,33.44,34.04,2026-10-16,3.15,13.42,1.81,1.71,https://www.sec.gov/Archives/edgar/data/890926/000089092626000124/
+LODE,Comstock Inc.,SPENCE ROBERT,CEO,2026-06-03,2026-06-04,1614639,4.36,1.79,2026-10-16,-6.42,-11.24,-58.94,1.32,https://www.sec.gov/Archives/edgar/data/1120970/000143774926019468/
+TXO,"TXO Partners, L.P.",SIMPSON BOB R,,2026-06-03,2026-06-04,8230576,13.39,14.22,2026-10-16,-5.22,-6.75,6.19,1.32,https://www.sec.gov/Archives/edgar/data/1559432/000118268426000015/
+NCLH,Norwegian Cruise Line Holdings Ltd.,PAGLIUCA STEPHEN G,,2026-06-03,2026-06-04,24992300,19.13,15.05,2026-10-16,-0.37,-1.57,-21.33,1.32,https://www.sec.gov/Archives/edgar/data/1513761/000110465926070113/
+HOOD,"Robinhood Markets, Inc.",Malka Meyer,,2026-06-03,2026-06-04,15104450,88.33,98.87,2026-10-16,4.42,27.82,11.93,1.32,https://www.sec.gov/Archives/edgar/data/1783879/000110465926070232/
+CECO,CECO ENVIRONMENTAL CORP,WALLMAN RICHARD F,,2026-06-03,2026-06-04,1537000,81.1,56.72,2026-10-16,18.88,-2.79,-30.06,1.32,https://www.sec.gov/Archives/edgar/data/3197/000119312526256033/
+XMTR,"Xometry, Inc.",Biewald Lukas Alexander,,2026-06-04,2026-06-05,3999930,80.66,90.91,2026-10-16,7.85,10.98,12.71,4.01,https://www.sec.gov/Archives/edgar/data/1657573/000213472226000003/
+DNUT,"Krispy Kreme, Inc.",Hees Bernardo,,2026-06-04,2026-06-05,2117934,3.51,3.02,2026-10-16,22.79,-1.99,-13.96,4.01,https://www.sec.gov/Archives/edgar/data/1857154/000155235426000004/
+GLIBK,Liberty Capital Corp/NV,DUNCAN RONALD A,President and CEO,2026-06-04,2026-06-05,1420525,21.56,20.75,2026-10-16,5.1,5.43,-3.76,4.01,https://www.sec.gov/Archives/edgar/data/2057463/000122520826005796/
+ERIE,ERIE INDEMNITY CO,Vorsheck Elizabeth A,,2026-06-04,2026-06-05,1433500,224.43,243.71,2026-10-16,-0.24,11.26,8.59,4.01,https://www.sec.gov/Archives/edgar/data/922621/000162828026040653/
+NSP,"INSPERITY, INC.",SARVADI PAUL J,Chairman of the Board & CEO,2026-06-04,2026-06-05,7933650,34.97,51.38,2026-10-16,3.45,24.08,46.94,4.01,https://www.sec.gov/Archives/edgar/data/1000753/000100075326000078/
+NVRI,Enviri II Corp,Purvis Edgar M Jr,President and CEO,2026-06-04,2026-06-05,1254414,19.3,19.43,2026-10-16,10.62,18.19,0.67,4.01,https://www.sec.gov/Archives/edgar/data/2104052/000210405226000072/
+SMMT,Summit Therapeutics Inc.,DUGGAN ROBERT W,Co-Chief Executive Officer,2026-06-04,2026-06-05,3642250,14.77,14.63,2026-10-16,-5.15,6.23,-0.95,4.01,https://www.sec.gov/Archives/edgar/data/1599298/000105591926000005/
+PAX,Patria Investments Ltd,Neto Olimpio Matarazzo,,2026-06-05,2026-06-08,1129250,11.24,11.7,2026-10-16,1.58,-2.98,4.1,3.77,https://www.sec.gov/Archives/edgar/data/1825570/000095010326008630/
+FCNCA,FIRST CITIZENS BANCSHARES INC /DE/,HOLDING FRANK B JR,Chairman and CEO,2026-06-08,2026-06-09,2316558,2098.67,2123.74,2026-10-16,-0.28,-0.39,1.19,4.08,https://www.sec.gov/Archives/edgar/data/798941/000119312526262445/
+RYAN,"RYAN SPECIALTY HOLDINGS, INC.",RYAN PATRICK G,Executive Chairman,2026-06-08,2026-06-09,3900000,33.24,40.75,2026-10-16,6.3,21.21,22.6,4.08,https://www.sec.gov/Archives/edgar/data/1849253/000114503726000004/
+WGS,GeneDx Holdings Corp.,Casdin Eli,,2026-06-08,2026-06-09,11109000,56.33,63.61,2026-10-16,7.58,16.53,12.92,4.08,https://www.sec.gov/Archives/edgar/data/1818331/000091957426003907/
+HOOD,"Robinhood Markets, Inc.",Malka Meyer,,2026-06-09,2026-06-10,20185000,86.36,98.87,2026-10-16,21.82,27.21,14.49,5.75,https://www.sec.gov/Archives/edgar/data/1783879/000110465926071829/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-06-10,2026-06-11,4128862,22.0,11.34,2026-10-16,-29.0,-25.73,-48.45,3.98,https://www.sec.gov/Archives/edgar/data/1659494/000110465926072099/
+BORR,Borr Drilling Ltd,Troim Tor Olav,,2026-06-10,2026-06-11,4996100,4.66,4.54,2026-10-16,-9.44,-5.15,-2.58,3.98,https://www.sec.gov/Archives/edgar/data/1715497/000162828026042068/
+BLND,"Blend Labs, Inc.",SHETH BRIAN NIRANJAN,,2026-06-10,2026-06-11,1880486,1.75,0.9,2026-10-16,-5.71,1.71,-48.57,3.98,https://www.sec.gov/Archives/edgar/data/1855747/000119312526266221/
+FBIN,"Fortune Brands Innovations, Inc.",GARDEN EDWARD P,,2026-06-11,2026-06-12,12994720,42.97,40.04,2026-10-16,-4.4,18.35,-6.82,3.42,https://www.sec.gov/Archives/edgar/data/1519751/000121390026067812/
+STEP,StepStone Group Inc.,McCabe Michael I,Head of Strategy,2026-06-11,2026-06-12,5022072,43.27,41.64,2026-10-16,4.36,2.8,-3.78,3.42,https://www.sec.gov/Archives/edgar/data/1796022/000182288026000004/
+BRC,BRADY CORP,Nargolwala Vineet A,President & CEO,2026-06-11,2026-06-12,1000025,82.16,81.93,2026-10-16,3.0,11.44,-0.28,3.42,https://www.sec.gov/Archives/edgar/data/746598/000180764926000004/
+ECL,ECOLAB INC.,Doukeris Michel D,,2026-06-11,2026-06-12,1999500,263.99,288.89,2026-10-16,1.76,2.1,9.43,3.42,https://www.sec.gov/Archives/edgar/data/31462/000205885726000008/
+BKKT,"Bakkt, Inc.",ALFRED MICHAEL,,2026-06-11,2026-06-12,2170800,8.43,5.59,2026-10-16,7.35,-2.02,-33.69,3.42,https://www.sec.gov/Archives/edgar/data/1820302/000162828026042553/
+SMMT,Summit Therapeutics Inc.,Zanganeh Mahkam,Co-Chief Executive Officer,2026-06-12,2026-06-15,99974400,14.13,14.63,2026-10-16,0.85,-2.62,3.54,1.63,https://www.sec.gov/Archives/edgar/data/1599298/000150765026000007/
+CRVO,CervoMed Inc.,BOGER JOSHUA S,,2026-06-15,2026-06-16,3000000,4.52,2.24,2026-10-16,-27.88,-31.86,-50.44,2.24,https://www.sec.gov/Archives/edgar/data/1053691/000143774926020691/
+LODE,Comstock Inc.,Pei Steven Yu-Tsung,,2026-06-15,2026-06-16,1024000,4.31,1.79,2026-10-16,-4.64,-9.05,-58.47,2.24,https://www.sec.gov/Archives/edgar/data/1120970/000143774926020701/
+AVO,"Mission Produce, Inc.",Taylor Bruce C.,,2026-06-15,2026-06-16,2263792,11.58,12.2,2026-10-16,5.18,17.36,5.35,2.24,https://www.sec.gov/Archives/edgar/data/1802974/000145935026000003/
+HLNE,Hamilton Lane INC,Rogers Hartley R.,Executive Co-Chairman,2026-06-15,2026-06-16,4248770,85.99,81.84,2026-10-16,-14.77,-0.84,-4.82,2.24,https://www.sec.gov/Archives/edgar/data/1433642/000143364226000024/
+ARTV,"Artiva Biotherapeutics, Inc.",Kolchinsky Peter,,2026-06-16,2026-06-17,4599903,9.94,5.85,2026-10-16,-11.17,-7.95,-41.15,3.53,https://www.sec.gov/Archives/edgar/data/1817241/000123191926000656/
+BSBR,Banco Santander (Brasil) S.A.,Leao Mario Roberto Opice,CEO,2026-06-16,2026-06-17,1489458,5.26,5.58,2026-10-16,-3.91,0.0,6.09,3.53,https://www.sec.gov/Archives/edgar/data/1471055/000129281426003478/
+FUN,Six Flags Entertainment Corporation/NEW,JAFFER REHAN,,2026-06-16,2026-06-17,5887500,24.87,8.11,2026-10-16,-9.65,-30.08,-67.39,3.53,https://www.sec.gov/Archives/edgar/data/1999001/000199900126000075/
+VANI,"Vivani Medical, Inc.",Williams Gregg,,2026-06-16,2026-06-17,1999999,1.15,1.12,2026-10-16,-0.87,17.39,-2.61,3.53,https://www.sec.gov/Archives/edgar/data/1266806/000175392626001014/
+KNOP,KNOT Offshore Partners LP,Seglem Trygve,,2026-06-16,2026-06-17,25000000,10.16,9.9,2026-10-16,-1.27,2.35,-2.51,3.53,https://www.sec.gov/Archives/edgar/data/1564180/000110465926074731/
+FISV,FISERV INC,Rosman Adam L.,Chief Admin. and Legal Officer,2026-06-16,2026-06-17,1073673,48.77,47.55,2026-10-16,-2.54,5.97,-2.5,3.53,https://www.sec.gov/Archives/edgar/data/798354/000154937326000010/
+AMR,"Alpha Metallurgical Resources, Inc.",Courtis Kenneth S.,,2026-06-16,2026-06-17,2007296,193.37,166.73,2026-10-16,-13.03,-25.66,-13.78,3.53,https://www.sec.gov/Archives/edgar/data/1704715/000181274626000007/
+CXT,"Crane NXT, Co.",Saak Aaron W,CEO,2026-06-16,2026-06-17,1160078,45.19,54.72,2026-10-16,5.91,12.66,21.1,3.53,https://www.sec.gov/Archives/edgar/data/25445/000193048926000006/
+EQPT,EquipmentShare.com Inc,Schlacks Jabbok,Co-Founder & CEO,2026-06-17,2026-06-18,2129539,26.32,13.59,2026-10-16,-22.19,-33.36,-48.39,2.46,https://www.sec.gov/Archives/edgar/data/1693736/000095010326009152/
+AVO,"Mission Produce, Inc.",Pack Jay A,,2026-06-17,2026-06-18,5680083,11.49,12.2,2026-10-16,6.7,9.92,6.18,2.46,https://www.sec.gov/Archives/edgar/data/1802974/000182587926000004/
+SAGT,SAGTEC GLOBAL Ltd,Ng Chen Lok,Chief Executive Officer,2026-06-18,2026-06-22,1560000,1.31,0.42,2026-10-16,-5.34,-34.27,-68.09,2.79,https://www.sec.gov/Archives/edgar/data/2029138/000121390026070184/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-06-18,2026-06-22,4570570,15.61,11.34,2026-10-16,-3.59,-0.06,-27.35,2.79,https://www.sec.gov/Archives/edgar/data/1659494/000110465926075401/
+HMMR,HAMMER TECHNOLOGY HOLDINGS CORP.,SEVELL MICHAEL,,2026-06-18,2026-06-22,2700181,0.11,0.09,2026-10-16,27.27,0.0,-22.73,2.79,https://www.sec.gov/Archives/edgar/data/1539680/000106299326003272/
+AVO,"Mission Produce, Inc.",Taylor Bruce C.,,2026-06-22,2026-06-23,3227841,11.71,12.2,2026-10-16,0.68,4.36,4.18,4.3,https://www.sec.gov/Archives/edgar/data/1802974/000145934926000001/
+TVA,Texas Ventures Acquisition III Corp,ANGELO MARK,,2026-06-22,2026-06-23,1310000,10.48,10.58,2026-10-16,0.67,0.38,0.95,4.3,https://www.sec.gov/Archives/edgar/data/2033991/000110465926076503/
+COR,"Cencora, Inc.",DURCAN DERMOT MARK,,2026-06-22,2026-06-23,1096760,280.56,340.92,2026-10-16,0.67,8.52,21.52,4.3,https://www.sec.gov/Archives/edgar/data/1140859/000120235826000006/
+AVO,"Mission Produce, Inc.",Taylor Bruce C.,,2026-06-23,2026-06-24,1128269,12.18,12.2,2026-10-16,2.13,1.97,0.16,4.35,https://www.sec.gov/Archives/edgar/data/1802974/000145935026000006/
+LILA,Liberty Latin America Ltd.,Nair Balan,President and CEO,2026-06-23,2026-06-24,1488494,6.6,8.06,2026-10-16,20.0,13.94,22.12,4.35,https://www.sec.gov/Archives/edgar/data/1712184/000171218426000108/
+PSEC,PROSPECT CAPITAL CORP,Barry John F,CHIEF EXECUTIVE OFFICER,2026-06-24,2026-06-25,2250000,2.13,1.6,2026-10-16,0.22,-0.22,-24.95,4.2,https://www.sec.gov/Archives/edgar/data/1287032/000129435726000010/
+TXO,"TXO Partners, L.P.",SIMPSON BOB R,,2026-06-24,2026-06-25,1260695,12.14,14.22,2026-10-16,-0.96,3.36,17.16,4.2,https://www.sec.gov/Archives/edgar/data/1559432/000119312526281322/
+AMS,AMERICAN SHARED HOSPITAL SERVICES,Stachowiak Raymond C,Executive Chairman,2026-06-24,2026-06-25,1337147,1.59,1.28,2026-10-16,-6.29,-3.14,-19.5,4.2,https://www.sec.gov/Archives/edgar/data/744825/000143774926021567/
+PSEC,PROSPECT CAPITAL CORP,Barry John F,CHIEF EXECUTIVE OFFICER,2026-06-25,2026-06-26,2423561,2.2,1.6,2026-10-16,-4.76,-3.46,-27.39,4.96,https://www.sec.gov/Archives/edgar/data/1287032/000129435726000012/
+ADBE,ADOBE INC.,Ricks David A,,2026-06-26,2026-06-29,1945100,206.43,245.2,2026-10-16,7.32,27.61,18.78,3.26,https://www.sec.gov/Archives/edgar/data/796343/000079634326000118/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-06-26,2026-06-29,4552199,15.05,11.34,2026-10-16,7.31,12.49,-24.65,3.26,https://www.sec.gov/Archives/edgar/data/1659494/000110465926078013/
+CGON,"CG Oncology, Inc.",Liu Brian Guan-Chyun,,2026-06-29,2026-06-30,24814454,71.05,59.85,2026-10-16,-1.76,2.79,-15.76,2.46,https://www.sec.gov/Archives/edgar/data/1991792/000114036126026779/
+HMMR,HAMMER TECHNOLOGY HOLDINGS CORP.,COTHILL MICHAEL,CEO,2026-06-29,2026-06-30,2700181,0.14,0.09,2026-10-16,-11.03,-42.65,-37.5,2.46,https://www.sec.gov/Archives/edgar/data/1539680/000106299326003401/
+NXST,"NEXSTAR MEDIA GROUP, INC.",SOOK PERRY A,Chief Executive Officer,2026-06-29,2026-06-30,1985251,176.83,164.59,2026-10-16,-1.34,7.75,-6.92,2.46,https://www.sec.gov/Archives/edgar/data/1142417/000119312526288030/
+COE,51Talk Online Education Group,Huang Jack Jiajia,Chief Executive Officer,2026-06-30,2026-07-01,16524757,16.35,11.34,2026-10-16,2.14,8.01,-30.64,2.6,https://www.sec.gov/Archives/edgar/data/1659494/000110465926079099/

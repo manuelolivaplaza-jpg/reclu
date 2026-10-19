@@ -1,0 +1,13 @@
+{
+ "eventos": 270,
+ "excluidos": 112,
+ "ret_prom_pct": -1.8,
+ "ret_mediana_pct": -5.45,
+ "spy_prom_pct": 8.11,
+ "le_gana_a_spy": 88,
+ "ret_1m_prom": 1.03,
+ "ret_1s_prom": 0.04,
+ "valor_total_eq_ponderado_usd": 265131,
+ "valor_spy_usd": 291908,
+ "delistados_o_sin_dato_reciente": 0
+}

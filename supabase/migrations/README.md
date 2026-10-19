@@ -20,6 +20,7 @@ el CLI, respetando el mismo orden).
 | 9 | `012_muro_pago.sql` | Muro de pago real: quita lectura pública de `holdings`/`portfolio_snapshots`, funciones `get_portfolio_holdings(p_slug)` y `get_portfolio_snapshots(p_slug)` con recorte por plan. **Incluir bloque `-- rollback` si se quiere revertir.** |
 | 10 | `013_portafolios_tematicos.sql` | Tres portafolios temáticos + holdings semilla. |
 | 11 | `014_trump_dice.sql` | Tabla `mentions` (lectura pública solo `status='verificada'`, sin políticas de escritura), portafolio `trump-dice`, 15 menciones y holdings semilla. |
+| 12 | `016_insiders.sql` | Compras de ejecutivos (Form 4): tabla `insider_trades` (lectura pública, sin direcciones ni políticas de escritura) y portafolio `insiders-compras-1m`. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -36,6 +37,7 @@ fusionen las ramas, aplicar en este orden:
 | 012 | **Este frente (F6)** | Muro de pago (ya presente arriba) |
 | 013 | Portafolios | Nuevos portafolios/seed |
 | 015 | F9 — muro pago en /accion | RPC `get_symbol_holders(p_symbol)`: quién tiene un ticker. El rank se calcula sobre todas las posiciones del `as_of` vigente (`weight desc, id`) y después se filtra el símbolo; luego `rank <= holdings_limit_for_plan(current_user_plan())` y premium solo pagos. Aplicar después de 012. Re-ejecutable. |
+| 016 | F10 - compras de ejecutivos | `016_insiders.sql`: tabla `insider_trades` y portafolio `insiders-compras-1m`. Re-ejecutable. |
 
 ## Duplicados conocidos (A8)
 
