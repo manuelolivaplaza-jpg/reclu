@@ -13,11 +13,13 @@ de la corredora.
 from __future__ import annotations
 
 import io
+import json
 import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import date
-from typing import Any
+from pathlib import Path
+from typing import Any, Iterable, Mapping
 
 from base import Holding, SourceAdapter, log
 
@@ -25,6 +27,17 @@ try:
     from pypdf import PdfReader
 except ImportError:  # pragma: no cover
     PdfReader = None  # type: ignore
+
+# Fotografia de las carteras usada por el seed (024) y por los tests.
+# No es la fuente en vivo: los adaptadores siguen leyendo los PDF publicos.
+DATOS_CARTERAS = (
+    Path(__file__).resolve().parent / "data" / "v2" / "F23" / "carteras_oct_2026.json"
+)
+
+# Carteras que no entran al consenso hasta verificar que sus pesos sigan
+# vigentes. Renta 4 y BTG tienen holdings cargados por etapas antiguas:
+# sus fechas de corte no son octubre 2026. Se dejan fuera a proposito.
+CORREDORAS_FUERA_DEL_CONSENSO = ("renta4", "btg")
 
 # URL fija. BICE reemplaza el archivo en el mismo path.
 BICE_PDF_URL = (
@@ -324,6 +337,93 @@ def parse_mbi(texto: str) -> list[Posicion]:
         )
         for simbolo, peso in zip(simbolos, pesos)
     ]
+
+
+def cargar_carteras(ruta: str | Path | None = None) -> list[dict[str, Any]]:
+    """Lee la fotografia JSON de carteras (por defecto, octubre 2026)."""
+    archivo = Path(ruta) if ruta is not None else DATOS_CARTERAS
+    data = json.loads(archivo.read_text(encoding="utf-8"))
+    return list(data.get("carteras", []))
+
+
+def _esta_fuera_del_consenso(corredora: str) -> bool:
+    """Renta 4 y BTG quedan fuera hasta confirmar que sus pesos vigentes."""
+    compacto = _clave(corredora).replace(" ", "")
+    return any(compacto.startswith(fuera) for fuera in CORREDORAS_FUERA_DEL_CONSENSO)
+
+
+def _pesos_de(cartera: Mapping[str, Any]) -> dict[str, float]:
+    """Pesos publicados de una cartera completa, normalizados a nemotecnico."""
+    pesos = cartera.get("pesos") or {}
+    return {
+        nemotecnico(simbolo): round(float(peso), 2)
+        for simbolo, peso in pesos.items()
+    }
+
+
+def build_consenso(
+    carteras: Iterable[Mapping[str, Any]] | str | Path | None = None,
+) -> list[Posicion]:
+    """Promedio simple entre las corredoras con `completa=true`.
+
+    Cada corredora pesa lo mismo. Un simbolo ausente en una cartera completa
+    cuenta como 0% para esa corredora: no se renormaliza. Las carteras
+    parciales (Itau, Credicorp) se ignoran por completo; se consultan con
+    `referencia_parciales`. Renta 4 y BTG tampoco entran hasta verificar que
+    sus pesos esten vigentes.
+    """
+    if carteras is None or isinstance(carteras, (str, Path)):
+        carteras = cargar_carteras(carteras)
+
+    completas = [
+        cartera
+        for cartera in carteras
+        if cartera.get("completa") is True
+        and not _esta_fuera_del_consenso(cartera.get("corredora", ""))
+    ]
+    if not completas:
+        return []
+
+    totales: dict[str, float] = {}
+    for cartera in completas:
+        for simbolo, peso in _pesos_de(cartera).items():
+            totales[simbolo] = totales.get(simbolo, 0.0) + peso
+
+    cantidad = len(completas)
+    posiciones = [
+        Posicion(
+            symbol=simbolo,
+            weight=round(total / cantidad, 2),
+            name=NOMBRE_VISIBLE.get(simbolo, simbolo),
+        )
+        for simbolo, total in totales.items()
+        if total > 0
+    ]
+    posiciones.sort(key=lambda posicion: (-posicion.weight, posicion.symbol))
+    return posiciones
+
+
+def referencia_parciales(
+    carteras: Iterable[Mapping[str, Any]] | str | Path | None = None,
+) -> list[dict[str, Any]]:
+    """Carteras incompletas: se muestran como referencia, no promedian."""
+    if carteras is None or isinstance(carteras, (str, Path)):
+        carteras = cargar_carteras(carteras)
+
+    referencia: list[dict[str, Any]] = []
+    for cartera in carteras:
+        if cartera.get("completa") is not False:
+            continue
+        referencia.append(
+            {
+                "corredora": cartera.get("corredora", ""),
+                "fecha": cartera.get("fecha", ""),
+                "fuente": cartera.get("fuente", ""),
+                "pesos": _pesos_de({"pesos": cartera.get("pesos_parciales", {})}),
+                "nota": cartera.get("nota", ""),
+            }
+        )
+    return referencia
 
 
 def nota_cartera_mbi(html: str) -> str | None:
