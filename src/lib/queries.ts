@@ -272,6 +272,9 @@ export async function followPortfolio(portfolioId: string): Promise<{
   }
 
   if (plan !== "elite") {
+    // Límite desde la fuente única src/lib/plans.ts (free 2 / pro 15).
+    // Nota: isTrialPro no aplica al límite de follows (la prueba es de Pro
+    // para alertas/IA; el límite de seguidos sigue siendo el del plan real).
     const limit = plan === "pro" ? PRO_PLAN_FOLLOW_LIMIT : FREE_PLAN_FOLLOW_LIMIT;
     const { count } = await supabase
       .from("follows")
