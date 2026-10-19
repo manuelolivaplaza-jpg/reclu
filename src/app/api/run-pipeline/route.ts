@@ -1,28 +1,59 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 /**
- * POST /api/run-pipeline — runs the full alert pipeline:
- *   1. detect-changes (scrapers already wrote holdings via previous_weight)
- *   2. (OpenRouter summaries happen inside detect-changes)
- *   3. send-alerts (Resend emails to followers)
+ * POST/GET /api/run-pipeline — corre el pipeline de alertas completo:
+ *   1. detect-changes: holdings con previous_weight → alerts (is_published=false)
+ *      + resúmenes AI (OpenRouter) + alertas de acumulación
+ *   2. send-alerts: emails por Resend a los followers según plan/frecuencia
  *
- * Protect with CRON_SECRET: call with header `Authorization: Bearer <secret>`.
- * Schedule with Vercel Cron (see vercel.json) or an external scheduler.
+ * Los scrapers Python corren APARTE (GitHub Actions, ver
+ * .github/workflows/scrapers.yml) y escriben holdings en Supabase con
+ * previous_weight. Este endpoint solo ejecuta detección + AI + email,
+ * que viven en Supabase Edge Functions.
  *
- * NOTE: The Python scrapers run separately (GitHub Actions / VPS cron) and
- * write holdings to Supabase. This endpoint handles detection + AI + email,
- * which live in Supabase Edge Functions.
+ * AUTENTICACIÓN: SIEMPRE exige `Authorization: Bearer ${CRON_SECRET}`.
+ * Vercel Cron llama con GET + ese header (formato oficial de Vercel Cron),
+ * por eso GET también ejecuta el pipeline — sin el secreto no corre NADA
+ * (401; 503 si CRON_SECRET no está configurado).
  */
-export async function POST(request: NextRequest) {
-  // --- Auth: shared secret ---
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = request.headers.get("authorization");
-    if (auth !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
 
+/** Comparación en tiempo constante (evita timing attacks sobre el secreto). */
+function timingSafeEqual(a: string, b: string): boolean {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  const maxLen = Math.max(aBytes.length, bBytes.length);
+  let diff = 0;
+  // Bucle de largo fijo: la diferencia de longitudes se mezcla en diff
+  // sin abortar temprano, y el resultado final exige igual largo.
+  for (let i = 0; i < maxLen; i++) {
+    const ai = i < aBytes.length ? aBytes[i] : 0;
+    const bi = i < bBytes.length ? bBytes[i] : 0;
+    diff |= ai ^ bi;
+  }
+  return diff === 0 && aBytes.length === bBytes.length;
+}
+
+/** Valida el header Authorization contra CRON_SECRET. null = válido. */
+function checkAuth(request: NextRequest): NextResponse | null {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) {
+    // Sin secreto configurado: NUNCA ejecutar (el endpoint quedaría abierto)
+    return NextResponse.json(
+      {
+        error:
+          "CRON_SECRET no está configurado. El pipeline no puede ejecutarse sin él.",
+      },
+      { status: 503 },
+    );
+  }
+  const auth = request.headers.get("authorization") ?? "";
+  if (!timingSafeEqual(auth, `Bearer ${cronSecret}`)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return null;
+}
+
+async function runPipeline(): Promise<NextResponse> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -30,7 +61,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Pipeline requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars.",
+          "Pipeline requiere NEXT_PUBLIC_SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY.",
       },
       { status: 500 },
     );
@@ -43,40 +74,56 @@ export async function POST(request: NextRequest) {
 
   const results: Record<string, unknown> = {};
 
-  // Step 1 + 2: detect changes + AI summaries
+  // Paso 1: detectar cambios + resúmenes AI (Edge detect-changes)
   try {
     const res = await fetch(`${supabaseUrl}/functions/v1/detect-changes`, {
       method: "POST",
       headers,
     });
     results.detect = await res.json().catch(() => ({ status: res.status }));
+    results.detect_status = res.status;
   } catch (err) {
     results.detect = { error: err instanceof Error ? err.message : "failed" };
+    results.detect_status = 0;
   }
 
-  // Step 3: send emails
+  // Paso 2: enviar emails (Edge send-alerts)
   try {
     const res = await fetch(`${supabaseUrl}/functions/v1/send-alerts`, {
       method: "POST",
       headers,
     });
     results.send = await res.json().catch(() => ({ status: res.status }));
+    results.send_status = res.status;
   } catch (err) {
     results.send = { error: err instanceof Error ? err.message : "failed" };
+    results.send_status = 0;
   }
 
-  return NextResponse.json({
-    ok: true,
-    ran_at: new Date().toISOString(),
-    ...results,
-  });
+  const ok = results.detect_status === 200 && results.send_status === 200;
+  return NextResponse.json(
+    {
+      ok,
+      ran_at: new Date().toISOString(),
+      ...results,
+    },
+    { status: ok ? 200 : 500 },
+  );
 }
 
-/** Vercel Cron hits GET — allow it as a no-op status. */
-export async function GET() {
-  return NextResponse.json({
-    service: "reclu.cl pipeline",
-    status: "ready",
-    hint: "POST with Authorization: Bearer <CRON_SECRET> to run detect-changes + send-alerts",
-  });
+/** POST — invocación manual o de un scheduler externo con el secreto. */
+export async function POST(request: NextRequest) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
+  return runPipeline();
+}
+
+/**
+ * GET — lo que usa Vercel Cron (formato oficial: GET + Bearer CRON_SECRET).
+ * Ejecuta el mismo pipeline que POST. Sin secreto no ejecuta nada.
+ */
+export async function GET(request: NextRequest) {
+  const denied = checkAuth(request);
+  if (denied) return denied;
+  return runPipeline();
 }
