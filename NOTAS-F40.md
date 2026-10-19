@@ -29,6 +29,9 @@ commits locales. Worktree `C:\reclu-work\f39`.
    - El correo (instant o digest) agrupa solo las alertas con canal correo; una regla
      solo-Telegram no contamina el digest. Se añadió `source` al select del portafolio
      para el match por fuente. La respuesta ahora incluye `rules` (cantidad evaluada).
+   - **Falla elegante**: si `alert_rules` no existe (037 sin aplicar) o fallan los
+     perfiles de las reglas, se registra el error y se continúa con los follows; las
+     alertas de seguidores nunca se caen por las reglas.
 2. **`tests/alert-rules-routing.test.ts`** (nuevo, 12 tests): espeja `routeRule` y el
    armado de buckets de la edge, pero usa el `ruleMatches` **real** de
    `src/lib/alert-rules.ts` y el `routeAlert` **real** de `src/lib/alert-routing.ts`
