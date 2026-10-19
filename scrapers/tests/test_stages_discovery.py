@@ -68,13 +68,15 @@ def test_inserta_antes_de_radar_ia() -> None:
     assert "radar_ia" in merged_runners
 
 
-def test_sin_etapas_el_orden_no_cambia() -> None:
+def test_sin_etapas_el_orden_no_cambia(tmp_path: Path) -> None:
     stages = [("house_disclosure", "Cámara", True), ("radar_ia", "Radar", False)]
     runners = {"house_disclosure": lambda db, dry_run: [], "radar_ia": lambda db, dry_run: []}
     merged, merged_runners = insert_before_radar(stages, runners, [])
     assert [stage[0] for stage in merged] == ["house_disclosure", "radar_ia"]
     assert set(merged_runners) == set(runners)
-    assert discover_stages() == []
+    # stages/ ya trae al menos una etapa (polymarket, F30): un directorio
+    # vacío es lo que debe devolver lista vacía.
+    assert discover_stages(tmp_path) == []
 
 
 def test_modulo_sin_stage_falla(tmp_path: Path) -> None:
