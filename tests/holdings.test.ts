@@ -1,15 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { z } from "zod";
+import { userHoldingSchema as holdingSchema } from "@/lib/validation";
 
 /**
  * Test the validation schema used by saveUserHoldings (server action).
- * Mirrors the zod schema in src/app/actions/holdings.ts.
  */
-const holdingSchema = z.object({
-  symbol: z.string().min(1).max(20),
-  name: z.string().max(100).optional().default(""),
-  weight: z.number().min(0).max(100),
-});
 
 describe("holdingSchema (mirrors saveUserHoldings)", () => {
   it("accepts a valid holding", () => {

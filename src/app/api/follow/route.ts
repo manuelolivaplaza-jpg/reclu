@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { followPortfolio, unfollowPortfolio } from "@/lib/queries";
 import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT } from "@/lib/types";
+import { firstZodMessage, followBodySchema, friendlyFollowDbError } from "@/lib/validation";
 
 /**
  * POST /api/follow — toggle follow for a portfolio.
@@ -18,17 +19,19 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "Debes iniciar sesión.", redirect: "/login?next=/dashboard" }, { status: 401 });
   }
 
-  let body: { portfolioId?: string };
+  let json: unknown;
   try {
-    body = await request.json();
+    json = await request.json();
   } catch {
     return Response.json({ ok: false, error: "Body inválido." }, { status: 400 });
   }
 
-  const portfolioId = body.portfolioId;
-  if (!portfolioId || typeof portfolioId !== "string") {
-    return Response.json({ ok: false, error: "portfolioId requerido." }, { status: 400 });
+  const parsed = followBodySchema.safeParse(json);
+  if (!parsed.success) {
+    return Response.json({ ok: false, error: firstZodMessage(parsed.error) }, { status: 400 });
   }
+
+  const portfolioId = parsed.data.portfolioId;
 
   // Check current state
   const { data: existing } = await supabase
@@ -66,7 +69,16 @@ export async function POST(request: Request) {
         redirect: "/#precios",
       });
     }
-    return Response.json({ ok: false, error: result.error ?? "Error al seguir." });
+    const friendly = result.error ? friendlyFollowDbError(result.error) : null;
+    const upgrade = !!friendly && !friendly.includes("propia cuenta");
+    return Response.json(
+      {
+        ok: false,
+        error: friendly ?? "No pudimos actualizar tu seguimiento.",
+        ...(upgrade ? { redirect: "/#precios" } : {}),
+      },
+      { status: friendly ? 403 : 400 },
+    );
   }
 
   revalidatePath("/explore");

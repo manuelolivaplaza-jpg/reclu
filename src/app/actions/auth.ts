@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState } from "@/lib/form-state";
+import { firstZodMessage, isSafeNextPath, signInSchema, signUpSchema } from "@/lib/validation";
 
 /**
  * Sign in with email + password.
@@ -12,13 +13,15 @@ import type { FormState } from "@/lib/form-state";
 export async function signIn(_prev: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
 
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const next = String(formData.get("next") ?? "/dashboard");
+  const parsed = signInSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    next: formData.get("next") == null ? undefined : String(formData.get("next")),
+  });
+  if (!parsed.success) return { error: firstZodMessage(parsed.error) };
 
-  if (!email || !password) {
-    return { error: "Ingresa tu correo y contraseña." };
-  }
+  const { email, password } = parsed.data;
+  const next = parsed.data.next && isSafeNextPath(parsed.data.next) ? parsed.data.next : "/dashboard";
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
@@ -26,7 +29,7 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
   }
 
   revalidatePath("/", "layout");
-  redirect(next.startsWith("/") ? next : "/dashboard");
+  redirect(next);
 }
 
 /**
@@ -35,16 +38,14 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
 
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
-  const fullName = String(formData.get("full_name") ?? "").trim();
+  const parsed = signUpSchema.safeParse({
+    email: formData.get("email"),
+    password: formData.get("password"),
+    full_name: formData.get("full_name") == null ? undefined : String(formData.get("full_name")),
+  });
+  if (!parsed.success) return { error: firstZodMessage(parsed.error) };
 
-  if (!email || !password) {
-    return { error: "Ingresa tu correo y una contraseña." };
-  }
-  if (password.length < 8) {
-    return { error: "La contraseña debe tener al menos 8 caracteres." };
-  }
+  const { email, password, full_name: fullName } = parsed.data;
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
