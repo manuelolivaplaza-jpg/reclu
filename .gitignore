@@ -12,3 +12,4 @@ next-env.d.ts
 .env*.local
 __pycache__/
 public/covers_bn_backup/
+scrapers/tests/fixtures/*.pdf

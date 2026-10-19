@@ -1,0 +1,16 @@
+{
+  "VANGUARDFTSEEUROPEETF": {"symbol": "VGK", "asset_class": "etf", "name": "Vanguard FTSE Europe ETF"},
+  "STATESTREETCOMMUNICATIONSERVICESSELECTSECTORSPDRETF": {"symbol": "XLC", "asset_class": "etf", "name": "State Street Communication Services Select Sector SPDR ETF"},
+  "MICROSOFTCORP": {"symbol": "MSFT", "asset_class": "equity", "name": "Microsoft Corp"},
+  "MCDONALDSCORP": {"symbol": "MCD", "asset_class": "equity", "name": "McDonald's Corp"},
+  "COMCASTCORP": {"symbol": "CMCSA", "asset_class": "equity", "name": "Comcast Corp"},
+  "METAPLATFORMSINC": {"symbol": "META", "asset_class": "equity", "name": "Meta Platforms Inc"},
+  "ATTINC": {"symbol": "T", "asset_class": "equity", "name": "AT&T Inc"},
+  "CONOCOPHILLIPS": {"symbol": "COP", "asset_class": "equity", "name": "ConocoPhillips"},
+  "CONOCOPHIWPS": {"symbol": "COP", "asset_class": "equity", "name": "ConocoPhillips"},
+  "ABBOTTLABSINC": {"symbol": "ABT", "asset_class": "equity", "name": "Abbott Labs Inc"},
+  "ABBOTTLASSINC": {"symbol": "ABT", "asset_class": "equity", "name": "Abbott Labs Inc"},
+  "NETFLIXCOMINC": {"symbol": "NFLX", "asset_class": "equity", "name": "Netflix Inc"},
+  "CHEVRONCORP": {"symbol": "CVX", "asset_class": "equity", "name": "Chevron Corp"},
+  "OIEVRONCORP": {"symbol": "CVX", "asset_class": "equity", "name": "Chevron Corp"}
+}

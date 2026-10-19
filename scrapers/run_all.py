@@ -16,6 +16,7 @@ Etapas de mercado:
   prices             Cierres diarios Yahoo Finance → tabla prices
   compute_returns    return_pct de cada holding
   performance        Series históricas → portfolio_performance
+  oge_trump          Trump compra: declaraciones OGE 278-T
 
 Uso:
     python run_all.py                          # todas las etapas default
@@ -51,7 +52,8 @@ STAGES: list[tuple[str, str, bool]] = [
     ("etfs", "ETFs: ARK, Global X, iShares, VanEck", False),
     ("prices", "Precios EOD Yahoo Finance", False),
     ("compute_returns", "Rendimientos por holding", False),
-    ("performance", "Series de rendimiento históricas", False),
+    ("performance", "Series de rendimiento históricas", False),
+    ("oge_trump", "Trump compra: declaraciones OGE 278-T", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 STAGE_IDS = [s[0] for s in STAGES]
@@ -210,6 +212,13 @@ def run_performance(db, dry_run: bool) -> list[dict]:
     return [{"source": "performance", "status": "ok"}]
 
 
+def run_oge_trump(db, dry_run: bool) -> list[dict]:
+    from oge_trump import OgeTrumpAdapter
+
+    log("[oge_trump] declaraciones OGE 278-T...")
+    return [OgeTrumpAdapter(dry_run=dry_run).run(db)]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -231,6 +240,7 @@ RUNNERS = {
     "prices": run_prices,
     "compute_returns": run_compute_returns,
     "performance": run_performance,
+    "oge_trump": run_oge_trump,
     "radar_ia": run_radar_ia,
 }
 

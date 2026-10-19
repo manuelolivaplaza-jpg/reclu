@@ -20,6 +20,9 @@ import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
+import { OgeTradesPanel } from "@/components/oge-trades-panel";
+import { getVerifiedOgeTrades } from "@/lib/disclosure-trades";
+import { isPublicDisclosureSource } from "@/lib/public-disclosure";
 
 export const instant = false;
 
@@ -72,7 +75,8 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const profile = await getProfile();
   const role = roleFor(profile);
 
-  const [holdings, alerts, following, performance, perfData] = await Promise.all([
+  const publicDisclosure = isPublicDisclosureSource(portfolio.source);
+  const [holdings, alerts, following, performance, perfData, ogeTrades] = await Promise.all([
     getHoldings(portfolio.id, { role }),
     getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
@@ -81,6 +85,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       portfolioId: portfolio.id,
       country: portfolio.country,
     }),
+    portfolio.source === "oge_278t" ? getVerifiedOgeTrades() : Promise.resolve([]),
   ]);
 
   const meta = CATEGORY_META[portfolio.category];
@@ -90,7 +95,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   // (role ya calculado arriba; holdings/alerts vienen recortados del servidor.)
   // Modo demo: sin Supabase configurado, los holdings vienen de demo-data.
   const isDemoData = !isSupabaseLive() && holdings.length > 0;
-  const locked = role === "anon";
+  const locked = role === "anon" && !publicDisclosure;
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
   const performanceReal = performance;
@@ -272,6 +277,10 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 <PortfolioDetailCharts composition={composition} />
               </ChartSection>
             </div>
+          ) : null}
+
+          {portfolio.source === "oge_278t" ? (
+            <OgeTradesPanel trades={ogeTrades} demo={!isSupabaseLive()} />
           ) : null}
 
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
