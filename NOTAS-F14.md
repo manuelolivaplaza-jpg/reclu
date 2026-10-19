@@ -2,8 +2,8 @@
 
 Rama: `mejoras/f14-afp` · Migración asignada: `supabase/migrations/020_afp_carteras.sql`
 
-Sesión A = backend (migración, scraper, tests). La UI queda para la sesión B.
-El avance de código de esta sesión quedó en `6440856` (`wip(f14): avance de Grok sesion A`), guardado por el orquestador. Estas notas son el cierre.
+Sesión A = backend (migración, scraper, tests). Sesión B = ficha, fuente visible y `source_url` en las alertas de AFP Modelo.
+El avance de código de la sesión A quedó en `6440856` (`wip(f14): avance de Grok sesion A`), guardado por el orquestador.
 
 ## Hecho en sesión A
 
@@ -43,19 +43,53 @@ El avance de código de esta sesión quedó en `6440856` (`wip(f14): avance de G
 - `uv run --with httpx --with supabase python scrapers/run_all.py --list` — `spensiones` aparece como etapa opcional, entre `performance` y `radar_ia`.
 - `uv run --with httpx --with supabase python scrapers/spensiones.py --dry-run` (2026-10-19, sin escribir en Supabase): 202610–202606 responden 363 bytes; 202605 responde 19962 bytes. Resultado: 42 holdings, corte 2026-05-29, top LTM 13,95 %, `status=ok`, `dry_run=true`.
 
-## Pendiente para sesión B
+## Hecho en sesión B
 
-La UI y el resto de la especificación. No se tocó ninguna pantalla en esta sesión.
+### 1. Ficha `/portfolio/afp-modelo-acciones-cl`
+- La fecha sale del `as_of` más nuevo entre los holdings que ya devolvió `get_portfolio_holdings` (muro de la 012). No hay otra lectura de `holdings`. En la semilla todas las filas son 2026-05-29, así que anónimo (top 5), free (top 10) y pago ven "Cartera al 29-05-2026".
+- Aviso: "La SP publica con desfase; no es la cartera de hoy." Se repite junto a la tabla.
+- Aviso fijo: "Simulación histórica con fines informativos. No es recomendación de inversión."
+- Enlace "Fuente: Superintendencia de Pensiones" al cuadro 14 (`fecpro` del corte; si no hay fecha, mayo 2026).
+- El panel de rendimiento de este slug se rotula "ECH en CLP (proxy del IPSA)", con la frase "No es el IPSA oficial." No se cargaron los números de `afp_vs_ipsa.json`. El símbolo de la serie sigue siendo el del país (`^IPSA`) cuando hay datos; la etiqueta deja claro que la referencia pensada es ECH.
+- `afp-consenso-chile` no cambia de pantalla.
 
-1. **Ficha del portafolio.** Mostrar la fecha de la cartera (29-05-2026 en la semilla) y el aviso "La SP publica con desfase; no es la cartera de hoy." Enlace "Fuente: Superintendencia de Pensiones" a la URL del cuadro. Aviso fijo: "Simulación histórica con fines informativos. No es recomendación de inversión."
-2. **Fuente visible.** Fila en `docs/sources.md`. Nombre corto en `src/components/sections/source-line.tsx` (hoy: Capitol Trades · Renta 4 · LarrainVial · BTG Pactual · InfoProbidad · SEC 13F).
-3. **`source_url` en las alertas de cambio.** `detect-changes` arma `new_trade` y `weight_change` a partir de `previous_weight` y hoy no copia la URL del cuadro al payload. `payload_alerta()` ya la incluye; hay que enchufarla en esa función (o en el insert) para que cada alerta publicada la lleve. La de `scraper_error` ya la guarda.
-4. **Benchmark.** ECH ya está en la etapa `etfs` (iShares). En la UI rotularlo "ECH en CLP (proxy del IPSA)". Los números simulados están solo como referencia en `scrapers/data/afp/afp_vs_ipsa.json` (cartera 30-05-2025: +33,79 % vs ECH-CLP +33,09 %; cartera 29-05-2026: +3,74 % vs ECH-CLP +3,31 %, corte 2026-09-16). No se cargaron a la base.
-5. **Precios de Chile.** Yahoo `.SN` no trae volumen desde el 2026-09-16 y los precios quedan congelados. Para producción hace falta otra fuente (Bolsa de Santiago u otro proveedor).
-6. **Modo B en vivo.** El flag `--navegador` está escrito y, si falla, no tumba el modo A. Falta verificarlo contra el portal (Cuadro 11 o 14 de "Total de Fondos", desde junio de 2026 el parámetro va cifrado y curl devuelve 0 o 363 bytes). Hasta eso, el consolidado de todas las AFP no se consigue: los `idu` distintos de 50 no devolvieron datos.
-7. **`afp-consenso-chile`.** Sigue en el catálogo con source `spensiones`, 8700 seguidores y retorno 14,2 de la semilla demo de la 006. Propuesta: alimentarlo con el consolidado cuando el modo navegador funcione, o desactivarlo. No borrarlo en la migración.
-8. **Términos.** Información pública, sin condiciones de reutilización explícitas encontradas. La página trae aviso de copyright de CUSIP (American Bankers Association / FactSet): no publicar códigos CUSIP. Revisar los términos antes de tratar la fuente como cerrada.
-9. **Desfase.** La cartera de cada mes aparece varias semanas después. El desfase exacto no se midió. La entrada "el día hábil siguiente al cierre" del archivo de referencia es optimista.
+### 2. Fuente visible
+- Fila en `docs/sources.md` (resumen, sección y orden del orquestador: `spensiones` después de `performance`).
+- Nombre en `src/components/sections/source-line.tsx` y en la línea de `docs/hermes-diseno.md`.
+
+### 3. `source_url` en las alertas de cambio
+- `detect-changes` busca `slug` y `source` del portafolio. Si es `afp-modelo-acciones-cl` / `spensiones` y el holding trae `as_of`, copia la URL del cuadro 14 al payload de `new_trade` y `weight_change`. El resto de las alertas no gana ese campo.
+- Si esa consulta falla, las alertas se crean igual, sin URL.
+- La ficha muestra el enlace cuando `payload.source_url` es `https` de `spensiones.cl`.
+- `scraper_error` del modo navegador ya guardaba la URL. No se tocó.
+
+## Verificación sesión B
+- `npm run lint` — OK.
+- `npm run typecheck` — OK.
+- `npm test` — 118/118 (12 archivos; 5 tests nuevos en `tests/afp-fuente.test.ts`).
+- `npm run build` — OK (Next.js 16.4).
+- `uv run python -m py_compile scrapers/spensiones.py` — OK (solo cambió el comentario del módulo).
+- No se levantó servidor. Esta sesión no permite `npm run dev`, así que la ficha no se hizo clic en el navegador.
+
+## Cómo probar
+1. Aplicar `supabase/migrations/020_afp_carteras.sql` si aún no está.
+2. Con Supabase real, abrir `/portfolio/afp-modelo-acciones-cl`.
+   - "Cartera al 29-05-2026".
+   - Los dos avisos de arriba.
+   - El enlace abre el cuadro 14 de mayo 2026 (`fecpro=202605&idu=50&listado=14`).
+   - El título del panel dice "Rendimiento vs ECH en CLP (proxy del IPSA)".
+   - Anónimo ve 5 filas; la fecha no cambia porque el corte de la semilla es uno solo.
+3. La home, entre los filetes, termina en "Superintendencia de Pensiones".
+4. Sin Supabase el slug no está en `demo-data.ts`: la ruta responde no encontrado. `afp-consenso-chile` sigue en el catálogo demo.
+5. Para ver `source_url` en una alerta nueva hay que redesplegar la función `detect-changes` y dejar que el pipeline publique un cambio de esta cartera.
+
+## Pendiente (no es de esta sesión)
+1. **Precios de Chile.** Yahoo `.SN` no trae volumen desde el 2026-09-16 y los precios quedan congelados. Para producción hace falta otra fuente (Bolsa de Santiago u otro proveedor).
+2. **Modo B en vivo.** El flag `--navegador` está escrito y, si falla, no tumba el modo A. Falta verificarlo contra el portal (Cuadro 11 o 14 de "Total de Fondos"). Desde junio de 2026 el parámetro va cifrado y curl devuelve 0 o 363 bytes. Hasta eso, el consolidado de todas las AFP no se consigue.
+3. **`afp-consenso-chile`.** Sigue con source `spensiones`, 8700 seguidores y retorno 14,2 de la semilla demo de la 006. Propuesta: alimentarlo con el consolidado cuando el modo navegador funcione, o desactivarlo. No borrarlo.
+4. **Términos.** Información pública, sin condiciones de reutilización explícitas encontradas. La página trae aviso de copyright de CUSIP (American Bankers Association / FactSet): no publicar códigos CUSIP. Revisar los términos antes de tratar la fuente como cerrada.
+5. **Desfase.** La cartera de cada mes aparece varias semanas después. El desfase exacto no se midió. La entrada "el día hábil siguiente al cierre" del archivo de referencia es optimista.
+6. **Serie ECH en CLP.** La etiqueta ya está. Los retornos simulados (+33,79 % / +3,74 % contra ECH-CLP, corte 2026-09-16) siguen solo en `scrapers/data/afp/afp_vs_ipsa.json`. No hay serie de ECH en `benchmark_prices`.
 
 ## Decisiones documentadas
 - El peso de la semilla se calcula desde los MMUS$ del fixture, con redondeo a 2 decimales. LTM queda en 13,95 % (318,66 / 2.284,6). La lista redondeada de la especificación (LTM 13,96, SQM-B 12,87, …) es la misma cartera; no se hardcodearon esos porcentajes.
@@ -65,9 +99,11 @@ La UI y el resto de la especificación. No se tocó ninguna pantalla en esta ses
 
 ## Pendiente / qué debe configurar Manu
 1. **Migración a aplicar** en el SQL Editor de Supabase, después de las previas: `supabase/migrations/020_afp_carteras.sql`. Es idempotente.
-2. **Variables de entorno nuevas:** ninguna.
-3. **Cuentas externas:** ninguna. El modo A es un GET público. El modo B, cuando se pruebe, necesita Playwright y Chromium en la máquina que lo corra; el cron de `run_all` no lo invoca.
-4. **Pasos manuales opcionales:**
+2. **Función a redesplegar:** `detect-changes`, para que las alertas nuevas de AFP Modelo lleven `payload.source_url`. Sin ese deploy, la ficha igual muestra el enlace de la cartera; las alertas viejas no lo tendrán.
+3. **Variables de entorno nuevas:** ninguna.
+4. **Cuentas externas:** ninguna. El modo A es un GET público. El modo B, cuando se pruebe, necesita Playwright y Chromium en la máquina que lo corra; el cron de `run_all` no lo invoca.
+5. **Pasos manuales opcionales:**
    - `uv run --with httpx --with supabase python scrapers/spensiones.py --dry-run` antes de dejarlo en el cron.
    - `--navegador` solo después de verificar el portal en vivo.
    - No aplicar esta migración esperando que reemplace a `afp-consenso-chile`: son dos slugs distintos.
+   - Abrir `/portfolio/afp-modelo-acciones-cl` después de la migración y revisar fecha, avisos y el enlace a la SP.
