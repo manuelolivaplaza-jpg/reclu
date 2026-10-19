@@ -451,8 +451,13 @@ Deno.serve(async (req) => {
       .select("user_id, kind, value, channel, active")
       .eq("active", true)
       .limit(1000);
-    if (rulesErr) throw rulesErr;
-    const rules = ((ruleRows ?? []) as AlertRuleRow[]).filter((rule) => isRuleKind(rule.kind));
+    if (rulesErr) {
+      // Sin la tabla (037 sin aplicar) las alertas de follows deben seguir saliendo.
+      console.error("alert_rules no disponible:", rulesErr.message);
+    }
+    const rules = rulesErr
+      ? []
+      : ((ruleRows ?? []) as AlertRuleRow[]).filter((rule) => isRuleKind(rule.kind));
 
     const ruleUserIds = [...new Set(rules.map((rule) => rule.user_id))];
     const ruleProfiles = new Map<string, FollowerProfile>();
@@ -464,12 +469,11 @@ Deno.serve(async (req) => {
             "email_unsubscribed, telegram_chat_id, weekly_digest, unsubscribe_token",
         )
         .in("id", ruleUserIds);
-      if (ruleProfilesErr) throw ruleProfilesErr;
+      if (ruleProfilesErr) console.error("perfiles de reglas no disponibles:", ruleProfilesErr.message);
       for (const row of (profileRows ?? []) as (FollowerProfile & { id: string })[]) {
         ruleProfiles.set(row.id, row);
       }
     }
-
     const deliveredRows = await supabase
       .from("alert_deliveries")
       .select("alert_id, user_id")
