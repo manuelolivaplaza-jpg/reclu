@@ -3,6 +3,8 @@ import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
+import { getInsiderTrades, holdingsAtLatestAsOf } from "@/lib/insider-queries";
+import { InsiderTradesList } from "@/components/insider-trades-list";
 import { demoPerformance } from "@/lib/demo-data";
 import { SiteHeader } from "@/components/site-header";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
@@ -72,7 +74,10 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const profile = await getProfile();
   const role = roleFor(profile);
 
-  const [holdings, alerts, following, performance, perfData] = await Promise.all([
+  // Form 4: el libro sale de get_portfolio_holdings (muro 012). Si quedara
+  // más de un as_of por símbolo, nos quedamos con el más reciente.
+  const isInsiders = portfolio.source === "sec_form4";
+  const [holdingsRaw, alerts, following, performance, perfData, insiderFeed] = await Promise.all([
     getHoldings(portfolio.id, { role }),
     getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
@@ -81,7 +86,9 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       portfolioId: portfolio.id,
       country: portfolio.country,
     }),
+    isInsiders ? getInsiderTrades() : Promise.resolve(null),
   ]);
+  const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsRaw) : holdingsRaw;
 
   const meta = CATEGORY_META[portfolio.category];
   const isPro = isPaidPlan(profile?.plan);
@@ -95,8 +102,8 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const positive = (portfolio.return_ytd ?? 0) >= 0;
   const performanceReal = performance;
   const demoPoints =
-    performanceReal.length === 0 && !isSupabaseLive()
-      ? demoPerformance(portfolio.slug, portfolio.return_ytd ?? 0)
+    performanceReal.length === 0 && !isSupabaseLive() && portfolio.return_ytd !== null
+      ? demoPerformance(portfolio.slug, portfolio.return_ytd)
       : [];
   const showEvolution = performanceReal.length > 0 || demoPoints.length > 0;
   const evolution = performanceReal.length > 0 ? performanceReal : demoPoints;
@@ -200,7 +207,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                     <span className="num text-ink-900">{formatCompact(portfolio.followers)}</span>{" "}
                     seguidores
                   </span>
-                  <span>Fuente: {portfolio.source}</span>
+                  <span>Fuente: {portfolio.source === "sec_form4" ? "SEC Form 4" : portfolio.source}</span>
                 </div>
               </div>
 
@@ -272,6 +279,14 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 <PortfolioDetailCharts composition={composition} />
               </ChartSection>
             </div>
+          ) : null}
+
+          {isInsiders ? (
+            <InsiderTradesList
+              trades={locked ? [] : (insiderFeed?.trades ?? [])}
+              demo={insiderFeed?.demo ?? false}
+              locked={locked}
+            />
           ) : null}
 
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">

@@ -13,6 +13,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado) | PDF estático público S3 |
 | InfoProbidad | infoProbidad-cl | ✅ Funcional (SPARQL verificado 2026-10-18) | El CSV de la versión anterior NO existe; la fuente real es el endpoint SPARQL datos.cplt.cl/sparql |
 | SEC 13F (EDGAR) | 25 fondos (ver `load_13f.py`) | ✅ Funcional | data.sec.gov, sin login. CIK verificados en docs de expansión |
+| SEC Form 4 (insiders) | insiders-compras-1m | ✅ Funcional (feed verificado 2026-10-19) | Compras P de officers y directores ≥ US$1M. Señal informativa: en el 1S-2026 no le ganó al SPY. Sin direcciones del insider |
 | ARK Invest | arkk, arkg, arkw, arkq, arkf | ✅ Funcional (verificado 2026-10-18) | CSV diario del emisor con pesos exactos |
 | Global X | copx, lit, bug, hero | ✅ Funcional | CSV con fecha, se sondea hacia atrás |
 | iShares (BlackRock) | ech, eww, ewz, ibit | ✅ Funcional (verificado 2026-10-18) | CSV oficial: /us/products/{id}/{slug}/latest-holdings.csv |
@@ -29,6 +30,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
     ↓ POSICIONES: house → senate → renta4 → btg → infoprobidad → 13f → etfs
     ↓ PRECIOS: prices (Yahoo EOD) → RENDIMIENTOS: compute_returns
     ↓ SNAPSHOTS: performance (series históricas)
+    ↓ INSIDERS: insiders_form4 (SEC Form 4, no crítica) → radar_ia
     ↓ holdings upsert con previous_weight (detección de cambios)
     ↓ curl GET /api/run-pipeline con CRON_SECRET
     ↓
@@ -135,6 +137,39 @@ el CIK histórico 1079114 dejó de presentar en 2024), AKO Capital
 
 ---
 
+## SEC Form 4 — compras de ejecutivos (insiders_form4.py)
+
+**URL:** `https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent&type=4&owner=include&count=100&output=atom`
+
+**Estado:** ✅ Feed Atom verificado el 2026-10-19. Dominio público, sin login.
+
+Portafolio `insiders-compras-1m` ("Compras de ejecutivos"): canasta de
+igual peso con las compras en mercado abierto (código P, adquirido A) de
+officers y directores por US$1 millón o más, presentadas en los últimos
+90 días. `source=sec_form4`.
+
+- El adapter lee el Atom de EDGAR (`count=100`), baja el índice y el XML
+  del Form 4 con pausa de 0,15 s y el User-Agent de `sec13f.py`
+  ("reclu research admin@reclu.cl"). Máximo de la SEC: 10 solicitudes
+  por segundo.
+- Histórico trimestral (no corre en el cron): Insider Transactions Data
+  Sets, ZIP con TSV. Índice en
+  `https://www.sec.gov/data-research/sec-markets-data/insider-transactions-data-sets`.
+- Plazo legal: el Form 4 se presenta dentro de 2 días hábiles.
+- **No se guardan direcciones** (`rptOwnerStreet1`, ciudad, estado, zip).
+  Solo nombre, cargo, emisor, ticker, fecha, código, acciones, precio y
+  monto. La tabla `insider_trades` no tiene columnas de dirección.
+- Cada alerta `new_trade` lleva `payload.source_url` y sale publicada.
+- **No es una estrategia ganadora.** Backtest 1S-2026 (corte de precios
+  2026-10-16, corrida 2026-10-19): 270 eventos, promedio −1,80% contra
+  SPY +8,11%. Le ganó al SPY en 88 de 270. Aviso fijo en la ficha:
+  "Simulación histórica con fines informativos. No es recomendación de
+  inversión."
+- Etapa no crítica en `run_all.py`, después de `performance` y antes de
+  `radar_ia`. `--dry-run` no escribe.
+
+---
+
 ## ETFs de emisor (etfs.py)
 
 Cuatro emisores, todos públicos y sin key:
@@ -190,7 +225,7 @@ etapa no-crítica.
 
 Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
 `btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
-`compute_returns` → `performance`.
+`compute_returns` → `performance` → `insiders_form4` → `radar_ia`.
 
 - `--only <etapas>` / `--skip <etapas>`: selección de etapas.
 - `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.

@@ -2,7 +2,7 @@
 
 Rama: `mejoras/f10-insiders` · Migración asignada: `supabase/migrations/016_insiders.sql` · Worktree: `C:\reclu-work\f10`
 
-Sesión A = backend (esta nota). La UI y el resto de la especificación quedan para la sesión B.
+Sesión A = backend. Sesión B = interfaz, fuente visible y cierre.
 La 014 es de F8 (trump-dice) y la 015 queda reservada para F9 (fix-accion). Esta migración es la 016 y es idempotente.
 
 ## Hecho en sesión A
@@ -45,23 +45,42 @@ La 014 es de F8 (trump-dice) y la 015 queda reservada para F9 (fix-accion). Esta
 - `python scrapers/insiders_form4.py --dry-run` contra la SEC el 2026-10-19 04:26 (hora local): 100 entradas Atom → 50 filings únicos, 136 transacciones leídas, 0 compras ≥ US$1M en ese corte (el feed traía awards, ventas y ejercicios, no compras grandes). Resultado `dry_run: true`, `status: empty`. No se escribió nada.
 - No se corrió nada contra Supabase real. No se aplicó la 016. No se hizo `npm run lint/test/build` (esta sesión no toca la UI).
 
-## Pendiente para sesión B
-1. **UI** (no está hecha):
-   - En `src/app/portfolio/[slug]/page.tsx`, solo si `source==='sec_form4'`, tabla de las últimas compras (fecha, ticker, cargo, monto, enlace "Filing SEC").
-   - Componente nuevo `src/components/insider-trades-list.tsx` y query en `src/lib/insider-queries.ts`.
-   - Mostrar el backtest con su fecha de corte (datos en `scrapers/data/insiders/insiders_resumen.json` e `insiders_compras_1M_2026H1.csv`; corte de precios 2026-10-16, corrida al 2026-10-19). Mensaje: es una señal informativa, no una estrategia ganadora.
-   - Aviso fijo visible: "Simulación histórica con fines informativos. No es recomendación de inversión."
-   - Los holdings del libro deben leerse por el `as_of` más reciente (el scraper deja una fila vigente por símbolo). Respetar `get_portfolio_holdings(p_slug)` del muro de pago.
-2. **Fuente visible** (tampoco está hecha):
-   - Fila en `docs/sources.md`.
-   - Nombre corto en `src/components/sections/source-line.tsx`.
-   - Las alertas ya llevan `payload.source_url`.
-3. **Verificación de UI** cuando exista: `npm run lint`, `npm test`, `npm run build`, y el flujo en el navegador.
-4. **Lo que tiene que hacer Manu**:
-   - Aplicar `supabase/migrations/016_insiders.sql` en el SQL Editor (se puede correr dos veces). Antes, 001–013 según lo que ya esté aplicado. 014 y 015 son de otros frentes.
-   - No hay variables de entorno nuevas. El scraper reusa el User-Agent de EDGAR.
-   - Probar en local con `python scrapers/insiders_form4.py --dry-run` antes de meterlo en el cron (`--only insiders_form4`). Sin `--dry-run` escribe con la service role: hace falta la 016 aplicada y el portafolio presente.
-   - `scrapers/data/insiders/backtest.py` es referencia. No corre en CI y no se ejecutó aquí (pide los TSV trimestrales y precios).
+## Hecho en sesión B
+
+### 1. UI
+- `src/lib/insider-queries.ts` — lee `insider_trades` (solo columnas de mercado, código P, últimas 20). No selecciona `*`. `toInsiderTrade` no copia calle, ciudad ni zip.
+- El libro de la ficha sigue saliendo de `getHoldings` → `get_portfolio_holdings(p_slug)` (muro 012: anónimo 5, free 10, pago todo). Después, solo si `source==='sec_form4'`, `holdingsAtLatestAsOf` deja la fila de `as_of` más reciente de cada símbolo. No hay un `select` directo a `holdings`.
+- `src/components/insider-trades-list.tsx`, montado en `src/app/portfolio/[slug]/page.tsx` solo si `source==='sec_form4'`.
+  - Tabla: fecha de la compra, ticker, cargo (y nombre), monto, enlace "Filing SEC" (solo https).
+  - Backtest 1S-2026 con corte de precios 16 oct 2026 y corrida 19 oct 2026. Cifras de `insiders_resumen.json`: 270 eventos, 112 excluidos, promedio −1,80% (mediana −5,45%) contra SPY +8,11%, 88 de 270 le ganaron al SPY, +0,04% a 1 semana, +1,03% a 1 mes, US$1.000 → US$265.131 contra US$291.908 en el SPY.
+  - Aviso fijo visible, también con la tabla cerrada: "Simulación histórica con fines informativos. No es recomendación de inversión."
+  - Texto: "Señal informativa, no una estrategia ganadora."
+- La tabla de filings usa el mismo muro que la composición: un anónimo no recibe las filas (el servidor manda `[]`). El backtest y el aviso sí se ven. Con cuenta se ven las compras.
+- Sin Supabase, `/portfolio/insiders-compras-1m` existe en `demo-data.ts` (`return_ytd` null, para no inventar un rendimiento). Las filas de la tabla llevan la etiqueta "Datos de ejemplo". El backtest no es de ejemplo: son las cifras reales del estudio.
+
+### 2. Fuente visible
+- Fila y sección en `docs/sources.md` (SEC Form 4, etapa no crítica entre `performance` y `radar_ia`).
+- Nombre corto "SEC Form 4" en `src/components/sections/source-line.tsx` y en la ficha del portafolio.
+- Las alertas ya llevaban `payload.source_url` desde la sesión A. No se tocó el scraper.
+
+### 3. Verificación
+- `npm run lint` — OK.
+- `npm run typecheck` — OK después de `npm run build` (genera `LayoutProps`; el `tsc` aislado anterior al build marca `src/app/layout.tsx`, que no se tocó).
+- `npm test` — 120/120 OK (incluye `tests/insider-queries.test.ts`).
+- `npm run build` — OK. TypeScript del build en verde.
+- No se abrió el navegador: esta sesión no levanta servidores y no hay herramienta de browser. No se corrió nada contra Supabase real.
+
+## Cómo probar
+1. Sin Supabase: `npm run dev` y abrir `/portfolio/insiders-compras-1m`. Sin cuenta se ve el backtest, el aviso y el muro. Con cuenta (o mirando el HTML de un rol que no sea anónimo) se ve la tabla de ejemplo con la etiqueta "Datos de ejemplo".
+2. Con la 016 aplicada: la misma URL lee `insider_trades` y el libro vía `get_portfolio_holdings`. Si la tabla aún no existe, la ficha muestra el backtest y "Aún no hay compras…", sin caer al ejemplo.
+3. Tests de la lógica pura: `npm test -- tests/insider-queries.test.ts`.
+
+## Lo que tiene que hacer Manu
+- Aplicar `supabase/migrations/016_insiders.sql` en el SQL Editor (se puede correr dos veces). Antes, 001–013 según lo que ya esté aplicado. 014 y 015 son de otros frentes.
+- No hay variables de entorno nuevas. El scraper reusa el User-Agent de EDGAR.
+- Probar en local con `python scrapers/insiders_form4.py --dry-run` antes de meterlo en el cron (`--only insiders_form4`). Sin `--dry-run` escribe con la service role: hace falta la 016 aplicada y el portafolio presente.
+- `scrapers/data/insiders/backtest.py` es referencia. No corre en CI y no se ejecutó aquí (pide los TSV trimestrales y precios).
+- No se hizo `git push` ni deploy.
 
 ## Decisiones documentadas
 - El umbral de US$1M y el filtro de persona/entidad salen del backtest. El filtro de IPO (<45 días) y el de precio de transacción (0,5–2× el cierre de entrada) no están en el scraper: necesitan precios de mercado y el spec de la entrada los deja fuera de esta etapa.
