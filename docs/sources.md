@@ -20,6 +20,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | Capitol Trades | (ninguno) | ⛔ OBSOLETO — login wall | Fuente muerta; se mantiene solo como referencia. NO integrar |
 | Invesco QQQ | (ninguno) | ⛔ 406 en todos los endpoints | Bloqueo HTTP 406 verificado 2026-10-18; sin CSV público accesible |
 | LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
+| CNBC Lightning Round (Mad Money) | inverse-cramer-real | ✅ RSS verificado 2026-10-19 | Artículos públicos. Se guarda solo ticker, fecha, cita de hasta 10 palabras y URL. El proxy `inverse-cramer` (SQQQ/PSQ) no se toca. Términos de uso de CNBC: pendientes de que Manu los revise antes de lanzar |
 
 ## Flujo automatizado (GitHub Actions + Vercel Cron)
 
@@ -186,11 +187,28 @@ etapa no-crítica.
 
 ---
 
+## CNBC Lightning Round (inverse_cramer.py)
+
+RSS público de Mad Money, verificado el 2026-10-19:
+
+`https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=15838459`
+
+El artículo sale hacia las 18:55 ET, con el mercado cerrado. La entrada
+simulada es el cierre del día hábil siguiente. Regla inversa, igual peso,
+30 días hábiles. Los cortos llevan peso positivo y el nombre `Corto: TICKER`
+(`holdings.weight` no admite negativos). Solo se persiste ticker, fecha,
+sentido, una cita de hasta 10 palabras y el enlace. Un artículo nuevo del
+RSS sin cita en el JSON queda `pendiente` y no genera alerta ni posición.
+
+El portafolio proxy `inverse-cramer` (SQQQ/PSQ en `load_thematic.py`) no se
+modifica.
+
 ## Orquestador (run_all.py)
 
 Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
 `btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
-`compute_returns` → `performance`.
+`compute_returns` → `performance` → `trump_dice` → `inverse_cramer` →
+`radar_ia`.
 
 - `--only <etapas>` / `--skip <etapas>`: selección de etapas.
 - `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.

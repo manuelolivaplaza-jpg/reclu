@@ -53,6 +53,7 @@ STAGES: list[tuple[str, str, bool]] = [
     ("compute_returns", "Rendimientos por holding", False),
     ("performance", "Series de rendimiento históricas", False),
     ("trump_dice", "Trump dice: menciones verificadas", False),
+    ("inverse_cramer", "Inverse Cramer: lightning round CNBC", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 STAGE_IDS = [s[0] for s in STAGES]
@@ -224,6 +225,16 @@ def run_trump_dice(db, dry_run: bool) -> list[dict]:
     return [summary, {"source": "trump_dice", "mentions": resumen}]
 
 
+def run_inverse_cramer(db, dry_run: bool) -> list[dict]:
+    from inverse_cramer import InverseCramerAdapter, load_picks, sync_mentions
+
+    log("[inverse_cramer] lightning round CNBC...")
+    adapter = InverseCramerAdapter(dry_run=dry_run)
+    summary = adapter.run(db)
+    resumen = sync_mentions(db, load_picks(), dry_run=dry_run)
+    return [summary, {"source": "inverse_cramer", "mentions": resumen}]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -246,6 +257,7 @@ RUNNERS = {
     "compute_returns": run_compute_returns,
     "performance": run_performance,
     "trump_dice": run_trump_dice,
+    "inverse_cramer": run_inverse_cramer,
     "radar_ia": run_radar_ia,
 }
 

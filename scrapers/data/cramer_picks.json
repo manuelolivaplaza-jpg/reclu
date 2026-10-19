@@ -1,0 +1,33 @@
+{
+  "fuente": "CNBC 'Cramer's lightning round' (artículos publicados ~6:55 PM ET). Solo ticker, fecha, cita corta y enlace (contenido con copyright de CNBC).",
+  "entrada": "cierre del siguiente día hábil",
+  "picks": [
+    {"fecha": "2026-09-02", "ticker": "HWM", "sentido": "compra", "cita": "hold on to it or buy some", "url": "https://www.cnbc.com/2026/09/02/cramers-lightning-round-buy-howmet-aerospace.html"},
+    {"fecha": "2026-09-08", "ticker": "TRN", "sentido": "compra", "cita": "pull the trigger", "url": "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html"},
+    {"fecha": "2026-09-08", "ticker": "SPG", "sentido": "compra", "cita": "so great", "url": "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html"},
+    {"fecha": "2026-09-08", "ticker": "FRT", "sentido": "compra", "cita": "excellent", "url": "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html"},
+    {"fecha": "2026-09-08", "ticker": "JOBY", "sentido": "venta", "cita": "negativo", "url": "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html"},
+    {"fecha": "2026-09-08", "ticker": "GRAB", "sentido": "venta", "cita": "never liked", "url": "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html"},
+    {"fecha": "2026-09-08", "ticker": "AZN", "sentido": "venta", "cita": "not going to put my money", "url": "https://www.cnbc.com/2026/09/08/cramers-lightning-round-i-am-not-going-to-put-my-money-on-astrazeneca.html"},
+    {"fecha": "2026-09-14", "ticker": "ET", "sentido": "compra", "cita": "buy, buy, buy", "url": "https://www.cnbc.com/2026/09/14/cramers-lightning-round-buy-energy-transfer.html"},
+    {"fecha": "2026-09-17", "ticker": "BB", "sentido": "compra", "cita": "buy buy buy", "url": "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html"},
+    {"fecha": "2026-09-17", "ticker": "GME", "sentido": "compra", "cita": "is a buy", "url": "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html"},
+    {"fecha": "2026-09-17", "ticker": "CRDO", "sentido": "compra", "cita": "can buy", "url": "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html"},
+    {"fecha": "2026-09-17", "ticker": "IRM", "sentido": "compra", "cita": "it's a buy", "url": "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html"},
+    {"fecha": "2026-09-17", "ticker": "SNAP", "sentido": "venta", "cita": "negativo", "url": "https://www.cnbc.com/2026/09/17/cramers-lightning-round-buy-blackberry.html"},
+    {"fecha": "2026-09-30", "ticker": "KMI", "sentido": "compra", "cita": "I'm a buyer", "url": "https://www.cnbc.com/2026/09/30/cramers-lightning-round-buy-kinder-morgan.html"},
+    {"fecha": "2026-09-30", "ticker": "GRAL", "sentido": "compra", "cita": "can go higher", "url": "https://www.cnbc.com/2026/09/30/cramers-lightning-round-buy-kinder-morgan.html"},
+    {"fecha": "2026-09-30", "ticker": "POET", "sentido": "venta", "cita": "not recommending stocks that are losing money", "url": "https://www.cnbc.com/2026/09/30/cramers-lightning-round-buy-kinder-morgan.html"},
+    {"fecha": "2026-10-05", "ticker": "CIEN", "sentido": "compra", "cita": "very good", "url": "https://www.cnbc.com/2026/10/05/cramers-lightning-round-i-think-ciena-is-very-good.html"},
+    {"fecha": "2026-10-05", "ticker": "AVY", "sentido": "compra", "cita": "winner", "url": "https://www.cnbc.com/2026/10/05/cramers-lightning-round-i-think-ciena-is-very-good.html"},
+    {"fecha": "2026-10-06", "ticker": "EPD", "sentido": "compra", "cita": "you should own it", "url": "https://www.cnbc.com/2026/10/06/cramers-lightning-round-enterprise-products-partners-is-a-really-well-run-company.html"},
+    {"fecha": "2026-10-06", "ticker": "MTZ", "sentido": "venta", "cita": "not going to get in front", "url": "https://www.cnbc.com/2026/10/06/cramers-lightning-round-enterprise-products-partners-is-a-really-well-run-company.html"},
+    {"fecha": "2026-10-12", "ticker": "AMBA", "sentido": "venta", "cita": "negativo", "url": "https://www.cnbc.com/2026/10/12/cramers-lightning-round-i-like-blackberry-very-much.html"},
+    {"fecha": "2026-10-12", "ticker": "MDLZ", "sentido": "venta", "cita": "negativo", "url": "https://www.cnbc.com/2026/10/12/cramers-lightning-round-i-like-blackberry-very-much.html"},
+    {"fecha": "2026-10-13", "ticker": "PENG", "sentido": "compra", "cita": "you can buy it", "url": "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html"},
+    {"fecha": "2026-10-13", "ticker": "MTZ", "sentido": "compra", "cita": "buy MasTec", "url": "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html"},
+    {"fecha": "2026-10-13", "ticker": "STWD", "sentido": "venta", "cita": "don't want to own", "url": "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html"},
+    {"fecha": "2026-10-15", "ticker": "RDDT", "sentido": "compra", "cita": "buy", "url": "https://www.cnbc.com/2026/10/15/cramers-lightning-round-buy-reddit.html"},
+    {"fecha": "2026-10-15", "ticker": "RKLB", "sentido": "venta", "cita": "sell, sell, sell", "url": "https://www.cnbc.com/2026/10/15/cramers-lightning-round-buy-reddit.html"}
+  ]
+}
