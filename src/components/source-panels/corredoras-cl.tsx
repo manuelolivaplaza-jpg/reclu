@@ -88,9 +88,10 @@ const NOMBRES: Record<string, string> = {
   "ANDINA-B": "Andina-B",
 };
 
-const CONSENSO = (() => {
+function calcularConsenso(carteras: Cartera[]): Record<string, number> {
+  if (carteras.length === 0) return {};
   const totales: Record<string, number> = {};
-  for (const cartera of CARTERAS) {
+  for (const cartera of carteras) {
     for (const [symbol, weight] of Object.entries(cartera.pesos)) {
       totales[symbol] = (totales[symbol] ?? 0) + weight;
     }
@@ -98,10 +99,10 @@ const CONSENSO = (() => {
   return Object.fromEntries(
     Object.entries(totales).map(([symbol, total]) => [
       symbol,
-      Math.round((total / CARTERAS.length) * 100) / 100,
+      Math.round((total / carteras.length) * 100) / 100,
     ]),
   );
-})();
+}
 
 function ultimas(holdings: Holding[]): Holding[] {
   const fechas = holdings
@@ -150,9 +151,11 @@ export async function CorredorasClPanel({ slug }: SourcePanelProps) {
     }),
   );
 
+  const consenso = calcularConsenso(carteras);
+
   const simbolos = Array.from(
     new Set(carteras.flatMap((cartera) => Object.keys(cartera.pesos))),
-  ).sort((a, b) => (CONSENSO[b] ?? 0) - (CONSENSO[a] ?? 0) || a.localeCompare(b));
+  ).sort((a, b) => (consenso[b] ?? 0) - (consenso[a] ?? 0) || a.localeCompare(b));
 
   return (
     <section
@@ -218,7 +221,7 @@ export async function CorredorasClPanel({ slug }: SourcePanelProps) {
                   </td>
                 ))}
                 <td className="px-3 py-2 text-right font-medium tabular-nums text-ink-900">
-                  {porcentaje(CONSENSO[symbol])}
+                  {porcentaje(consenso[symbol])}
                 </td>
               </tr>
             ))}
