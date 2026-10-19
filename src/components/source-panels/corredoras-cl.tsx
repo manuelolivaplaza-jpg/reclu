@@ -25,7 +25,7 @@ type Parcial = {
  */
 const CARTERAS: Cartera[] = [
   {
-    slug: "bice-cartera-recomendada",
+    slug: "bice-acciones-destacadas",
     corredora: "BICE Inversiones",
     fecha: "2026-10-05",
     pdf: "https://mercadosenlinea.biceinversiones.cl/reportes/cartera-inversiones-bice.pdf",
@@ -40,7 +40,7 @@ const CARTERAS: Cartera[] = [
     },
   },
   {
-    slug: "mbi-cartera-recomendada",
+    slug: "mbi-acciones-recomendadas",
     corredora: "MBI Corredores de Bolsa",
     fecha: "2026-10-05",
     pdf: "https://corredores.mbi.cl/static/uploads/docs/20261005185815_Cartera_Octubre.pdf",
