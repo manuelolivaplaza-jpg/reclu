@@ -4,7 +4,9 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import { updateSettings } from "@/app/actions/settings";
 import type { FormState } from "@/lib/form-state";
+import { allowedFrequencies, type AlertFrequencyValue } from "@/lib/plans";
 
+// Frecuencias del sistema (tiempo real solo se habilita según plan, ver abajo).
 const FREQUENCIES = [
   { value: "realtime", label: "Tiempo real", desc: "Alerta inmediata en cada cambio (requiere Pro)" },
   { value: "daily", label: "Diario", desc: "Un resumen con todas las alertas del día" },
@@ -20,6 +22,9 @@ export function AlertFrequencyForm({
 }) {
   const [state, formAction, isPending] = useActionState<FormState, FormData>(updateSettings, {});
 
+  // Las frecuencias permitidas salen de la fuente única plans.ts
+  // (durante la prueba de 7 días se permite tiempo real).
+  const allowed = allowedFrequencies(isPro ? "pro" : "free");
   return (
     <form action={formAction} className="flex flex-col gap-3">
       {state.success && (
@@ -28,7 +33,7 @@ export function AlertFrequencyForm({
         </p>
       )}
       {FREQUENCIES.map((freq) => {
-        const disabled = freq.value === "realtime" && !isPro;
+        const disabled = !allowed.includes(freq.value as AlertFrequencyValue);
         const active = current === freq.value;
         return (
           <label

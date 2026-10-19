@@ -3,42 +3,17 @@
 import { useState } from "react";
 import { ButtonLink } from "@/components/ui/button";
 import { FadeIn, StaggerList, StaggerItem } from "@/components/ui/motion";
+import { PLANS, followLimitLabel, formatClp } from "@/lib/plans";
 
 type Billing = "monthly" | "annual";
 
-const FREE_FEATURES = [
-  "Seguir hasta 2 portafolios públicos",
-  "Alertas por email con resumen diario",
-  "Explorador público y retorno YTD",
-  "Comparación básica con tu cartera",
-  "2 consultas de prueba en el asistente IA",
-];
-
-const PRO_FEATURES = [
-  "Seguir hasta 15 portafolios (Políticos EE.UU. y Corredoras Chile)",
-  "Alertas en tiempo real apenas se publica el filing",
-  "Resúmenes AI ejecutivos en cada movimiento",
-  "Asistente reclu AI (50 consultas por semana)",
-  "Comparador de cartera completo y detector de solapamiento",
-  "Medidor de desfase de divulgación (Disclosure Lag)",
-];
-
-const ELITE_FEATURES = [
-  "Portafolios ilimitados en todas las categorías",
-  "Acceso total a Fondos 13F Institucionales, Soberanos y Tesis AI",
-  "Radar de Consenso (detecta compras simultáneas de múltiples ballenas)",
-  "Asistente reclu AI ilimitado con cruce profundo de carteras",
-  "Comparador multi-cartera (Fondos vs. Políticos vs. Tu cartera)",
-  "Exportación de composiciones e historial en CSV",
-  "Soporte prioritario y acceso anticipado a nuevas fuentes",
-];
-
+// Características y precios salen de la fuente única `src/lib/plans.ts`.
 const COMPARISON: { label: string; free: string; pro: string; elite: string }[] = [
   {
     label: "Portafolios seguidos",
-    free: "2",
-    pro: "15",
-    elite: "Ilimitados",
+    free: followLimitLabel("free"),
+    pro: followLimitLabel("pro"),
+    elite: followLimitLabel("elite"),
   },
   {
     label: "Frecuencia de alertas",
@@ -54,8 +29,8 @@ const COMPARISON: { label: string; free: string; pro: string; elite: string }[] 
   },
   {
     label: "Asistente reclu AI",
-    free: "2 de prueba",
-    pro: "50 sem.",
+    free: "5 por día",
+    pro: "50 por semana",
     elite: "Ilimitado",
   },
   {
@@ -77,9 +52,13 @@ export function Pricing() {
   const [billing, setBilling] = useState<Billing>("monthly");
   const annual = billing === "annual";
 
-  const proPrice = annual ? "$10.390" : "$12.990";
+  const proPrice = formatClp(
+    annual ? PLANS.pro.annualMonthlyPrice : PLANS.pro.monthlyPrice,
+  );
   const proSuffix = annual ? "CLP / mes · facturado anual" : "CLP / mes";
-  const elitePrice = annual ? "$13.590" : "$16.990";
+  const elitePrice = formatClp(
+    annual ? PLANS.elite.annualMonthlyPrice : PLANS.elite.monthlyPrice,
+  );
   const eliteSuffix = annual ? "CLP / mes · facturado anual" : "CLP / mes";
 
   return (
@@ -134,7 +113,7 @@ export function Pricing() {
               <p className="label-line mt-3">Para siempre</p>
 
               <StaggerList className="mt-10 flex flex-1 flex-col border-t border-ink-200">
-                {FREE_FEATURES.map((f) => (
+                {PLANS.free.features.map((f) => (
                   <StaggerItem
                     key={f}
                     className="border-b border-ink-200 py-3.5 text-[15px] leading-snug text-ink-900 last:border-b-0"
@@ -160,7 +139,7 @@ export function Pricing() {
               <p className="label-line mt-3">{proSuffix}</p>
 
               <StaggerList className="mt-10 flex flex-1 flex-col border-t border-ink-200">
-                {PRO_FEATURES.map((f) => (
+                {PLANS.pro.features.map((f) => (
                   <StaggerItem
                     key={f}
                     className="border-b border-ink-200 py-3.5 text-[15px] leading-snug text-ink-900 last:border-b-0"
@@ -185,7 +164,7 @@ export function Pricing() {
                 className="mt-10 flex flex-1 flex-col border-t"
                 style={{ borderColor: WHITE_FILET }}
               >
-                {ELITE_FEATURES.map((f) => (
+                {PLANS.elite.features.map((f) => (
                   <StaggerItem
                     key={f}
                     className="border-b py-3.5 text-[15px] leading-snug text-white last:border-b-0"
