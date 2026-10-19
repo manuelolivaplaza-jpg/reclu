@@ -73,27 +73,51 @@ begin
   if current_setting('reclu.trusted', true) = 'on' then
     return new;
   end if;
-  -- Solo se aceptan id/email y preferencias; todo lo demás cae a los
-  -- defaults de la tabla. jsonb_strip_nulls deja sin tocar las columnas
-  -- que el insert no trajo (así no rompe los NOT NULL DEFAULT) y
-  -- jsonb_populate_record ignora claves que no existan en profiles.
+  -- Base = una fila con los DEFAULTS de la tabla (NO new): el usuario no
+  -- puede fijar ninguna columna sensible al crear su perfil (plan, cuotas,
+  -- tokens, ids de facturación...). Encima se copian solo las columnas de la
+  -- lista blanca que trajo el INSERT (id, email, preferencias). El resto de
+  -- columnas queda en su default de tabla; sin default => null.
   declare
+    v_base public.profiles;
+    v_whitelist constant text[] := array[
+      'id', 'email', 'full_name',
+      'alert_frequency', 'alert_channel', 'weekly_digest',
+      'email_unsubscribed', 'created_at', 'updated_at'
+    ];
     v_in jsonb := to_jsonb(new);
+    v_out jsonb := '{}'::jsonb;
+    r record;
+    v_val text;
   begin
-    new := jsonb_populate_record(
-      new,
-      jsonb_strip_nulls(
-        jsonb_build_object(
-          'id', v_in -> 'id',
-          'email', v_in -> 'email',
-          'full_name', v_in -> 'full_name',
-          'alert_frequency', v_in -> 'alert_frequency',
-          'alert_channel', v_in -> 'alert_channel',
-          'weekly_digest', v_in -> 'weekly_digest',
-          'email_unsubscribed', v_in -> 'email_unsubscribed'
-        )
-      )
-    );
+    -- Las columnas NOT NULL sin default ya quedan cubiertas por el input
+    -- (email siempre viene; el resto usa default o llega en la whitelist).
+    for r in
+      select column_name, column_default
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = 'profiles'
+    loop
+      if r.column_name = any (v_whitelist) then
+        -- Whitelist: se respeta lo que envió el INSERT (si lo envió).
+        v_val := v_in ->> r.column_name;
+        if v_val is not null then
+          v_out := jsonb_set(v_out, array[r.column_name],
+            to_jsonb(v_val));
+        end if;
+      elsif r.column_default is not null then
+        -- Columna sensible: su default de tabla, evaluado en el servidor.
+        execute 'select (' || r.column_default || ')::text'
+          into v_val;
+        if v_val is not null then
+          v_out := jsonb_set(v_out, array[r.column_name],
+            to_jsonb(v_val));
+        end if;
+      end if;
+      -- Sin default y fuera de la whitelist: queda null (no la fijó el usuario).
+    end loop;
+
+    new := jsonb_populate_record(v_base, v_out);
   end;
   new.plan := 'free';
   return new;
