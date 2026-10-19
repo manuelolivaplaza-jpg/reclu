@@ -35,10 +35,6 @@ const providers: Record<string, () => PaymentProvider> = {
   mock: () => createMockProvider(),
 };
 
-function getMode(): "sandbox" | "production" {
-  return process.env.PAYMENT_MODE === "production" ? "production" : "sandbox";
-}
-
 export async function POST(
   request: Request,
   ctx: { params: Promise<{ provider: string }> },
