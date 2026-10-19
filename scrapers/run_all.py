@@ -52,6 +52,7 @@ STAGES: list[tuple[str, str, bool]] = [
     ("prices", "Precios EOD Yahoo Finance", False),
     ("compute_returns", "Rendimientos por holding", False),
     ("performance", "Series de rendimiento históricas", False),
+    ("trump_dice", "Trump dice: menciones verificadas", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 STAGE_IDS = [s[0] for s in STAGES]
@@ -210,6 +211,19 @@ def run_performance(db, dry_run: bool) -> list[dict]:
     return [{"source": "performance", "status": "ok"}]
 
 
+def run_trump_dice(db, dry_run: bool) -> list[dict]:
+    # F8. En dry-run no escribe ni lee Supabase, igual que radar_ia:
+    # los pesos se ven con `python trump_dice.py --dry-run`.
+    from trump_dice import TrumpDiceAdapter, load_menciones, sync_mentions
+
+    if dry_run:
+        log("[trump_dice] DRY-RUN: omitido (usar trump_dice.py --dry-run)")
+        return [{"source": "trump_dice", "status": "skipped", "dry_run": True}]
+    summary = TrumpDiceAdapter(dry_run=False).run(db)
+    resumen = sync_mentions(db, load_menciones(), dry_run=False)
+    return [summary, {"source": "trump_dice", "mentions": resumen}]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -231,6 +245,7 @@ RUNNERS = {
     "prices": run_prices,
     "compute_returns": run_compute_returns,
     "performance": run_performance,
+    "trump_dice": run_trump_dice,
     "radar_ia": run_radar_ia,
 }
 
