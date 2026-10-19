@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowUpRight, BellRing, Search, X } from "lucide-react";
 import type { Alert, AlertType, PortfolioCategory } from "@/lib/types";
 import { LagBadge } from "@/components/lag-badge";
+import { LegalNotice } from "@/components/legal/legal-notice";
 import { lagDays, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { cn, timeAgo } from "@/lib/utils";
 
@@ -22,6 +23,39 @@ interface AlertsFeedProps {
   alerts: EnrichedAlert[];
   followedIds: string[];
   isPro: boolean;
+}
+
+interface ExplainSourceView {
+  label: string;
+  href: string | null;
+}
+
+type ExplainState =
+  | { status: "loading"; open: true }
+  | { status: "error"; open: true; error: string }
+  | {
+      status: "done";
+      open: boolean;
+      text: string;
+      sources: ExplainSourceView[];
+    };
+
+function parseExplainSources(value: unknown): ExplainSourceView[] {
+  if (!Array.isArray(value)) return [];
+  const sources: ExplainSourceView[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as { label?: unknown; href?: unknown };
+    if (typeof record.label !== "string" || record.label.trim().length === 0) continue;
+    sources.push({
+      label: record.label.trim().slice(0, 160),
+      href:
+        typeof record.href === "string" && record.href.startsWith("https://")
+          ? record.href
+          : null,
+    });
+  }
+  return sources;
 }
 
 type ViewTab = "global" | "following" | "leaders";
@@ -58,6 +92,97 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
   const [view, setView] = useState<ViewTab>("global");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [query, setQuery] = useState("");
+  const [explanations, setExplanations] = useState<Record<string, ExplainState>>({});
+
+  async function handleExplain(alert: EnrichedAlert) {
+    const current = explanations[alert.id];
+    if (current?.status === "loading") return;
+    if (current?.status === "done") {
+      setExplanations((prev) => ({
+        ...prev,
+        [alert.id]: { ...current, open: !current.open },
+      }));
+      return;
+    }
+
+    setExplanations((prev) => ({
+      ...prev,
+      [alert.id]: { status: "loading", open: true },
+    }));
+
+    try {
+      const response = await fetch("/api/explain-alert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          alert: {
+            id: alert.id,
+            type: alert.type,
+            severity: alert.severity,
+            title: alert.title,
+            summary: alert.summary,
+            createdAt: alert.created_at,
+            payload: alert.payload,
+            portfolio: {
+              slug: alert.portfolio.slug,
+              name: alert.portfolio.name,
+              manager: alert.portfolio.manager,
+              category: alert.portfolio.category,
+            },
+          },
+        }),
+      });
+
+      const data = (await response.json().catch(() => null)) as
+        | { explanation?: unknown; sources?: unknown; error?: unknown }
+        | null;
+
+      if (!response.ok) {
+        const message =
+          typeof data?.error === "string" && data.error.trim().length > 0
+            ? data.error
+            : "No pudimos generar la explicación.";
+        setExplanations((prev) => ({
+          ...prev,
+          [alert.id]: { status: "error", open: true, error: message },
+        }));
+        return;
+      }
+
+      const explanation =
+        typeof data?.explanation === "string" ? data.explanation.trim() : "";
+      if (!explanation) {
+        setExplanations((prev) => ({
+          ...prev,
+          [alert.id]: {
+            status: "error",
+            open: true,
+            error: "La IA no entregó una explicación. Intenta de nuevo.",
+          },
+        }));
+        return;
+      }
+
+      setExplanations((prev) => ({
+        ...prev,
+        [alert.id]: {
+          status: "done",
+          open: true,
+          text: explanation,
+          sources: parseExplainSources(data?.sources),
+        },
+      }));
+    } catch {
+      setExplanations((prev) => ({
+        ...prev,
+        [alert.id]: {
+          status: "error",
+          open: true,
+          error: "No pudimos conectar con el servidor. Revisa tu conexión e intenta de nuevo.",
+        },
+      }));
+    }
+  }
 
   const followedSet = useMemo(() => new Set(followedIds), [followedIds]);
   const followedCount = followedIds.length;
@@ -246,6 +371,17 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
               typeof alert.payload?.new_weight === "number" ? alert.payload.new_weight : null;
             const deltaWeight =
               prevWeight !== null && newWeight !== null ? newWeight - prevWeight : null;
+            const explain = explanations[alert.id];
+            const explainLabel =
+              explain?.status === "loading"
+                ? "Explicando…"
+                : explain?.status === "error"
+                  ? "Reintentar"
+                  : explain?.status === "done" && explain.open
+                    ? "Ocultar"
+                    : explain?.status === "done"
+                      ? "Ver explicación"
+                      : "Explicar";
 
             return (
               <article key={alert.id} className="border-t border-ink-200 py-6 last:border-b">
@@ -354,8 +490,8 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                   </div>
                 ) : null}
 
-                {/* Acción al portafolio */}
-                <div className="mt-3">
+                {/* Acciones: portafolio + explicación con IA */}
+                <div className="mt-3 flex flex-wrap items-center gap-4">
                   <Link
                     href={`/portfolio/${alert.portfolio.slug}`}
                     className="inline-flex items-center gap-1 text-[13px] text-ink-500 hover:text-ink-900"
@@ -363,7 +499,57 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                     Ver portafolio
                     <ArrowUpRight className="size-3.5" strokeWidth={1.5} />
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleExplain(alert)}
+                    disabled={explain?.status === "loading"}
+                    aria-expanded={explain?.status === "done" ? explain.open : undefined}
+                    className="inline-flex items-center border border-ink-200 px-3 py-1.5 text-[13px] text-ink-900 transition-colors hover:border-ink-900 disabled:cursor-wait disabled:text-ink-500"
+                  >
+                    {explainLabel}
+                  </button>
                 </div>
+
+                {explain?.status === "error" && (
+                  <p className="mt-2 text-[13px] leading-relaxed text-ink-600">
+                    {explain.error}
+                  </p>
+                )}
+
+                {explain?.status === "done" && explain.open && (
+                  <div className="mt-3 border border-ink-200 p-4">
+                    <p className="text-[13px] text-ink-500">Explicación simple · IA</p>
+                    <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink-900">
+                      {explain.text}
+                    </p>
+                    {explain.sources.length > 0 && (
+                      <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+                        Fuente:{" "}
+                        {explain.sources.map((source, index) => (
+                          <span key={`${source.label}-${index}`}>
+                            {index > 0 ? " · " : null}
+                            {source.href ? (
+                              <a
+                                href={source.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-ink-900 underline underline-offset-4"
+                              >
+                                {source.label}
+                              </a>
+                            ) : (
+                              source.label
+                            )}
+                          </span>
+                        ))}
+                        .
+                      </p>
+                    )}
+                    <div className="mt-3">
+                      <LegalNotice kind="fintec" />
+                    </div>
+                  </div>
+                )}
               </article>
             );
           })}
