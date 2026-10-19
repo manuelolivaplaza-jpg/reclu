@@ -9,7 +9,7 @@ import type {
   UserHolding,
 } from "@/lib/types";
 import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT } from "@/lib/types";
-import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts } from "@/lib/demo-data";
+import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts, HIDDEN_DEMO_SLUGS, demoRedirectTarget, isHiddenSlug } from "@/lib/demo-data";
 import {
   HOLDING_LIMITS,
   ALERT_LIMITS,
@@ -31,7 +31,7 @@ export async function getPortfolios(filters?: {
 }): Promise<Portfolio[]> {
   // Sin backend real -> datos de demostración (el sitio se ve vivo).
   if (!isSupabaseLive()) {
-    let list = DEMO_PORTFOLIOS;
+    let list = DEMO_PORTFOLIOS.filter((p) => !isHiddenSlug(p.slug));
     if (filters?.category && filters.category !== "all") list = list.filter((p) => p.category === filters.category);
     if (filters?.country && filters.country !== "all") list = list.filter((p) => p.country === filters.country);
     if (filters?.search) {
@@ -66,8 +66,45 @@ export async function getPortfolios(filters?: {
     return [];
   }
   // DB real pero vacía (seed no corrido) -> caemos a demo para no ver el sitio vacío.
-  if (!data || data.length === 0) return DEMO_PORTFOLIOS;
+  if (!data || data.length === 0) return DEMO_PORTFOLIOS.filter((p) => !isHiddenSlug(p.slug));
   return data;
+}
+
+/**
+ * Slug real al que redirige un portafolio oculto (cifras inventadas), o `null`
+ * si no aplica. Solo redirige si el portafolio real está activo/disponible.
+ *
+ * Lectura con el cliente anónimo: la política RLS `portfolios public read`
+ * limita el select a `is_active = true`, así que normalmente la fila inactiva
+ * no se puede leer y caemos al mapa estático de `demo-data` (no usamos el
+ * cliente admin aquí). Si la RLS sí deja leer la fila, preferimos su
+ * `replaced_by_slug`.
+ */
+export async function getPortfolioRedirect(slug: string): Promise<string | null> {
+  if (!isHiddenSlug(slug)) return null;
+
+  const fallback = HIDDEN_DEMO_SLUGS[slug] ?? null;
+  if (!isSupabaseLive()) return demoRedirectTarget(slug);
+
+  const supabase = await createClient();
+
+  let target: string | null = fallback;
+  const { data: hiddenRow } = await supabase
+    .from("portfolios")
+    .select("slug, replaced_by_slug, is_active")
+    .eq("slug", slug)
+    .maybeSingle();
+  if (hiddenRow?.replaced_by_slug) target = hiddenRow.replaced_by_slug;
+  if (!target) return null;
+
+  // El destino solo vale si está activo (el cliente anónimo sí puede leerlo).
+  const { data: realRow } = await supabase
+    .from("portfolios")
+    .select("slug, is_active")
+    .eq("slug", target)
+    .eq("is_active", true)
+    .maybeSingle();
+  return realRow ? target : null;
 }
 
 export async function getPortfolioBySlug(slug: string): Promise<Portfolio | null> {
