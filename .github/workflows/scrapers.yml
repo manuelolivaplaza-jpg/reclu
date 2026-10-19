@@ -45,6 +45,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    # GitHub Actions NO permite usar `secrets.*` dentro de un `if:` (el
+    # workflow no valida). La condición se precalcula aquí como env de job
+    # y el paso la lee con env.HAS_APP_URL == 'true'.
+    env:
+      HAS_APP_URL: ${{ secrets.APP_URL != '' }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -87,7 +93,7 @@ jobs:
         # Después de que los scrapers escribieron holdings con
         # previous_weight, el endpoint corre detect-changes (alertas + AI)
         # y send-alerts (emails). Solo si APP_URL está configurado.
-        if: ${{ inputs.dry_run != true && secrets.APP_URL != '' }}
+        if: ${{ inputs.dry_run != true && env.HAS_APP_URL == 'true' }}
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
