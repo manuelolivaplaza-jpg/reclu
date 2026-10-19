@@ -23,7 +23,26 @@ export const ANON_DAILY_CHAT_LIMIT = 2;
 /** Límite de entrada para el chat (validación con zod en /api/chat). */
 export const CHAT_MAX_MESSAGE_LENGTH = 2000;
 /** Máximo de mensajes del historial que acepta el servidor. */
-export const CHAT_MAX_HISTORY = 30;
+export const CHAT_MAX_HISTORY = 20;
+
+export interface AnonDayBucket {
+  day: string;
+  count: number;
+}
+
+/**
+ * Cupo anónimo en memoria. Reinicia cuando cambia el día (`YYYY-MM-DD`).
+ * El servidor lo usa solo si la RPC `check_anon_chat_quota` no está disponible.
+ */
+export function consumeAnonBucket(
+  bucket: AnonDayBucket | undefined,
+  day: string,
+  limit = ANON_DAILY_CHAT_LIMIT,
+): { allowed: boolean; bucket: AnonDayBucket } {
+  const count = bucket && bucket.day === day ? Math.max(0, bucket.count) : 0;
+  if (count >= limit) return { allowed: false, bucket: { day, count } };
+  return { allowed: true, bucket: { day, count: count + 1 } };
+}
 
 export type ChatPlan = "free" | "pro" | "elite";
 
