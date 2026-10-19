@@ -173,9 +173,14 @@ export function ReplicateList({ slug, portfolioName, holdings }: ReplicateListPr
                     {formatNumber(item.targetWeight, 1)}%
                   </td>
                   <td className="num px-3 py-2.5 text-right text-ink-900">
-                    {item.price !== null
-                      ? formatMoney(item.price, item.priceCurrency === "EUR" ? "USD" : item.priceCurrency)
-                      : "—"}
+                    {item.price !== null ? (
+                      <>
+                        {formatNumber(item.price, 2)}
+                        <span className="ml-1 text-[12px] text-ink-400">{item.priceCurrency}</span>
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td className="num px-3 py-2.5 text-right text-ink-900">
                     {item.shares !== null ? formatNumber(item.shares, fracciones ? 4 : 0) : "—"}
