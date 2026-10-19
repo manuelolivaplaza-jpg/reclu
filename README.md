@@ -146,13 +146,17 @@ reclu/
 
 ## Modelo freemium
 
-| Feature | Gratis | Pro |
-|---|---|---|
-| Portafolios seguidos | 2 | Ilimitados |
-| Alertas por email | Diario (batch) | Tiempo real |
-| Resúmenes AI | ❌ | ✅ |
-| Portafolios premium | ❌ | ✅ |
-| Comparar cartera | ✅ | ✅ |
+| Feature | Gratis | Pro ($12.990/mes) | Elite ($16.990/mes) |
+|---|---|---|---|
+| Portafolios seguidos | 2 | 15 | Ilimitados |
+| Alertas por email | Diario (batch) | Tiempo real | Tiempo real |
+| Resúmenes AI | ❌ | ✅ | ✅ |
+| Portafolios premium | ❌ | ✅ | ✅ |
+| Exportación CSV | ❌ | ❌ | ✅ |
+| Comparar cartera | ✅ | ✅ | ✅ |
+
+> Configuración de planes: ver `src/lib/plans.ts` (frente F4) y la
+> migración de planes correspondiente.
 
 ## Disclaimer
 
