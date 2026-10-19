@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { getPortfolioBySlug, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
+import { getMentions } from "@/lib/mentions-queries";
 import { demoPerformance } from "@/lib/demo-data";
 import { SiteHeader } from "@/components/site-header";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
@@ -20,6 +21,7 @@ import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
+import { TrumpMentionsList } from "@/components/trump-mentions-list";
 
 export const instant = false;
 
@@ -66,6 +68,10 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const { slug } = await params;
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) notFound();
+
+  // Arranca en paralelo con el perfil y las holdings. Solo Trump dice tiene menciones.
+  const mentionsPromise =
+    portfolio.source === "trump_mentions" ? getMentions(portfolio.id) : null;
 
   // El perfil determina el rol ANTES de pedir holdings/alerts: el servidor
   // solo trae lo que el plan permite (nada de difuminar datos ya entregados).
@@ -244,6 +250,8 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
 
         <div className="container-page py-10">
+          {mentionsPromise ? <TrumpMentionsList mentions={mentionsPromise} /> : null}
+
           <PortfolioMetricsStrip holdings={holdings} />
 
           {showEvolution ? (
