@@ -147,8 +147,10 @@ export function createMockProvider(): PaymentProvider {
       };
     },
 
-    async cancelSubscription(providerSubscriptionId: string) {
-      // En mock la cancelación es inmediata (no hay cobros reales).
+    // Nota: la interfaz exige un id, pero en mock la cancelación es
+    // inmediata y no lo necesitamos (implementación con menos params es
+    // asignable al tipo de la interfaz).
+    async cancelSubscription() {
       return { ok: true, cancelAtPeriodEnd: false };
     },
   };

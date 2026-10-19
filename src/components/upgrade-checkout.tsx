@@ -3,11 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import type { Plan } from "@/lib/types";
 
 export type UpgradePlanChoice = "pro" | "elite";
 export type BillingCycle = "monthly" | "annual";
+export type PaymentMethodId = "webpay" | "fintoc" | "mercadopago";
 
 export interface UpgradeCheckoutProps {
   currentPlan: Plan;
@@ -95,8 +96,6 @@ export function UpgradeCheckout({
   const [submitting, setSubmitting] = useState(false);
 
   const plan = PLAN_DETAILS[selectedPlan];
-  const activePayment =
-    PAYMENT_METHODS.find((m) => m.id === paymentMethod) ?? PAYMENT_METHODS[0];
   const displayMonthly =
     billing === "annual" ? plan.annualMonthlyPrice : plan.monthlyPrice;
   const totalDueNow = billing === "annual" ? plan.annualTotal : plan.monthlyPrice;

@@ -13,7 +13,7 @@ import { revalidatePath } from "next/cache";
  * acción del usuario sin confirmación del proveedor.
  */
 
-export async function POST(request: Request) {
+export async function POST() {
   const supabase = await createClient();
   const {
     data: { user },

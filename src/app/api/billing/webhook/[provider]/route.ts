@@ -1,6 +1,6 @@
 import { processPaymentNotification } from "@/lib/billing/process";
 import { createFlowProvider, createMercadoPagoProvider, createMockProvider } from "@/lib/billing";
-import type { PaymentProvider, WebhookInput } from "@/lib/billing/types";
+import type { PaymentProvider } from "@/lib/billing/types";
 
 /**
  * POST /api/billing/webhook/[provider]

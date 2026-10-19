@@ -191,7 +191,8 @@ export function createMercadoPagoProvider(): PaymentProvider {
       let eventType = "subscription.updated";
       try {
         const body = JSON.parse(input.rawBody) as Record<string, unknown>;
-        if (body.type === "subscription_preapproval_plan" || body.action?.includes("preapproval")) {
+        const action = String(body.action ?? "");
+        if (body.type === "subscription_preapproval_plan" || action.includes("preapproval")) {
           eventType = "plan.updated";
         }
         const data = (body.data ?? {}) as Record<string, unknown>;
