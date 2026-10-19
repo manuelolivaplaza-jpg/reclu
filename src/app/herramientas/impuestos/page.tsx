@@ -3,7 +3,8 @@ import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LegalNotice } from "@/components/legal/legal-notice";
-import { GUIAS_OFICIALES, PLAZOS, TaxWizard } from "@/components/tax/tax-wizard";
+import { TaxWizard } from "@/components/tax/tax-wizard";
+import { GUIAS_OFICIALES, PLAZOS } from "@/lib/tax/plazos";
 
 export const metadata: Metadata = {
   title: "Impuestos · DJ 1929",
