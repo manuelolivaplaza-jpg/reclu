@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ButtonLink } from "@/components/ui/button";
 import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
+import { TelegramConnect } from "@/components/telegram-connect";
 import { isPaidPlan } from "@/lib/types";
 
 export const metadata = { title: "Ajustes" };
@@ -123,6 +124,8 @@ export default async function SettingsPage() {
           <AlertFrequencyForm current={profile.alert_frequency} isPro={isPro} />
         </CardContent>
       </Card>
+
+      <TelegramConnect profile={profile} />
     </div>
   );
 }

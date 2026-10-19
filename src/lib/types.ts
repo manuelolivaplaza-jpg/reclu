@@ -138,6 +138,8 @@ export interface Profile {
   weekly_digest?: boolean | null;
   /** Solo de servidor (migración 008). Chat id de Telegram vinculado. */
   telegram_chat_id?: string | null;
+  /** Código de un solo uso para /start. Lo genera el servidor al vincular. */
+  telegram_link_code?: string | null;
   created_at: string;
   updated_at: string;
 }
