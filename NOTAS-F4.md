@@ -99,4 +99,5 @@
 - `trial_ends_at`, `telegram_chat_id` y `unsubscribe_token` son SOLO DE
   SERVIDOR: el frente F1 agrega un trigger que impide al cliente cambiar
   columnas sensibles; incluir estas tres.
+- La 008 corre después de la 007: marca `set_config('reclu.trusted','on',true)` en `check_chat_quota`, `link_telegram_chat`, `unsubscribe_by_token` y `handle_new_user`, y revoca las tres RPC a `public`, `anon` y `authenticated` (solo `service_role`).
 - Nunca commitear `.env*` (salvo `.env.example`).

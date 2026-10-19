@@ -5,6 +5,11 @@
 --   Pro     $12.990 — 50 consultas/semana, 15 portafolios, realtime+daily/weekly, email+telegram
 --   Elite   $16.990 — chat ilimitado, portafolios ilimitados, realtime, email+telegram, CSV
 -- 100% idempotente: segura de re-ejecutar en el SQL Editor de Supabase.
+-- Corre después de la 007: el trigger de profiles solo deja pasar a
+-- service_role o a quien marque set_config('reclu.trusted','on',true).
+-- Esta migración re-crea funciones que escriben cuotas, chat_id, baja y
+-- trial_ends_at, así que vuelven a abrir ese canal. Las tres RPC quedan
+-- solo para service_role (la app las llama con el cliente de servicio).
 -- ============================================================
 
 -- ------------------------------------------------------------
@@ -69,6 +74,8 @@ declare
   v_limit integer;
   v_window interval;
 begin
+  perform set_config('reclu.trusted', 'on', true);
+
   select plan, chat_quota_used, chat_reset_at
     into v_plan, v_used, v_reset_at
   from public.profiles
@@ -132,6 +139,9 @@ begin
 end;
 $$;
 
+revoke execute on function public.check_chat_quota(uuid) from public, anon, authenticated;
+grant execute on function public.check_chat_quota(uuid) to service_role;
+
 -- ------------------------------------------------------------
 -- 2. Frecuencia de alertas: default 'daily' para usuarios NUEVOS.
 --    Base vieja: gratis con 'realtime' → 'daily' (los pagados no se tocan).
@@ -175,6 +185,8 @@ language plpgsql
 security definer set search_path = ''
 as $$
 begin
+  perform set_config('reclu.trusted', 'on', true);
+
   insert into public.profiles (
     id, email, full_name, alert_frequency, trial_ends_at
   )
@@ -204,6 +216,8 @@ as $$
 declare
   v_user uuid;
 begin
+  perform set_config('reclu.trusted', 'on', true);
+
   if p_code is null or length(trim(p_code)) < 6 then
     return false;
   end if;
@@ -225,6 +239,9 @@ begin
 end;
 $$;
 
+revoke execute on function public.link_telegram_chat(text, text) from public, anon, authenticated;
+grant execute on function public.link_telegram_chat(text, text) to service_role;
+
 -- RPC segura: marca la baja de correo por token (service role).
 create or replace function public.unsubscribe_by_token(p_token uuid)
 returns boolean
@@ -232,6 +249,8 @@ language plpgsql
 security definer set search_path = ''
 as $$
 begin
+  perform set_config('reclu.trusted', 'on', true);
+
   update public.profiles
   set email_unsubscribed = true
   where unsubscribe_token = p_token;
@@ -239,3 +258,6 @@ begin
   return found;
 end;
 $$;
+
+revoke execute on function public.unsubscribe_by_token(uuid) from public, anon, authenticated;
+grant execute on function public.unsubscribe_by_token(uuid) to service_role;
