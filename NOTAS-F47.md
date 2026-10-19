@@ -59,8 +59,10 @@ No se corrió `npx next build`: lo ejecuta el orquestador según la nota.
   consultas por request. Si el catálogo crece, conviene una consulta batch o un
   endpoint paginado.
 - La "ventana completa" de pago depende de `MAX_SERIES_POINTS = 2000` y del
-  límite de filas de PostgREST/Supabase (por defecto 1000). Si una serie supera
-  ese tope, el historial completo real requiere paginar en `range()`.
+  límite de filas de PostgREST/Supabase (por defecto 1000). Se piden las filas
+  más recientes (orden descendente y luego inversión), así que un tope nunca
+  deja fuera la cola actual; si se necesita todo el historial más antiguo hay
+  que paginar con `range()`.
 - No se usó `Comparison` de `src/components/charts/comparison.tsx` porque su
   leyenda fija "S&P 500" rotularía mal al IPSA. El gráfico local replica el
   mismo lenguaje visual (negro 2px vs. gris punteado 1,5px).
@@ -90,3 +92,5 @@ Manual (cuando el orquestador levante el server): abrir
 ## Commit
 
 - `d5c93c3` — `feat: add interactive portfolio backtest page`
+- `498b649` — `docs: add F47 backtest notes`
+- `ec7db5a` — `fix: load latest series in backtest page`
