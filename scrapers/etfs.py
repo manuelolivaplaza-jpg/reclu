@@ -375,7 +375,8 @@ def _latest_nport_doc(series_id: str, series_name: str) -> str:
                 continue
             _NPORT_DOC_CACHE[accession] = doc
         found = _nport_series_id(doc)
-        if found == series_id or (not found and series_name in doc):
+        # El nombre cubre el caso de que el trust renumere la serie.
+        if found == series_id or series_name in doc:
             return doc
     raise ValueError(f"N-PORT no encontrado para la serie {series_id} ({series_name})")
 
@@ -458,7 +459,7 @@ def fetch_subversive(slug: str) -> list[dict]:
     if not cfg:
         raise ValueError(f"unknown Subversive ETF: {slug}")
     doc = _latest_nport_doc(cfg["series_id"], cfg["series_name"])
-    return parse_nport_holdings(doc, series_id=cfg["series_id"])
+    return parse_nport_holdings(doc)
 
 
 def save_holdings(db, slug: str, rows: list[dict]) -> bool:
