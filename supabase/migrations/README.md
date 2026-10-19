@@ -20,6 +20,7 @@ el CLI, respetando el mismo orden).
 | 9 | `012_muro_pago.sql` | Muro de pago real: quita lectura pública de `holdings`/`portfolio_snapshots`, funciones `get_portfolio_holdings(p_slug)` y `get_portfolio_snapshots(p_slug)` con recorte por plan. **Incluir bloque `-- rollback` si se quiere revertir.** |
 | 10 | `013_portafolios_tematicos.sql` | Tres portafolios temáticos + holdings semilla. |
 | 11 | `014_trump_dice.sql` | Tabla `mentions` (lectura pública solo `status='verificada'`, sin políticas de escritura), portafolio `trump-dice`, 15 menciones y holdings semilla. |
+| 12 | `017_musk_dice.sql` | Amplía `mentions.kind` con `critica` y `empresa_propia`, portafolio `musk-dice`, 4 menciones (URL de X) y holdings ETSY/GME al 50%. Reutiliza la tabla de la 014. La 015 sigue reservada para F9. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
