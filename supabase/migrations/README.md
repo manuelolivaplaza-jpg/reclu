@@ -33,6 +33,7 @@ fusionen las ramas, aplicar en este orden:
 | 011 | Rendimiento | Índices y optimizaciones |
 | 012 | **Este frente (F6)** | Muro de pago (ya presente arriba) |
 | 013 | Portafolios | Nuevos portafolios/seed |
+| 015 | F9 — muro pago en /accion | RPC `get_symbol_holders(p_symbol)`: quién tiene un ticker. El rank se calcula sobre todas las posiciones del `as_of` vigente (`weight desc, id`) y después se filtra el símbolo; luego `rank <= holdings_limit_for_plan(current_user_plan())` y premium solo pagos. Aplicar después de 012. Re-ejecutable. |
 
 ## Duplicados conocidos (A8)
 
