@@ -70,6 +70,12 @@ uv run --no-project --with-requirements scrapers/requirements.txt python scraper
 Resultados locales: `58 passed, 1 skipped`; `--list` muestra `polymarket`;
 el dry-run lee ~40 apuestas de política/economía y 50 billeteras y **no escribe**.
 
+## Nota sobre la base
+
+Están `008`, `009`, `014`–`017` y `019`–`021`. **`018` no existe** en ninguna
+rama (salto de numeración por F9, al parecer descartada); no bloquea F30 porque
+`030` no depende de ella.
+
 ## Pendiente / deudas
 
 - UI: no se agregó vista de `prediction_trades` ni enlace a perfiles. Sólo
