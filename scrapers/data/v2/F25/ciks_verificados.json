@@ -1,0 +1,8 @@
+{"verificado":"2026-10-19 vía https://data.sec.gov/submissions/CIK##########.json","nota":"Duquesne (1536411) y Soros (1029160) YA están en scrapers/sec13f.py FUNDS; no duplicar.",
+"nuevos":[
+{"name":"Norges Bank","cik":1374170,"slug":"norges-bank-13f","grupo":"soberano","ultimo_13f":"13F-HR presentado 2026-08-12, periodo 2026-06-30","nota":"libro enorme: usar top 50 por valor"},
+{"name":"Swiss National Bank","cik":1582202,"slug":"snb-13f","grupo":"banco_central","ultimo_13f":"13F-HR presentado 2026-08-11, periodo 2026-06-30","nota":"libro enorme: top 50"},
+{"name":"Gates Foundation Trust","cik":1166559,"slug":"gates-foundation-13f","grupo":"fundacion_family_office","ultimo_13f":"13F-HR presentado 2026-08-14, periodo 2026-06-30"},
+{"name":"Icahn Carl C","cik":921669,"slug":"icahn-13f","grupo":"family_office_activista","ultimo_13f":"13F-HR presentado 2026-08-14, periodo 2026-06-30"}
+],
+"fuente_nbim_semestral":"https://www.nbim.no/en/investments/all-investments/"}

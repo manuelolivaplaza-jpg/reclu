@@ -41,6 +41,11 @@ FUND_SLUG = {
     "AKO Capital": "ako-13f",
     "HHLR Advisors": "hhlr-13f",
     "Temasek Holdings": "temasek-13f",
+    # --- Soberanos, banco central y family offices (F25) ---
+    "Norges Bank": "norges-bank-13f",
+    "Swiss National Bank": "snb-13f",
+    "Gates Foundation Trust": "gates-foundation-13f",
+    "Icahn Carl C": "icahn-13f",
 }
 
 
