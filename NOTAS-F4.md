@@ -29,41 +29,39 @@
    - RPC server-only: `link_telegram_chat(codigo, chat_id)` y
      `unsubscribe_by_token(uuid)`.
 
-## Pendiente (lo siguiente de este frente, en orden)
+## Hecho en la continuación del 19-10 (Grok Build, commiteado)
 
-0. **HECHO en la sesión del 19-10 (commiteado)**: pricing.tsx, faq.tsx,
-   alert-frequency-form.tsx y settings.ts ya consumían plans.ts (verificados
-   leyendo los archivos); followPortfolio documenta el límite vía plans.ts
-   (sin cambio de lógica, trial no aplica a follows); .env.example con
-   TELEGRAM_BOT_TOKEN/BOT_USERNAME/WEBHOOK_SECRET. La FAQ ya lista fuentes
-   correctas (House Disclosure, Senado, SEC 13F, ARK/Global X, Renta 4, BTG)
-   sin Capitol Trades ni LarrainVial.
-1. **`supabase/functions/send-alerts/index.ts`**: reescribir con
-   `routeAlert` equivalente en Deno (copia mínima de plans/alert-routing con
-   comentario de sincronización), realtime para pro/elite/prueba, respetar
-   `alert_frequency` + `email_unsubscribed`, canal Telegram vía Bot API
-   (`TELEGRAM_BOT_TOKEN`, se omite sin error si falta), lag de declaración
-   (usar `alert.payload`: `tx_date`+`disclosed` o `traded_at`+`filed_at`,
-   días entre fechas), baja en cada correo con cabeceras
-   `List-Unsubscribe` / `List-Unsubscribe-Post` hacia
-   `${SITE_URL}/api/unsubscribe?token=...`, y modo `?mode=weekly` para todos
-   los `weekly_digest=true` con bloque `DIGEST_SPONSOR_HTML` (vacío por
-   defecto). OJO: el write fue bloqueado por el límite de tiempo; el archivo
-   actual sigue funcional y commiteado.
-2. Rutas Next: `src/app/api/unsubscribe/route.ts` (GET confirmación, POST un
-   clic, service role + `unsubscribe_by_token`), `src/app/baja/page.tsx`,
-   `src/app/api/telegram/webhook/route.ts` (verifica
-   `X-Telegram-Bot-Api-Secret-Token` contra `TELEGRAM_WEBHOOK_SECRET`,
-   parsea `/start CODIGO`, llama `link_telegram_chat`).
-3. Componentes: `src/components/telegram-connect.tsx` (server action genera
-   código, enlace `https://t.me/<BOT>?start=CODIGO`, selector de canal) e
-   inserción de 1-2 líneas en `src/app/(dashboard)/settings/page.tsx`;
-   banner de prueba "te quedan N días de Pro" en el dashboard.
-4. Consumir `plans.ts` en: `pricing.tsx`, `faq.tsx` (corregir fuentes: House
-   Disclosure, Senado, SEC 13F, ARK/Global X, Renta 4, BTG — QUITAR Capitol
-   Trades y LarrainVial), `settings-form.tsx`, `alert-frequency-form.tsx`
-   (frecuencias desde `allowedFrequencies(plan, trial_ends_at)`), y el límite
-   de `followPortfolio` en `queries.ts` (cambio mínimo).
+5. **`supabase/functions/send-alerts/index.ts`** (no se reescribió entero):
+   - Realtime para pro, elite y prueba (`canUseRealtime`).
+   - Sin `?mode`: pasada `instant` y luego `daily` (el cron de
+     `vercel.json` llama la función una vez al día). `?mode=daily` solo el
+     digest. `?mode=weekly` solo «Lo que movieron los grandes» para
+     `weekly_digest !== false`, con `DIGEST_SPONSOR_HTML` (vacío = nada).
+   - Respeta `alert_frequency` y `email_unsubscribed`.
+   - Telegram si hay `TELEGRAM_BOT_TOKEN` y `telegram_chat_id` (si falta el
+     token, se omite).
+   - Desfase de declaración en el correo y en el digest (`tx_date`/`disclosed`
+     o `traded_at`/`filed_at`).
+   - Enlace de baja y cabeceras `List-Unsubscribe` /
+     `List-Unsubscribe-Post` dentro del JSON de Resend (no en el fetch),
+     hacia `${SITE_URL|NEXT_PUBLIC_SITE_URL}/api/unsubscribe?token=...`.
+     Si no hay env, el fallback del host sigue siendo `https://reclu.cl`.
+   - `alert_deliveries` no distingue canal: un upsert de la misma fila.
+6. **Baja**: `src/app/api/unsubscribe/route.ts` (GET redirige a la
+   confirmación, no da de baja; POST llama `unsubscribe_by_token` con el
+   cliente de servicio) y `src/app/baja/page.tsx`.
+7. **Telegram**: `src/app/api/telegram/webhook/route.ts` verifica
+   `X-Telegram-Bot-Api-Secret-Token`, acepta `/start CODIGO` y llama
+   `link_telegram_chat`. `TelegramConnect` en Ajustes genera el código y el
+   enlace `https://t.me/<BOT>?start=CODIGO`, y guarda `alert_channel`.
+
+## Pendiente
+
+- Banner de prueba «te quedan N días de Pro» en el dashboard. No entró en
+  este corte.
+- El pipeline (`/api/run-pipeline`) no agrega `?mode=weekly`. Hay que
+  programar una llamada semanal aparte a la edge function.
+- `email_unsubscribed` no tiene botón para volver a suscribirse.
 
 ## Cómo deben usar `plans.ts` otros frentes
 
@@ -88,9 +86,12 @@
    - `TELEGRAM_WEBHOOK_SECRET` (string aleatorio propio)
    - `SITE_URL` o `NEXT_PUBLIC_SITE_URL` (ya existía; base de enlaces y bajas)
    - `DIGEST_SPONSOR_HTML` (opcional, vacío = sin patrocinador)
-5. Registrar webhook (una vez):
-   `curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<proyecto>.supabase.co/functions/v1/telegram-webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>"`
-6. Sin esas variables todo degrada elegante: Telegram se omite, los correos
+5. Registrar webhook (una vez), contra la ruta de Next, no una edge function:
+   `curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<dominio>/api/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>"`
+6. Resumen semanal: una vez por semana, POST a
+   `.../functions/v1/send-alerts?mode=weekly` (el cron diario ya manda
+   instantáneas + digest).
+7. Sin esas variables todo degrada elegante: Telegram se omite, los correos
    siguen funcionando con Resend.
 
 ## Seguridad
