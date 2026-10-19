@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
+import { isMockProvider } from "@/lib/billing";
 import {
   UpgradeCheckout,
   type BillingCycle,
@@ -49,6 +50,7 @@ export default async function UpgradePage({ searchParams }: UpgradePageProps) {
       initialSelectedPlan={initialSelectedPlan}
       initialBilling={initialBilling}
       userEmail={profile?.email ?? user?.email ?? ""}
+      isTestMode={isMockProvider()}
     />
   );
 }

@@ -59,5 +59,16 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // M3 Referidos: si llega con ?ref=CÓDIGO, guardarlo en cookie (30 días)
+  // para poder atribuir el alta al patrocinador al momento del signup.
+  const referral = request.nextUrl.searchParams.get("ref");
+  if (referral && !request.cookies.get("ref")) {
+    supabaseResponse.cookies.set("ref", referral, {
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+      sameSite: "lax",
+    });
+  }
+
   return supabaseResponse;
 }

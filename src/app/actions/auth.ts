@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -34,6 +35,9 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
 
 /**
  * Sign up with email + password. Supabase sends a confirmation email.
+ * Si existe la cookie de referido (?ref=CÓDIGO guardada en el proxy),
+ * se envía como metadata para que el trigger de la base registre el
+ * vínculo (migración 009).
  */
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
@@ -49,11 +53,19 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
+  // M3 Referidos: la cookie `ref` la guarda el proxy (ver proxy matcher)
+  // cuando el usuario llegó con ?ref=CODIGO. La pasamos como metadata.
+  const cookieStore = await cookies();
+  const referral = cookieStore.get("ref")?.value ?? null;
+
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      data: { full_name: fullName },
+      data: {
+        full_name: fullName,
+        ...(referral ? { referred_by: referral } : {}),
+      },
       emailRedirectTo: `${origin}/auth/callback`,
     },
   });

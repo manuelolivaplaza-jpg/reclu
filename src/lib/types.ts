@@ -123,8 +123,9 @@ export interface Profile {
   email: string;
   full_name: string | null;
   plan: Plan;
-  /** Stripe/customer id once billing is connected. */
-  stripe_customer_id: string | null;
+  /** Id del cliente en el proveedor de pago activo (customerId Flow, etc.).
+   *  Lo escribe solo el backend con service role — nunca el cliente. */
+  billing_customer_id: string | null;
   alert_frequency: "realtime" | "daily" | "weekly";
   /** Canal de alertas (migración 008): email | telegram | both. */
   alert_channel?: "email" | "telegram" | "both" | null;
