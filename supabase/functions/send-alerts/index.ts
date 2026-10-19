@@ -9,8 +9,10 @@
 //   DIGEST_SPONSOR_HTML (opcional; bloque HTML del resumen semanal)
 //
 // Sincronización: la lógica de routing replicada aquí debe coincidir con
-// `src/lib/plans.ts` + `src/lib/alert-routing.ts` (Deno no puede importar
-// desde src/). Si cambian planes o frecuencias, cambia ambas copias.
+// `src/lib/plans.ts` + `src/lib/alert-routing.ts` + `src/lib/alert-rules.ts`
+// (Deno no puede importar desde src/). Si cambian planes, frecuencias o las
+// reglas de alerta, cambia ambas copias. `tests/alert-rules-routing.test.ts`
+// cubre esta misma lógica.
 
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
@@ -24,7 +26,16 @@ interface AlertWithPortfolio {
   /** Datos crudos del cambio (alert.payload): usado para el desfase. */
   payload?: Record<string, unknown> | null;
   created_at: string;
-  portfolio: { id: string; slug: string; name: string };
+  portfolio: { id: string; slug: string; name: string; source?: string | null };
+}
+
+/** Fila cruda de `alert_rules` (migration 037, F39). */
+interface AlertRuleRow {
+  user_id: string;
+  kind: string;
+  value: string;
+  channel: string;
+  active: boolean;
 }
 
 // ---- Copia mínima de plans.ts + alert-routing.ts (ver comentario arriba) ----
@@ -111,6 +122,254 @@ function routeAlert(
   return { email: !unsubscribed, telegram: telegramReady, frequency };
 }
 
+// ---- Copia de alert-rules.ts: reglas a medida (F39/F40, ver cabecera) ----
+
+type RuleKind = "ticker" | "portfolio" | "source" | "min_amount";
+
+interface AlertRule {
+  kind: RuleKind;
+  value: string;
+  channel?: string | null;
+  /** false = la regla no dispara. undefined se trata como activa. */
+  active?: boolean | null;
+}
+
+interface AlertMatchInput {
+  portfolio_id?: string | null;
+  title?: string | null;
+  payload?: Record<string, unknown> | null;
+  portfolio?: {
+    id?: string;
+    slug?: string | null;
+    name?: string | null;
+    source?: string | null;
+    manager?: string | null;
+  } | null;
+}
+
+function isRuleKind(value: unknown): value is RuleKind {
+  return value === "ticker" || value === "portfolio" || value === "source" || value === "min_amount";
+}
+
+/**
+ * Enrutamiento de una regla a medida. El canal lo elige la regla; la
+ * frecuencia y la baja las decide el perfil (F4, `routeAlert`).
+ * - Sin Telegram disponible (plan o chat) una regla `telegram` cae a correo
+ *   y una `both` conserva solo el correo (igual que `normalizeChannel`).
+ * - El resumen semanal es informativo: las reglas no lo alimentan.
+ */
+function routeRule(
+  profile: ProfileRoute,
+  ruleChannel: string,
+  mode: Mode,
+): { email: boolean; telegram: boolean } {
+  if (mode === "weekly") return { email: false, telegram: false };
+
+  const frequency = normalizeFrequency(profile.plan, profile.alert_frequency, profile.trial_ends_at);
+  const unsubscribed = profile.email_unsubscribed === true;
+  const planTelegram = canUseRealtime(profile.plan, profile.trial_ends_at);
+  const linked =
+    typeof profile.telegram_chat_id === "string" && profile.telegram_chat_id.length > 0;
+
+  const wantsTelegram = ruleChannel === "telegram" || ruleChannel === "both";
+  const telegram = wantsTelegram && planTelegram && linked;
+  // Si pide Telegram y no puede, no se pierde: llega por correo.
+  const email = ruleChannel === "email" || ruleChannel === "both" || (wantsTelegram && !telegram);
+
+  if (mode === "daily") {
+    return { email: email && !unsubscribed, telegram: telegram && frequency !== "realtime" };
+  }
+  // instant: solo tiempo real.
+  if (frequency !== "realtime") return { email: false, telegram: false };
+  return { email: email && !unsubscribed, telegram };
+}
+
+/** Alerta → entrada de `ruleMatches`. */
+function alertMatchInput(alert: AlertWithPortfolio): AlertMatchInput {
+  return {
+    portfolio_id: alert.portfolio_id,
+    title: alert.title,
+    payload: alert.payload ?? null,
+    portfolio: {
+      id: alert.portfolio.id,
+      slug: alert.portfolio.slug,
+      name: alert.portfolio.name,
+      source: alert.portfolio.source ?? null,
+    },
+  };
+}
+
+/** ¿Esta regla aplica a esta alerta? Misma lógica que `src/lib/alert-rules.ts`. */
+function ruleMatches(rule: AlertRule, alert: AlertMatchInput): boolean {
+  if (rule.active === false) return false;
+  const value = rule.value.trim();
+  if (!value) return false;
+
+  switch (rule.kind) {
+    case "ticker":
+      return tickerCandidates(alert).includes(value.toUpperCase());
+    case "portfolio":
+      return portfolioCandidates(alert).some((field) => portfolioFieldMatches(value, field));
+    case "source":
+      return sourceCandidates(alert).includes(value.toLowerCase());
+    case "min_amount": {
+      const threshold = Number(value);
+      if (!Number.isFinite(threshold) || threshold <= 0) return false;
+      const amount = disclosedAmountUsd(alert);
+      return amount != null && amount >= threshold;
+    }
+    default:
+      return false;
+  }
+}
+
+function fold(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "");
+}
+
+function ruleTokens(value: string): string[] {
+  return fold(value)
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length > 0);
+}
+
+function portfolioFieldMatches(needleRaw: string, field: string): boolean {
+  const needle = fold(needleRaw);
+  const haystack = fold(field);
+  if (!needle || !haystack) return false;
+  if (haystack === needle) return true;
+
+  const needleTokens = ruleTokens(needle);
+  if (needleTokens.length === 0) return false;
+  const haystackTokens = new Set(ruleTokens(haystack));
+  if (needleTokens.length === 1) {
+    const token = needleTokens[0] ?? "";
+    return token.length >= 3 && haystackTokens.has(token);
+  }
+  return needleTokens.every((token) => token.length >= 2 && haystackTokens.has(token));
+}
+
+function pushMatchString(
+  out: string[],
+  value: unknown,
+  normalize: (value: string) => string,
+) {
+  if (typeof value === "string" && value.trim().length > 0) out.push(normalize(value));
+}
+
+function tickerCandidates(alert: AlertMatchInput): string[] {
+  const out: string[] = [];
+  const upper = (value: string) => value.trim().toUpperCase();
+  const payload = alert.payload ?? {};
+  pushMatchString(out, payload.symbol, upper);
+  pushMatchString(out, payload.ticker, upper);
+  if (Array.isArray(payload.symbols)) {
+    for (const symbol of payload.symbols) pushMatchString(out, symbol, upper);
+  }
+  return out;
+}
+
+function portfolioCandidates(alert: AlertMatchInput): string[] {
+  const out: string[] = [];
+  const asIs = (value: string) => value;
+  pushMatchString(out, alert.portfolio_id, asIs);
+  pushMatchString(out, alert.portfolio?.id, asIs);
+  pushMatchString(out, alert.portfolio?.slug, asIs);
+  pushMatchString(out, alert.portfolio?.name, asIs);
+  pushMatchString(out, alert.portfolio?.manager, asIs);
+  const payload = alert.payload ?? {};
+  pushMatchString(out, payload.owner_name, asIs);
+  pushMatchString(out, payload.manager, asIs);
+  pushMatchString(out, payload.portfolio, asIs);
+  pushMatchString(out, payload.portfolio_slug, asIs);
+  pushMatchString(out, payload.portfolio_name, asIs);
+  if (Array.isArray(payload.portfolios)) {
+    for (const item of payload.portfolios) {
+      if (!item || typeof item !== "object") continue;
+      const row = item as Record<string, unknown>;
+      pushMatchString(out, row.portfolio_id, asIs);
+      pushMatchString(out, row.slug, asIs);
+      pushMatchString(out, row.name, asIs);
+      pushMatchString(out, row.manager, asIs);
+    }
+  }
+  return out;
+}
+
+function sourceCandidates(alert: AlertMatchInput): string[] {
+  const out: string[] = [];
+  const lower = (value: string) => value.trim().toLowerCase();
+  pushMatchString(out, alert.portfolio?.source, lower);
+  const payload = alert.payload ?? {};
+  pushMatchString(out, payload.source, lower);
+  pushMatchString(out, payload.source_id, lower);
+  return out;
+}
+
+function readMatchNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
+/** Mayor cifra en dólares encontrada en un texto tipo "$1M–$5M" o "US$1.000.000". */
+function maxUsdInText(text: string): number | null {
+  const moneyPattern = /(?:us\$|\$)\s*(\d{1,3}(?:[.,]\d{3})+|\d+(?:[.,]\d+)?)(?:\s*([kmb]))?/gi;
+  let best: number | null = null;
+  for (const match of text.matchAll(moneyPattern)) {
+    const parsed = parseMoneyToken(match[1] ?? "", match[2]);
+    if (parsed != null && (best == null || parsed > best)) best = parsed;
+  }
+  return best;
+}
+
+function parseMoneyToken(raw: string, suffix: string | undefined): number | null {
+  const mark = suffix?.toLowerCase();
+  let amount: number;
+  if (mark === "k" || mark === "m" || mark === "b") {
+    amount = Number(raw.replace(",", "."));
+    const factor = mark === "k" ? 1_000 : mark === "m" ? 1_000_000 : 1_000_000_000;
+    amount *= factor;
+  } else if (/^\d{1,3}(?:[.,]\d{3})+$/.test(raw)) {
+    amount = Number(raw.replace(/[.,]/g, ""));
+  } else {
+    amount = Number(raw.replace(",", "."));
+  }
+  return Number.isFinite(amount) ? amount : null;
+}
+
+function disclosedAmountUsd(alert: AlertMatchInput): number | null {
+  const payload = alert.payload ?? {};
+  for (const key of ["value_usd", "amount_usd", "notional_usd", "amount"] as const) {
+    const amount = readMatchNumber(payload[key]);
+    if (amount != null) return amount;
+  }
+  const max = readMatchNumber(payload.amount_max);
+  if (max != null) return max;
+  const min = readMatchNumber(payload.amount_min);
+  if (min != null) return min;
+
+  const texts: string[] = [];
+  if (typeof alert.title === "string") texts.push(alert.title);
+  for (const key of ["amount_text", "range", "amount_range"] as const) {
+    const value = payload[key];
+    if (typeof value === "string") texts.push(value);
+  }
+  let best: number | null = null;
+  for (const text of texts) {
+    const amount = maxUsdInText(text);
+    if (amount != null && (best == null || amount > best)) best = amount;
+  }
+  return best;
+}
+
 /** Bloque HTML opcional de patrocinador del resumen semanal (vacío = nada). */
 const DIGEST_SPONSOR_HTML = Deno.env.get("DIGEST_SPONSOR_HTML") ?? "";
 
@@ -160,7 +419,7 @@ Deno.serve(async (req) => {
     // 1. Find published alerts that haven't been delivered to anyone yet
     const { data: pendingAlerts, error: alertsErr } = await supabase
       .from("alerts")
-      .select("*, portfolio:portfolios!inner(id, slug, name)")
+      .select("*, portfolio:portfolios!inner(id, slug, name, source)")
       .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -184,12 +443,41 @@ Deno.serve(async (req) => {
       .in("portfolio_id", [...new Set(alerts.map((a) => a.portfolio_id))]);
     if (followsErr) throw followsErr;
 
-    const deliveredRows = follows?.length
-      ? await supabase
-          .from("alert_deliveries")
-          .select("alert_id, user_id")
-          .in("alert_id", alerts.map((a) => a.id))
-      : { data: null };
+    // Reglas a medida (F39/F40): entregan aunque el usuario no siga el
+    // portafolio. Reglas y perfiles van en consultas separadas porque
+    // `alert_rules` no tiene FK directa con `profiles`.
+    const { data: ruleRows, error: rulesErr } = await supabase
+      .from("alert_rules")
+      .select("user_id, kind, value, channel, active")
+      .eq("active", true)
+      .limit(1000);
+    if (rulesErr) {
+      // Sin la tabla (037 sin aplicar) las alertas de follows deben seguir saliendo.
+      console.error("alert_rules no disponible:", rulesErr.message);
+    }
+    const rules = rulesErr
+      ? []
+      : ((ruleRows ?? []) as AlertRuleRow[]).filter((rule) => isRuleKind(rule.kind));
+
+    const ruleUserIds = [...new Set(rules.map((rule) => rule.user_id))];
+    const ruleProfiles = new Map<string, FollowerProfile>();
+    if (ruleUserIds.length > 0) {
+      const { data: profileRows, error: ruleProfilesErr } = await supabase
+        .from("profiles")
+        .select(
+          "id, email, full_name, plan, trial_ends_at, alert_frequency, alert_channel, " +
+            "email_unsubscribed, telegram_chat_id, weekly_digest, unsubscribe_token",
+        )
+        .in("id", ruleUserIds);
+      if (ruleProfilesErr) console.error("perfiles de reglas no disponibles:", ruleProfilesErr.message);
+      for (const row of (profileRows ?? []) as (FollowerProfile & { id: string })[]) {
+        ruleProfiles.set(row.id, row);
+      }
+    }
+    const deliveredRows = await supabase
+      .from("alert_deliveries")
+      .select("alert_id, user_id")
+      .in("alert_id", alerts.map((a) => a.id));
     const deliveredKeys = new Set(
       ((deliveredRows.data ?? []) as { alert_id: string; user_id: string }[]).map(
         (d) => `${d.alert_id}:${d.user_id}`,
@@ -203,17 +491,49 @@ Deno.serve(async (req) => {
       alertsByPortfolio.set(alert.portfolio_id, list);
     }
 
-    // Un correo (o un mensaje) por usuario, no por fila de follow.
-    // alert_deliveries no distingue canal: la misma fila vale para email y Telegram.
-    for (const mode of modes) {
-      const buckets = new Map<string, {
-        userId: string;
-        profile: FollowerProfile;
-        route: { email: boolean; telegram: boolean };
-        alerts: AlertWithPortfolio[];
-        seen: Set<string>;
-      }>();
+    interface PendingDelivery {
+      alert: AlertWithPortfolio;
+      email: boolean;
+      telegram: boolean;
+    }
+    interface UserBucket {
+      userId: string;
+      profile: FollowerProfile;
+      deliveries: Map<string, PendingDelivery>;
+    }
 
+    // Un correo (o un mensaje) por usuario y por alerta, sin importar si vino
+    // de un follow o de una regla: `deliveries` deduplica por alert_id entre
+    // follows y reglas y une los canales. alert_deliveries no distingue canal.
+    for (const mode of modes) {
+      const buckets = new Map<string, UserBucket>();
+
+      const bucketFor = (userId: string, profile: FollowerProfile): UserBucket => {
+        let bucket = buckets.get(userId);
+        if (!bucket) {
+          bucket = { userId, profile, deliveries: new Map() };
+          buckets.set(userId, bucket);
+        }
+        return bucket;
+      };
+      const addDelivery = (
+        bucket: UserBucket,
+        alert: AlertWithPortfolio,
+        email: boolean,
+        telegram: boolean,
+      ) => {
+        if (!email && !telegram) return;
+        if (deliveredKeys.has(`${alert.id}:${bucket.userId}`)) return;
+        const existing = bucket.deliveries.get(alert.id);
+        if (existing) {
+          existing.email = existing.email || email;
+          existing.telegram = existing.telegram || telegram;
+          return;
+        }
+        bucket.deliveries.set(alert.id, { alert, email, telegram });
+      };
+
+      // 1) Seguidores del portafolio (F4: frecuencia + canal del perfil).
       for (const row of follows ?? []) {
         const profile = firstProfile(row.profiles);
         if (!profile) continue;
@@ -225,27 +545,41 @@ Deno.serve(async (req) => {
         );
         if (portfolioAlerts.length === 0) continue;
 
-        let bucket = buckets.get(row.user_id);
-        if (!bucket) {
-          bucket = { userId: row.user_id, profile, route, alerts: [], seen: new Set() };
-          buckets.set(row.user_id, bucket);
-        }
+        const bucket = bucketFor(row.user_id, profile);
         for (const alert of portfolioAlerts) {
-          if (bucket.seen.has(alert.id)) continue;
-          bucket.seen.add(alert.id);
-          bucket.alerts.push(alert);
+          addDelivery(bucket, alert, route.email, route.telegram);
+        }
+      }
+
+      // 2) Reglas a medida (F40): coinciden sin seguir el portafolio.
+      for (const rule of rules) {
+        const profile = ruleProfiles.get(rule.user_id);
+        if (!profile) continue;
+        const route = routeRule(profile, rule.channel, mode);
+        if (!route.email && !route.telegram) continue;
+
+        const bucket = bucketFor(rule.user_id, profile);
+        for (const alert of alerts) {
+          if (deliveredKeys.has(`${alert.id}:${rule.user_id}`)) continue;
+          if (ruleMatches(rule, alertMatchInput(alert))) {
+            addDelivery(bucket, alert, route.email, route.telegram);
+          }
         }
       }
 
       for (const bucket of buckets.values()) {
-        const { profile, route, userId } = bucket;
-        const pending = bucket.alerts;
+        const { profile, userId } = bucket;
+        const deliveries = [...bucket.deliveries.values()];
+        if (deliveries.length === 0) continue;
         const unsub = unsubscribeLink(profile.unsubscribe_token);
         const byEmail = typeof profile.email === "string" && profile.email.trim() !== "";
+        // El correo agrupa solo lo que la regla/follow quieren por correo;
+        // una regla solo-Telegram no contamina el digest.
+        const emailAlerts = deliveries.filter((d) => d.email).map((d) => d.alert);
 
-        if (route.email && byEmail) {
+        if (byEmail && emailAlerts.length > 0) {
           if (mode === "instant") {
-            for (const alert of pending) {
+            for (const alert of emailAlerts) {
               const res = await sendEmail(
                 resendKey,
                 from,
@@ -263,8 +597,8 @@ Deno.serve(async (req) => {
           } else {
             const name = profile.full_name?.trim() || "Hola";
             const html = mode === "weekly"
-              ? buildWeekly(profile, pending)
-              : buildDigest(pending, name, { token: profile.unsubscribe_token });
+              ? buildWeekly(profile, emailAlerts)
+              : buildDigest(emailAlerts, name, { token: profile.unsubscribe_token });
             const subject = mode === "weekly"
               ? "reclu.cl — Lo que movieron los grandes"
               : "Tu resumen reclu";
@@ -273,7 +607,7 @@ Deno.serve(async (req) => {
               : null;
             if (res) {
               totalSent++;
-              for (const alert of pending) {
+              for (const alert of emailAlerts) {
                 await markDelivery(supabase, alert.id, userId);
                 deliveredKeys.add(`${alert.id}:${userId}`);
               }
@@ -281,24 +615,28 @@ Deno.serve(async (req) => {
           }
         }
 
-        if (route.telegram && telegramToken) {
-          for (const alert of pending) {
+        if (telegramToken) {
+          for (const d of deliveries) {
+            if (!d.telegram) continue;
             const ok = await sendTelegram(
               telegramToken,
               profile.telegram_chat_id ?? "",
-              telegramText(alert, siteUrl()),
+              telegramText(d.alert, siteUrl()),
             );
             if (ok) {
               totalSent++;
-              await markDelivery(supabase, alert.id, userId);
-              deliveredKeys.add(`${alert.id}:${userId}`);
+              await markDelivery(supabase, d.alert.id, userId);
+              deliveredKeys.add(`${d.alert.id}:${userId}`);
             }
           }
         }
       }
     }
 
-    return Response.json({ modes, sent: totalSent }, { headers: corsHeaders });
+    return Response.json(
+      { modes, sent: totalSent, rules: rules.length },
+      { headers: corsHeaders },
+    );
   } catch (err) {
     return Response.json(
       { error: err instanceof Error ? err.message : "Unknown error" },
