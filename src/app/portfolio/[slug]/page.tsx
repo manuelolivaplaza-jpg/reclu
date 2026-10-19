@@ -20,6 +20,16 @@ import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatCompact } from "@/lib/utils";
 import { disclosureLagLabel } from "@/lib/disclosure-lag";
+import {
+  AFP_MODELO_SLUG,
+  AVISO_DESFASE_SP,
+  AVISO_SIMULACION,
+  ECH_PROXY_LABEL,
+  enlaceSpensiones,
+  fechaCartera,
+  latestAsOf,
+  urlFuenteAfpModelo,
+} from "@/lib/afp-fuente";
 
 export const instant = false;
 
@@ -125,6 +135,13 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
     weight: holding.weight,
   }));
   const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
+  // AFP Modelo: la fecha es el as_of más nuevo de los holdings que el
+  // muro ya entregó (get_portfolio_holdings). No se lee la tabla directa.
+  const esAfpModelo = portfolio.slug === AFP_MODELO_SLUG;
+  const corteAfp = esAfpModelo ? latestAsOf(holdings) : null;
+  const fechaAfp = esAfpModelo ? fechaCartera(corteAfp) : null;
+  const fuenteAfp = esAfpModelo ? urlFuenteAfpModelo(corteAfp) : null;
+  const benchmarkLabel = esAfpModelo ? ECH_PROXY_LABEL : perfPanelData.benchmarkLabel;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -200,8 +217,27 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                     <span className="num text-ink-900">{formatCompact(portfolio.followers)}</span>{" "}
                     seguidores
                   </span>
-                  <span>Fuente: {portfolio.source}</span>
+                  {fuenteAfp ? (
+                    <a
+                      href={fuenteAfp}
+                      className="text-ink-900 underline-offset-4 hover:underline"
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      Fuente: Superintendencia de Pensiones
+                    </a>
+                  ) : (
+                    <span>Fuente: {portfolio.source}</span>
+                  )}
                 </div>
+                {esAfpModelo ? (
+                  <div className="mt-5 border border-ink-200 px-4 py-3 text-[13px] leading-relaxed text-ink-500">
+                    {fechaAfp ? <p>Cartera al {fechaAfp}.</p> : null}
+                    <p>{AVISO_DESFASE_SP}</p>
+                    <p>{AVISO_SIMULACION}</p>
+                    <p>Referencia de mercado: {ECH_PROXY_LABEL}. No es el IPSA oficial.</p>
+                  </div>
+                ) : null}
               </div>
 
               {/* Retorno YTD + follow */}
@@ -259,7 +295,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
               metrics={perfPanelData.metrics}
               portfolioSeries={perfPanelData.portfolioSeries}
               benchmarkSeries={perfPanelData.benchmarkSeries}
-              benchmarkLabel={perfPanelData.benchmarkLabel}
+              benchmarkLabel={benchmarkLabel}
               method={perfDemo ? "demo" : perfPanelData.method}
               asOf={perfPanelData.precomputed?.as_of ?? null}
               demo={perfDemo}
@@ -278,8 +314,11 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             {/* Holdings — censurados sin cuenta */}
             <section>
               <h2 className="text-[15px] font-medium text-ink-900">
-                Composición ({Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})
+                Composición{fechaAfp ? ` al ${fechaAfp}` : ""} ({Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})
               </h2>
+              {esAfpModelo ? (
+                <p className="mt-2 text-[13px] text-ink-500">{AVISO_DESFASE_SP}</p>
+              ) : null}
 
               <PaywallGate locked={locked} label="composición" className="mt-4">
                 {holdings.length > 0 ? (
@@ -355,6 +394,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                   <div className="flex flex-col gap-4">
                     {alerts.map((alert) => {
                       const lag = disclosureLagLabel(alert.payload);
+                      const fuenteAlerta = enlaceSpensiones(alert.payload?.source_url);
                       return (
                         <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
                           <p className="text-[13px] text-ink-500">{timeAgo(alert.created_at)}</p>
@@ -374,6 +414,16 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                             <p className="mt-1.5 text-[13px] text-ink-500">
                               Resumen AI disponible en Pro
                             </p>
+                          ) : null}
+                          {fuenteAlerta ? (
+                            <a
+                              href={fuenteAlerta}
+                              className="mt-1.5 inline-block text-[13px] text-ink-900 underline-offset-4 hover:underline"
+                              rel="noreferrer"
+                              target="_blank"
+                            >
+                              Fuente: Superintendencia de Pensiones
+                            </a>
                           ) : null}
                         </div>
                       );
