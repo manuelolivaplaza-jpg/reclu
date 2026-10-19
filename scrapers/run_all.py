@@ -16,6 +16,8 @@ Etapas de mercado:
   prices             Cierres diarios Yahoo Finance → tabla prices
   compute_returns    return_pct de cada holding
   performance        Series históricas → portfolio_performance
+  spensiones         Carteras AFP (Superintendencia de Pensiones)
+  radar_ia           Portafolio Radar IA (después de rendimientos)
 
 Uso:
     python run_all.py                          # todas las etapas default
@@ -51,7 +53,8 @@ STAGES: list[tuple[str, str, bool]] = [
     ("etfs", "ETFs: ARK, Global X, iShares, VanEck", False),
     ("prices", "Precios EOD Yahoo Finance", False),
     ("compute_returns", "Rendimientos por holding", False),
-    ("performance", "Series de rendimiento históricas", False),
+    ("performance", "Series de rendimiento históricas", False),
+    ("spensiones", "Carteras AFP (Superintendencia de Pensiones)", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 STAGE_IDS = [s[0] for s in STAGES]
@@ -210,6 +213,14 @@ def run_performance(db, dry_run: bool) -> list[dict]:
     return [{"source": "performance", "status": "ok"}]
 
 
+def run_spensiones(db, dry_run: bool) -> list[dict]:
+    from spensiones import SpensionesAdapter
+
+    log("[spensiones] carteras AFP (Superintendencia de Pensiones)...")
+    adapter = SpensionesAdapter(dry_run=dry_run)
+    return [adapter.run(db)]
+
+
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
     # Etapa agregada en la integración (F7 + F3): corre después de
     # precios y rendimientos porque usa consenso + momentum.
@@ -231,6 +242,7 @@ RUNNERS = {
     "prices": run_prices,
     "compute_returns": run_compute_returns,
     "performance": run_performance,
+    "spensiones": run_spensiones,
     "radar_ia": run_radar_ia,
 }
 
