@@ -46,8 +46,13 @@ export async function generateMetadata({ params }: PortfolioPageProps) {
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) return { title: "Portafolio no encontrado" };
   const year = new Date().getFullYear();
-  const title = `Qué compró ${portfolio.name} — cartera ${year} | Reclu`;
-  const description = `Composición, pesos y movimientos de ${portfolio.name}. ${portfolio.description}`;
+  const esInfo = portfolio.slug === INFOPROBIDAD_SLUG;
+  const title = esInfo
+    ? `Empresas declaradas por autoridades — ${year} | Reclu`
+    : `Qué compró ${portfolio.name} — cartera ${year} | Reclu`;
+  const description = esInfo
+    ? portfolio.description
+    : `Composición, pesos y movimientos de ${portfolio.name}. ${portfolio.description}`;
   return {
     title,
     description,
@@ -264,9 +269,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         </div>
 
         <div className="container-page py-10">
-          {esAgregado && holdings.length === 0 ? null : (
-            <PortfolioMetricsStrip holdings={holdings} />
-          )}
+          {esAgregado ? null : <PortfolioMetricsStrip holdings={holdings} />}
 
           {showEvolution && !esAgregado ? (
             <div className="mb-12">
@@ -306,8 +309,16 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             {/* Holdings — censurados sin cuenta */}
             <section>
               <h2 className="text-[15px] font-medium text-ink-900">
-                Composición ({Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})
+                {esAgregado
+                  ? `Emisoras cotizadas (${holdings.length})`
+                  : `Composición (${Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})`}
               </h2>
+              {esAgregado ? (
+                <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+                  El peso es proporcional al número de autoridades que declaran la
+                  emisora. No es una cartera para copiar ni una recomendación de inversión.
+                </p>
+              ) : null}
 
               <PaywallGate locked={locked} label="composición" className="mt-4">
                 {holdings.length > 0 ? (
@@ -333,7 +344,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                                 >
                                   {h.symbol}
                                 </Link>
-                                {h.return_pct !== null && (
+                                {!esAgregado && h.return_pct !== null && (
                                   <span
                                     className={
                                       "num text-xs " +
