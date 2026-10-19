@@ -66,10 +66,9 @@ Ninguna.
 
 ## Verificación (2026-10-19)
 - `npm run lint`: verde.
-- `npm run typecheck`: solo el error conocido de Next 16
-  `Cannot find name 'LayoutProps'` en `src/app/layout.tsx` (tipo global que
-  genera el build; `AGENTS.md` lo documenta). Sin errores en los archivos
-  nuevos.
+- `npm run typecheck`: verde después de `npx next typegen` (genera el tipo
+  global `LayoutProps` de Next 16; sin ese paso, `tsc` aislado marca el error
+  conocido documentado en `AGENTS.md`, no relacionado con F24).
 - `npm test`: **344 passed** (31 suites), incluidas las 9 nuevas de Python no
   aplican aquí; todos los tests previos siguen verdes.
 - `python -m py_compile scrapers/corredoras_cl.py scrapers/tests/test_consenso.py`: OK
@@ -121,6 +120,7 @@ uv run --with httpx --with supabase --with pypdf python scrapers/run_all.py --on
 
 # Front
 npm run lint
+npx next typegen
 npm run typecheck
 npm test
 ```
