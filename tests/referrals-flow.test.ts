@@ -20,7 +20,7 @@ vi.mock("@/lib/billing/supabase-admin", () => ({
   getBillingServiceClient: vi.fn(),
 }));
 
-// ---- Signup: alta del vínculo referrer → invitado (service role) ----
+// ---- Signup: `referred_by` en la metadata (el trigger de la 009 inserta) ----
 
 const signupState = vi.hoisted(() => ({
   cookie: null as string | null,
@@ -28,14 +28,21 @@ const signupState = vi.hoisted(() => ({
     data: { user: { id: string } | null; session: unknown };
     error: { status: number; message: string } | null;
   },
-  referrer: null as { id: string } | null,
-  inserts: [] as Array<Record<string, unknown>>,
-  insertError: null as { code?: string; message: string } | null,
+  calls: [] as Array<{
+    email: string;
+    password: string;
+    options: { data: Record<string, unknown>; emailRedirectTo?: string };
+  }>,
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({
-    auth: { signUp: async () => signupState.signUpResult },
+    auth: {
+      signUp: async (payload: (typeof signupState.calls)[number]) => {
+        signupState.calls.push(payload);
+        return signupState.signUpResult;
+      },
+    },
   }),
 }));
 
@@ -48,33 +55,6 @@ vi.mock("next/headers", () => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 
-vi.mock("@/lib/supabase/service", () => ({
-  getServiceClient: () => ({
-    from: (table: string) => {
-      if (table === "profiles") {
-        return {
-          select: () => ({
-            eq: (column: string, value: string) => ({
-              maybeSingle: async () => {
-                expect(column).toBe("referral_code");
-                expect(value).toBe("ABC123");
-                return { data: signupState.referrer, error: null };
-              },
-            }),
-          }),
-        };
-      }
-      return {
-        insert: async (row: Record<string, unknown>) => {
-          if (signupState.insertError) return { error: signupState.insertError };
-          signupState.inserts.push(row);
-          return { error: null };
-        },
-      };
-    },
-  }),
-}));
-
 describe("cookie de referido en el proxy", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -82,7 +62,7 @@ describe("cookie de referido en el proxy", () => {
 
   it("con el flag apagado no escribe cookie aunque ?ref sea válido", async () => {
     const { updateSession } = await import("@/lib/supabase/middleware");
-    const request = new NextRequest("https://reclu.cl/?ref=ABC123");
+    const request = new NextRequest("https://reclu.cl/?ref=manuel-ab12");
     const response = await updateSession(request);
     expect(response.cookies.get(REFERRAL_COOKIE)).toBeUndefined();
   });
@@ -90,10 +70,10 @@ describe("cookie de referido en el proxy", () => {
   it("con REFERRALS_ENABLED=true guarda el código 30 días, httpOnly y lax", async () => {
     vi.stubEnv("REFERRALS_ENABLED", "true");
     const { updateSession } = await import("@/lib/supabase/middleware");
-    const request = new NextRequest("https://reclu.cl/?ref=ABC123");
+    const request = new NextRequest("https://reclu.cl/?ref=Manuel-AB12");
     const response = await updateSession(request);
     const cookie = response.cookies.get(REFERRAL_COOKIE);
-    expect(cookie?.value).toBe("ABC123");
+    expect(cookie?.value).toBe("manuel-ab12");
     expect(cookie?.httpOnly).toBe(true);
     expect(cookie?.sameSite).toBe("lax");
     expect(cookie?.maxAge).toBe(REFERRAL_COOKIE_MAX_AGE);
@@ -181,12 +161,10 @@ describe("recompensa de referido en el primer pago", () => {
   });
 });
 
-describe("signUp: alta del referido", () => {
+describe("signUp: referred_by en la metadata", () => {
   beforeEach(() => {
-    signupState.cookie = "ABC123";
-    signupState.referrer = { id: "referrer-1" };
-    signupState.inserts = [];
-    signupState.insertError = null;
+    signupState.cookie = "manuel-ab12";
+    signupState.calls = [];
     signupState.signUpResult = {
       data: { user: { id: "invited-1" }, session: null },
       error: null,
@@ -204,43 +182,34 @@ describe("signUp: alta del referido", () => {
     return form;
   }
 
-  it("con el flag apagado no inserta nada", async () => {
+  it("con el flag apagado no manda referred_by", async () => {
     const { signUp } = await import("@/app/actions/auth");
     const state = await signUp({}, makeForm());
     expect(state.success).toContain("Cuenta creada");
-    expect(signupState.inserts).toHaveLength(0);
+    expect(signupState.calls).toHaveLength(1);
+    expect(signupState.calls[0].options.data).not.toHaveProperty("referred_by");
   });
 
-  it("con flag y cookie válida registra referrer y referred", async () => {
+  it("con flag y cookie válida manda referred_by normalizado", async () => {
     vi.stubEnv("REFERRALS_ENABLED", "true");
+    signupState.cookie = "  Manuel-AB12 ";
     const { signUp } = await import("@/app/actions/auth");
     await signUp({}, makeForm());
-    expect(signupState.inserts).toEqual([
-      { referrer_id: "referrer-1", referred_id: "invited-1" },
-    ]);
+    expect(signupState.calls).toHaveLength(1);
+    expect(signupState.calls[0].options.data).toMatchObject({
+      referred_by: "manuel-ab12",
+    });
   });
 
-  it("no registra autorreferidos", async () => {
+  it("ignora una cookie con código inválido", async () => {
     vi.stubEnv("REFERRALS_ENABLED", "true");
-    signupState.referrer = { id: "invited-1" };
+    signupState.cookie = "ABC123";
     const { signUp } = await import("@/app/actions/auth");
     await signUp({}, makeForm());
-    expect(signupState.inserts).toHaveLength(0);
+    expect(signupState.calls[0].options.data).not.toHaveProperty("referred_by");
   });
 
-  it("un fallo al insertar no rompe el signup ni cambia el mensaje", async () => {
-    vi.stubEnv("REFERRALS_ENABLED", "true");
-    signupState.insertError = { message: "boom" };
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { signUp } = await import("@/app/actions/auth");
-    const state = await signUp({}, makeForm());
-    expect(state.success).toContain("Cuenta creada");
-    expect(state.error).toBeUndefined();
-    expect(errorSpy).toHaveBeenCalled();
-    errorSpy.mockRestore();
-  });
-
-  it("un error de Supabase mantiene el mensaje genérico (sin tocar referidos)", async () => {
+  it("un error de Supabase mantiene el mensaje genérico (sin metadata extra)", async () => {
     vi.stubEnv("REFERRALS_ENABLED", "true");
     signupState.signUpResult = {
       data: { user: null, session: null },
@@ -250,7 +219,9 @@ describe("signUp: alta del referido", () => {
     const { signUp } = await import("@/app/actions/auth");
     const state = await signUp({}, makeForm());
     expect(state.error).toBe("Si el correo es válido, te enviamos un enlace para continuar.");
-    expect(signupState.inserts).toHaveLength(0);
+    expect(signupState.calls[0].options.data).toMatchObject({
+      referred_by: "manuel-ab12",
+    });
     errorSpy.mockRestore();
   });
 });

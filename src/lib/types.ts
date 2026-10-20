@@ -141,8 +141,6 @@ export interface Profile {
   telegram_chat_id?: string | null;
   /** Código de un solo uso para /start. Lo genera el servidor al vincular. */
   telegram_link_code?: string | null;
-  /** Código público de invitación (migración 039). Sólo con referidos activos. */
-  referral_code?: string | null;
   created_at: string;
   updated_at: string;
 }

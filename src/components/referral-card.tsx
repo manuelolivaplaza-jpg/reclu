@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 
 /**
  * Tarjeta de invitación (Ajustes). Sólo se renderiza con
- * `REFERRALS_ENABLED=true` y un `referral_code` real.
+ * `REFERRALS_ENABLED=true` y un código real de `referral_codes`.
  *
  * El premio es para el patrocinador: un mes de Pro cuando el invitado
  * confirma su primer pago. Sin promesas de dinero ni asesoría.

@@ -59,7 +59,19 @@ export default async function SettingsPage() {
     .select("id, kind, value, channel, active")
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
-  const [subscriptionResult, rulesResult] = await Promise.all([subscriptionPromise, rulesPromise]);
+  // Código propio de referidos: tabla de la 009, RLS "own referral code read".
+  const referralCodePromise = referralsEnabled()
+    ? supabase
+        .from("referral_codes")
+        .select("code")
+        .eq("user_id", profile.id)
+        .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+  const [subscriptionResult, rulesResult, referralResult] = await Promise.all([
+    subscriptionPromise,
+    rulesPromise,
+    referralCodePromise,
+  ]);
   const activeSubscription = (subscriptionResult.data as SubscriptionRow | null) ?? null;
   if (rulesResult.error) {
     console.warn("[reclu] alert_rules:", rulesResult.error.message);
@@ -72,8 +84,14 @@ export default async function SettingsPage() {
   const planName =
     profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Gratis";
 
-  // Referidos: apagado por defecto; sólo aparece con el flag y un código real.
-  const referralCode = referralsEnabled() ? (profile.referral_code ?? null) : null;
+  // Referidos: apagado por defecto; sólo aparece con el flag y un código real
+  // de la tabla `referral_codes` (la 009 lo genera al registrarse).
+  if (referralResult.error) {
+    console.warn("[reclu] referral_codes:", referralResult.error.message);
+  }
+  const referralCode = referralsEnabled()
+    ? ((referralResult.data as { code: string } | null)?.code ?? null)
+    : null;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://reclu.cl";
 
   return (

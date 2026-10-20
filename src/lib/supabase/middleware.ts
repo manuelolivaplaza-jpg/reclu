@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import {
-  isValidReferralCode,
+  normalizeReferralCode,
   referralsEnabled,
   REFERRAL_COOKIE,
   REFERRAL_COOKIE_MAX_AGE,
@@ -15,8 +15,8 @@ import {
 function withReferralCookie(request: NextRequest, response: NextResponse): NextResponse {
   if (!referralsEnabled()) return response;
 
-  const code = request.nextUrl.searchParams.get("ref");
-  if (!isValidReferralCode(code)) return response;
+  const code = normalizeReferralCode(request.nextUrl.searchParams.get("ref"));
+  if (!code) return response;
 
   response.cookies.set(REFERRAL_COOKIE, code, {
     maxAge: REFERRAL_COOKIE_MAX_AGE,

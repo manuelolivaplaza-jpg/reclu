@@ -6,6 +6,7 @@ import {
   REFERRAL_COOKIE_MAX_AGE,
   canRefer,
   isValidReferralCode,
+  normalizeReferralCode,
   referralsEnabled,
 } from "@/lib/referrals";
 
@@ -41,27 +42,39 @@ describe("REFERRALS_ENABLED", () => {
   });
 });
 
-describe("isValidReferralCode", () => {
-  it("acepta 6-16 caracteres alfanuméricos", () => {
-    expect(isValidReferralCode("ABC123")).toBe(true);
-    expect(isValidReferralCode("abcdef")).toBe(true);
-    expect(isValidReferralCode("A1B2C3D4E5F6G7H8")).toBe(true);
-    expect(isValidReferralCode("000000")).toBe(true);
+describe("isValidReferralCode / normalizeReferralCode", () => {
+  it("acepta el formato de la 009: base 3-6 + guion + 4 hex", () => {
+    expect(isValidReferralCode("manuel-ab12")).toBe(true);
+    expect(isValidReferralCode("abc-1234")).toBe(true);
+    expect(isValidReferralCode("abcdef-abcd")).toBe(true);
+    expect(isValidReferralCode("a0b1-c0de")).toBe(true);
   });
 
-  it("rechaza largos fuera de rango", () => {
-    expect(isValidReferralCode("A1B2C")).toBe(false); // 5
-    expect(isValidReferralCode("A1B2C3D4E5F6G7H8I")).toBe(false); // 17
-    expect(isValidReferralCode("")).toBe(false);
+  it("normaliza con trim + toLowerCase", () => {
+    expect(normalizeReferralCode("  Manuel-AB12  ")).toBe("manuel-ab12");
+    expect(normalizeReferralCode("ABC-1234")).toBe("abc-1234");
+    expect(isValidReferralCode("Manuel-AB12")).toBe(true);
   });
 
-  it("rechaza caracteres fuera de [A-Za-z0-9]", () => {
+  it("rechaza largos fuera de rango de la base", () => {
+    expect(isValidReferralCode("ab-1234")).toBe(false); // 2
+    expect(isValidReferralCode("abcdefg-1234")).toBe(false); // 7
+  });
+
+  it("rechaza sufijos que no son 4 hex", () => {
+    expect(isValidReferralCode("manuel-abc")).toBe(false); // 3
+    expect(isValidReferralCode("manuel-abcde")).toBe(false); // 5
+    expect(isValidReferralCode("manuel-ghij")).toBe(false); // no hex
+  });
+
+  it("rechaza formatos sin guion o con caracteres extra", () => {
+    expect(isValidReferralCode("ABC123")).toBe(false);
     expect(isValidReferralCode("ABC-123")).toBe(false);
-    expect(isValidReferralCode("ABC_123")).toBe(false);
-    expect(isValidReferralCode("ABC 123")).toBe(false);
-    expect(isValidReferralCode(" ABC123")).toBe(false);
-    expect(isValidReferralCode("ABC123 ")).toBe(false);
-    expect(isValidReferralCode("ABCÑ12")).toBe(false);
+    expect(isValidReferralCode("ABC_1234")).toBe(false);
+    expect(isValidReferralCode("ABC 1234")).toBe(false);
+    expect(isValidReferralCode("ABC-12 4")).toBe(false);
+    expect(isValidReferralCode("")).toBe(false);
+    expect(isValidReferralCode("   ")).toBe(false);
   });
 
   it("rechaza valores que no son string", () => {
@@ -69,6 +82,7 @@ describe("isValidReferralCode", () => {
     expect(isValidReferralCode(undefined)).toBe(false);
     expect(isValidReferralCode(123456)).toBe(false);
     expect(isValidReferralCode({})).toBe(false);
+    expect(normalizeReferralCode(null)).toBeNull();
   });
 });
 
@@ -99,22 +113,24 @@ describe("cookie de referido", () => {
 describe("migración 039_referidos.sql", () => {
   const sql = migracion();
 
-  it("crea la columna y la tabla de forma idempotente", () => {
-    expect(sql).toContain("add column if not exists referral_code text");
-    expect(sql).toContain("create table if not exists public.referrals");
-    expect(sql).toContain("referred_id uuid not null unique");
-    expect(sql).toContain("check (status in ('pending', 'rewarded'))");
+  it("no duplica el esquema de la 009 (sin profiles.referral_code)", () => {
+    expect(sql).not.toMatch(/add column if not exists referral_code/i);
+    expect(sql).not.toMatch(/generate_referral_code/i);
+    expect(sql).not.toMatch(/set_referral_code/i);
+    expect(sql).not.toMatch(/create trigger/i);
+    expect(sql).not.toMatch(/create table if not exists public\.referrals/i);
   });
 
-  it("protege la tabla con RLS: el usuario sólo ve sus referidos", () => {
-    expect(sql).toMatch(/alter table public\.referrals enable row level security;/i);
-    expect(sql).toMatch(/create policy referrals_select_own[\s\S]*for select[\s\S]*to authenticated/i);
-    expect(sql).toMatch(/using \(referrer_id = \(select auth\.uid\(\)\)\)/i);
+  it("refuerza un invitado por fila con un bloque idempotente", () => {
+    expect(sql).toMatch(/do \$\$/);
+    expect(sql).toMatch(/to_regclass\('public\.referrals'\)/);
+    expect(sql).toMatch(/add constraint referrals_referred_id_key unique \(referred_id\)/i);
   });
 
   it("no deja escribir referrals a anon/authenticated", () => {
     expect(sql).toMatch(/revoke insert, update, delete on table public\.referrals from authenticated;/i);
     expect(sql).toMatch(/revoke all on table public\.referrals from anon;/i);
+    expect(sql).toMatch(/grant select on table public\.referrals to authenticated;/i);
   });
 
   it("reward_referral es security definer con search_path vacío", () => {
@@ -140,9 +156,8 @@ describe("migración 039_referidos.sql", () => {
     expect(sql).toMatch(/perform set_config\('reclu\.trusted', 'on', true\);/i);
   });
 
-  it("genera referral_code para perfiles nuevos y rellena los viejos", () => {
-    expect(sql).toMatch(/create or replace function public\.generate_referral_code\(\)/i);
-    expect(sql).toMatch(/create trigger z_set_referral_code/i);
-    expect(sql).toMatch(/where referral_code is null/i);
+  it("marca el premio aplicado y su ventana en referrals", () => {
+    expect(sql).toMatch(/set reward_applied = 'free_month'/i);
+    expect(sql).toMatch(/reward_period_end = v_period_end/i);
   });
 });
