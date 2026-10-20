@@ -100,11 +100,12 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
+  // Muro 048: `summary` ya no es legible directo por anon/authenticated, así
+  // que se piden columnas explícitas sin esa columna y el resumen se toma de
+  // `get_alerts` (solo lo devuelve a pro/elite).
   const { data: row, error: lookupError } = await supabase
     .from("alerts")
-    .select(
-      "id, type, severity, title, summary, payload, created_at, portfolio:portfolios!inner(slug, name, manager, category)",
-    )
+    .select("id, portfolio_id, type, severity, title, payload, created_at")
     .eq("id", parsed.data.alertId)
     .eq("is_published", true)
     .maybeSingle();
@@ -114,7 +115,27 @@ export async function POST(request: Request) {
     return Response.json({ error: "No pudimos leer la alerta." }, { status: 500 });
   }
 
-  const alert = explainInputFromRow(row);
+  let withPortfolio: unknown = null;
+  if (row) {
+    const [{ data: portfolio }, { data: planAlerts }] = await Promise.all([
+      supabase
+        .from("portfolios")
+        .select("slug, name, manager, category")
+        .eq("id", row.portfolio_id)
+        .maybeSingle(),
+      supabase.rpc("get_alerts", {
+        p_portfolio: row.portfolio_id,
+        p_limit: 100,
+      }),
+    ]);
+    const alertRows = Array.isArray(planAlerts)
+      ? (planAlerts as { id: string; summary: string | null }[])
+      : [];
+    const matched = alertRows.find((item) => item.id === row.id);
+    withPortfolio = { ...row, summary: matched?.summary ?? null, portfolio };
+  }
+
+  const alert = explainInputFromRow(withPortfolio);
   if (!alert) {
     return Response.json({ error: "Alerta no encontrada." }, { status: 404 });
   }

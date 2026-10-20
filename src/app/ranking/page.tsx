@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
+import { Lock } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LegalNotice } from "@/components/legal/legal-notice";
-import { getPortfolios } from "@/lib/queries";
+import { getPortfolios, getProfile } from "@/lib/queries";
+import { isPaidPlan } from "@/lib/types";
 import {
   benchmarkSymbolForCountry,
   getBeatTheMarketRanking,
@@ -43,15 +45,20 @@ function formatAsOf(value: string): string {
 export default async function RankingPage() {
   await connection();
 
-  const [portfolios, metrics] = await Promise.all([
+  const [portfolios, metrics, profile] = await Promise.all([
     getPortfolios(),
     getBeatTheMarketRanking(500),
+    getProfile(),
   ]);
+  const paid = isPaidPlan(profile?.plan);
 
   const metricsByPortfolio = new Map(metrics.map((row) => [row.portfolio_id, row]));
 
   const portfolioSources: RankingSourceInput[] = portfolios.map((portfolio) => {
-    const metric = metricsByPortfolio.get(portfolio.id);
+    // Muro 048: las métricas de un portafolio premium solo las ve quien paga.
+    // A los demás se les muestra el portafolio con candado y sin cifras.
+    const locked = portfolio.premium && !paid;
+    const metric = locked ? undefined : metricsByPortfolio.get(portfolio.id);
     return {
       id: `portfolio-${portfolio.id}`,
       name: portfolio.name,
@@ -65,15 +72,20 @@ export default async function RankingPage() {
       dataPoints: metric?.data_points ?? null,
       asOf: metric?.as_of ?? "",
       href: `/portfolio/${portfolio.slug}`,
+      locked,
       source: metric ? "portfolio_metrics (Supabase)" : undefined,
-      note: metric
-        ? undefined
-        : "Todavía no hay métricas precalculadas suficientes para este portafolio.",
+      note: locked
+        ? "Métricas y serie disponibles con el plan Pro."
+        : metric
+          ? undefined
+          : "Todavía no hay métricas precalculadas suficientes para este portafolio.",
     };
   });
 
   const rows = rankSources([...portfolioSources, ...RESEARCH_RESULTS]);
   const { winners, losers, ties, noData } = splitByOutcome(rows);
+  const locked = noData.filter((row) => row.locked);
+  const missing = noData.filter((row) => !row.locked);
   const withData = winners.length + losers.length + ties.length;
   const cutDates = rows
     .map((row) => row.asOf)
@@ -104,9 +116,14 @@ export default async function RankingPage() {
               <span className="num text-[30px] leading-none">{losers.length}</span>{" "}
               <span className="text-ink-500">pierden.</span>
             </p>
-            {noData.length > 0 && (
+            {locked.length > 0 && (
               <p className="text-[13px] text-ink-500">
-                {noData.length} sin datos suficientes.
+                {locked.length} con métricas en Pro.
+              </p>
+            )}
+            {missing.length > 0 && (
+              <p className="text-[13px] text-ink-500">
+                {missing.length} sin datos suficientes.
               </p>
             )}
             {cutDates.length > 0 && (
@@ -172,7 +189,51 @@ export default async function RankingPage() {
             </section>
           )}
 
-          {noData.length > 0 && (
+          {locked.length > 0 && (
+            <section className="mt-14" aria-labelledby="pro-heading">
+              <h2
+                id="pro-heading"
+                className="text-[15px] font-medium text-ink-900"
+              >
+                Métricas disponibles en Pro
+              </h2>
+              <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+                Estos portafolios participan del ranking, pero sus cifras y su
+                serie están detrás del muro. No publicamos números premium sin
+                plan de pago.
+              </p>
+              <ul className="mt-4 border-t border-ink-200">
+                {locked.map((row) => (
+                  <li
+                    key={row.id}
+                    className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-200 py-3"
+                  >
+                    <span className="inline-flex items-center gap-2 text-[15px] text-ink-900">
+                      <Lock className="size-3.5 text-ink-500" strokeWidth={1.5} />
+                      {row.href ? (
+                        <Link
+                          href={row.href}
+                          className="underline-offset-4 hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                      ) : (
+                        row.name
+                      )}
+                      <span className="border border-ink-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-500">
+                        Pro
+                      </span>
+                    </span>
+                    <span className="text-[12px] text-ink-500">
+                      {row.benchmarkLabel} · cifras en Pro
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {missing.length > 0 && (
             <section className="mt-14" aria-labelledby="sindatos-heading">
               <h2
                 id="sindatos-heading"
@@ -185,7 +246,7 @@ export default async function RankingPage() {
                 tenga serie y benchmark comparables.
               </p>
               <ul className="mt-4 border-t border-ink-200">
-                {noData.map((row) => (
+                {missing.map((row) => (
                   <li
                     key={row.id}
                     className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-200 py-3"

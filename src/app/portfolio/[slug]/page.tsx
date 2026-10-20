@@ -129,7 +129,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
     getHoldings(portfolio.id, { role }),
     getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
-    getPerformance(portfolio.id),
+    getPerformance(portfolio.id, 365, { role, source: portfolio.source }),
     getPortfolioPerformanceData({
       portfolioId: portfolio.id,
       country: portfolio.country,

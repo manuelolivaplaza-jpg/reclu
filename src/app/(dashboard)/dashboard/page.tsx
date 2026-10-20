@@ -7,6 +7,7 @@ import { PortfolioCard } from "@/components/portfolio-card";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
 import { ButtonLink } from "@/components/ui/button";
 import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT, isPaidPlan } from "@/lib/types";
+import { roleFor } from "@/lib/access";
 
 export const metadata = { title: "Dashboard" };
 // Auth-gated route: reads cookies at request time — never prerendered.
@@ -45,33 +46,33 @@ export default async function DashboardPage() {
   const proLimitReached =
     profile?.plan === "pro" && followed.length >= PRO_PLAN_FOLLOW_LIMIT;
 
-  // Recent alerts for followed portfolios (with fallback to global/demo alerts)
-  const { data: followedAlerts } = await supabase
-    .from("alerts")
-    .select("*, portfolio:portfolios!inner(id, slug, name)")
-    .eq("is_published", true)
-    .in(
-      "portfolio_id",
-      followed.length > 0 ? followed.map((p) => p.id) : ["00000000-0000-0000-0000-000000000000"],
-    )
-    .order("created_at", { ascending: false })
-    .limit(5);
-
+  // Recent alerts for followed portfolios (with fallback to global/demo
+  // alerts). Muro 048: las alertas se leen por la RPC `get_alerts`, que
+  // recorta por plan; nunca por `select("*")` (summary está revocado).
+  const role = roleFor(profile);
   const portfolioById = new Map(allPortfolios.map((p) => [p.id, p]));
+  const followedAlerts =
+    followed.length > 0
+      ? await getAlerts(undefined, 5, {
+          role,
+          portfolioIds: followed.map((p) => p.id),
+        })
+      : [];
+  const alertWithPortfolio = (alert: (typeof followedAlerts)[number]) => {
+    const matched = portfolioById.get(alert.portfolio_id);
+    return {
+      ...alert,
+      portfolio: alert.portfolio ?? {
+        id: matched?.id ?? alert.portfolio_id,
+        slug: matched?.slug ?? "pelosi-tracker",
+        name: matched?.name ?? "Portafolio",
+      },
+    };
+  };
   const recentAlerts =
-    followedAlerts && followedAlerts.length > 0
-      ? followedAlerts
-      : (await getAlerts(undefined, 5)).map((alert) => {
-          const matched = portfolioById.get(alert.portfolio_id);
-          return {
-            ...alert,
-            portfolio: alert.portfolio ?? {
-              id: matched?.id ?? alert.portfolio_id,
-              slug: matched?.slug ?? "pelosi-tracker",
-              name: matched?.name ?? "Portafolio",
-            },
-          };
-        });
+    followedAlerts.length > 0
+      ? followedAlerts.map(alertWithPortfolio)
+      : (await getAlerts(undefined, 5, { role })).map(alertWithPortfolio);
 
   const firstName = profile?.full_name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "ahí";
 

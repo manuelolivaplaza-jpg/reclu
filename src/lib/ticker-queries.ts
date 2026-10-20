@@ -15,7 +15,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getProfile } from "@/lib/queries";
+import { getAlerts, getProfile } from "@/lib/queries";
 import type { Alert, Portfolio } from "@/lib/types";
 import { DEMO_PORTFOLIOS, demoAlerts, demoHoldings } from "@/lib/demo-data";
 import {
@@ -364,17 +364,9 @@ export async function getTickerOverview(rawSymbol: string): Promise<TickerOvervi
     summary.holders = applySourceFirstSeen(summary.holders, loaded.rows);
   }
 
-  const { data: alertRows } = await supabase
-    .from("alerts")
-    .select(
-      `
-      *,
-      portfolio:portfolios!inner ( id, slug, name )
-      `,
-    )
-    .eq("is_published", true)
-    .order("created_at", { ascending: false })
-    .limit(200);
+  // Muro 048: alertas por RPC (topes por plan y summary solo pro/elite).
+  // `select("*")` sobre alerts ya falla para anon/authenticated.
+  const alertRows = await getAlerts(undefined, 200, { role });
 
   return {
     symbol,
@@ -385,10 +377,10 @@ export async function getTickerOverview(rawSymbol: string): Promise<TickerOvervi
       avgWeight: summary.avgWeight,
       maxWeight: summary.maxWeight,
     },
-    alerts: filterAlertsBySymbol((alertRows ?? []) as Alert[], symbol),
+    alerts: filterAlertsBySymbol(alertRows as Alert[], symbol),
     price: summary.price,
     currency: summary.currency,
-    isDemo: summary.holders.length === 0 && (alertRows ?? []).length === 0,
+    isDemo: summary.holders.length === 0 && alertRows.length === 0,
   };
 }
 
