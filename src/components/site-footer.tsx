@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LogoLockup } from "@/components/logo";
+import { NewsletterSignup } from "@/components/newsletter-signup";
 
 // Evaluado una vez al cargar el módulo — mantiene el prerender determinista.
 const CURRENT_YEAR = new Date().getFullYear();
@@ -27,7 +28,7 @@ export function SiteFooter() {
   return (
     <footer className="bg-ink-900 text-white">
       <div className="container-page py-16">
-        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1.5fr]">
           <div className="flex flex-col gap-4">
             <LogoLockup tone="inverse" />
             <p className="max-w-xs text-sm leading-relaxed text-white/62">
@@ -53,6 +54,8 @@ export function SiteFooter() {
               </ul>
             </div>
           ))}
+
+          <NewsletterSignup />
         </div>
 
         <div className="mt-12 flex flex-col gap-4 border-t border-white/16 pt-8 text-sm md:flex-row md:items-center md:justify-between">
