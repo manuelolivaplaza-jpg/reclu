@@ -1,15 +1,17 @@
 /**
  * Declaraciones oficiales que no van detrás del muro. TODO(integración): confirmar con abogado.
  *
- * `nport_subversive` (F26): NANC y GOP derivan de los PTR de congresistas y
- * la propia web del emisor recuerda el aviso EIGA (5 U.S.C. § 13107), que
- * prohíbe el uso comercial. Se muestran gratis y fuera del muro.
+ * Solo las declaraciones públicas de funcionarios de EE.UU. (PTR de la
+ * Cámara y el Senado, y el formulario OGE 278-T) quedan fuera del muro:
+ * 5 U.S.C. § 13107 exige que sigan disponibles gratis.
+ *
+ * `nport_subversive` (NANC/GOP) NO entra: es un ETF, un producto comercial,
+ * y sus holdings salen del N-PORT del emisor, no de un PTR. Va premium.
  */
 export const PUBLIC_DISCLOSURE_SOURCES = [
   "oge_278t",
   "house_ptr",
   "senate_ptr",
-  "nport_subversive",
 ] as const;
 
 export function isPublicDisclosureSource(source: string | null | undefined): boolean {

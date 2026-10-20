@@ -24,12 +24,15 @@ Sin push. Sin escrituras en Supabase.
 - `scrapers/stages/etfs_subversive.py` (etapa nueva descubierta por F16):
   `etfs_subversive`, opcional, corre NANC/GOP con `--dry-run` o escribe.
 - `supabase/migrations/026_etf_politicos.sql`: crea `nanc-etf` y `gop-etf`
-  (`category = political_us`, `source = nport_subversive`, `premium = false`,
-  `country = US`). Solo portafolios; los holdings los carga el scraper.
-  Idempotente con `on conflict (slug) do nothing`.
-- `src/lib/public-disclosure.ts`: agrega `nport_subversive` a las fuentes
-  públicas (los ETFs derivan de los PTR y el emisor recuerda EIGA,
-  5 U.S.C. § 13107). Quedan fuera del muro.
+  (`category = political_us`, `source = nport_subversive`, `country = US`).
+  Solo portafolios; los holdings los carga el scraper. Idempotente con
+  `on conflict (slug) do nothing`.
+  - **Corregido en F26B:** ambos son `premium = true` y el conflicto hace
+    `do update set premium = true`. Son un ETF (producto comercial) con
+    holdings del N-PORT, no PTR oficiales; el muro es decisión de producto.
+- `src/lib/public-disclosure.ts`: en F26 se agregó `nport_subversive` a las
+  fuentes públicas. **Revertido en F26B:** las fuentes exentas vuelven a ser
+  solo `oge_278t`, `house_ptr` y `senate_ptr` (5 U.S.C. § 13107).
 - `scrapers/tests/test_subversive.py` + fixture
   `scrapers/tests/fixtures/nport_subversive_sintetico.xml` (rotulado como
   SINTÉTICO, sin datos reales).
