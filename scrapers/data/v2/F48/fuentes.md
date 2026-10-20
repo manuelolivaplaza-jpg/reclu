@@ -1,0 +1,11 @@
+# Fuentes para las fichas de educación (todas verificadas en ideas-v2.md y en tareas F10–F15)
+- 13F: https://www.sec.gov/ (data.sec.gov/submissions), WhaleWisdom backtesting whitepaper https://whalewisdom.com/help/backtesting_whitepaper
+- Form 4: https://www.sec.gov/data-research/sec-markets-data/insider-transactions-data-sets
+- STOCK Act / atraso 30–45 días: https://unusualwhales.com/lp/congressional-trade-alerts-subscription ; 5 U.S.C. § 13107 https://www.law.cornell.edu/uscode/text/5/13107
+- OGE 278-T: https://extapps2.oge.gov/201/Presiden.nsf/
+- AFP: https://www.spensiones.cl/
+- Hechos esenciales / dividendos CMF: https://www.cmfchile.cl/institucional/hechos/hechos.php , https://www.cmfchile.cl/institucional/estadisticas/acc_dividendos_index.php
+- InfoProbidad (CC BY 4.0): https://www.infoprobidad.cl/DatosAbiertos/Catalogos
+- Ley Fintec 21.521: https://www.bcn.cl/leychile/Navegar?idNorma=1187323 ; CMF Educa asesores: https://www.cmfchile.cl/educa/621/w3-propertyvalue-48194.html
+- DJ 1929: ver datos/F42/README.md
+- Sesgo: inverse Cramer SJIM liquidado (https://www.nasdaq.com/press-release/the-inverse-cramer-tracker-etf-to-be-closed-and-liquidated-2024-01-25)
