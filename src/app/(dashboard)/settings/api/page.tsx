@@ -1,9 +1,12 @@
 import { connection } from "next/server";
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { getServiceClient } from "@/lib/supabase/service";
 import {
+  API_MAX_ACTIVE_KEYS,
+  activeApiKeyLimitReached,
   apiDailyLimit,
   apiPublicEnabled,
   generateApiKey,
@@ -76,6 +79,23 @@ async function createApiKeyAction(
   const service = getServiceClient();
   if (!service) {
     return { error: "La API todavía no está configurada. Inténtalo más tarde." };
+  }
+
+  // El tope se valida en el servidor: la UI puede mostrar el aviso, pero la
+  // decisión no depende del navegador. Las revocadas no ocupan cupo.
+  const { count, error: countError } = await service
+    .from("api_keys")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("revoked", false);
+  if (countError) {
+    console.warn("[reclu] api_keys count:", countError.message);
+    return { error: "No pudimos crear la clave. Inténtalo de nuevo." };
+  }
+  if (activeApiKeyLimitReached(count ?? 0)) {
+    return {
+      error: `Puedes tener hasta ${API_MAX_ACTIVE_KEYS} claves activas. Revoca una antes de crear otra.`,
+    };
   }
 
   const generated = generateApiKey();
@@ -225,6 +245,14 @@ export default async function ApiSettingsPage() {
           ofrecen gratis y fuera de cualquier muro, conforme a 5 U.S.C. § 13107.
           La API entrega información pública: no ejecuta órdenes ni entrega
           recomendaciones personalizadas.
+        </p>
+        <p className="text-[13px]">
+          <Link
+            href="/api-docs"
+            className="text-ink-900 underline underline-offset-4"
+          >
+            Ver documentación de la API
+          </Link>
         </p>
       </div>
     </div>

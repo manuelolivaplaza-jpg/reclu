@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   API_DAILY_LIMITS,
   API_KEY_PREFIX,
+  API_MAX_ACTIVE_KEYS,
+  activeApiKeyLimitReached,
   apiDailyLimit,
   apiDayKey,
   apiPublicEnabled,
@@ -231,7 +233,7 @@ describe("authenticateApiKey", () => {
     if (!result.ok) expect(result.status).toBe(401);
   });
 
-  it("una clave revocada responde 403", () => {
+  it("una clave revocada responde 401 con el mismo mensaje genérico", () => {
     const key = generateApiKey();
     const result = authenticateApiKey(
       `Bearer ${key.plaintext}`,
@@ -240,8 +242,8 @@ describe("authenticateApiKey", () => {
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.status).toBe(403);
-      expect(result.error).toContain("revocada");
+      expect(result.status).toBe(401);
+      expect(result.error).toBe("Clave de API inválida.");
     }
   });
 
@@ -269,5 +271,20 @@ describe("authenticateApiKey", () => {
     );
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.plan).toBe("free");
+  });
+});
+
+describe("tope de claves activas", () => {
+  it("permite crear mientras haya cupo y bloquea en 5", () => {
+    expect(API_MAX_ACTIVE_KEYS).toBe(5);
+    expect(activeApiKeyLimitReached(0)).toBe(false);
+    expect(activeApiKeyLimitReached(API_MAX_ACTIVE_KEYS - 1)).toBe(false);
+    expect(activeApiKeyLimitReached(API_MAX_ACTIVE_KEYS)).toBe(true);
+    expect(activeApiKeyLimitReached(API_MAX_ACTIVE_KEYS + 3)).toBe(true);
+  });
+
+  it("normaliza conteos inválidos sin romper", () => {
+    expect(activeApiKeyLimitReached(-1)).toBe(false);
+    expect(activeApiKeyLimitReached(Number.NaN)).toBe(false);
   });
 });
