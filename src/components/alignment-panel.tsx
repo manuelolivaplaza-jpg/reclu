@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { computeAlignment, DEFAULT_ALIGNMENT_ALERT_THRESHOLD } from "@/lib/alignment";
-import type { CatalogPortfolio } from "@/components/portfolio-manager";
+import { DEFAULT_ALIGNMENT_ALERT_THRESHOLD } from "@/lib/alignment";
+import type { ComparePortfolioSummary } from "@/lib/compare-overlap";
 
 /**
  * F5: "Ajusta tu cartera para parecerte a X" — compara los holdings del
@@ -13,29 +13,20 @@ import type { CatalogPortfolio } from "@/components/portfolio-manager";
  * comprar/vender. El usuario decide.
  */
 export function AlignmentPanel({
-  userHoldings,
   catalog,
 }: {
-  userHoldings: { symbol: string; name?: string; weight: number }[];
-  catalog: CatalogPortfolio[];
+  catalog: ComparePortfolioSummary[];
 }) {
   const crossable = useMemo(
-    () => catalog.filter((p) => p.holdings.length > 0),
+    () => catalog.filter((p) => p.holdingsCount > 0),
     [catalog],
   );
   const [targetSlug, setTargetSlug] = useState(crossable[0]?.slug ?? "");
   const target = crossable.find((p) => p.slug === targetSlug) ?? crossable[0];
 
-  const alignment = useMemo(
-    () =>
-      target
-        ? computeAlignment(
-            userHoldings.map((h) => ({ symbol: h.symbol, weight: h.weight })),
-            target.holdings,
-          )
-        : null,
-    [userHoldings, target],
-  );
+  // La alineación ya viene calculada del servidor sobre las posiciones
+  // visibles para el rol: el cliente nunca recibe el libro del portafolio.
+  const alignment = target?.alignment ?? null;
 
   if (!target) return null;
 

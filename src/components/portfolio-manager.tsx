@@ -12,6 +12,11 @@ import {
   importHoldings as importHoldingsCsv,
 } from "@/app/actions/holdings";
 import { OverlapPanel } from "@/components/overlap-panel";
+import type {
+  CompareCross,
+  ComparePairSummary,
+  ComparePortfolioSummary,
+} from "@/lib/compare-overlap";
 
 interface Holding {
   symbol: string;
@@ -19,70 +24,38 @@ interface Holding {
   weight: number;
 }
 
-/** Portafolio del catálogo con sus holdings, para el modo cruce. */
-export interface CatalogPortfolio {
-  slug: string;
-  name: string;
-  returnYtd: number | null;
-  holdings: { symbol: string; weight: number }[];
-}
-
-/** Fila de cruce: activo con su peso en A, en B, o en ambos. */
-interface OverlapRow {
-  symbol: string;
-  weightA: number;
-  weightB: number;
-  shared: boolean;
-}
-
 /**
- * Calcula el cruce entre dos carteras:
- *  - overlapPct: suma de los MENORES de los pesos compartidos (0-100),
- *    la medida estándar de solapamiento entre portafolios.
- *  - rows: acciones en común lado a lado + exclusivas de cada lado.
+ * Resuelve el cruce precalculado en el servidor. El payload solo trae pares
+ * en el orden del catálogo, así que si el usuario eligió B antes que A se
+ * invierten los lados.
  */
-function computeCross(
-  a: { symbol: string; weight: number }[],
-  b: { symbol: string; weight: number }[],
-): { overlapPct: number; shared: OverlapRow[]; onlyA: OverlapRow[]; onlyB: OverlapRow[] } {
-  const normalize = (list: { symbol: string; weight: number }[]) => {
-    const map = new Map<string, number>();
-    for (const h of list) {
-      const key = h.symbol.trim().toUpperCase();
-      map.set(key, (map.get(key) ?? 0) + h.weight);
-    }
-    return map;
-  };
-  const mapA = normalize(a);
-  const mapB = normalize(b);
-
-  const shared: OverlapRow[] = [];
-  const onlyA: OverlapRow[] = [];
-  const onlyB: OverlapRow[] = [];
-  let overlap = 0;
-
-  for (const [symbol, weightA] of mapA) {
-    const weightB = mapB.get(symbol);
-    if (weightB !== undefined) {
-      shared.push({ symbol, weightA, weightB, shared: true });
-      overlap += Math.min(weightA, weightB);
-    } else {
-      onlyA.push({ symbol, weightA, weightB: 0, shared: false });
-    }
-  }
-  for (const [symbol, weightB] of mapB) {
-    if (!mapA.has(symbol)) onlyB.push({ symbol, weightA: 0, weightB, shared: false });
+function crossForPair(
+  pairs: ComparePairSummary[],
+  slugA: string,
+  slugB: string,
+): CompareCross | null {
+  const direct = pairs.find((p) => p.slugA === slugA && p.slugB === slugB);
+  if (direct) {
+    return {
+      overlapPct: direct.overlapPct,
+      shared: direct.shared.map((row) => ({ ...row, shared: true })),
+      onlyA: direct.onlyA.map((row) => ({ symbol: row.symbol, weightA: row.weight, weightB: 0, shared: false })),
+      onlyB: direct.onlyB.map((row) => ({ symbol: row.symbol, weightA: 0, weightB: row.weight, shared: false })),
+    };
   }
 
-  shared.sort((x, y) => y.weightA + y.weightB - (x.weightA + x.weightB));
-  onlyA.sort((x, y) => y.weightA - x.weightA);
-  onlyB.sort((x, y) => y.weightB - x.weightB);
-
+  const reverse = pairs.find((p) => p.slugA === slugB && p.slugB === slugA);
+  if (!reverse) return null;
   return {
-    overlapPct: Math.round(overlap * 10) / 10,
-    shared,
-    onlyA,
-    onlyB,
+    overlapPct: reverse.overlapPct,
+    shared: reverse.shared.map((row) => ({
+      symbol: row.symbol,
+      weightA: row.weightB,
+      weightB: row.weightA,
+      shared: true,
+    })),
+    onlyA: reverse.onlyB.map((row) => ({ symbol: row.symbol, weightA: row.weight, weightB: 0, shared: false })),
+    onlyB: reverse.onlyA.map((row) => ({ symbol: row.symbol, weightA: 0, weightB: row.weight, shared: false })),
   };
 }
 
@@ -92,8 +65,10 @@ function formatWeight(w: number): string {
 
 interface PortfolioManagerProps {
   initialHoldings: Holding[];
-  /** Catálogo con holdings para el modo "Cruzar dos carteras". */
-  catalog?: CatalogPortfolio[];
+  /** Resumen por portafolio (sin holdings completos), calculado en servidor. */
+  catalog?: ComparePortfolioSummary[];
+  /** Cruces precalculados entre pares del catálogo. */
+  pairs?: ComparePairSummary[];
 }
 
 /**
@@ -104,7 +79,11 @@ interface PortfolioManagerProps {
  * Además: pestaña "Cruzar dos carteras de reclu" que solapa dos
  * portafolios del catálogo (Pelosi vs. Duquesne, Berkshire, etc.).
  */
-export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioManagerProps) {
+export function PortfolioManager({
+  initialHoldings,
+  catalog = [],
+  pairs = [],
+}: PortfolioManagerProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"mine" | "cross">("mine");
   const [holdings, setHoldings] = useState<Holding[]>(initialHoldings);
@@ -116,7 +95,7 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
 
   // --- Modo cruce: portafolio A y B del catálogo ---
   const crossable = useMemo(
-    () => catalog.filter((p) => p.holdings.length > 0),
+    () => catalog.filter((p) => p.holdingsCount > 0),
     [catalog],
   );
   const [slugA, setSlugA] = useState(crossable[0]?.slug ?? "");
@@ -126,9 +105,9 @@ export function PortfolioManager({ initialHoldings, catalog = [] }: PortfolioMan
   const cross = useMemo(
     () =>
       portfolioA && portfolioB && portfolioA !== portfolioB
-        ? computeCross(portfolioA.holdings, portfolioB.holdings)
+        ? crossForPair(pairs, portfolioA.slug, portfolioB.slug)
         : null,
-    [portfolioA, portfolioB],
+    [pairs, portfolioA, portfolioB],
   );
   const returnDelta =
     portfolioA?.returnYtd != null && portfolioB?.returnYtd != null
@@ -442,14 +421,14 @@ function CrossPanel({
   cross,
   returnDelta,
 }: {
-  crossable: CatalogPortfolio[];
+  crossable: ComparePortfolioSummary[];
   slugA: string;
   slugB: string;
   onSelectA: (slug: string) => void;
   onSelectB: (slug: string) => void;
-  portfolioA?: CatalogPortfolio;
-  portfolioB?: CatalogPortfolio;
-  cross: { overlapPct: number; shared: OverlapRow[]; onlyA: OverlapRow[]; onlyB: OverlapRow[] } | null;
+  portfolioA?: ComparePortfolioSummary;
+  portfolioB?: ComparePortfolioSummary;
+  cross: CompareCross | null;
   returnDelta: number | null;
 }) {
   return (
