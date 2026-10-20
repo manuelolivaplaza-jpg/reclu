@@ -110,7 +110,7 @@ def _fila_026(slug: str) -> str:
     sql = _sql_026()
     inicio = sql.find(f"'{slug}'")
     assert inicio >= 0, f"la 026 no siembra {slug}"
-    fin = sql.find("),", inicio)
+    fin = sql.find("\n  )", inicio)
     assert fin > inicio, f"no encuentro el cierre de la fila {slug}"
     return sql[inicio:fin]
 
