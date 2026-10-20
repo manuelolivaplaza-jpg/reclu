@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 export const metadata: Metadata = {
   title: "Metodología",
   description:
-    "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, y las simulaciones Trump dice y Elon Musk dice.",
+    "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, el ranking honesto, el muro de 90 días, los datos públicos de funcionarios y la anonimización de personas naturales.",
 };
 
 /**
@@ -35,6 +35,10 @@ export default function MetodologiaPage() {
             <a href="#benchmarks" className="underline underline-offset-4">Benchmarks</a>
             <a href="#politicos" className="underline underline-offset-4">Por qué los políticos son estimaciones</a>
             <a href="#limites" className="underline underline-offset-4">Límites y sesgos</a>
+            <a href="#ranking" className="underline underline-offset-4">Ranking</a>
+            <a href="#muro" className="underline underline-offset-4">Muro de pago</a>
+            <a href="#funcionarios" className="underline underline-offset-4">Funcionarios públicos</a>
+            <a href="#anonimizacion" className="underline underline-offset-4">Anonimización</a>
             <a href="#trump-dice" className="underline underline-offset-4">Trump dice</a>
             <a href="#musk-dice" className="underline underline-offset-4">Elon Musk dice</a>
           </nav>
@@ -233,9 +237,119 @@ export default function MetodologiaPage() {
             </ul>
           </section>
 
+          <section id="ranking" className="mt-14">
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+              7. Ranking honesto
+            </h2>
+            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+              <p>
+                El <Link href="/ranking" className="underline underline-offset-4">
+                  ranking
+                </Link>{" "}
+                ordena cada portafolio y estudio contra el benchmark de su país:
+                S&P 500 (SPY) para Estados Unidos e IPSA (ECH en CLP) para
+                Chile. La métrica principal es el exceso de retorno acumulado;
+                también se puede ordenar por Sharpe.
+              </p>
+              <p>
+                Entran todos los portafolios con métricas precalculadas,
+                incluidos los que pierden contra el índice. Donde falta historia
+                hay un espacio vacío, no un cero: un portafolio nuevo no se
+                hunde ni se corona por no tener datos. Las series cortas se
+                rotulan como muestra pequeña.
+              </p>
+              <p>
+                El ranking es descriptivo. No selecciona ganadores, no proyecta
+                retornos y no constituye una recomendación de inversión.
+              </p>
+            </div>
+          </section>
+
+          <section id="muro" className="mt-14">
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+              8. Muro de pago: 90 días de historial gratis
+            </h2>
+            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+              <p>
+                La cuenta Gratis permite seguir dos portafolios y recibir
+                alertas diarias. En los portafolios que no son premium, la serie
+                de rendimiento se muestra recortada a los{" "}
+                <strong className="font-medium text-ink-900">últimos 90 días</strong>{" "}
+                contados desde el último dato disponible. No es una prueba que
+                venza ni pide tarjeta: el historial anterior queda detrás del
+                muro.
+              </p>
+              <p>
+                Los planes Pro y Elite ven la serie completa. En portafolios
+                premium, las métricas y la serie son solo para planes pagos. Las
+                alertas tienen topes distintos (3 para anónimos, 10 para Gratis y
+                el límite del plan para pagos), y el resumen AI de cada alerta se
+                entrega solo a Pro y Elite.
+              </p>
+              <p>
+                Los datos de declaraciones de funcionarios de EE.UU. son la
+                excepción: nunca se recortan ni se cobran (ver la sección
+                siguiente).
+              </p>
+            </div>
+          </section>
+
+          <section id="funcionarios" className="mt-14">
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+              9. Datos públicos de funcionarios, fuera del muro
+            </h2>
+            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+              <p>
+                Las declaraciones financieras de funcionarios de EE.UU. —PTR de
+                la Cámara, PTR del Senado y formularios OGE 278-T— son públicas
+                por mandato legal. La{" "}
+                <span className="num">5 U.S.C. § 13107</span> exige que los
+                informes de divulgación financiera estén disponibles para
+                consulta pública. Por eso esas series se entregan completas,
+                gratis y sin muro, también para visitantes anónimos.
+              </p>
+              <p>
+                La API pública tampoco redistribuye esas fuentes: los datasets
+                de funcionarios quedan excluidos de las claves y de cualquier
+                plan. Son información para leer en el sitio, no un producto que
+                reclu revenda.
+              </p>
+              <p>
+                Los montos siguen siendo rangos y llegan con retraso de
+                declaración (30 o 45 días según la cámara). La reconstrucción es
+                una estimación, como se explica en la sección 5.
+              </p>
+            </div>
+          </section>
+
+          <section id="anonimizacion" className="mt-14">
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+              10. Anonimización de personas naturales
+            </h2>
+            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+              <p>
+                En el registro de 12 mayores accionistas de la CMF, las personas
+                naturales aparecen como{" "}
+                <strong className="font-medium text-ink-900">
+                  “Persona natural (#ranking)”
+                </strong>
+                . Se conservan el porcentaje, las acciones y el puesto en el
+                ranking, pero no el nombre ni el RUT. Las personas jurídicas
+                mantienen su razón social.
+              </p>
+              <p>
+                La regla se aplica al cargar y al actualizar el dato: si una
+                persona natural vuelve a entrar por el scraper, el trigger la
+                anonimiza de nuevo. Es el mismo criterio de mínimo de datos de
+                las Leyes 19.628 y 21.719 que usamos en el resto del sitio. No
+                guardamos direcciones, familiares ni fichas personales.
+              </p>
+            </div>
+          </section>
+
           <section id="trump-dice" className="mt-14">
             <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              7. Trump dice
+              11. Trump dice
             </h2>
             <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
@@ -278,7 +392,7 @@ export default function MetodologiaPage() {
 
           <section id="musk-dice" className="mt-14">
             <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              8. Elon Musk dice
+              11. Elon Musk dice
             </h2>
             <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
