@@ -65,6 +65,15 @@ function explainInputFromRow(row: unknown): ExplainAlertInput | null {
   return parsed.success ? parsed.data.alert : null;
 }
 
+/**
+ * `setof public.alerts` viaja como array; se acepta también una fila suelta
+ * por si el cliente o un stub devuelven el objeto directo.
+ */
+function firstAlertRow(data: unknown): Record<string, unknown> | null {
+  const value = Array.isArray(data) ? data[0] : data;
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
 function completionText(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
   const choices = (data as { choices?: unknown }).choices;
@@ -100,39 +109,36 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  // Muro 048: `summary` ya no es legible directo por anon/authenticated, así
-  // que se piden columnas explícitas sin esa columna y el resumen se toma de
-  // `get_alerts` (solo lo devuelve a pro/elite).
-  const { data: row, error: lookupError } = await supabase
-    .from("alerts")
-    .select("id, portfolio_id, type, severity, title, payload, created_at")
-    .eq("id", parsed.data.alertId)
-    .eq("is_published", true)
-    .maybeSingle();
+  // Muro 048: la lectura directa de `alerts` no sirve para premium (y no
+  // expone `summary`). `get_alert` aplica el plan de la sesión: devuelve la
+  // fila con resumen solo a pro/elite, y nada si el portafolio es premium y
+  // el usuario no paga. Siempre con el cliente de sesión, nunca service role.
+  const { data: alertData, error: lookupError } = await supabase.rpc("get_alert", {
+    p_alert: parsed.data.alertId,
+  });
 
   if (lookupError) {
-    console.warn("[reclu] explain-alert lookup:", lookupError.message);
+    console.warn("[reclu] explain-alert get_alert:", lookupError.message);
     return Response.json({ error: "No pudimos leer la alerta." }, { status: 500 });
   }
 
+  const row = firstAlertRow(alertData);
   let withPortfolio: unknown = null;
-  if (row) {
-    const [{ data: portfolio }, { data: planAlerts }] = await Promise.all([
-      supabase
-        .from("portfolios")
-        .select("slug, name, manager, category")
-        .eq("id", row.portfolio_id)
-        .maybeSingle(),
-      supabase.rpc("get_alerts", {
-        p_portfolio: row.portfolio_id,
-        p_limit: 100,
-      }),
-    ]);
-    const alertRows = Array.isArray(planAlerts)
-      ? (planAlerts as { id: string; summary: string | null }[])
-      : [];
-    const matched = alertRows.find((item) => item.id === row.id);
-    withPortfolio = { ...row, summary: matched?.summary ?? null, portfolio };
+  if (row && typeof row.portfolio_id === "string") {
+    // El portafolio se lee aparte: `get_alert` devuelve solo columnas de la
+    // alerta. La RLS de portfolios ya deja ver slug/name/manager/category.
+    const { data: portfolio, error: portfolioError } = await supabase
+      .from("portfolios")
+      .select("slug, name, manager, category")
+      .eq("id", row.portfolio_id)
+      .maybeSingle();
+
+    if (portfolioError) {
+      console.warn("[reclu] explain-alert portfolio:", portfolioError.message);
+      return Response.json({ error: "No pudimos leer la alerta." }, { status: 500 });
+    }
+
+    if (portfolio) withPortfolio = { ...row, portfolio };
   }
 
   const alert = explainInputFromRow(withPortfolio);

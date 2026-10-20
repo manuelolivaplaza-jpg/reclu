@@ -14,6 +14,8 @@
 --       * get_alerts(p_portfolio, p_limit): solo publicadas; premium y no
 --         pago => ninguna; summary solo pro/elite; tope 3 (anon) / 10 (free)
 --         / p_limit (pago, max 100).
+--       * get_alert(p_alert): una alerta por id con las mismas reglas
+--         (la usa /api/explain-alert).
 --   - alerts: la lectura publica queda solo para alertas publicadas de
 --     portafolios NO premium, y la columna summary se quita del privilegio
 --     de lectura directa (solo la RPC la devuelve, y solo a pago). Se agrega
@@ -167,14 +169,49 @@ as $$
   end;
 $$;
 
--- 2.4 Grants: solo llamables, nunca desde public.
+-- 2.4 Una alerta concreta (para /api/explain-alert).
+--     Mismas reglas que get_alerts: publicada, portafolio activo, premium
+--     solo para pro/elite y summary null salvo para pro/elite.
+create or replace function public.get_alert(p_alert uuid)
+returns setof public.alerts
+language sql stable
+security definer set search_path = ''
+as $$
+  select
+    a.id,
+    a.portfolio_id,
+    a.type,
+    a.severity,
+    a.title,
+    case
+      when public.current_user_plan() in ('pro', 'elite') then a.summary
+      else null
+    end as summary,
+    a.payload,
+    a.is_published,
+    a.created_at
+  from public.alerts a
+  join public.portfolios p on p.id = a.portfolio_id
+  where a.id = p_alert
+    and a.is_published = true
+    and p.is_active = true
+    and (
+      not p.premium
+      or public.current_user_plan() in ('pro', 'elite')
+    )
+  limit 1;
+$$;
+
+-- 2.5 Grants: solo llamables, nunca desde public.
 revoke all on function public.get_portfolio_performance(uuid) from public;
 revoke all on function public.get_portfolio_metrics(uuid) from public;
 revoke all on function public.get_alerts(uuid, integer) from public;
+revoke all on function public.get_alert(uuid) from public;
 
 grant execute on function public.get_portfolio_performance(uuid) to anon, authenticated;
 grant execute on function public.get_portfolio_metrics(uuid) to anon, authenticated;
 grant execute on function public.get_alerts(uuid, integer) to anon, authenticated;
+grant execute on function public.get_alert(uuid) to anon, authenticated;
 
 -- ------------------------------------------------------------
 -- 3. Alertas: lectura publica sin premium y sin resumen AI.
@@ -240,6 +277,7 @@ end $$;
 -- ============================================================
 -- ROLLBACK (ejecutar solo si se quiere volver al estado anterior):
 --
+-- drop function if exists public.get_alert(uuid);
 -- drop function if exists public.get_alerts(uuid, integer);
 -- drop function if exists public.get_portfolio_metrics(uuid);
 -- drop function if exists public.get_portfolio_performance(uuid);
