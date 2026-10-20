@@ -43,6 +43,22 @@ describe("portafolios ocultos (demo)", () => {
     expect(demoRedirectTarget("pelosi-tracker")).toBeNull();
   });
 
+  it("solo reconoce los slugs propios del mapa, no propiedades heredadas", () => {
+    for (const valor of ["__proto__", "constructor", "toString", "hasOwnProperty"]) {
+      expect(isHiddenSlug(valor)).toBe(false);
+      expect(demoRedirectTarget(valor)).toBeNull();
+    }
+  });
+
+  it("un portafolio activo del catálogo no redirige nunca", async () => {
+    const activos = DEMO_PORTFOLIOS.filter((p) => !isHiddenSlug(p.slug)).slice(0, 3);
+    expect(activos.length).toBeGreaterThan(0);
+    for (const portfolio of activos) {
+      expect(demoPortfolioBySlug(portfolio.slug)).not.toBeNull();
+      expect(await getPortfolioRedirect(portfolio.slug)).toBeNull();
+    }
+  });
+
   it("los ocultos no aparecen en el listado demo", () => {
     const listado = DEMO_PORTFOLIOS.filter((p) => !isHiddenSlug(p.slug)).map((p) => p.slug);
     for (const slug of HIDDEN) {

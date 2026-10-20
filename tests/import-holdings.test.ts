@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
+  MAX_CSV_LENGTH,
   MAX_IMPORT_ROWS,
+  MAX_QUANTITY,
   normalizeHeader,
   parseHoldingsCsv,
   parseQuantity,
@@ -99,6 +101,56 @@ describe("parseHoldingsCsv", () => {
     const result = parseHoldingsCsv(`symbol,quantity\n${rows.join("\n")}`);
     expect(result.rows).toEqual([]);
     expect(result.errors[0]).toMatch(/Máximo 100/);
+  });
+
+  it("acepta exactamente 100 símbolos y las filas repetidas no gastan cupo", () => {
+    const unicos = Array.from({ length: MAX_IMPORT_ROWS }, (_, i) => `SYM${i},1`);
+    const repetidos = Array.from({ length: 20 }, () => "SYM0,1");
+    const result = parseHoldingsCsv(`symbol,quantity\n${[...unicos, ...repetidos].join("\n")}`);
+    expect(result.errors).toEqual([]);
+    expect(result.rows).toHaveLength(MAX_IMPORT_ROWS);
+    expect(result.rows.find((row) => row.symbol === "SYM0")?.quantity).toBe(21);
+  });
+
+  it("acepta BOM, punto y coma y decimales con coma en el mismo archivo", () => {
+    const result = parseHoldingsCsv("\uFEFFSímbolo;Número de Acciones\nSQM-B;1,5\nCOPEC;2,5\n");
+    expect(result.errors).toEqual([]);
+    expect(result.rows.map((row) => row.symbol)).toEqual(["SQM-B", "COPEC"]);
+    expect(result.rows.map((row) => row.quantity)).toEqual([1.5, 2.5]);
+    expect(result.rows[0].weight).toBe(37.5);
+  });
+
+  it("numera cada fila inválida como warning y sigue con las válidas", () => {
+    const result = parseHoldingsCsv(
+      "symbol,quantity\nAAPL,10\nMSFT,abc\nNVDA,3\nTSLA,-2\n",
+    );
+    expect(result.rows.map((row) => row.symbol)).toEqual(["AAPL", "NVDA"]);
+    expect(result.errors).toHaveLength(2);
+    expect(result.errors[0]).toMatch(/^Fila 3: /);
+    expect(result.errors[1]).toMatch(/^Fila 5: /);
+  });
+
+  it("si no queda ninguna fila válida devuelve solo warnings, sin pesos", () => {
+    const result = parseHoldingsCsv("symbol,quantity\nAAPL,abc\nMSFT,-2\n");
+    expect(result.rows).toEqual([]);
+    expect(result.totalQuantity).toBe(0);
+    expect(result.errors).toHaveLength(2);
+    expect(result.errors[0]).toMatch(/^Fila 2: /);
+    expect(result.errors[1]).toMatch(/^Fila 3: /);
+  });
+
+  it("rechaza cantidades sobre el máximo permitido", () => {
+    const result = parseHoldingsCsv(
+      `symbol,quantity\nAAPL,${MAX_QUANTITY + 1}\nMSFT,1\n`,
+    );
+    expect(result.rows.map((row) => row.symbol)).toEqual(["MSFT"]);
+    expect(result.errors[0]).toMatch(/demasiado grande/i);
+  });
+
+  it("rechaza un CSV de más de 1 MB antes de parsearlo", () => {
+    const resultado = parseHoldingsCsv(`symbol,quantity\n${"A".repeat(MAX_CSV_LENGTH)}`);
+    expect(resultado.rows).toEqual([]);
+    expect(resultado.errors[0]).toMatch(/1 MB/);
   });
 
   it("los pesos suman 100 con redondeo a dos decimales", () => {
