@@ -383,3 +383,110 @@ describe("deduplicaciÃ³n contra follows (sin duplicados)", () => {
     expect(deliveries.map((d) => d.userId).sort()).toEqual(["u1", "u2"]);
   });
 });
+
+// ---- Espejo de la paginación y los lotes (X40B) ----
+
+const RULE_PAGE_SIZE = 1000;
+const RULE_MAX_PAGES = 50;
+const PROFILE_BATCH_SIZE = 500;
+
+interface RuleRowLike {
+  id: number;
+  user_id: string;
+  kind: string;
+  value: string;
+  channel: string;
+  active: boolean;
+}
+
+/** Espejo de `loadActiveRules` de la edge: páginas hasta una incompleta. */
+async function loadActiveRules(
+  fetchPage: (from: number, to: number) => Promise<RuleRowLike[]>,
+  onCap?: (loaded: number) => void,
+): Promise<RuleRowLike[]> {
+  const rows: RuleRowLike[] = [];
+  for (let page = 0; page < RULE_MAX_PAGES; page++) {
+    const from = page * RULE_PAGE_SIZE;
+    const batch = await fetchPage(from, from + RULE_PAGE_SIZE - 1);
+    rows.push(...batch);
+    if (batch.length < RULE_PAGE_SIZE) return rows;
+    if (page === RULE_MAX_PAGES - 1) onCap?.(rows.length);
+  }
+  return rows;
+}
+
+/** Dataset fingido que aplica `.order("id")` + `.range(from, to)` como PostgREST. */
+function makeRuleFetcher(dataset: RuleRowLike[]) {
+  const sorted = [...dataset].sort((a, b) => a.id - b.id);
+  const calls: Array<[number, number]> = [];
+  const fetchPage = async (from: number, to: number) => {
+    calls.push([from, to]);
+    return sorted.slice(from, to + 1);
+  };
+  return { fetchPage, calls };
+}
+
+function ruleRow(id: number): RuleRowLike {
+  return {
+    id,
+    user_id: `u${id % 7}`,
+    kind: "ticker",
+    value: "NVDA",
+    channel: "email",
+    active: true,
+  };
+}
+
+/** Espejo de `loadRuleProfiles`: lotes de 500 ids. */
+function loadProfileIds(userIds: string[]): string[][] {
+  const batches: string[][] = [];
+  for (let i = 0; i < userIds.length; i += PROFILE_BATCH_SIZE) {
+    batches.push(userIds.slice(i, i + PROFILE_BATCH_SIZE));
+  }
+  return batches;
+}
+
+describe("paginación de alert_rules y perfiles (X40B)", () => {
+  it("lee 1000 + 3 reglas en dos páginas ordenadas por id", async () => {
+    const dataset = Array.from({ length: 1003 }, (_, i) => ruleRow(i + 1));
+    const { fetchPage, calls } = makeRuleFetcher(dataset);
+    const rows = await loadActiveRules(fetchPage);
+    expect(rows).toHaveLength(1003);
+    expect(rows[0].id).toBe(1);
+    expect(rows[1002].id).toBe(1003);
+    expect(calls).toEqual([
+      [0, 999],
+      [1000, 1999],
+    ]);
+  });
+
+  it("una página incompleta corta la lectura", async () => {
+    const { fetchPage, calls } = makeRuleFetcher(
+      Array.from({ length: 999 }, (_, i) => ruleRow(i + 1)),
+    );
+    expect(await loadActiveRules(fetchPage)).toHaveLength(999);
+    expect(calls).toEqual([[0, 999]]);
+  });
+
+  it("el tope de 50 páginas avisa y no sigue paginando", async () => {
+    let pages = 0;
+    const caps: number[] = [];
+    const rows = await loadActiveRules(
+      async () => {
+        pages++;
+        return Array.from({ length: 1000 }, (_, i) => ruleRow(pages * 1000 + i));
+      },
+      (loaded) => caps.push(loaded),
+    );
+    expect(pages).toBe(50);
+    expect(rows).toHaveLength(50_000);
+    expect(caps).toEqual([50_000]);
+  });
+
+  it("los perfiles de las reglas se piden en lotes de 500 ids", () => {
+    const ids = Array.from({ length: 1201 }, (_, i) => `u${i}`);
+    const batches = loadProfileIds(ids);
+    expect(batches.map((batch) => batch.length)).toEqual([500, 500, 201]);
+    expect(batches.flat()).toEqual(ids);
+  });
+});

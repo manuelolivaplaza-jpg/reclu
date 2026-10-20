@@ -188,6 +188,72 @@ function routeRule(
   return { email: email && !unsubscribed, telegram };
 }
 
+// ---- Paginación de alert_rules y perfiles (X40B) ----
+
+const RULE_PAGE_SIZE = 1000;
+/** Tope de seguridad: 50 páginas = 50.000 reglas activas. */
+const RULE_MAX_PAGES = 50;
+/** PostgREST corta los `.in()` largos; los perfiles se piden en lotes. */
+const PROFILE_BATCH_SIZE = 500;
+
+/**
+ * Reglas activas en páginas de 1000. Antes un `.limit(1000)` truncaba en
+ * silencio a quien tuviera más. Devuelve null si la tabla no está disponible
+ * (037 sin aplicar), para que los follows sigan saliendo.
+ */
+async function loadActiveRules(supabase: SupabaseClient): Promise<AlertRuleRow[] | null> {
+  const rows: AlertRuleRow[] = [];
+  for (let page = 0; page < RULE_MAX_PAGES; page++) {
+    const from = page * RULE_PAGE_SIZE;
+    const { data, error } = await supabase
+      .from("alert_rules")
+      .select("user_id, kind, value, channel, active")
+      .eq("active", true)
+      .order("id", { ascending: true })
+      .range(from, from + RULE_PAGE_SIZE - 1);
+    if (error) {
+      console.error("alert_rules no disponible:", error.message);
+      return null;
+    }
+    const batch = (data ?? []) as AlertRuleRow[];
+    rows.push(...batch);
+    if (batch.length < RULE_PAGE_SIZE) return rows;
+    if (page === RULE_MAX_PAGES - 1) {
+      console.error(
+        `alert_rules: tope de seguridad de ${RULE_MAX_PAGES} páginas alcanzado ` +
+          `(${rows.length} reglas cargadas); quedan reglas sin evaluar.`,
+      );
+    }
+  }
+  return rows;
+}
+
+/** Perfiles dueños de las reglas, en lotes de 500 ids. */
+async function loadRuleProfiles(
+  supabase: SupabaseClient,
+  userIds: string[],
+): Promise<Map<string, FollowerProfile>> {
+  const profiles = new Map<string, FollowerProfile>();
+  for (let i = 0; i < userIds.length; i += PROFILE_BATCH_SIZE) {
+    const chunk = userIds.slice(i, i + PROFILE_BATCH_SIZE);
+    const { data, error } = await supabase
+      .from("profiles")
+      .select(
+        "id, email, full_name, plan, trial_ends_at, alert_frequency, alert_channel, " +
+          "email_unsubscribed, telegram_chat_id, weekly_digest, unsubscribe_token",
+      )
+      .in("id", chunk);
+    if (error) {
+      console.error("perfiles de reglas no disponibles:", error.message);
+      continue;
+    }
+    for (const row of (data ?? []) as (FollowerProfile & { id: string })[]) {
+      profiles.set(row.id, row);
+    }
+  }
+  return profiles;
+}
+
 /** Alerta → entrada de `ruleMatches`. */
 function alertMatchInput(alert: AlertWithPortfolio): AlertMatchInput {
   return {
@@ -449,35 +515,13 @@ Deno.serve(async (req) => {
 
     // Reglas a medida (F39/F40): entregan aunque el usuario no siga el
     // portafolio. Reglas y perfiles van en consultas separadas porque
-    // `alert_rules` no tiene FK directa con `profiles`.
-    const { data: ruleRows, error: rulesErr } = await supabase
-      .from("alert_rules")
-      .select("user_id, kind, value, channel, active")
-      .eq("active", true)
-      .limit(1000);
-    if (rulesErr) {
-      // Sin la tabla (037 sin aplicar) las alertas de follows deben seguir saliendo.
-      console.error("alert_rules no disponible:", rulesErr.message);
-    }
-    const rules = rulesErr
-      ? []
-      : ((ruleRows ?? []) as AlertRuleRow[]).filter((rule) => isRuleKind(rule.kind));
+    // `alert_rules` no tiene FK directa con `profiles`. Ambas se paginan:
+    // un `.limit(1000)` truncaba en silencio a los usuarios con más reglas.
+    const ruleRows = await loadActiveRules(supabase);
+    const rules = (ruleRows ?? []).filter((rule) => isRuleKind(rule.kind));
 
     const ruleUserIds = [...new Set(rules.map((rule) => rule.user_id))];
-    const ruleProfiles = new Map<string, FollowerProfile>();
-    if (ruleUserIds.length > 0) {
-      const { data: profileRows, error: ruleProfilesErr } = await supabase
-        .from("profiles")
-        .select(
-          "id, email, full_name, plan, trial_ends_at, alert_frequency, alert_channel, " +
-            "email_unsubscribed, telegram_chat_id, weekly_digest, unsubscribe_token",
-        )
-        .in("id", ruleUserIds);
-      if (ruleProfilesErr) console.error("perfiles de reglas no disponibles:", ruleProfilesErr.message);
-      for (const row of (profileRows ?? []) as (FollowerProfile & { id: string })[]) {
-        ruleProfiles.set(row.id, row);
-      }
-    }
+    const ruleProfiles = await loadRuleProfiles(supabase, ruleUserIds);
     const deliveredRows = await supabase
       .from("alert_deliveries")
       .select("alert_id, user_id")
