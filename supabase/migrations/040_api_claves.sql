@@ -10,8 +10,8 @@
 -- El flag `API_PUBLIC_ENABLED` sigue apagado por defecto: la migracion
 -- solo deja las tablas listas, no publica ningun endpoint.
 --
--- Idempotente: `if not exists`, `on conflict do nothing` y
--- `drop policy if exists` antes de cada `create policy`.
+-- Idempotente: `if not exists`, `create or replace`, `drop policy if exists`
+-- y `drop constraint if exists` antes de recrear.
 -- Aplicar despues de 039_referidos.sql (usa auth.users, profiles.plan).
 --
 -- ROLLBACK (manual, a conciencia):
@@ -67,7 +67,7 @@ create policy "own api keys read"
   on public.api_keys for select
   using (auth.uid() = user_id);
 
-revoke insert, update, delete on table public.api_keys from anon, authenticated;
+revoke all on table public.api_keys from anon, authenticated;
 grant select on table public.api_keys to authenticated;
 
 -- ------------------------------------------------------------
@@ -106,12 +106,12 @@ as $$
 declare
   v_count integer;
 begin
-  insert into public.api_usage (key_id, day, count, updated_at)
+  insert into public.api_usage as u (key_id, day, count, updated_at)
   values (p_key_id, p_day, 1, now())
   on conflict (key_id, day) do update
-    set count = public.api_usage.count + 1,
+    set count = u.count + 1,
         updated_at = now()
-  returning count into v_count;
+  returning u.count into v_count;
 
   return v_count;
 end;
