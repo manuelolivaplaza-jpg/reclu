@@ -210,25 +210,56 @@ def fetch_globalx(slug: str) -> list[dict]:
     return rows
 
 
-def fetch_ishares(slug: str) -> list[dict]:
-    """iShares holdings: CSV oficial con columna 'Weight (%)'.
+def _parse_number(raw: str | None) -> float | None:
+    """'24,700,000.00' -> 24700000.0. None si no es número."""
+    cleaned = (raw or "").strip().strip('"').replace(",", "").replace("%", "").strip()
+    if not cleaned or cleaned in ("-", "—"):
+        return None
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
 
-    Formato: ~10 líneas de metadatos, luego header 'Ticker,Name,Sector,...'
-    y filas con comillas. La fecha viene en 'Fund Holdings as of,"Oct 15, 2026"'.
+
+def parse_ishares_csv(text: str) -> tuple[list[dict], dict]:
+    """Parsea el CSV oficial de iShares. Devuelve (holdings, cabecera).
+
+    El archivo trae una cabecera de metadatos antes de la tabla:
+
+        iShares MSCI Chile ETF
+        Fund Holdings as of,"Oct 15, 2026"
+        Shares Outstanding,"24,700,000.00"
+        ...
+        Ticker,Name,Sector,Asset Class,Market Value,Weight (%),...
+
+    La cabecera devuelve:
+      as_of             fecha de la cartera (ISO)
+      shares_outstanding  acciones en circulación (float o None)
+      net_assets_usd    suma de 'Market Value' de todas las filas (float o None)
+      nav               valor por acción = net_assets_usd / shares_outstanding
+      inception_date    fecha de inicio del fondo (ISO o None)
+
+    'net_assets_usd' es una estimación: el CSV no publica el patrimonio total,
+    solo el valor de mercado de cada posición (más el efectivo, que viene como
+    una fila propia). Sirve para estimar el NAV por acción sin depender de
+    otra fuente.
     """
-    entry = ISHARES_FUNDS.get(slug)
-    if not entry:
-        raise ValueError(f"unknown iShares fund: {slug}")
-    product_id, path_slug = entry
-    text = _get(ISHARES_HOLDINGS.format(product_id=product_id, slug=path_slug))
-
     lines = text.splitlines()
     header_idx = next(
         (i for i, ln in enumerate(lines) if ln.startswith("Ticker,")),
         None,
     )
     if header_idx is None:
-        raise ValueError(f"ishares {slug}: header 'Ticker,' no encontrado")
+        raise ValueError("ishares: header 'Ticker,' no encontrado")
+
+    meta: dict[str, str] = {}
+    for ln in lines[:header_idx]:
+        if "," not in ln:
+            continue
+        key, _, value = ln.partition(",")
+        key = key.strip()
+        if key:
+            meta[key] = value.strip().strip('"')
 
     # Fecha de la cartera: 'Fund Holdings as of,"Oct 15, 2026"'
     as_of = date.today().isoformat()
@@ -240,9 +271,29 @@ def fetch_ishares(slug: str) -> list[dict]:
         except ValueError:
             pass
 
+    inception = None
+    inception_raw = meta.get("Inception Date")
+    if inception_raw:
+        try:
+            inception = datetime.strptime(inception_raw, "%b %d, %Y").date().isoformat()
+        except ValueError:
+            inception = None
+
     reader = csv.DictReader(io.StringIO("\n".join(lines[header_idx:])))
     rows: list[dict] = []
+    # (market value, weight %) de cada fila, para estimar el patrimonio.
+    valorizaciones: list[tuple[float, float]] = []
+    suma_market_value = 0.0
+    saw_market_value = False
     for r in reader:
+        market_value = _parse_number(r.get("Market Value"))
+        weight_val = _parse_number(r.get("Weight (%)"))
+        if market_value is not None:
+            suma_market_value += market_value
+            saw_market_value = True
+            if weight_val and weight_val > 0:
+                valorizaciones.append((market_value, weight_val))
+
         ticker = (r.get("Ticker") or "").strip().strip('"')
         weight_raw = (r.get("Weight (%)") or "").strip().strip('"')
         if not ticker or ticker in ("-", ""):
@@ -263,6 +314,68 @@ def fetch_ishares(slug: str) -> list[dict]:
                 "as_of": as_of,
             }
         )
+
+    shares_outstanding = _parse_number(meta.get("Shares Outstanding"))
+    net_assets, metodo = _estimar_patrimonio(valorizaciones, suma_market_value, saw_market_value)
+    header = {
+        "as_of": as_of,
+        "shares_outstanding": shares_outstanding,
+        "net_assets_usd": net_assets,
+        "net_assets_metodo": metodo,
+        "nav": (
+            net_assets / shares_outstanding
+            if shares_outstanding and shares_outstanding > 0 and net_assets is not None
+            else None
+        ),
+        "inception_date": inception,
+    }
+    return rows, header
+
+
+def _estimar_patrimonio(
+    valorizaciones: list[tuple[float, float]],
+    suma_market_value: float,
+    saw_market_value: bool,
+) -> tuple[float | None, str | None]:
+    """Estima el patrimonio del fondo (USD) desde el CSV de iShares.
+
+    Preferencia: 'Market Value / Weight(%)' de cada posición. El peso es el
+    porcentaje del patrimonio total, así que el cociente es el patrimonio
+    estimado; tomando la mediana de las posiciones la estimación no depende
+    de que el CSV venga completo.
+
+    Respaldo: la suma de los 'Market Value' (solo si el archivo trae todas
+    las posiciones).
+    """
+    if valorizaciones:
+        estimados = sorted(mv / (w / 100.0) for mv, w in valorizaciones)
+        mediana = estimados[len(estimados) // 2]
+        if mediana > 0:
+            return mediana, "peso_por_posicion"
+    if saw_market_value and suma_market_value > 0:
+        return suma_market_value, "suma_market_value"
+    return None, None
+
+
+def fetch_ishares(slug: str, with_header: bool = False):
+    """iShares holdings: CSV oficial con columna 'Weight (%)'.
+
+    Formato: ~10 líneas de metadatos, luego header 'Ticker,Name,Sector,...'
+    y filas con comillas. La fecha viene en 'Fund Holdings as of,"Oct 15, 2026"'.
+
+    Con `with_header=True` devuelve (rows, cabecera) donde la cabecera trae
+    'shares_outstanding' (acciones en circulación), que es lo que necesita
+    el cálculo de flujos de F35.
+    """
+    entry = ISHARES_FUNDS.get(slug)
+    if not entry:
+        raise ValueError(f"unknown iShares fund: {slug}")
+    product_id, path_slug = entry
+    text = _get(ISHARES_HOLDINGS.format(product_id=product_id, slug=path_slug))
+
+    rows, header = parse_ishares_csv(text)
+    if with_header:
+        return rows, header
     return rows
 
 
