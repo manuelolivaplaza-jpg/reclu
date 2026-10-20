@@ -7,10 +7,12 @@ import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
 import { AlertRulesForm } from "@/components/alert-rules-form";
 import { TelegramConnect } from "@/components/telegram-connect";
+import { ReferralCard } from "@/components/referral-card";
 import { BillingStatus } from "@/components/billing-status";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { alertRuleLimitFor, parseAlertRuleRows } from "@/lib/alert-rules";
 import { canUseTelegram } from "@/lib/plans";
+import { referralsEnabled } from "@/lib/referrals";
 import { isPaidPlan } from "@/lib/types";
 
 export const metadata = { title: "Ajustes" };
@@ -57,7 +59,19 @@ export default async function SettingsPage() {
     .select("id, kind, value, channel, active")
     .eq("user_id", profile.id)
     .order("created_at", { ascending: false });
-  const [subscriptionResult, rulesResult] = await Promise.all([subscriptionPromise, rulesPromise]);
+  // Código propio de referidos: tabla de la 009, RLS "own referral code read".
+  const referralCodePromise = referralsEnabled()
+    ? supabase
+        .from("referral_codes")
+        .select("code")
+        .eq("user_id", profile.id)
+        .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+  const [subscriptionResult, rulesResult, referralResult] = await Promise.all([
+    subscriptionPromise,
+    rulesPromise,
+    referralCodePromise,
+  ]);
   const activeSubscription = (subscriptionResult.data as SubscriptionRow | null) ?? null;
   if (rulesResult.error) {
     console.warn("[reclu] alert_rules:", rulesResult.error.message);
@@ -69,6 +83,16 @@ export default async function SettingsPage() {
 
   const planName =
     profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Gratis";
+
+  // Referidos: apagado por defecto; sólo aparece con el flag y un código real
+  // de la tabla `referral_codes` (la 009 lo genera al registrarse).
+  if (referralResult.error) {
+    console.warn("[reclu] referral_codes:", referralResult.error.message);
+  }
+  const referralCode = referralsEnabled()
+    ? ((referralResult.data as { code: string } | null)?.code ?? null)
+    : null;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://reclu.cl";
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -188,6 +212,8 @@ export default async function SettingsPage() {
       </Card>
 
       <TelegramConnect profile={profile} />
+
+      {referralCode && <ReferralCard code={referralCode} siteUrl={siteUrl} />}
 
       {/* Reglas a medida. No esconde datos públicos: solo elige el aviso. */}
       <Card>

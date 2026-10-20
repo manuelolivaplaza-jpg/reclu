@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeReferralCode, referralsEnabled, REFERRAL_COOKIE } from "@/lib/referrals";
 import type { FormState } from "@/lib/form-state";
 import { firstZodMessage, isSafeNextPath, signInSchema, signUpSchema } from "@/lib/validation";
 
@@ -35,9 +36,9 @@ export async function signIn(_prev: FormState, formData: FormData): Promise<Form
 
 /**
  * Sign up with email + password. Supabase sends a confirmation email.
- * Si existe la cookie de referido (?ref=CÓDIGO guardada en el proxy),
- * se envía como metadata para que el trigger de la base registre el
- * vínculo (migración 009).
+ * Si existe la cookie de referido (ver `withReferralCookie` en el proxy),
+ * se manda `referred_by` en la metadata: el trigger `handle_referral_code`
+ * de la migración 009 crea el vínculo en `referrals`.
  */
 export async function signUp(_prev: FormState, formData: FormData): Promise<FormState> {
   const supabase = await createClient();
@@ -53,10 +54,12 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
 
   const origin = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-  // M3 Referidos: la cookie `ref` la guarda el proxy (ver proxy matcher)
-  // cuando el usuario llegó con ?ref=CODIGO. La pasamos como metadata.
+  // Código de invitación capturado por el proxy (`?ref=CODIGO`). La 009
+  // genera códigos en minúsculas, así que se normaliza antes de enviarlo.
   const cookieStore = await cookies();
-  const referral = cookieStore.get("ref")?.value ?? null;
+  const referral = referralsEnabled()
+    ? normalizeReferralCode(cookieStore.get(REFERRAL_COOKIE)?.value)
+    : null;
 
   const { data, error } = await supabase.auth.signUp({
     email,
