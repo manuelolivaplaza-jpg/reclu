@@ -20,6 +20,7 @@ from cmf_accionistas import (  # noqa: E402
     _periodo_partes,
     dedupe_accionistas,
     entidad_params,
+    es_persona_natural,
     load_emisores,
     parse_accionistas,
     periodo_de,
@@ -30,6 +31,9 @@ from cmf_client import CmfBlocked  # noqa: E402
 from stages import discover_stages  # noqa: E402
 
 MIGRACION = RAIZ.parent / "supabase" / "migrations" / "033_mayores_accionistas.sql"
+MIGRACION_ANONIMIZAR = (
+    RAIZ.parent / "supabase" / "migrations" / "045_accionistas_anonimizar.sql"
+)
 
 # Recorte representativo de la pestania 5 real (RUT 96766110, periodo 09/2026).
 HTML = """
@@ -98,12 +102,62 @@ def test_periodo_y_datos_del_emisor() -> None:
     assert primera["acciones_pagadas"] == 2022712
 
 
-def test_conserva_el_cero_y_la_persona_natural_tal_cual() -> None:
+def test_conserva_el_cero_y_anonimiza_la_persona_natural() -> None:
     filas = parse_accionistas(HTML)
     municipalidad = filas[3]
     assert municipalidad["porcentaje_propiedad"] == 0.0
-    # Persona natural: mismo string de la CMF, sin cruzarlo con otra fuente.
-    assert filas[2]["accionista"] == "LIRA VERONICA CISTERNAS"
+    # F33-B: persona natural sin nombre ni RUT, con ranking para la clave unica.
+    natural = filas[2]
+    assert natural["accionista"] == "Persona natural (#3)"
+    assert natural["es_persona_natural"] is True
+    assert natural["porcentaje_propiedad"] == pytest.approx(1.71)
+    assert natural["acciones_suscritas"] == 49489
+    assert "LIRA" not in str(natural)
+
+
+def test_es_persona_natural_por_rut_y_por_nombre() -> None:
+    # Con RUT manda el umbral (< 50.000.000 natural).
+    assert es_persona_natural("PEREZ JUAN", "12.345.678-5") is True
+    assert es_persona_natural("INVERSIONES X", "96.555.444-3") is False
+    # Sin RUT mandan los marcadores societarios.
+    assert es_persona_natural("CHILQUINTA ENERGIA S.A.") is False
+    assert es_persona_natural("INVERSIONES MAGNUM LIMITADA") is False
+    assert es_persona_natural("FONDO DE INVERSION XYZ") is False
+    assert es_persona_natural("SOTO MARIA") is True
+    # Ante la duda se oculta (falla cerrado).
+    assert es_persona_natural("") is True
+    assert es_persona_natural("ILUSTRE MUNICIPALIDAD DE CASABLANCA") is True
+
+
+def test_persona_natural_con_rut_no_guarda_ni_muestra_el_rut() -> None:
+    html = HTML.replace(
+        "<td>LIRA VERONICA CISTERNAS</td>",
+        "<td>LIRA VERONICA CISTERNAS 12.345.678-5</td>",
+    )
+    filas = parse_accionistas(html)
+    natural = filas[2]
+    assert natural["accionista"] == "Persona natural (#3)"
+    assert natural["es_persona_natural"] is True
+    volcado = str(natural)
+    for prohibido in ("LIRA", "12.345.678", "12345678", "CISTERNAS"):
+        assert prohibido not in volcado
+    # El resto de la fila se conserva.
+    assert natural["porcentaje_propiedad"] == pytest.approx(1.71)
+    assert natural["acciones_suscritas"] == 49489
+
+
+def test_persona_juridica_con_rut_mantiene_el_nombre_y_oculta_el_rut() -> None:
+    html = HTML.replace(
+        "<td>CHILQUINTA ENERGIA S.A.</td>",
+        "<td>CHILQUINTA ENERGIA S.A. 96.555.444-3</td>",
+    )
+    filas = parse_accionistas(html)
+    juridica = filas[0]
+    assert juridica["accionista"] == "CHILQUINTA ENERGIA S.A."
+    assert juridica["es_persona_natural"] is False
+    assert "96.555.444" not in str(juridica)
+    assert "96555444" not in str(juridica)
+
 
 
 def test_rut_del_parametro_manda_sobre_el_de_la_pagina_y_nemo() -> None:
@@ -262,6 +316,8 @@ def test_upsert_usa_la_clave_y_la_url_de_la_ficha() -> None:
     assert fila["periodo"] == "2026-09"
     assert fila["ranking"] == 1
     assert fila["porcentaje_propiedad"] == pytest.approx(69.75)
+    assert fila["es_persona_natural"] is False
+    assert upsert["payload"][2]["es_persona_natural"] is True
     assert "pestania=5" in fila["source_url"]
 
 
@@ -335,3 +391,21 @@ def test_migracion_033_es_idempotente_por_texto() -> None:
     assert "drop table" not in sentencias
     assert "truncate" not in sentencias
     assert "delete from" not in sentencias
+
+
+def test_migracion_045_anonimiza_de_forma_idempotente() -> None:
+    assert MIGRACION_ANONIMIZAR.is_file(), f"falta {MIGRACION_ANONIMIZAR}"
+    sql = MIGRACION_ANONIMIZAR.read_text(encoding="utf-8")
+    sentencias = "\n".join(
+        linea for linea in sql.splitlines() if not linea.lstrip().startswith("--")
+    ).lower()
+    assert "add column if not exists es_persona_natural boolean not null default false" in sentencias
+    assert "persona natural (#" in sentencias
+    assert "coalesce(ranking::text" in sentencias
+    assert "accionista !~*" in sentencias
+    assert "rollback" in sql.lower()
+    # No borra datos ni toca otras tablas.
+    assert "delete from" not in sentencias
+    assert "truncate" not in sentencias
+    assert "drop table" not in sentencias
+    assert "drop column" not in sentencias

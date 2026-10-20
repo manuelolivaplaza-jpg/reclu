@@ -26,6 +26,7 @@ el CLI, respetando el mismo orden).
 | 15 | `017_musk_dice.sql` | Amplía `mentions.kind` con `critica` y `empresa_propia`, portafolio `musk-dice`, 4 menciones (URL de X) y holdings ETSY/GME al 50%. Reutiliza la tabla de la 014. La 015 sigue reservada para F9. |
 | 16 | `018_inverse_cramer.sql` | Amplía `mentions.kind` con `recomienda_compra` y `recomienda_venta`. Portafolio `inverse-cramer-real`, 27 picks y holdings semilla al 2026-10-16. El proxy `inverse-cramer` no se toca. La 015 queda reservada para F9. |
 | 17 | `044_corredoras_cl.sql` | F23: portafolios `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Solo filas de `portfolios`; los holdings los carga la etapa `corredoras_cl`. Aplicar después de `021_infoprobidad_agregado.sql` (y de la `043` si existe); independiente de `022-042`. Re-ejecutable. |
+| 18 | `045_accionistas_anonimizar.sql` | F33-B: agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`. Aplicar después de `033_mayores_accionistas.sql`. Re-ejecutable. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -94,3 +95,18 @@ Pendiente conocido: las RPC de `011`, `012`, `015` y `019` ya filtran
 
 Al final de `012_muro_pago.sql` hay un bloque comentado `-- rollback`:
 restaura las policies públicas de lectura y borra las funciones.
+
+## 045 — Anonimizar personas naturales (F33-B)
+
+`045_accionistas_anonimizar.sql`: agrega
+`cl_top_shareholders.es_persona_natural boolean not null default false` y
+reescribe las filas históricas que no traen marcador societario como
+`Persona natural (#ranking)`, conservando porcentaje, acciones y ranking.
+Las personas jurídicas mantienen su nombre. El RUT del accionista nunca se
+guarda.
+
+**Reversión:** los nombres y RUT originales no se pueden recuperar (el
+reemplazo es intencional, Leyes 19.628 y 21.719). Solo se puede deshacer el
+esquema con `alter table ... drop column if exists es_persona_natural`; los
+textos `Persona natural (#n)` quedan como están. Aplicar después de la `033`.
+Idempotente.
