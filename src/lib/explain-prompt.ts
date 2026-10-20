@@ -38,6 +38,14 @@ const CATEGORIES = [
   "model",
 ] as const satisfies readonly PortfolioCategory[];
 
+/**
+ * Body de `/api/explain-alert` (M8): solo el id. El contenido de la alerta
+ * se lee de la base en el servidor; nunca se acepta texto del cliente.
+ */
+export const explainAlertIdSchema = z.object({
+  alertId: z.string().uuid(),
+});
+
 export const explainAlertRequestSchema = z.object({
   alert: z.object({
     /** Solo se usa para identificar el estado en el cliente. */

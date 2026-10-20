@@ -1,6 +1,5 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -80,19 +79,15 @@ export async function prepareTelegramLink(_prev: FormState, formData: FormData):
     return { error: "Telegram está disponible en Pro, Elite y durante la prueba." };
   }
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const code = randomBytes(9).toString("base64url");
-    const { error } = await supabase
-      .from("profiles")
-      .update({ telegram_link_code: code, updated_at: new Date().toISOString() })
-      .eq("id", user.id);
-    if (!error) {
-      revalidatePath("/settings");
-      return { success: "Enlace listo. Ábrelo en Telegram para vincular este chat." };
-    }
-    if (attempt === 1) return { error: error.message };
+  // M10: la columna la escribe una RPC `security definer` (047) con
+  // auth.uid(); el UPDATE directo lo revertía el trigger de la 007.
+  const { data: code, error } = await supabase.rpc("create_telegram_link_code");
+  if (error || typeof code !== "string" || code.length === 0) {
+    return { error: "No pudimos generar el enlace." };
   }
-  return { error: "No pudimos generar el enlace." };
+
+  revalidatePath("/settings");
+  return { success: "Enlace listo. Ábrelo en Telegram para vincular este chat." };
 }
 
 const channelSchema = z.object({

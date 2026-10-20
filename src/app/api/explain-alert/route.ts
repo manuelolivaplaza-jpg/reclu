@@ -1,7 +1,11 @@
 /**
  * POST /api/explain-alert — "Explícame esta alerta" (F44).
  *
- * Body: { alert: ExplainAlertInput }
+ * Body: { alertId: uuid } (M8). El contenido se lee de `alerts` con
+ * `is_published = true` en el servidor: nunca se explica texto que manda el
+ * cliente, para que la respuesta no pueda llevar la marca de la plataforma
+ * sobre contenido arbitrario.
+ *
  * Reutiliza la cuota del asistente (chat) y OpenRouter. La respuesta NO es
  * asesoría: el prompt prohíbe recomendaciones personalizadas (Ley Fintec).
  * Sin OPENROUTER_API_KEY responde 503 con un mensaje claro, sin romper la UI.
@@ -11,9 +15,11 @@ import { enforceAnonQuota, enforceSignedInQuota } from "@/lib/chat-guard";
 import {
   EXPLAIN_SYSTEM_PROMPT,
   buildExplainUserPrompt,
+  explainAlertIdSchema,
   explainAlertRequestSchema,
   explainSources,
   normalizeExplanation,
+  type ExplainAlertInput,
 } from "@/lib/explain-prompt";
 import { FINTEC_NOTICE } from "@/lib/legal";
 import { createClient } from "@/lib/supabase/server";
@@ -23,6 +29,41 @@ const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-2.0-flash-001";
 /** Body acotado: la alerta es pequeña; el payload se resume en el servidor. */
 const MAX_BODY_BYTES = 24_000;
+
+/**
+ * Convierte la fila de `alerts` (con su portafolio) en la entrada que ya
+ * consumían los prompts. Valida en el servidor; si la fila no calza, no se
+ * explica (mejor 404 que filtrar datos raros al modelo).
+ */
+function explainInputFromRow(row: unknown): ExplainAlertInput | null {
+  if (!row || typeof row !== "object") return null;
+  const record = row as Record<string, unknown>;
+  if (!record.portfolio || typeof record.portfolio !== "object") return null;
+  const portfolio = record.portfolio as Record<string, unknown>;
+  const payload =
+    record.payload && typeof record.payload === "object" && !Array.isArray(record.payload)
+      ? (record.payload as Record<string, unknown>)
+      : {};
+
+  const parsed = explainAlertRequestSchema.safeParse({
+    alert: {
+      type: record.type,
+      severity: record.severity,
+      title: record.title,
+      summary: record.summary,
+      createdAt: record.created_at,
+      payload,
+      portfolio: {
+        slug: portfolio.slug,
+        name: portfolio.name,
+        manager: portfolio.manager,
+        category: portfolio.category,
+      },
+    },
+  });
+
+  return parsed.success ? parsed.data.alert : null;
+}
 
 function completionText(data: unknown): string | null {
   if (!data || typeof data !== "object") return null;
@@ -36,17 +77,6 @@ function completionText(data: unknown): string | null {
 }
 
 export async function POST(request: Request) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      {
-        error:
-          "La explicación con IA no está disponible en este entorno (falta OPENROUTER_API_KEY).",
-      },
-      { status: 503 },
-    );
-  }
-
   let raw: string;
   try {
     raw = await request.text();
@@ -64,15 +94,43 @@ export async function POST(request: Request) {
     return Response.json({ error: "Body inválido." }, { status: 400 });
   }
 
-  const parsed = explainAlertRequestSchema.safeParse(json);
+  const parsed = explainAlertIdSchema.safeParse(json);
   if (!parsed.success) {
     return Response.json({ error: firstZodMessage(parsed.error) }, { status: 400 });
   }
 
-  const { alert } = parsed.data;
+  const supabase = await createClient();
+  const { data: row, error: lookupError } = await supabase
+    .from("alerts")
+    .select(
+      "id, type, severity, title, summary, payload, created_at, portfolio:portfolios!inner(slug, name, manager, category)",
+    )
+    .eq("id", parsed.data.alertId)
+    .eq("is_published", true)
+    .maybeSingle();
+
+  if (lookupError) {
+    console.warn("[reclu] explain-alert lookup:", lookupError.message);
+    return Response.json({ error: "No pudimos leer la alerta." }, { status: 500 });
+  }
+
+  const alert = explainInputFromRow(row);
+  if (!alert) {
+    return Response.json({ error: "Alerta no encontrada." }, { status: 404 });
+  }
+
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) {
+    return Response.json(
+      {
+        error:
+          "La explicación con IA no está disponible en este entorno (falta OPENROUTER_API_KEY).",
+      },
+      { status: 503 },
+    );
+  }
 
   // Misma cuota que el asistente: sesión vía RPC, anónimo por IP.
-  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

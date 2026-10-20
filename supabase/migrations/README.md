@@ -28,6 +28,7 @@ el CLI, respetando el mismo orden).
 | 17 | `044_corredoras_cl.sql` | F23: portafolios `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Solo filas de `portfolios`; los holdings los carga la etapa `corredoras_cl`. Aplicar después de `021_infoprobidad_agregado.sql` (y de la `043` si existe); independiente de `022-042`. Re-ejecutable. |
 | 18 | `045_accionistas_anonimizar.sql` | F33-B: agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`. Aplicar después de `033_mayores_accionistas.sql`. Re-ejecutable. |
 | 19 | `046_endurecer_permisos.sql` | SB1 (M3/B1/037): `revoke` de escritura a `anon`/`authenticated` en las 9 tablas públicas nuevas, `revoke execute` de `enforce_alert_rule_limits()` y función `anonimizar_accionista()` + trigger `BEFORE INSERT OR UPDATE` en `cl_top_shareholders` que fuerza la anonimización de personas naturales (mismo regex que la 045). Re-ejecutable. |
+| 20 | `047_telegram_link_code.sql` | M10: RPC `create_telegram_link_code()` (`security definer`, `set search_path = ''`) que genera el código con `auth.uid()` y escribe `profiles.telegram_link_code` marcando `reclu.trusted` para el trigger de la 007. Solo `authenticated`. Re-ejecutable. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -142,3 +143,29 @@ public.cl_top_shareholders; drop function if exists
 public.anonimizar_accionista();` y repetir los `grant insert, update, delete`
 que cada migración original declaraba (no hay `grant` de escritura que
 restaurar: las migraciones 027–034 y 042 solo daban `grant select`).
+
+## 047 — Código de vinculación de Telegram (M10)
+
+`047_telegram_link_code.sql` cierra M10 de la revisión de seguridad
+2026-10-20. `prepareTelegramLink` escribía `profiles.telegram_link_code`
+directamente desde el cliente autenticado, pero el trigger
+`a_protect_profile_columns` de la 007 revertía la columna: el flujo no
+persistía. Abrir la columna a escritura directa permitiría manipular códigos
+desde el navegador.
+
+La migración agrega `public.create_telegram_link_code()`:
+
+- `security definer` y `set search_path = ''`; todos los objetos van
+  calificados con `public.`.
+- Usa `auth.uid()` (no recibe parámetros) y falla si no hay sesión, así que
+  solo puede escribir el perfil propio.
+- Genera 128 bits en hex con `pg_catalog.gen_random_uuid()` (32 caracteres).
+- Hace `perform set_config('reclu.trusted', 'on', true)` antes del `UPDATE`
+  de `public.profiles`, para que el trigger de la 007 permita el cambio.
+- Devuelve el código. `revoke execute` a `public`/`anon` y `grant execute`
+  a `authenticated`.
+
+Re-ejecutable. Aplicar después de la 008 (columna `telegram_link_code`).
+La acción `prepareTelegramLink` llama `supabase.rpc('create_telegram_link_code')`.
+
+**Reversión:** `drop function if exists public.create_telegram_link_code();`.
