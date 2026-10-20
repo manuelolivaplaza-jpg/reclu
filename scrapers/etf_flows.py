@@ -98,16 +98,25 @@ def acciones_previas(db, symbol: str, fecha: str) -> float | None:
 
     Solo mira fechas estrictamente anteriores a `fecha`, para que reejecutar
     el mismo día no se compare consigo mismo.
+
+    Si la tabla `etf_flows` todavía no existe (migración 035 sin aplicar),
+    se avisa y se sigue como si no hubiera lectura anterior.
     """
-    res = (
-        db.table("etf_flows")
-        .select("acciones,fecha")
-        .eq("symbol", symbol)
-        .lt("fecha", fecha)
-        .order("fecha", desc=True)
-        .limit(1)
-        .execute()
-    )
+    try:
+        res = (
+            db.table("etf_flows")
+            .select("acciones,fecha")
+            .eq("symbol", symbol)
+            .lt("fecha", fecha)
+            .order("fecha", desc=True)
+            .limit(1)
+            .execute()
+        )
+    except Exception as e:  # noqa: BLE001 - tabla ausente o error de red
+        from base import log
+
+        log(f"[etf_flows] WARNING {symbol}: no pude leer la lectura anterior ({e})")
+        return None
     if not res.data:
         return None
     return float(res.data[0]["acciones"])

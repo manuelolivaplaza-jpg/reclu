@@ -144,6 +144,48 @@ def test_mapa_de_tickers_cubre_los_etfs_de_ishares():
     assert etf_flows.slug_para_ticker("NOPE") is None
 
 
+def test_lectura_anterior_tabla_ausente_no_rompe():
+    """Si la 035 no está aplicada, la etapa avisa y sigue con flujo 0."""
+
+    class _DbSinTabla:
+        def table(self, name):
+            raise RuntimeError(f'relation "{name}" does not exist')
+
+    assert etf_flows.acciones_previas(_DbSinTabla(), "ECH", "2026-10-19") is None
+
+
+def test_lectura_anterior_toma_la_fila_mas_reciente():
+    class _Res:
+        data = [{"acciones": 24_700_000.0, "fecha": "2026-10-15"}]
+
+    class _Tabla:
+        def select(self, *a, **k):
+            return self
+
+        def eq(self, *a, **k):
+            return self
+
+        def lt(self, *a, **k):
+            return self
+
+        def order(self, *a, **k):
+            return self
+
+        def limit(self, *a, **k):
+            return self
+
+        def execute(self):
+            return _Res()
+
+    class _Db:
+        def table(self, name):
+            return _Tabla()
+
+    assert etf_flows.acciones_previas(_Db(), "ECH", "2026-10-19") == pytest.approx(
+        24_700_000.0
+    )
+
+
 # --- 4. La migración 035 ----------------------------------------------------
 
 

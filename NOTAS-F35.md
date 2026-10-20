@@ -18,7 +18,7 @@ el flujo diario estimado es `(acciones_hoy - acciones_ayer) × NAV`.
 | `scrapers/etf_flows.py` (nuevo) | Lógica de flujos: `fetch_flow_data()`, `calcular_flujo()`, `acciones_previas()`, `upsert_flujos()`, `collect()` y `main()` con `--dry-run`. |
 | `scrapers/stages/etf_flows.py` (nuevo) | Etapa del orquestador. `STAGE = ("etf_flows", "Flujos de ETFs iShares (Δ acciones en circulación × NAV)", False)`. Se autodescubre: aparece en `run_all.py --list` entre `corredoras_cl` y `etfs_subversive` (orden alfabético, antes de `radar_ia`). |
 | `supabase/migrations/035_flujos_etf.sql` (nuevo) | Tabla `etf_flows` + índices + RLS + trigger `updated_at`. |
-| `scrapers/tests/test_etf_flows.py` (nuevo) | 17 tests: parseo de cabecera, matemática del flujo, contrato de la etapa, dry-run sin Supabase y contenido idempotente de la 035. |
+| `scrapers/tests/test_etf_flows.py` (nuevo) | 19 tests: parseo de cabecera, matemática del flujo, contrato de la etapa, dry-run sin Supabase, lectura anterior y contenido idempotente de la 035. |
 | `scrapers/data/v2/F35/` | Datos de la tarea (README + cabecera real del CSV de ECH). |
 
 ### La cabecera de ECH
@@ -77,6 +77,10 @@ El flujo se calcula contra la fila anterior más reciente del mismo símbolo
 con `fecha < fecha_actual` (`.lt("fecha", fecha)`), así que reejecutar el
 mismo día no se compara consigo mismo y es idempotente.
 
+Si la tabla `etf_flows` todavía no existe (migración 035 sin aplicar), la
+lectura de la fila anterior avisa y sigue como si no hubiera lectura previa:
+la etapa no se cae, solo queda `flujo_usd = 0` hasta que la 035 esté aplicada.
+
 ## Variables nuevas
 
 Ninguna. No se agregan variables de entorno: la etapa solo usa la URL pública
@@ -115,11 +119,11 @@ con el service role que ya usa el resto de los scrapers.
 Desde `C:\reclu-work\f9`:
 
 ```bash
-# 1. Tests de F35 (17 tests)
+# 1. Tests de F35 (19 tests)
 cd scrapers
 uv run --with pytest --with-requirements requirements.txt python -m pytest tests/test_etf_flows.py -q
 
-# 2. Toda la suite de scrapers (294 passed, 1 skipped)
+# 2. Toda la suite de scrapers (296 passed, 1 skipped)
 uv run --with pytest --with-requirements requirements.txt python -m pytest tests/ -q
 
 # 3. La etapa aparece en el orquestador
