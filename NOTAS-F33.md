@@ -85,10 +85,9 @@ F15. No se tocó `.env.example` (lo une F57).
   desplegar" en todos los periodos probados. La etapa los cuenta como
   `empty`; no se inventa data. Queda como deuda investigar si la CMF
   publica sus 12 mayores en otra ruta.
-- Persona natural: si la CMF la publica como accionista, se guarda el
-  string tal cual la fuente, sin cruzarlo con InfoProbidad ni otras bases
-  (Leyes 19.628 y 21.719). El campo `accionista` es el nombre público de
-  la CMF.
+- Persona natural: desde F33-B se guarda como `Persona natural (#ranking)`,
+  sin nombre ni RUT (ver sección F33-B); no se cruza con InfoProbidad ni
+  otras bases (Leyes 19.628 y 21.719).
 - `updated_at` de la tabla queda con `default now()` y no tiene trigger de
   actualización; el upsert con `ignore_duplicates` no pisa filas
   existentes, así que no se usó. Se puede agregar trigger en otra
@@ -102,3 +101,62 @@ F15. No se tocó `.env.example` (lo une F57).
 Datos públicos y oficiales de la CMF. Dato informativo: no ejecuta ni
 enruta órdenes y no es recomendación personalizada (Ley Fintec). Sin
 cruce de personas naturales con otras fuentes (Leyes 19.628 y 21.719).
+
+## F33-B — Ocultar personas naturales (rama `v2/f33b-anonimizar-personas`)
+
+Decisión de producto (Manu): las personas **jurídicas** se muestran con su
+nombre; las personas **naturales** no guardan nombre ni RUT, solo su
+porcentaje y acciones, como `Persona natural (#ranking)`. Ante la duda se
+oculta (falla cerrado).
+
+### Qué se hizo
+
+- `scrapers/cmf_accionistas.py`
+  - `es_persona_natural(nombre, rut=None)`: con RUT manda el umbral
+    (`< 50.000.000` natural, `>= 50.000.000` jurídica). El RUT se usa solo
+    para clasificar: nunca se guarda ni se loguea. Sin RUT se buscan
+    marcadores societarios normalizados (sin tildes ni mayúsculas): S.A.,
+    SpA, Ltda, Limitada, S.A.C., Inversiones, Sociedad, Fondo, AFP, Banco,
+    Corredores, Administradora, Holding, Trust, Inc, LLC, Ltd, Fund,
+    Custodia, Compañía, E.I.R.L., Fundación, Corporación, Agencia. Si no
+    hay marcador, es persona natural.
+  - `separar_rut()`: si la ficha trae el RUT pegado al nombre
+    (`PEREZ JUAN 12.345.678-5`), se separa y se descarta antes de
+    clasificar (tampoco queda en la fila).
+  - En el parser, la persona natural se reemplaza por
+    `Persona natural (#ranking)`; se conservan porcentaje, acciones y
+    ranking. El ranking va en el texto porque la clave única es
+    `(rut_emisor, periodo, accionista)`. La fila lleva
+    `es_persona_natural` y el upsert la persiste.
+- `supabase/migrations/045_accionistas_anonimizar.sql` (nuevo):
+  - `alter table ... add column if not exists es_persona_natural boolean not null default false`.
+  - Anonimiza las filas históricas sin marcador societario con el mismo
+    criterio (`~*`) y marca `es_persona_natural = true`; las jurídicas
+    quedan en `false`.
+  - Idempotente, sin `delete`/`truncate`/`drop`. Comentario de rollback:
+    los nombres/RUT originales **no se pueden recuperar** (intencional).
+- `supabase/migrations/README.md`: fila 18 de la tabla y sección 045.
+- Tests: 21 en `scrapers/tests/test_cmf_accionistas.py` (persona natural
+  sin RUT, con RUT inline, jurídica por nombre y por RUT, RUT ausente del
+  dict y del payload, migración 045 por texto).
+
+### Verificación
+
+```powershell
+cd scrapers
+uv run --with pytest --with-requirements requirements.txt pytest -q tests/test_cmf_accionistas.py  # 21 passed
+uv run --with pytest --with-requirements requirements.txt pytest -q                              # ver total abajo
+cd ..
+npm run lint ; npm run typecheck ; npm test
+```
+
+### Pendiente / notas
+
+- La migración 045 **no se ejecutó** contra Supabase real (solo SQL local).
+- El parser real de la CMF trae 4 celdas sin RUT de accionista; el soporte
+  de RUT (umbral y RUT inline) queda listo para fuentes que sí lo traigan.
+- Filas como "ILUSTRE MUNICIPALIDAD DE CASABLANCA" no son personas
+  naturales, pero al no tener marcador societario se anonimizan (falla
+  cerrado). Si se quiere distinguirlas, agregar el marcador a la lista.
+- El `on_conflict` con `ignore_duplicates` no pisa filas ya guardadas: las
+  personas naturales históricas solo se limpian al aplicar la 045.
