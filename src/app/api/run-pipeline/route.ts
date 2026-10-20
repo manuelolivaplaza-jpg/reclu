@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { timingSafeEqual } from "@/lib/safe-compare";
 
 /**
  * POST/GET /api/run-pipeline — corre el pipeline de alertas completo:
@@ -16,22 +17,6 @@ import { type NextRequest, NextResponse } from "next/server";
  * por eso GET también ejecuta el pipeline — sin el secreto no corre NADA
  * (401; 503 si CRON_SECRET no está configurado).
  */
-
-/** Comparación en tiempo constante (evita timing attacks sobre el secreto). */
-function timingSafeEqual(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  const maxLen = Math.max(aBytes.length, bBytes.length);
-  let diff = 0;
-  // Bucle de largo fijo: la diferencia de longitudes se mezcla en diff
-  // sin abortar temprano, y el resultado final exige igual largo.
-  for (let i = 0; i < maxLen; i++) {
-    const ai = i < aBytes.length ? aBytes[i] : 0;
-    const bi = i < bBytes.length ? bBytes[i] : 0;
-    diff |= ai ^ bi;
-  }
-  return diff === 0 && aBytes.length === bBytes.length;
-}
 
 /** Valida el header Authorization contra CRON_SECRET. null = válido. */
 function checkAuth(request: NextRequest): NextResponse | null {
