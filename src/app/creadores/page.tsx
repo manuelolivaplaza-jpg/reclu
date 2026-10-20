@@ -99,20 +99,25 @@ export default async function CreadoresPage() {
   let creators: CreatorSummary[] = [];
   let loadError: string | null = null;
 
-  const { data, error } = await supabase
-    .from("creator_portfolios")
-    .select(
-      "creator_id, created_at, creator_profiles ( id, alias, bio, verificado, conflicto_interes )",
-    )
-    .eq("estado", "approved")
-    .order("created_at", { ascending: false })
-    .limit(500);
+  try {
+    const { data, error } = await supabase
+      .from("creator_portfolios")
+      .select(
+        "creator_id, created_at, creator_profiles ( id, alias, bio, verificado, conflicto_interes )",
+      )
+      .eq("estado", "approved")
+      .order("created_at", { ascending: false })
+      .limit(500);
 
-  if (error) {
+    if (error) {
+      loadError =
+        "No pudimos cargar los creadores ahora mismo. Vuelve a intentarlo en unos minutos.";
+    } else {
+      creators = groupCreators((data ?? []) as unknown[]);
+    }
+  } catch {
     loadError =
       "No pudimos cargar los creadores ahora mismo. Vuelve a intentarlo en unos minutos.";
-  } else {
-    creators = groupCreators((data ?? []) as unknown[]);
   }
 
   return (
