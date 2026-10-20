@@ -3,7 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 
 /**
  * Refreshes the Supabase auth session on every request and guards
- * /dashboard, /portfolio, /alerts routes (redirect to /login if no user).
+ * /dashboard, /alerts, /settings, /compare y /admin (redirect a /login si no
+ * hay usuario). El control de admin por email NO vive aquí: lo hace
+ * requireAdmin() en cada página/layout de /admin (404 si no es admin).
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -42,7 +44,8 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/dashboard") ||
     path.startsWith("/alerts") ||
     path.startsWith("/settings") ||
-    path.startsWith("/compare");
+    path.startsWith("/compare") ||
+    path.startsWith("/admin");
   const isAuthPage = path === "/login" || path === "/signup";
 
   if (!user && isProtected) {
