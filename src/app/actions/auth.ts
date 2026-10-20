@@ -71,7 +71,10 @@ export async function signUp(_prev: FormState, formData: FormData): Promise<Form
   });
 
   if (error) {
-    return { error: error.message };
+    // Sin enumeración de usuarios: el mensaje es genérico exista o no el
+    // correo. El error real se loguea solo en el servidor, sin el email.
+    console.error("[signup] fallo el registro:", error.status, error.message);
+    return { error: "Si el correo es válido, te enviamos un enlace para continuar." };
   }
 
   // If email confirmation is disabled in Supabase, the session exists already.

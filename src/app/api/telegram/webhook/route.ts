@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase-admin";
+import { timingSafeEqual } from "@/lib/safe-compare";
 
 const START_RE = /^\/start(?:@\w+)?(?:\s+([A-Za-z0-9_-]{6,64}))?$/;
 
@@ -19,9 +20,14 @@ async function reply(chatId: number | string, text: string) {
 
 /** Telegram solo habla por POST. El secreto va en X-Telegram-Bot-Api-Secret-Token. */
 export async function POST(request: Request) {
+  // Sin secreto configurado: falla cerrado (503), nunca aceptar la petición.
   const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  const header = request.headers.get("x-telegram-bot-api-secret-token");
-  if (!secret || header !== secret) return unauthorized();
+  if (!secret) {
+    return NextResponse.json({ ok: false }, { status: 503 });
+  }
+  const header = request.headers.get("x-telegram-bot-api-secret-token") ?? "";
+  // Comparación timing-safe: evita filtrar el secreto byte a byte.
+  if (!timingSafeEqual(header, secret)) return unauthorized();
 
   const update = await request.json().catch(() => null);
   const text = typeof update?.message?.text === "string" ? update.message.text.trim() : "";
