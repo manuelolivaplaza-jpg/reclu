@@ -1,5 +1,32 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  isValidReferralCode,
+  referralsEnabled,
+  REFERRAL_COOKIE,
+  REFERRAL_COOKIE_MAX_AGE,
+} from "@/lib/referrals";
+
+/**
+ * Guarda `?ref=CÓDIGO` en una cookie httpOnly de 30 días para atribuir el alta
+ * al patrocinador. Sólo con `REFERRALS_ENABLED=true` y códigos válidos: con el
+ * flag apagado el flujo es invisible (ni cookie ni lectura posterior).
+ */
+function withReferralCookie(request: NextRequest, response: NextResponse): NextResponse {
+  if (!referralsEnabled()) return response;
+
+  const code = request.nextUrl.searchParams.get("ref");
+  if (!isValidReferralCode(code)) return response;
+
+  response.cookies.set(REFERRAL_COOKIE, code, {
+    maxAge: REFERRAL_COOKIE_MAX_AGE,
+    path: "/",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: request.nextUrl.protocol === "https:",
+  });
+  return response;
+}
 
 /**
  * Refreshes the Supabase auth session on every request and guards
@@ -52,26 +79,15 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", path);
-    return NextResponse.redirect(url);
+    return withReferralCookie(request, NextResponse.redirect(url));
   }
 
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     url.search = "";
-    return NextResponse.redirect(url);
+    return withReferralCookie(request, NextResponse.redirect(url));
   }
 
-  // M3 Referidos: si llega con ?ref=CÓDIGO, guardarlo en cookie (30 días)
-  // para poder atribuir el alta al patrocinador al momento del signup.
-  const referral = request.nextUrl.searchParams.get("ref");
-  if (referral && !request.cookies.get("ref")) {
-    supabaseResponse.cookies.set("ref", referral, {
-      maxAge: 60 * 60 * 24 * 30,
-      path: "/",
-      sameSite: "lax",
-    });
-  }
-
-  return supabaseResponse;
+  return withReferralCookie(request, supabaseResponse);
 }
