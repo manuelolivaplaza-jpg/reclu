@@ -49,6 +49,11 @@ CONFLICT_COLUMNS = "rut_emisor,periodo,accionista"
 
 MESES_VALIDOS = ("03", "06", "09", "12")
 
+# La ficha usa un tipo de entidad distinto segun el emisor: los bancos
+# responden con `BANCO` (RVEMI devuelve "Sin informacion"). Se prueban en
+# orden y se conserva la primera ficha que trae la tabla.
+TIPOS_ENTIDAD = ("RVEMI", "BANCO", "RVSOC")
+
 _DL_RE = re.compile(r'<dl[^>]*id="datos_ent"[^>]*>(.*?)</dl>', re.DOTALL | re.IGNORECASE)
 _DT_DD_RE = re.compile(
     r"<dt[^>]*>(.*?)</dt>\s*<dd[^>]*>(.*?)</dd>", re.DOTALL | re.IGNORECASE
@@ -257,7 +262,7 @@ def dedupe_accionistas(registros: Iterable[dict[str, Any]]) -> list[dict[str, An
 # --------------------------------------------------------------------------
 
 
-def entidad_params(rut: str) -> dict[str, str]:
+def entidad_params(rut: str, tipoentidad: str = "RVEMI") -> dict[str, str]:
     """Parametros GET de la ficha CMF en la pestania 5."""
     return {
         "control": "svs",
@@ -266,14 +271,19 @@ def entidad_params(rut: str) -> dict[str, str]:
         "pestania": "5",
         "row": "",
         "rut": rut_key(rut),
-        "tipoentidad": "RVEMI",
+        "tipoentidad": tipoentidad,
         "vig": "VI",
     }
 
 
-def source_url(rut: str) -> str:
+def source_url(rut: str, tipoentidad: str = "RVEMI") -> str:
     """URL publica de la ficha (el periodo historico va por POST)."""
-    return build_url(ENTIDAD_PATH, entidad_params(rut))
+    return build_url(ENTIDAD_PATH, entidad_params(rut, tipoentidad))
+
+
+def tiene_ficha(html: str) -> bool:
+    """True si la respuesta trae la tabla de mayores accionistas con periodo."""
+    return bool(periodo_de(html)) and "12 mayores accionistas" in (html or "").lower()
 
 
 def _periodo_partes(periodo: str) -> tuple[str, str]:
@@ -323,6 +333,7 @@ class CmfAccionistasAdapter:
         self.dry_run = dry_run
         self.client = client or CmfClient()
         self.max_emisores = max_emisores
+        self._url_por_rut: dict[str, str] = {}
 
     def emisores_a_consultar(self) -> list[tuple[str, str]]:
         lista = self.emisores if self.emisores is not None else load_emisores()
@@ -331,18 +342,32 @@ class CmfAccionistasAdapter:
         return lista
 
     def url(self, rut: str) -> str:
-        return source_url(rut)
+        return self._url_por_rut.get(rut_key(rut)) or source_url(rut)
 
     def fetch_raw(self, rut: str) -> str:
-        """Baja la ficha. Con periodo usa POST (formulario historico CMF)."""
-        if self.periodo:
-            mes, anio = _periodo_partes(self.periodo)
-            return self.client.post(
-                BASE_URL + ENTIDAD_PATH,
-                data={"mm": mes, "aa": anio},
-                params=entidad_params(rut),
-            )
-        return self.client.get(BASE_URL + ENTIDAD_PATH, params=entidad_params(rut))
+        """Baja la ficha probando los tipos de entidad de la CMF.
+
+        Con periodo usa POST (el formulario historico de la CMF). Guarda la
+        URL que trajo la tabla para el `source_url` del upsert.
+        """
+        mes_anio = _periodo_partes(self.periodo) if self.periodo else None
+        ultimo = ""
+        for tipo in TIPOS_ENTIDAD:
+            params = entidad_params(rut, tipo)
+            if mes_anio:
+                mes, anio = mes_anio
+                ultimo = self.client.post(
+                    BASE_URL + ENTIDAD_PATH,
+                    data={"mm": mes, "aa": anio},
+                    params=params,
+                )
+            else:
+                ultimo = self.client.get(BASE_URL + ENTIDAD_PATH, params=params)
+            if tiene_ficha(ultimo):
+                self._url_por_rut[rut_key(rut)] = source_url(rut, tipo)
+                return ultimo
+        self._url_por_rut.setdefault(rut_key(rut), source_url(rut))
+        return ultimo
 
     def normalize(
         self, html: str, *, rut: str, nemo: str | None = None

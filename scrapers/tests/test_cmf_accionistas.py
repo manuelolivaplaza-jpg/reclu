@@ -225,6 +225,25 @@ def test_periodo_historico_usa_post() -> None:
     assert params["pestania"] == "5"
 
 
+def test_prueba_el_tipo_de_entidad_de_los_bancos() -> None:
+    class ClientePorTipo(FakeClient):
+        def get(self, url: str, params=None, **_kwargs) -> str:
+            self.calls.append(("GET", url, params))
+            if params and params["tipoentidad"] == "BANCO":
+                return HTML
+            return "<html><body>Sin informacion.</body></html>"
+
+    cliente = ClientePorTipo()
+    adapter = CmfAccionistasAdapter(
+        emisores=[("97004000", "CHILE")], dry_run=True, client=cliente
+    )
+    resumen = adapter.run(None)
+    assert resumen["ok"] == 1
+    tipos = [llamada[2]["tipoentidad"] for llamada in cliente.calls]
+    assert tipos == ["RVEMI", "BANCO"]
+    assert "tipoentidad=BANCO" in adapter.url("97004000")
+
+
 def test_upsert_usa_la_clave_y_la_url_de_la_ficha() -> None:
     db = FakeDb()
     adapter = CmfAccionistasAdapter(
