@@ -114,23 +114,9 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
       const response = await fetch("/api/explain-alert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          alert: {
-            id: alert.id,
-            type: alert.type,
-            severity: alert.severity,
-            title: alert.title,
-            summary: alert.summary,
-            createdAt: alert.created_at,
-            payload: alert.payload,
-            portfolio: {
-              slug: alert.portfolio.slug,
-              name: alert.portfolio.name,
-              manager: alert.portfolio.manager,
-              category: alert.portfolio.category,
-            },
-          },
-        }),
+        // Solo el id (M8): el servidor lee la alerta publicada y explica ese
+        // contenido, no el que enviaría el navegador.
+        body: JSON.stringify({ alertId: alert.id }),
       });
 
       const data = (await response.json().catch(() => null)) as
