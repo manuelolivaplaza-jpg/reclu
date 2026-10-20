@@ -27,6 +27,7 @@ el CLI, respetando el mismo orden).
 | 16 | `018_inverse_cramer.sql` | Amplía `mentions.kind` con `recomienda_compra` y `recomienda_venta`. Portafolio `inverse-cramer-real`, 27 picks y holdings semilla al 2026-10-16. El proxy `inverse-cramer` no se toca. La 015 queda reservada para F9. |
 | 17 | `044_corredoras_cl.sql` | F23: portafolios `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Solo filas de `portfolios`; los holdings los carga la etapa `corredoras_cl`. Aplicar después de `021_infoprobidad_agregado.sql` (y de la `043` si existe); independiente de `022-042`. Re-ejecutable. |
 | 18 | `045_accionistas_anonimizar.sql` | F33-B: agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`. Aplicar después de `033_mayores_accionistas.sql`. Re-ejecutable. |
+| 19 | `046_endurecer_permisos.sql` | SB1 (M3/B1/037): `revoke` de escritura a `anon`/`authenticated` en las 9 tablas públicas nuevas, `revoke execute` de `enforce_alert_rule_limits()` y función `anonimizar_accionista()` + trigger `BEFORE INSERT OR UPDATE` en `cl_top_shareholders` que fuerza la anonimización de personas naturales (mismo regex que la 045). Re-ejecutable. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -82,9 +83,10 @@ se escribe si `inverse-cramer-real` existe y está activa. **No borra filas** ni
 toca holdings/alerts. Se puede aplicar después de la 021 y antes o después de
 las migraciones v2 (022-042): es independiente. Idempotente.
 
-**Reversión:** `043_ocultar_demos_down.sql` reactiva esos 4 portafolios y
-limpia `replaced_by_slug`/`hidden_reason`. **El `_down` NO se aplica en el flujo
-normal**; solo se corre a mano si se quiere deshacer el ocultamiento.
+**Reversión:** `043_ocultar_demos_down.sql` (en `supabase/rollback/`, fuera de
+`migrations/` para que no corra en el flujo normal) reactiva esos 4 portafolios
+y limpia `replaced_by_slug`/`hidden_reason`. **El `_down` NO se aplica en el
+flujo normal**; solo se corre a mano si se quiere deshacer el ocultamiento.
 
 Pendiente conocido: las RPC de `011`, `012`, `015` y `019` ya filtran
 `p.is_active = true`, así que no vuelven a exponer los ocultos. La política RLS
@@ -110,3 +112,33 @@ reemplazo es intencional, Leyes 19.628 y 21.719). Solo se puede deshacer el
 esquema con `alter table ... drop column if exists es_persona_natural`; los
 textos `Persona natural (#n)` quedan como están. Aplicar después de la `033`.
 Idempotente.
+
+## 046 — Endurecer permisos (SB1: M3, B1 y fila 037)
+
+`046_endurecer_permisos.sql` cierra los hallazgos M3, B1 y la fila de
+`037_reglas_alerta.sql` de la revisión de seguridad 2026-10-20:
+
+- **B1:** `revoke insert, update, delete` a `anon`/`authenticated` en las 9
+  tablas públicas nuevas (`activist_filings`, `spinoffs`, `buybacks`,
+  `cl_dividends`, `cl_material_events`, `cl_top_shareholders`,
+  `cl_mutual_funds`, `cl_mutual_fund_holdings`, `sponsorships`), cada una con
+  `do $$ ... if to_regclass(...) is not null` por si alguna no existe todavía.
+  Solo el `service_role` (que bypassa RLS) puede escribir.
+- **Fila 037:** `revoke execute on function public.enforce_alert_rule_limits()
+  from public, anon, authenticated` (la función es de trigger y solo el
+  service role necesita acceso).
+- **M3:** función `public.anonimizar_accionista()` (`security definer`,
+  `set search_path = ''`, con `revoke execute`) + trigger
+  `anonimizar_accionista` `BEFORE INSERT OR UPDATE` en
+  `public.cl_top_shareholders`: si `NEW.accionista` no calza con el regex
+  societario de la 045 (copiado exacto), lo reescribe como
+  `Persona natural (#ranking)` y marca `es_persona_natural = true`. Si ya
+  empieza con `Persona natural (#`, lo deja (idempotente).
+
+Re-ejecutable. Aplicar después de la `045`.
+
+**Reversión:** `drop trigger if exists anonimizar_accionista on
+public.cl_top_shareholders; drop function if exists
+public.anonimizar_accionista();` y repetir los `grant insert, update, delete`
+que cada migración original declaraba (no hay `grant` de escritura que
+restaurar: las migraciones 027–034 y 042 solo daban `grant select`).
