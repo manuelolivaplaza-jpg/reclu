@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -244,6 +245,14 @@ export default async function ApiSettingsPage() {
           ofrecen gratis y fuera de cualquier muro, conforme a 5 U.S.C. § 13107.
           La API entrega información pública: no ejecuta órdenes ni entrega
           recomendaciones personalizadas.
+        </p>
+        <p className="text-[13px]">
+          <Link
+            href="/api-docs"
+            className="text-ink-900 underline underline-offset-4"
+          >
+            Ver documentación de la API
+          </Link>
         </p>
       </div>
     </div>
