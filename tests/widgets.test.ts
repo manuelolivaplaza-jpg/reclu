@@ -65,6 +65,26 @@ describe("isWidgetTipo", () => {
       expect(isWidgetTipo(valor)).toBe(false);
     }
   });
+
+  it("rechaza parámetros con caracteres raros o intentos de inyección", () => {
+    const valores = [
+      "ranking?x=1",
+      "ranking&afp",
+      "ranking#top",
+      "ranking%2Fafp",
+      "ranking/../afp",
+      "ranking\\afp",
+      "ranking%00",
+      "ranking\u0000",
+      "<script>alert(1)</script>",
+      "RANKING",
+      " ranking",
+      "ranking ",
+    ];
+    for (const valor of valores) {
+      expect(isWidgetTipo(valor)).toBe(false);
+    }
+  });
 });
 
 describe("widgetIframeCode", () => {
