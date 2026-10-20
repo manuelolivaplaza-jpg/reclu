@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
   API_DATASET_SLUGS,
   API_DEFAULT_PER_PAGE,
@@ -21,6 +21,13 @@ const PUBLIC = [
   "hechos",
   "insiders",
 ];
+
+const ORIGINAL_API_FLAG = process.env.API_PUBLIC_ENABLED;
+
+afterEach(() => {
+  if (ORIGINAL_API_FLAG === undefined) delete process.env.API_PUBLIC_ENABLED;
+  else process.env.API_PUBLIC_ENABLED = ORIGINAL_API_FLAG;
+});
 
 describe("lista blanca de datasets", () => {
   it("publica solo las seis fuentes chilenas aprobadas", () => {
@@ -69,6 +76,18 @@ describe("GET /api/v1/[dataset] con datasets excluidos", () => {
       params: Promise.resolve({ dataset: "otro" }),
     });
     expect(response.status).toBe(404);
+  });
+
+  it("con la API apagada un dataset válido responde 503", async () => {
+    delete process.env.API_PUBLIC_ENABLED;
+    const response = await GET(new Request("https://reclu.cl/api/v1/afp"), {
+      params: Promise.resolve({ dataset: "afp" }),
+    });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({
+      error: "La API pública no está habilitada.",
+      status: 503,
+    });
   });
 });
 
