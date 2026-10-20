@@ -18,9 +18,11 @@ RUT -> nemotecnico: se reutiliza el mapa verificado de F15
 (`data/infoprobidad/rut_nemotecnico.json`). Solo se consultan las emisoras
 con nemotecnico; las que no cotizan quedan fuera de la etapa.
 
-Datos: informacion publica y oficial de la CMF. Si la CMF publica una
-persona natural como accionista, se muestra tal cual la publica la fuente,
-sin cruzarla con otras bases ni inferir datos adicionales (Leyes 19.628 y
+Datos: informacion publica y oficial de la CMF. Las personas juridicas se
+muestran con su nombre. Las personas naturales NO guardan nombre ni RUT
+(decision de producto F33-B): se guardan como "Persona natural (#ranking)"
+con su porcentaje y acciones. Ante la duda se oculta (falla cerrado), sin
+cruzarlas con otras bases ni inferir datos adicionales (Leyes 19.628 y
 21.719). Dato informativo: no ejecuta ordenes ni es recomendacion.
 
 No usa el MCP de terceros mcp-cmf-chile.
@@ -48,6 +50,50 @@ MAX_ACCIONISTAS = 12
 CONFLICT_COLUMNS = "rut_emisor,periodo,accionista"
 
 MESES_VALIDOS = ("03", "06", "09", "12")
+
+# F33-B: umbral de RUT que separa personas naturales de juridicas. El RUT
+# del accionista se usa SOLO para clasificar: nunca se guarda ni se loguea.
+RUT_PERSONA_NATURAL_MAX = 50_000_000
+
+# Marcadores societarios (se comparan normalizados: minusculas y sin tildes).
+# Si el nombre no trae ninguno, se asume persona natural y se anonimiza.
+MARCADORES_SOCIETARIOS = (
+    "S.A.",
+    "SpA",
+    "Ltda",
+    "Limitada",
+    "S.A.C.",
+    "Inversiones",
+    "Sociedad",
+    "Fondo",
+    "AFP",
+    "Banco",
+    "Corredores",
+    "Administradora",
+    "Holding",
+    "Trust",
+    "Inc",
+    "LLC",
+    "Ltd",
+    "Fund",
+    "Custodia",
+    "Compania",
+    "Compañia",
+    "Compañía",
+    "E.I.R.L.",
+    "Fundacion",
+    "Fundación",
+    "Corporacion",
+    "Corporación",
+    "Agencia",
+)
+
+# La ficha puede traer el RUT pegado al nombre ("PEREZ JUAN 12.345.678-5").
+# Se separa antes de clasificar y se descarta: no se guarda.
+_RUT_INLINE_RE = re.compile(
+    r"\s*(?:RUT[:\s]*)?(\d{1,2}\.?\d{3}\.?\d{3}\s*-?\s*[\dkK])\s*$",
+    re.IGNORECASE,
+)
 
 # La ficha usa un tipo de entidad distinto segun el emisor: los bancos
 # responden con `BANCO` (RVEMI devuelve "Sin informacion"). Se prueban en
@@ -89,6 +135,40 @@ def _norm(texto: str) -> str:
     base = unicodedata.normalize("NFKD", texto or "")
     sin_tildes = "".join(c for c in base if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", sin_tildes.strip().lower())
+
+
+_MARCADOR_SOCIETARIO_RE = re.compile(
+    r"(?<![a-z0-9])("
+    + "|".join(re.escape(_norm(m)) for m in MARCADORES_SOCIETARIOS)
+    + r")(?![a-z0-9])"
+)
+
+
+def es_persona_natural(nombre: str, rut: str | None = None) -> bool:
+    """True si el accionista es una persona natural (F33-B).
+
+    Con RUT manda el umbral: < 50.000.000 es natural y >= 50.000.000 es
+    juridica. El RUT se usa solo para clasificar y no se guarda ni se loguea.
+
+    Sin RUT (o si no se puede leer) se busca un marcador societario en el
+    nombre; si no hay ninguno se asume persona natural: ante la duda se
+    oculta (falla cerrado).
+    """
+    if rut:
+        cuerpo = rut_key(rut)
+        if cuerpo.isdigit():
+            return int(cuerpo) < RUT_PERSONA_NATURAL_MAX
+    return _MARCADOR_SOCIETARIO_RE.search(_norm(nombre)) is None
+
+
+def separar_rut(texto: str) -> tuple[str, str | None]:
+    """Separa un RUT pegado al final del nombre. El RUT no se conserva."""
+    nombre = (texto or "").strip()
+    match = _RUT_INLINE_RE.search(nombre)
+    if not match:
+        return nombre, None
+    return nombre[: match.start()].strip(" -,:;"), match.group(1)
+
 
 
 def rut_key(raw: str) -> str:
@@ -212,21 +292,28 @@ def parse_accionistas(
         celdas = [_clean(c) for c in _TD_RE.findall(match.group(1))]
         if len(celdas) != 4:
             continue
-        accionista = celdas[0]
+        accionista, rut_accionista = separar_rut(celdas[0])
         if not accionista:
             continue
         clave = _norm(accionista)
         if clave in vistos:
             continue
         vistos.add(clave)
+        ranking = len(filas) + 1
+        natural = es_persona_natural(accionista, rut_accionista)
+        if natural:
+            # Nunca se guarda el nombre ni el RUT: solo el porcentaje y las
+            # acciones. El ranking evita chocar con la clave unica.
+            accionista = f"Persona natural (#{ranking})"
         filas.append(
             {
                 "rut_emisor": rut,
                 "nemo": (nemo or "").strip().upper() or None,
                 "razon_social": razon_social or None,
                 "periodo": periodo,
-                "ranking": len(filas) + 1,
+                "ranking": ranking,
                 "accionista": accionista,
+                "es_persona_natural": natural,
                 "porcentaje_propiedad": _porcentaje(celdas[3]),
                 "acciones_suscritas": _entero(celdas[1]),
                 "acciones_pagadas": _entero(celdas[2]),
@@ -439,6 +526,7 @@ class CmfAccionistasAdapter:
             "periodo": fila["periodo"],
             "ranking": fila.get("ranking"),
             "accionista": fila["accionista"],
+            "es_persona_natural": bool(fila.get("es_persona_natural", False)),
             "porcentaje_propiedad": fila.get("porcentaje_propiedad"),
             "acciones_suscritas": fila.get("acciones_suscritas"),
             "acciones_pagadas": fila.get("acciones_pagadas"),
