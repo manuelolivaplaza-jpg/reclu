@@ -22,7 +22,9 @@ FIRMAS = (
 
 def _sql() -> str:
     assert SQL_048.is_file(), f"falta {SQL_048}"
-    return SQL_048.read_text(encoding="utf-8")
+    # Normaliza CRLF para que las aserciones multilinea valgan en cualquier
+    # checkout (Windows con core.autocrlf).
+    return SQL_048.read_text(encoding="utf-8").replace("\r\n", "\n")
 
 
 def _activo() -> str:
