@@ -51,6 +51,7 @@ describe("sitemap", () => {
 
     expect(list).toContain("/ranking");
     expect(list).toContain("/aprende");
+    expect(list).toContain("/herramientas");
     expect(list).toContain("/herramientas/backtest");
     expect(list).toContain("/herramientas/impuestos");
     expect(list).toContain("/medios");

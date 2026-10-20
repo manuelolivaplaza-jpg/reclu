@@ -15,6 +15,14 @@ const FOOTER_SECTIONS = [
     ],
   },
   {
+    title: "Recursos",
+    links: [
+      { href: "/ranking", label: "Ranking" },
+      { href: "/aprende", label: "Aprende" },
+      { href: "/herramientas", label: "Herramientas" },
+    ],
+  },
+  {
     title: "Legal",
     links: [
       { href: "/terminos", label: "Términos" },
@@ -28,7 +36,7 @@ export function SiteFooter() {
   return (
     <footer className="bg-ink-900 text-white">
       <div className="container-page py-16">
-        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1.5fr]">
+        <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-[1.4fr_0.9fr_0.9fr_0.9fr_1.4fr]">
           <div className="flex flex-col gap-4">
             <LogoLockup tone="inverse" />
             <p className="max-w-xs text-sm leading-relaxed text-white/62">

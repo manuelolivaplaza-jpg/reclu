@@ -34,6 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Contenido editorial estático. Solo rutas que existen en src/app:
     // si se agrega una ficha o herramienta nueva, sumarla aquí.
     { url: absoluteUrl("/aprende"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    { url: absoluteUrl("/herramientas"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: absoluteUrl("/herramientas/backtest"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: absoluteUrl("/herramientas/impuestos"), lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: absoluteUrl("/medios"), lastModified: now, changeFrequency: "monthly", priority: 0.5 },
