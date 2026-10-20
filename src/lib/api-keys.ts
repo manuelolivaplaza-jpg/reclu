@@ -48,6 +48,17 @@ export const API_DAILY_LIMITS: Record<ApiPlan, number> = {
   elite: 10000,
 };
 
+/** Tope de claves activas por persona (las revocadas no cuentan). */
+export const API_MAX_ACTIVE_KEYS = 5;
+
+/**
+ * True cuando ya no se puede emitir otra clave activa. Se valida en la
+ * server action además de la UI: el navegador no es la frontera de seguridad.
+ */
+export function activeApiKeyLimitReached(activeCount: number): boolean {
+  return Math.max(0, Math.floor(activeCount)) >= API_MAX_ACTIVE_KEYS;
+}
+
 export interface GeneratedApiKey {
   /** Clave completa: se muestra UNA vez y no se vuelve a guardar. */
   plaintext: string;
@@ -211,7 +222,7 @@ export type ApiAuthResult =
     }
   | {
       ok: false;
-      status: 401 | 403 | 503;
+      status: 401 | 503;
       error: string;
     };
 
@@ -255,7 +266,9 @@ export function authenticateApiKey(
   }
 
   if (record.revoked) {
-    return { ok: false, status: 403, error: "Clave de API revocada." };
+    // Mismo mensaje que una clave inexistente o mal formada: no se revela
+    // si la clave existió o fue revocada.
+    return { ok: false, status: 401, error: "Clave de API inválida." };
   }
 
   const plan = normalizeApiPlan(record.plan);
