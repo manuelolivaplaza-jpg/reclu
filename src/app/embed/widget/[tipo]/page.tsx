@@ -15,6 +15,14 @@ import {
 } from "@/lib/ranking";
 import { RESEARCH_RESULTS } from "@/lib/research-results";
 import { formatPercent } from "@/lib/utils";
+import {
+  CONSENSO_AS_OF,
+  CONSENSO_SEMILLA,
+  formatShortDate,
+  isWidgetTipo,
+  WIDGET_META,
+  type WidgetTipo,
+} from "@/lib/widgets";
 
 /**
  * Widgets incrustables para medios (F52).
@@ -28,78 +36,6 @@ import { formatPercent } from "@/lib/utils";
  * InfoProbidad ni entrega recomendaciones personalizadas.
  */
 export const instant = false;
-
-export const WIDGET_TIPOS = [
-  "consenso-corredoras",
-  "afp",
-  "insiders",
-  "ranking",
-] as const;
-
-export type WidgetTipo = (typeof WIDGET_TIPOS)[number];
-
-const WIDGET_META: Record<
-  WidgetTipo,
-  { label: string; title: string; description: string; height: number }
-> = {
-  "consenso-corredoras": {
-    label: "Consenso de corredoras",
-    title: "Consenso de corredoras",
-    description:
-      "Peso promedio de cada acción entre las corredoras chilenas con cartera completa (BICE y MBI).",
-    height: 380,
-  },
-  afp: {
-    label: "AFP",
-    title: "AFP: acciones chilenas",
-    description:
-      "Acciones nacionales declaradas por las AFP chilenas en los reportes de la Superintendencia de Pensiones.",
-    height: 400,
-  },
-  insiders: {
-    label: "Insiders",
-    title: "Últimas compras de insiders",
-    description:
-      "Compras en mercado abierto (Form 4) de ejecutivos y directores de empresas que cotizan en EE.UU.",
-    height: 400,
-  },
-  ranking: {
-    label: "Ranking",
-    title: "Ranking honesto",
-    description:
-      "Cada portafolio y estudio contra el benchmark de su país, ordenado por exceso de retorno. Incluye los que pierden.",
-    height: 400,
-  },
-};
-
-export function isWidgetTipo(value: string): value is WidgetTipo {
-  return (WIDGET_TIPOS as readonly string[]).includes(value);
-}
-
-export function widgetIframeHeight(tipo: WidgetTipo): number {
-  return WIDGET_META[tipo].height;
-}
-
-/** Código de iframe listo para pegar. La atribución va dentro del widget. */
-export function widgetIframeCode(tipo: WidgetTipo, baseUrl: string): string {
-  const src = `${baseUrl.replace(/\/+$/, "")}/embed/widget/${tipo}`;
-  return `<iframe src="${src}" width="100%" height="${widgetIframeHeight(tipo)}" style="border:0" title="Datos de reclu.cl" loading="lazy"></iframe>`;
-}
-
-/**
- * Semilla pública de la migración 024, corte 2026-10-05. Solo se usa cuando
- * Supabase no está configurado o el portafolio agregado todavía no existe.
- * Son datos públicos agregados de BICE y MBI, no una recomendación.
- */
-export const CONSENSO_SEMILLA = [
-  { symbol: "LTM", name: "LATAM Airlines", weight: 20 },
-  { symbol: "SQM-B", name: "SQM-B", weight: 17.5 },
-  { symbol: "FALABELLA", name: "Falabella", weight: 10 },
-  { symbol: "COPEC", name: "Copec", weight: 10 },
-  { symbol: "ITAUCL", name: "Itau Corpbanca", weight: 10 },
-] as const;
-
-export const CONSENSO_AS_OF = "2026-10-05";
 
 interface EmbedPageProps {
   params: Promise<{ tipo: string }>;
@@ -406,10 +342,4 @@ async function RankingWidget() {
       </p>
     </div>
   );
-}
-
-function formatShortDate(iso: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
-  if (!match) return iso;
-  return `${match[3]}-${match[2]}-${match[1]}`;
 }
