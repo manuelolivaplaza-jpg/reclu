@@ -29,6 +29,7 @@ el CLI, respetando el mismo orden).
 | 18 | `045_accionistas_anonimizar.sql` | F33-B: agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`. Aplicar después de `033_mayores_accionistas.sql`. Re-ejecutable. |
 | 19 | `046_endurecer_permisos.sql` | SB1 (M3/B1/037): `revoke` de escritura a `anon`/`authenticated` en las 9 tablas públicas nuevas, `revoke execute` de `enforce_alert_rule_limits()` y función `anonimizar_accionista()` + trigger `BEFORE INSERT OR UPDATE` en `cl_top_shareholders` que fuerza la anonimización de personas naturales (mismo regex que la 045). Re-ejecutable. |
 | 20 | `047_telegram_link_code.sql` | M10: RPC `create_telegram_link_code()` (`security definer`, `set search_path = ''`) que genera el código con `auth.uid()` y escribe `profiles.telegram_link_code` marcando `reclu.trusted` para el trigger de la 007. Solo `authenticated`. Re-ejecutable. |
+| 21 | `048_muro_series_alertas.sql` | SD2-A (M6/M7): quita la lectura pública de `portfolio_performance`/`portfolio_metrics` para portafolios premium y expone `get_portfolio_performance(uuid)` (90 días para anon/free), `get_portfolio_metrics(uuid)` y `get_alerts(uuid, int)` (topes 3/10/p_limit, `summary` solo pro/elite). `alerts` deja de exponer `summary` por lectura directa y se agrega `alerts_public`. Re-ejecutable. |
 
 ## Migraciones que vendrán de otros frentes (reservadas)
 
@@ -169,3 +170,43 @@ Re-ejecutable. Aplicar después de la 008 (columna `telegram_link_code`).
 La acción `prepareTelegramLink` llama `supabase.rpc('create_telegram_link_code')`.
 
 **Reversión:** `drop function if exists public.create_telegram_link_code();`.
+
+## 048 — Muro de series, métricas y alertas (SD2-A: M6/M7)
+
+`048_muro_series_alertas.sql` cierra M6 y M7 con el patrón de la 012
+(funciones `security definer` con `set search_path = ''` y el plan de
+`public.current_user_plan()`):
+
+- **M6 — series y métricas:** se eliminan las policies de lectura pública de
+  `portfolio_performance` y `portfolio_metrics`. La lectura directa por REST
+  queda solo para filas de portafolios activos **no premium**
+  (`exists (... not p.premium)`). Lo premium se sirve por:
+  - `get_portfolio_performance(p_portfolio uuid)`: premium + plan no pago →
+    vacío; anon/free → últimos 90 días de la serie (desde su último punto,
+    igual que `trimSeriesToWindow`); pro/elite → completa. Las declaraciones
+    públicas (`oge_278t`, `house_ptr`, `senate_ptr`) se entregan completas.
+  - `get_portfolio_metrics(p_portfolio uuid)`: premium + plan no pago → vacío;
+    el resto → todas las filas.
+  - La vista `v_beat_the_market` (011) pasa a `security_invoker = true` para
+    que no saltée la RLS de `portfolio_metrics`.
+- **M7 — alertas:** la policy de lectura queda solo para alertas publicadas
+  de portafolios activos no premium. `summary` se quita del privilegio de
+  lectura directa (`revoke select (summary)` + `revoke select` de tabla y
+  `grant select` por columnas sin `summary`), y se agrega la vista
+  `public.alerts_public` (`security_invoker = true`) sin esa columna.
+  - `get_alerts(p_portfolio uuid default null, p_limit int default 20)`:
+    solo publicadas; premium + plan no pago → ninguna; `summary` solo
+    pro/elite; tope 3 (anon) / 10 (free) / `p_limit` (pago, máx. 100).
+- Grants: `revoke all ... from public` + `grant execute ... to anon,
+  authenticated` en las tres RPC.
+
+**Ojo (SD2-B):** al revocar `select (summary)` un `select("*")` sobre
+`alerts` desde anon/authenticated falla con *permission denied for column
+summary*. `getAlerts` en `src/lib/queries.ts` debe listar columnas explícitas
+o leer `alerts_public` (y usar `get_alerts` para el resumen de pago).
+
+**Reversión:** bloque `-- rollback` al final del archivo: borra las tres
+funciones y `alerts_public`, restaura el `select` de tabla en `alerts`, las
+policies públicas de 011/SETUP y el `security_invoker` de `v_beat_the_market`.
+Aplicar después de la 012 (usa `current_user_plan()`) y de la 011.
+
