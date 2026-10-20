@@ -219,10 +219,10 @@ export function parsePagination(params: URLSearchParams): ApiPagination {
 
 export interface ApiPaginationMeta {
   page: number;
-  perPage: number;
+  per_page: number;
   total: number;
-  totalPages: number;
-  hasMore: boolean;
+  total_pages: number;
+  has_more: boolean;
 }
 
 export function paginationMeta(
@@ -234,10 +234,10 @@ export function paginationMeta(
     safeTotal === 0 ? 0 : Math.ceil(safeTotal / pagination.perPage);
   return {
     page: pagination.page,
-    perPage: pagination.perPage,
+    per_page: pagination.perPage,
     total: safeTotal,
-    totalPages,
-    hasMore: pagination.from + pagination.perPage < safeTotal,
+    total_pages: totalPages,
+    has_more: pagination.from + pagination.perPage < safeTotal,
   };
 }
 

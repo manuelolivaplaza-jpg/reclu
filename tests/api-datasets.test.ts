@@ -113,15 +113,15 @@ describe("paginationMeta", () => {
   it("calcula totales y si hay más páginas", () => {
     expect(
       paginationMeta({ page: 1, perPage: 50, from: 0 }, 120),
-    ).toEqual({ page: 1, perPage: 50, total: 120, totalPages: 3, hasMore: true });
+    ).toEqual({ page: 1, per_page: 50, total: 120, total_pages: 3, has_more: true });
     expect(
       paginationMeta({ page: 3, perPage: 50, from: 100 }, 120),
-    ).toEqual({ page: 3, perPage: 50, total: 120, totalPages: 3, hasMore: false });
+    ).toEqual({ page: 3, per_page: 50, total: 120, total_pages: 3, has_more: false });
   });
 
   it("una lista vacía tiene cero páginas", () => {
     expect(
       paginationMeta({ page: 1, perPage: 50, from: 0 }, 0),
-    ).toMatchObject({ total: 0, totalPages: 0, hasMore: false });
+    ).toMatchObject({ total: 0, total_pages: 0, has_more: false });
   });
 });
