@@ -4,7 +4,7 @@
 -- hacia el portafolio real que los reemplaza. No toca holdings ni alerts.
 --
 -- Idempotente y re-ejecutable. La reversion vive en
--- `043_ocultar_demos_down.sql` (NO se aplica en el flujo normal).
+-- `supabase/rollback/043_ocultar_demos_down.sql` (NO se aplica en el flujo normal).
 --
 -- Decision de Manu (D43):
 --   elon-doge-tracker    -> musk-dice              (F11, 017) siempre
