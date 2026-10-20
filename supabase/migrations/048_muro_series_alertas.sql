@@ -40,6 +40,13 @@ create policy "performance non premium read" on public.portfolio_performance
       where p.id = portfolio_performance.portfolio_id
         and p.is_active = true
         and not p.premium
+        -- Lectura directa (REST) acotada a 90 dias: la serie completa solo
+        -- sale por get_portfolio_performance() segun el plan. Excepcion legal:
+        -- declaraciones publicas (5 U.S.C. 13107) completas.
+        and (
+          p.source in ('oge_278t', 'house_ptr', 'senate_ptr')
+          or portfolio_performance.date >= current_date - 90
+        )
     )
   );
 
