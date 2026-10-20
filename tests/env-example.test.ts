@@ -25,6 +25,7 @@ const REQUIRED_KEYS = [
   "COMMUNITY_ENABLED",
   "REFERRALS_ENABLED",
   "SPONSORS_ENABLED",
+  "API_PUBLIC_ENABLED",
 ] as const;
 
 const DISABLED_FLAGS = [
@@ -34,6 +35,7 @@ const DISABLED_FLAGS = [
   "COMMUNITY_ENABLED",
   "REFERRALS_ENABLED",
   "SPONSORS_ENABLED",
+  "API_PUBLIC_ENABLED",
 ] as const;
 
 /** Clave = valor de las líneas `KEY=valor`, sin comentarios ni comillas. */

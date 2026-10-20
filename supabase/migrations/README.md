@@ -42,15 +42,16 @@ el CLI, respetando el mismo orden).
 | 31 | `037_reglas_alerta.sql` | Tabla `alert_rules` (ticker/portfolio/source/min_amount y canal email/telegram/both) con RLS solo del dueño y trigger `enforce_alert_rule_limits` (topes 3 gratis / 50 pago, Telegram solo pago o prueba). | `008_planes_alertas.sql` (`profiles.plan`, `trial_ends_at`) | Sí |
 | 32 | `038_comunidad.sql` | Tablas `creator_profiles` y `creator_portfolios` para comunidad de creadores; carteras nacen `pending`, lectura pública solo `approved`, moderación solo `service_role` y triggers que congelan estado/verificado. Apagada en la app por `COMMUNITY_ENABLED`. | Esquema base (patrón `reclu.trusted` de la 007) | Sí |
 | 33 | `039_referidos.sql` | Refuerza el esquema de referidos de la 009: un invitado por fila, `referrals` solo-lectura para el cliente y `reward_referral()` para el primer pago. No duplica tablas ni códigos. | `009_pagos_suscripciones.sql` | Sí |
-| 34 | `041_socios.sql` | Tabla `partners` para marca blanca (`/p/[socio]/[tipo]`): logo, acento validado y slugs de portafolios permitidos; lectura pública solo de socios activos. | Esquema base | Sí |
-| 35 | `042_patrocinios.sql` | Tabla `sponsorships` para espacios pagados rotulados; `placement` solo ubicaciones editoriales (nunca `portfolio` ni `alerts`) y lectura pública solo de campañas vigentes. | Esquema base | Sí |
-| 36 | `043_ocultar_demos.sql` | Agrega `portfolios.replaced_by_slug` y `hidden_reason`, y oculta (sin borrar) los 4 portafolios con cifras inventadas apuntando a su versión real. Reversión en `supabase/rollback/043_ocultar_demos_down.sql`. | `014`, `017`, `020`; la 018 solo si `inverse-cramer-real` existe | Sí |
-| 37 | `044_corredoras_cl.sql` | F23: filas de `portfolios` para `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Sin holdings: los carga `corredoras_cl`. | `021_infoprobidad_agregado.sql` (y `043` si existe); independiente de `022-042` | Sí |
-| 38 | `045_accionistas_anonimizar.sql` | Agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`, conservando porcentaje, acciones y ranking. | `033_mayores_accionistas.sql` | Sí |
-| 39 | `046_endurecer_permisos.sql` | SB1 (M3/B1/037): `revoke` de escritura a `anon`/`authenticated` en las 9 tablas públicas nuevas, `revoke execute` de `enforce_alert_rule_limits()` y función `anonimizar_accionista()` + trigger `BEFORE INSERT OR UPDATE` en `cl_top_shareholders` (mismo regex que la 045). | `045_accionistas_anonimizar.sql`; tablas de `027-034` y `042` | Sí |
-| 40 | `047_telegram_link_code.sql` | M10: RPC `create_telegram_link_code()` (`security definer`, `set search_path = ''`) que genera el código con `auth.uid()` y escribe `profiles.telegram_link_code` marcando `reclu.trusted` para el trigger de la 007. Solo `authenticated`. | `008_planes_alertas.sql` (columna `telegram_link_code`) | Sí |
-| 41 | `048_muro_series_alertas.sql` | SD2-A (M6/M7): quita la lectura pública de `portfolio_performance`/`portfolio_metrics` para portafolios premium y expone `get_portfolio_performance(uuid)` (90 días para anon/free), `get_portfolio_metrics(uuid)` y `get_alerts(uuid, int)` (topes 3/10/p_limit, `summary` solo pro/elite). `alerts` deja de exponer `summary` por lectura directa y se agrega `alerts_public`. | `011_rendimiento.sql` y `012_muro_pago.sql` (`current_user_plan()`) | Sí |
-| 42 | `049_token_baja.sql` | M5: agrega `profiles.unsubscribe_token_created_at` y reescribe `unsubscribe_by_token` con expiración de 180 días y rotación del token al usarse. Solo `service_role`. | `007_seguridad_rls.sql` (trigger de perfiles) y `008_planes_alertas.sql` (`unsubscribe_by_token`) | Sí |
+| 34 | `040_api_claves.sql` | F53: tablas `api_keys` (prefijo público + `sha256` de la clave, plan, revocación y `last_used_at`) y `api_usage` (`key_id`, `day` UTC, `count`); RPC `consume_api_usage(uuid, date)` y RLS de solo lectura del dueño. Sin clave en claro, sin IP ni user-agent. | Esquema base (`auth.users`) | Sí |
+| 35 | `041_socios.sql` | Tabla `partners` para marca blanca (`/p/[socio]/[tipo]`): logo, acento validado y slugs de portafolios permitidos; lectura pública solo de socios activos. | Esquema base | Sí |
+| 36 | `042_patrocinios.sql` | Tabla `sponsorships` para espacios pagados rotulados; `placement` solo ubicaciones editoriales (nunca `portfolio` ni `alerts`) y lectura pública solo de campañas vigentes. | Esquema base | Sí |
+| 37 | `043_ocultar_demos.sql` | Agrega `portfolios.replaced_by_slug` y `hidden_reason`, y oculta (sin borrar) los 4 portafolios con cifras inventadas apuntando a su versión real. Reversión en `supabase/rollback/043_ocultar_demos_down.sql`. | `014`, `017`, `020`; la 018 solo si `inverse-cramer-real` existe | Sí |
+| 38 | `044_corredoras_cl.sql` | F23: filas de `portfolios` para `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Sin holdings: los carga `corredoras_cl`. | `021_infoprobidad_agregado.sql` (y `043` si existe); independiente de `022-042` | Sí |
+| 39 | `045_accionistas_anonimizar.sql` | Agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`, conservando porcentaje, acciones y ranking. | `033_mayores_accionistas.sql` | Sí |
+| 40 | `046_endurecer_permisos.sql` | SB1 (M3/B1/037): `revoke` de escritura a `anon`/`authenticated` en las 9 tablas públicas nuevas, `revoke execute` de `enforce_alert_rule_limits()` y función `anonimizar_accionista()` + trigger `BEFORE INSERT OR UPDATE` en `cl_top_shareholders` (mismo regex que la 045). | `045_accionistas_anonimizar.sql`; tablas de `027-034` y `042` | Sí |
+| 41 | `047_telegram_link_code.sql` | M10: RPC `create_telegram_link_code()` (`security definer`, `set search_path = ''`) que genera el código con `auth.uid()` y escribe `profiles.telegram_link_code` marcando `reclu.trusted` para el trigger de la 007. Solo `authenticated`. | `008_planes_alertas.sql` (columna `telegram_link_code`) | Sí |
+| 42 | `048_muro_series_alertas.sql` | SD2-A (M6/M7) + SD2-C: quita la lectura pública de `portfolio_performance`/`portfolio_metrics` para portafolios premium y expone `get_portfolio_performance(uuid)` (90 días para anon/free), `get_portfolio_metrics(uuid)`, `get_alerts(uuid, int)` (topes 3/10/p_limit, `summary` solo pro/elite) y `get_alert(uuid)` (una alerta por id, mismas reglas). `alerts` deja de exponer `summary` por lectura directa y se agrega `alerts_public`. | `011_rendimiento.sql` y `012_muro_pago.sql` (`current_user_plan()`) | Sí |
+| 43 | `049_token_baja.sql` | M5: agrega `profiles.unsubscribe_token_created_at` y reescribe `unsubscribe_by_token` con expiración de 180 días y rotación del token al usarse. Solo `service_role`. | `007_seguridad_rls.sql` (trigger de perfiles) y `008_planes_alertas.sql` (`unsubscribe_by_token`) | Sí |
 
 ## Rango 007–020 y huecos de numeración
 
@@ -61,9 +62,9 @@ El rango `007`–`020` ya está fusionado y sus archivos viven en
 antes de la `021`; esta tabla documenta en detalle desde la `021` porque
 las anteriores ya tienen su propio encabezado y sus `NOTAS-*.md`.
 
-No existen `026`, `035` ni `040`: son huecos de numeración de frentes que
-se descartaron o se renumeraron. No hay que crearlos para completar la
-secuencia.
+No existen `026` ni `035`: son huecos de numeración de frentes que se
+descartaron o se renumeraron. No hay que crearlos para completar la secuencia.
+La `040` existe y es la de claves de API (F53); ver su sección más abajo.
 
 ## Duplicados conocidos (A8)
 
@@ -78,6 +79,30 @@ secuencia.
 (RUT, nombre de la sociedad, nemotécnico, autoridades, valor declarado,
 última declaración). Sin columnas de personas. El slug `infoProbidad-cl`
 no cambia. Aplicar después del esquema base. Idempotente.
+
+## 040 — Claves de API (F53)
+
+`040_api_claves.sql`: crea `api_keys` y `api_usage` para la API pública de
+datos (`/api/v1/*`). Cada clave se guarda como `prefix` visible
+(`rcl_` + 12 hex) y `key_hash` (`sha256` hex); el texto en claro solo se
+muestra una vez al crearla y nunca se persiste ni se loguea. Incluye `plan`,
+`revoked`, `revoked_at` y `last_used_at` para la pantalla `/settings/api`.
+
+- **RLS:** el dueño solo puede **leer** sus claves (`auth.uid() = user_id`).
+  `insert/update/delete` quedan revocados a `anon`/`authenticated`: escribe el
+  `service_role` desde el server action. `api_usage` no tiene policies.
+- **RPC `consume_api_usage(p_key_id uuid, p_day date)`:** `security definer`,
+  solo `service_role`, incrementa el contador del día UTC con UPSERT.
+- **Datos mínimos:** dueño, etiqueta opcional, prefijo, hash y contador diario.
+  No se guardan IP ni user-agent (Leyes 19.628 y 21.719).
+- **Idempotente:** `if not exists`, `create or replace`, `drop policy if
+  exists`, `drop constraint if exists` + `create`, `revoke/grant` repetibles.
+
+La creación de claves y las llamadas a `/api/v1` quedan apagadas salvo
+`API_PUBLIC_ENABLED=true` (exacto). Los datasets de funcionarios de EE.UU.
+(`house_ptr`, `senate_ptr`, `oge_278t`) no se redistribuyen por la API
+(5 U.S.C. § 13107). Aplicar después del esquema base; es independiente de
+`041-049`.
 
 ## 044 — Carteras BICE y MBI (F23)
 
@@ -213,8 +238,13 @@ La acción `prepareTelegramLink` llama `supabase.rpc('create_telegram_link_code'
   - `get_alerts(p_portfolio uuid default null, p_limit int default 20)`:
     solo publicadas; premium + plan no pago → ninguna; `summary` solo
     pro/elite; tope 3 (anon) / 10 (free) / `p_limit` (pago, máx. 100).
+  - `get_alert(p_alert uuid)` (SD2-C): una sola alerta por id con las mismas
+    reglas (publicada, portafolio activo, premium solo pro/elite y `summary`
+    null fuera de pago). La usa `/api/explain-alert` en vez de leer `alerts`
+    directo; si la RPC no devuelve filas, la respuesta es 404.
 - Grants: `revoke all ... from public` + `grant execute ... to anon,
-  authenticated` en las tres RPC.
+  authenticated` en las cuatro RPC (`get_portfolio_performance`,
+  `get_portfolio_metrics`, `get_alerts` y `get_alert`).
 
 **Ojo (SD2-B):** al revocar `select (summary)` un `select("*")` sobre
 `alerts` desde anon/authenticated falla con *permission denied for column
