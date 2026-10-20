@@ -276,6 +276,58 @@ def match_rut(emisor: str, mapa: dict[str, str]) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Alertas mention (puras y testeables; la IA solo resume despues)
+# ---------------------------------------------------------------------------
+
+# Categorias que el producto considera relevantes para alertar.
+RELEVANT_CATEGORIES = frozenset(
+    {"opa", "aumento_capital", "dividendo", "cambio_control", "compra_venta_acciones"}
+)
+
+CATEGORY_LABELS = {
+    "opa": "OPA",
+    "aumento_capital": "Aumento de capital",
+    "dividendo": "Dividendo",
+    "cambio_control": "Cambio de control",
+    "compra_venta_acciones": "Compra o venta de acciones",
+    "colocacion": "Colocacion",
+    "fusion": "Fusion",
+    "junta_accionistas": "Junta de accionistas",
+    "otro": "Hecho esencial",
+}
+
+
+def is_relevant(categoria: str) -> bool:
+    """True si la categoria genera alerta mention (OPA, capital, dividendo...)."""
+    return categoria in RELEVANT_CATEGORIES
+
+
+def alert_title(hecho: dict[str, Any]) -> str:
+    etiqueta = CATEGORY_LABELS.get(hecho.get("categoria") or "", "Hecho esencial")
+    return f"CMF: {etiqueta} — {hecho['emisor']}"
+
+
+def mention_alert(portfolio_id: str, hecho: dict[str, Any]) -> dict[str, Any]:
+    """Alerta type='mention' con source_url al documento CMF."""
+    return {
+        "portfolio_id": portfolio_id,
+        "type": "mention",
+        "severity": "high" if hecho.get("categoria") in {"opa", "cambio_control"} else "medium",
+        "title": alert_title(hecho),
+        "summary": None,  # la IA lo completa despues (edge detect-changes)
+        "payload": {
+            "emisor": hecho["emisor"],
+            "categoria": hecho.get("categoria") or "otro",
+            "materia": hecho.get("materia") or "",
+            "fecha": hecho.get("fecha"),
+            "numero_documento": hecho["numero_documento"],
+            "source_url": hecho.get("url") or "",
+        },
+        "is_published": True,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Adaptador
 # ---------------------------------------------------------------------------
 
@@ -326,13 +378,59 @@ class CmfHechosAdapter:
 
         if self.dry_run:
             resumen["dry_run"] = True
+            resumen["alertas"] = sum(
+                1 for fila in registros if is_relevant(fila.get("categoria") or "")
+            )
             return resumen
 
         if db is None:
             raise RuntimeError("CmfHechosAdapter.run necesita un cliente Supabase")
         self._upsert(db, registros)
         resumen["upsert"] = len(registros)
+
+        nuevas = self._hechos_nuevos(db, registros)
+        relevantes = [
+            fila for fila in nuevas if is_relevant(fila.get("categoria") or "")
+        ]
+        resumen["alertas"] = len(relevantes)
+        if relevantes:
+            portfolio_id = self._portfolio_id(db)
+            for fila in relevantes:
+                db.table("alerts").insert(
+                    mention_alert(portfolio_id, fila)
+                ).execute()
         return resumen
+
+    def _hechos_nuevos(self, db: Any, registros: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Hechos cuyo numero_documento no esta ya en cl_material_events."""
+        numeros = [fila["numero_documento"] for fila in registros]
+        if not numeros:
+            return []
+        existentes = (
+            db.table(self.table)
+            .select("numero_documento")
+            .in_("numero_documento", numeros)
+            .execute()
+        )
+        vistos = {fila.get("numero_documento") for fila in (existentes.data or [])}
+        # El upsert ya guardo todos; 'nuevos' = los que no estaban antes.
+        return [
+            fila for fila in registros if fila["numero_documento"] not in vistos
+        ]
+
+    def _portfolio_id(self, db: Any) -> str:
+        fila = (
+            db.table("portfolios")
+            .select("id")
+            .eq("slug", PORTFOLIO_SLUG)
+            .maybe_single()
+            .execute()
+        )
+        if not fila or not fila.data:
+            raise RuntimeError(
+                f"falta el portafolio {PORTFOLIO_SLUG}: corre la migracion 032"
+            )
+        return fila.data["id"]
 
     def _upsert(self, db: Any, registros: list[dict[str, Any]]) -> None:
         payload = [self._record(fila) for fila in registros]
