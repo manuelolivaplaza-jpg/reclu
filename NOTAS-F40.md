@@ -73,3 +73,26 @@ Ninguna. No se tocÃ³ `.env.example` (lo une F57).
      `.../functions/v1/send-alerts` (sin `?mode` hace pasada `instant` + `daily`).
    - Revisar `alert_deliveries`: debe haber **una fila por usuario y alerta**, sin
      duplicados aunque el usuario siga el portafolio y ademÃ¡s tenga una regla.
+
+## X40B — reglas en el semanal + paginación (misma rama de trabajo)
+
+- **`routeRule` en `weekly`**: una regla con match ahora suma la alerta al correo
+  semanal si el perfil tiene `weekly_digest` activo (`!== false`, mismo criterio que
+  `routeAlert`) y no está `email_unsubscribed`. Telegram nunca va en weekly
+  (`telegram: false`), ni siquiera con chat vinculado. La deduplicación con follows
+  es la existente (`deliveries` por `alert_id`): seguir el portafolio y tener la
+  regla produce una sola entrega. El canal de la regla (`email`/`telegram`/`both`)
+  no cambia la decisión en weekly: el resumen es informativo y va por correo.
+- **Paginación**: `loadActiveRules()` lee `alert_rules` activas con
+  `.order("id").range(from, from+999)` hasta una página incompleta; tope de
+  seguridad de 50 páginas (50.000 reglas) con `console.error` si se alcanza.
+  `loadRuleProfiles()` pide los perfiles en lotes de 500 ids. Si `alert_rules`
+  falla se mantiene el fallback: follows siguen saliendo.
+- **Tests** (`tests/alert-rules-routing.test.ts`, +8: 20 en total): weekly con
+  digest activo ? correo; digest false ? nada; baja ? nada; Telegram fuera del
+  weekly; entrega semanal deduplicada con follow; paginación 1000+3 (dos páginas
+  `[0,999]` y `[1000,1999]`), corte en página incompleta, tope de 50 páginas y
+  lotes de perfiles 500/500/201.
+- **Verificación**: `npm run lint` OK · `npm run typecheck` OK · `npm test`
+  **487 tests / 42 suites OK**.
+- **Pendiente**: sin deploy ni prueba contra Supabase real.
