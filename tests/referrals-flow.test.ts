@@ -20,6 +20,61 @@ vi.mock("@/lib/billing/supabase-admin", () => ({
   getBillingServiceClient: vi.fn(),
 }));
 
+// ---- Signup: alta del vínculo referrer → invitado (service role) ----
+
+const signupState = vi.hoisted(() => ({
+  cookie: null as string | null,
+  signUpResult: { data: { user: null, session: null }, error: null } as {
+    data: { user: { id: string } | null; session: unknown };
+    error: { status: number; message: string } | null;
+  },
+  referrer: null as { id: string } | null,
+  inserts: [] as Array<Record<string, unknown>>,
+  insertError: null as { code?: string; message: string } | null,
+}));
+
+vi.mock("@/lib/supabase/server", () => ({
+  createClient: async () => ({
+    auth: { signUp: async () => signupState.signUpResult },
+  }),
+}));
+
+vi.mock("next/headers", () => ({
+  cookies: async () => ({
+    get: (name: string) =>
+      signupState.cookie ? { name, value: signupState.cookie } : undefined,
+  }),
+}));
+
+vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+
+vi.mock("@/lib/supabase/service", () => ({
+  getServiceClient: () => ({
+    from: (table: string) => {
+      if (table === "profiles") {
+        return {
+          select: () => ({
+            eq: (column: string, value: string) => ({
+              maybeSingle: async () => {
+                expect(column).toBe("referral_code");
+                expect(value).toBe("ABC123");
+                return { data: signupState.referrer, error: null };
+              },
+            }),
+          }),
+        };
+      }
+      return {
+        insert: async (row: Record<string, unknown>) => {
+          if (signupState.insertError) return { error: signupState.insertError };
+          signupState.inserts.push(row);
+          return { error: null };
+        },
+      };
+    },
+  }),
+}));
+
 describe("cookie de referido en el proxy", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -123,5 +178,79 @@ describe("recompensa de referido en el primer pago", () => {
     const { client } = fakeReferralClient({ pending: true, rpcError: "boom" });
     mockedGetClient.mockReturnValue(client as unknown as BillingServiceClient);
     await expect(rewardReferralOnFirstPayment("referred-1")).resolves.toBeUndefined();
+  });
+});
+
+describe("signUp: alta del referido", () => {
+  beforeEach(() => {
+    signupState.cookie = "ABC123";
+    signupState.referrer = { id: "referrer-1" };
+    signupState.inserts = [];
+    signupState.insertError = null;
+    signupState.signUpResult = {
+      data: { user: { id: "invited-1" }, session: null },
+      error: null,
+    };
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  function makeForm(): FormData {
+    const form = new FormData();
+    form.set("email", "invitado@correo.cl");
+    form.set("password", "password123");
+    return form;
+  }
+
+  it("con el flag apagado no inserta nada", async () => {
+    const { signUp } = await import("@/app/actions/auth");
+    const state = await signUp({}, makeForm());
+    expect(state.success).toContain("Cuenta creada");
+    expect(signupState.inserts).toHaveLength(0);
+  });
+
+  it("con flag y cookie válida registra referrer y referred", async () => {
+    vi.stubEnv("REFERRALS_ENABLED", "true");
+    const { signUp } = await import("@/app/actions/auth");
+    await signUp({}, makeForm());
+    expect(signupState.inserts).toEqual([
+      { referrer_id: "referrer-1", referred_id: "invited-1" },
+    ]);
+  });
+
+  it("no registra autorreferidos", async () => {
+    vi.stubEnv("REFERRALS_ENABLED", "true");
+    signupState.referrer = { id: "invited-1" };
+    const { signUp } = await import("@/app/actions/auth");
+    await signUp({}, makeForm());
+    expect(signupState.inserts).toHaveLength(0);
+  });
+
+  it("un fallo al insertar no rompe el signup ni cambia el mensaje", async () => {
+    vi.stubEnv("REFERRALS_ENABLED", "true");
+    signupState.insertError = { message: "boom" };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { signUp } = await import("@/app/actions/auth");
+    const state = await signUp({}, makeForm());
+    expect(state.success).toContain("Cuenta creada");
+    expect(state.error).toBeUndefined();
+    expect(errorSpy).toHaveBeenCalled();
+    errorSpy.mockRestore();
+  });
+
+  it("un error de Supabase mantiene el mensaje genérico (sin tocar referidos)", async () => {
+    vi.stubEnv("REFERRALS_ENABLED", "true");
+    signupState.signUpResult = {
+      data: { user: null, session: null },
+      error: { status: 400, message: "User already registered" },
+    };
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { signUp } = await import("@/app/actions/auth");
+    const state = await signUp({}, makeForm());
+    expect(state.error).toBe("Si el correo es válido, te enviamos un enlace para continuar.");
+    expect(signupState.inserts).toHaveLength(0);
+    errorSpy.mockRestore();
   });
 });
