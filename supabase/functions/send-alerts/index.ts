@@ -156,14 +156,18 @@ function isRuleKind(value: unknown): value is RuleKind {
  * frecuencia y la baja las decide el perfil (F4, `routeAlert`).
  * - Sin Telegram disponible (plan o chat) una regla `telegram` cae a correo
  *   y una `both` conserva solo el correo (igual que `normalizeChannel`).
- * - El resumen semanal es informativo: las reglas no lo alimentan.
+ * - El resumen semanal es informativo: la regla entra al correo si el perfil
+ *   acepta el resumen (`weekly_digest`) y no pidió baja. Telegram nunca.
  */
 function routeRule(
   profile: ProfileRoute,
   ruleChannel: string,
   mode: Mode,
 ): { email: boolean; telegram: boolean } {
-  if (mode === "weekly") return { email: false, telegram: false };
+  if (mode === "weekly") {
+    const weeklyOk = profile.weekly_digest !== false;
+    return { email: weeklyOk && profile.email_unsubscribed !== true, telegram: false };
+  }
 
   const frequency = normalizeFrequency(profile.plan, profile.alert_frequency, profile.trial_ends_at);
   const unsubscribed = profile.email_unsubscribed === true;

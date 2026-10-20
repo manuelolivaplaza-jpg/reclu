@@ -22,6 +22,7 @@ interface ProfileRoute {
   alert_channel?: string | null;
   email_unsubscribed?: boolean | null;
   telegram_chat_id?: string | null;
+  weekly_digest?: boolean | null;
 }
 
 interface AlertLike {
@@ -79,14 +80,19 @@ function normalizeFrequency(profile: ProfileRoute): string {
 /**
  * Espejo de `routeRule` de la edge: el canal lo elige la regla, la frecuencia
  * y la baja las decide el perfil. Sin Telegram disponible una regla `telegram`
- * cae a correo; `both` conserva solo el correo. El semanal no alimenta reglas.
+ * cae a correo; `both` conserva solo el correo. El semanal entra al correo
+ * solo si el perfil acepta el resumen (`weekly_digest`) y no está dado de baja;
+ * Telegram nunca va en el semanal.
  */
 function routeRule(
   profile: ProfileRoute,
   ruleChannel: string,
   mode: Mode,
 ): { email: boolean; telegram: boolean } {
-  if (mode === "weekly") return { email: false, telegram: false };
+  if (mode === "weekly") {
+    const weeklyOk = profile.weekly_digest !== false;
+    return { email: weeklyOk && profile.email_unsubscribed !== true, telegram: false };
+  }
 
   const frequency = normalizeFrequency(profile);
   const unsubscribed = profile.email_unsubscribed === true;
@@ -235,8 +241,34 @@ describe("routeRule — canal de la regla y frecuencia del perfil", () => {
     ).toEqual({ email: false, telegram: true });
   });
 
-  it("el resumen semanal no alimenta reglas", () => {
-    expect(routeRule(proRealtime, "both", "weekly")).toEqual({ email: false, telegram: false });
+  it("el semanal entra al correo con weekly_digest activo", () => {
+    const weekly: ProfileRoute = { ...freeDaily, weekly_digest: true };
+    expect(routeRule(weekly, "email", "weekly")).toEqual({ email: true, telegram: false });
+    // weekly_digest undefined se trata como activo (default de la DB).
+    expect(routeRule(freeDaily, "both", "weekly")).toEqual({ email: true, telegram: false });
+  });
+
+  it("sin weekly_digest la regla no entra al semanal", () => {
+    expect(routeRule({ ...proRealtime, weekly_digest: false }, "email", "weekly")).toEqual({
+      email: false,
+      telegram: false,
+    });
+  });
+
+  it("la baja de correo excluye la regla del semanal", () => {
+    expect(
+      routeRule({ ...proRealtime, weekly_digest: true, email_unsubscribed: true }, "email", "weekly"),
+    ).toEqual({ email: false, telegram: false });
+  });
+
+  it("Telegram nunca va en el semanal, ni con chat vinculado", () => {
+    const tg: ProfileRoute = {
+      plan: "pro",
+      alert_frequency: "realtime",
+      telegram_chat_id: "42",
+      weekly_digest: true,
+    };
+    expect(routeRule(tg, "telegram", "weekly")).toEqual({ email: true, telegram: false });
   });
 });
 
@@ -273,6 +305,22 @@ describe("entrega de reglas a medida", () => {
       profile: freeDaily,
     };
     expect(planDeliveries([nvdaAlert], [], [inactive, other], "daily")).toEqual([]);
+  });
+
+  it("en el semanal la regla suma al correo y deduplica con el follow", () => {
+    const rule: RuleLike = {
+      user_id: "u1",
+      kind: "ticker",
+      value: "NVDA",
+      channel: "email",
+      profile: { ...freeDaily, weekly_digest: true },
+    };
+    expect(planDeliveries([nvdaAlert], [], [rule], "weekly")).toEqual([
+      { userId: "u1", alertId: "a1", email: true, telegram: false },
+    ]);
+    // El mismo usuario sigue el portafolio: una sola entrega semanal.
+    const follow: FollowLike = { user_id: "u1", portfolio_id: "d1", profile: freeDaily };
+    expect(planDeliveries([nvdaAlert], [follow], [rule], "weekly")).toHaveLength(1);
   });
 
   it("coincide por fuente y por monto igual que en el feed", () => {
