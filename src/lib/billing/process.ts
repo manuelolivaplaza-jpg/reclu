@@ -15,7 +15,7 @@ import type {
   SubscriptionState,
   WebhookInput,
 } from "./types";
-import type { SubscriptionCompleter } from "./completer";
+import { rewardReferralOnFirstPayment, type SubscriptionCompleter } from "./completer";
 export interface ProcessResult {
   /** El evento ya se había procesado (idempotencia). */
   duplicate?: boolean;
@@ -59,35 +59,6 @@ async function findSubscription(providerSubscriptionId: string) {
     .maybeSingle();
   if (error) throw new Error(`subscriptions lookup: ${error.message}`);
   return data ?? null;
-}
-
-/** Aplica la recompensa del referido cuando el referido paga por primera vez. */
-async function applyReferralReward(userId: string): Promise<void> {
-  const supabase = getBillingServiceClient();
-  const { data: referral, error } = await supabase
-    .from("referrals")
-    .select("id, referrer_id, status")
-    .eq("referred_id", userId)
-    .eq("status", "pending")
-    .maybeSingle();
-  if (error || !referral) return;
-
-  const now = new Date();
-  const rewardEnd = new Date(now);
-  rewardEnd.setMonth(rewardEnd.getMonth() + 1);
-
-  const { error: updateError } = await supabase
-    .from("referrals")
-    .update({
-      status: "rewarded",
-      rewarded_at: now.toISOString(),
-      reward_applied: "free_month",
-      reward_period_end: rewardEnd.toISOString(),
-    })
-    .eq("id", referral.id);
-  if (updateError) {
-    console.error("[billing] referral update:", updateError.message);
-  }
 }
 
 /** Fila de suscripción actualizada a partir del estado verificado. */
@@ -249,9 +220,9 @@ async function applySubscriptionState(
     planUpdated = true;
 
     // Recompensa de referido: 1 mes gratis al patrocinador cuando el
-    // referido paga por primera vez.
+    // invitado paga por primera vez (la RPC es idempotente por `pending`).
     if (state.status === "active") {
-      await applyReferralReward(sub.user_id);
+      await rewardReferralOnFirstPayment(sub.user_id);
     }
   } else if (reason === "suscripción cancelada/expirada") {
     // Vuelve a free solo cuando termina el período ya pagado.

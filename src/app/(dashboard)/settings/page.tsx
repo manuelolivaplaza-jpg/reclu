@@ -7,10 +7,12 @@ import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
 import { AlertRulesForm } from "@/components/alert-rules-form";
 import { TelegramConnect } from "@/components/telegram-connect";
+import { ReferralCard } from "@/components/referral-card";
 import { BillingStatus } from "@/components/billing-status";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { alertRuleLimitFor, parseAlertRuleRows } from "@/lib/alert-rules";
 import { canUseTelegram } from "@/lib/plans";
+import { referralsEnabled } from "@/lib/referrals";
 import { isPaidPlan } from "@/lib/types";
 
 export const metadata = { title: "Ajustes" };
@@ -69,6 +71,10 @@ export default async function SettingsPage() {
 
   const planName =
     profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Gratis";
+
+  // Referidos: apagado por defecto; sólo aparece con el flag y un código real.
+  const referralCode = referralsEnabled() ? (profile.referral_code ?? null) : null;
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://reclu.cl";
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -188,6 +194,8 @@ export default async function SettingsPage() {
       </Card>
 
       <TelegramConnect profile={profile} />
+
+      {referralCode && <ReferralCard code={referralCode} siteUrl={siteUrl} />}
 
       {/* Reglas a medida. No esconde datos públicos: solo elige el aviso. */}
       <Card>

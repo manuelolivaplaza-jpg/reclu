@@ -5,6 +5,9 @@
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
+/** Tipo del cliente service role (para tests y firmas internas). */
+export type BillingServiceClient = SupabaseClient;
+
 let cached: SupabaseClient | null = null;
 
 /**
