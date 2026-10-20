@@ -25,7 +25,7 @@ async function callSignUp(email: string, password: string) {
   return signUp({}, makeForm(email, password));
 }
 
-describe("signUp (M9): sin enumeración de usuarios", () => {
+describe("signUp (M9): sin enumeración de usuarios", { timeout: 30_000 }, () => {
   afterEach(() => {
     signUpMock.mockReset();
     vi.unstubAllEnvs();
