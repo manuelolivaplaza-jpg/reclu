@@ -12,12 +12,6 @@ import {
 } from "@/lib/community";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
-  title: "Creador",
-  description:
-    "Perfil y carteras publicadas por un creador de la comunidad de reclu.cl. Contenido informativo de terceros, no asesoría de inversión.",
-};
-
 // Lee la bandera COMMUNITY_ENABLED, el alias y Supabase por request.
 export const instant = false;
 
