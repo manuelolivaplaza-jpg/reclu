@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  FIXTURE SINTÉTICO, creado a mano para test_subversive.py.
+  NO reproduce un N-PORT real ni datos de NANC/GOP: los nombres, tickers,
+  pesos y la serie son inventados. Solo imita la estructura mínima de un
+  primary_doc.xml de Form N-PORT.
+-->
+<edgarSubmission xmlns="http://www.sec.gov/edgar/nport"
+                 xmlns:ncom="http://www.sec.gov/edgar/nportcommon">
+  <headerData>
+    <submissionType>NPORT-P</submissionType>
+    <filerInfo>
+      <seriesClassInfo>
+        <seriesId>S000000001</seriesId>
+        <classId>C000000001</classId>
+        <seriesName>ETF SINTÉTICO DE PRUEBA</seriesName>
+        <className>ETF SINTÉTICO DE PRUEBA</className>
+      </seriesClassInfo>
+    </filerInfo>
+  </headerData>
+
+  <formData>
+    <genInfo>
+      <repPdDate>2026-06-30</repPdDate>
+    </genInfo>
+    <fundInfo>
+      <totAssets>1000.00</totAssets>
+      <netAssets>1000.00</netAssets>
+    </fundInfo>
+
+    <invstOrSecs>
+      <invstOrSec>
+        <name>ALFA CORP SINTÉTICA</name>
+        <title>ALFA CORP SINTÉTICA</title>
+        <cusip>000000001</cusip>
+        <identifiers>
+          <isin value="US0000000010"/>
+          <ticker value="ALFA"/>
+        </identifiers>
+        <balance>10</balance>
+        <units>NS</units>
+        <curCd>USD</curCd>
+        <valUSD>600.00</valUSD>
+        <pctVal>60.0000</pctVal>
+        <payoffProfile>Long</payoffProfile>
+        <assetCat>EC</assetCat>
+        <issuerCat>CORP</issuerCat>
+        <invCountry>US</invCountry>
+      </invstOrSec>
+
+      <invstOrSec>
+        <name>BETA CORP SINTÉTICA</name>
+        <title>BETA CORP SINTÉTICA</title>
+        <cusip>000000002</cusip>
+        <identifiers>
+          <isin value="US0000000028"/>
+          <ticker value="BETA"/>
+        </identifiers>
+        <balance>20</balance>
+        <units>NS</units>
+        <curCd>USD</curCd>
+        <valUSD>400.00</valUSD>
+        <pctVal>40.0000</pctVal>
+        <payoffProfile>Long</payoffProfile>
+        <assetCat>EC</assetCat>
+        <issuerCat>CORP</issuerCat>
+        <invCountry>US</invCountry>
+      </invstOrSec>
+
+      <!-- Sin ticker: se ignora (no se puede seguir por símbolo). -->
+      <invstOrSec>
+        <name>EFECTIVO SINTÉTICO</name>
+        <title>EFECTIVO SINTÉTICO</title>
+        <balance>0</balance>
+        <units>NS</units>
+        <curCd>USD</curCd>
+        <valUSD>0.00</valUSD>
+        <pctVal>0.0000</pctVal>
+        <assetCat>CA</assetCat>
+        <issuerCat>OTHER</issuerCat>
+      </invstOrSec>
+    </invstOrSecs>
+  </formData>
+</edgarSubmission>
