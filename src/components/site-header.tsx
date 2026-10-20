@@ -10,6 +10,9 @@ import { CommandPalette } from "@/components/command-palette";
 
 const NAV_LINKS = [
   { href: "/explore", label: "Portafolios" },
+  { href: "/ranking", label: "Ranking" },
+  { href: "/aprende", label: "Aprende" },
+  { href: "/herramientas", label: "Herramientas" },
   { href: "/#como-funciona", label: "Cómo funciona" },
   { href: "/#precios", label: "Precios" },
 ];
@@ -37,8 +40,11 @@ export function SiteHeader() {
           <LogoLockup />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Principal">
+        {/* Desktop nav: seis enlaces; entra en lg para no apretar el header. */}
+        <nav
+          className="hidden items-center gap-5 lg:flex xl:gap-8"
+          aria-label="Principal"
+        >
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
@@ -51,7 +57,7 @@ export function SiteHeader() {
         </nav>
 
         {/* Desktop CTAs: buscar ⌘K, Entrar y Empezar */}
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-4 lg:flex xl:gap-6">
           <CommandPalette />
           <Link
             href="/login"
@@ -65,7 +71,7 @@ export function SiteHeader() {
         </div>
 
         {/* Mobile: buscar + toggle */}
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           <CommandPalette />
           <button
             type="button"
@@ -84,7 +90,7 @@ export function SiteHeader() {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 top-16 z-40 flex flex-col bg-white md:hidden"
+            className="fixed inset-0 top-16 z-40 flex flex-col bg-white lg:hidden"
             initial={reduced ? undefined : { opacity: 0 }}
             animate={reduced ? undefined : { opacity: 1 }}
             exit={reduced ? undefined : { opacity: 0 }}
