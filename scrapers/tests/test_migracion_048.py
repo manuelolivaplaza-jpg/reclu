@@ -17,6 +17,7 @@ FIRMAS = (
     "public.get_portfolio_performance(uuid)",
     "public.get_portfolio_metrics(uuid)",
     "public.get_alerts(uuid, integer)",
+    "public.get_alert(uuid)",
 )
 
 
@@ -37,15 +38,20 @@ def _activo() -> str:
 
 def _bloque_funcion(nombre: str) -> str:
     sql = _activo()
-    inicio = sql.find(f"create or replace function public.{nombre}")
+    inicio = sql.find(f"create or replace function public.{nombre}(")
     assert inicio >= 0, f"falta la funcion {nombre}"
     fin = sql.find("$$;", inicio)
     assert fin > 0, f"la funcion {nombre} no cierra con $$;"
     return sql[inicio:fin]
 
 
-def test_las_3_funciones_son_security_definer_con_search_path_vacio() -> None:
-    for nombre in ("get_portfolio_performance", "get_portfolio_metrics", "get_alerts"):
+def test_las_rpc_son_security_definer_con_search_path_vacio() -> None:
+    for nombre in (
+        "get_portfolio_performance",
+        "get_portfolio_metrics",
+        "get_alerts",
+        "get_alert",
+    ):
         bloque = _bloque_funcion(nombre)
         cabecera = bloque[: bloque.find("as $$")]
         assert "security definer" in cabecera, f"{nombre} no es security definer"
@@ -101,6 +107,18 @@ def test_get_alerts_recorta_por_rol_y_esconde_summary() -> None:
         "el plan pago debe respetar p_limit con tope 100"
     )
     assert "p_portfolio is null or a.portfolio_id = p_portfolio" in bloque
+
+
+def test_get_alert_una_sola_alerta_con_las_reglas_de_get_alerts() -> None:
+    bloque = _bloque_funcion("get_alert")
+    assert "where a.id = p_alert" in bloque, "no busca por id"
+    assert "a.is_published = true" in bloque
+    assert "p.is_active = true" in bloque
+    assert "not p.premium" in bloque
+    assert "public.current_user_plan() in ('pro', 'elite')" in bloque
+    assert "then a.summary" in bloque, "no entrega summary a pro/elite"
+    assert "else null" in bloque, "no anula summary para anon/free"
+    assert "limit 1;" in bloque, "get_alert debe devolver una sola fila"
 
 
 def test_sin_policies_de_lectura_publica_en_las_tablas_del_muro() -> None:
@@ -160,6 +178,7 @@ def test_alerts_deja_de_exponer_summary_por_lectura_directa() -> None:
 def test_rollback_comentado_y_completo() -> None:
     sql = _sql()
     rollback = sql[sql.find("-- ROLLBACK") :]
+    assert "drop function if exists public.get_alert(uuid);" in rollback
     assert "drop function if exists public.get_alerts(uuid, integer);" in rollback
     assert "drop function if exists public.get_portfolio_metrics(uuid);" in rollback
     assert "drop function if exists public.get_portfolio_performance(uuid);" in rollback
