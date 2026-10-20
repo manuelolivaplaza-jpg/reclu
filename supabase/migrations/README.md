@@ -30,6 +30,7 @@ el CLI, respetando el mismo orden).
 | 19 | `023_newsletter.sql` | Lista propia de suscriptores con doble opt-in (`pending` → `confirmed`), baja en un clic y consentimiento guardado. Tabla cerrada; altas y bajas solo por `newsletter_subscribe`, `newsletter_confirm` y `newsletter_unsubscribe` (`security definer`). | Esquema base | Sí |
 | 20 | `024_consenso_corredoras.sql` | Portafolios `bice-acciones-destacadas`, `mbi-acciones-recomendadas` y el agregado `consenso-corredoras-cl`, con holdings semilla al 2026-10-05. El consenso promedia solo carteras completas. | `021_infoprobidad_agregado.sql`; independiente de `022-043` y `044` | Sí |
 | 21 | `025_13f_soberanos.sql` | Cuatro portafolios 13F: `norges-bank-13f`, `snb-13f`, `gates-foundation-13f` e `icahn-13f` (`premium=false`). No crea tablas: los holdings los carga `sec13f`. | Esquema base (`portfolios`) | Sí |
+| 21b | `026_etf_politicos.sql` | Portafolios `nanc-etf` y `gop-etf` (ETF de Subversive, holdings desde N-PORT en EDGAR), source `nport_subversive`, **`premium=true`** (decisión de Manu: van detrás del muro). `on conflict (slug) do update set premium = true`. Los PTR oficiales (`house_ptr`, `senate_ptr`, `oge_278t`) siguen gratis. | Esquema base (`portfolios`) | Sí |
 | 22 | `027_activistas.sql` | Tabla `activist_filings` (Schedule 13D/13D/A, sin direcciones) y portafolio `activistas-13d` de los últimos 90 días. | Esquema base | Sí |
 | 23 | `028_spinoffs.sql` | Tabla `spinoffs` (Form 10-12B/10-12B/A, una fila por CIK) y portafolio `spinoffs-12m`. | Esquema base | Sí |
 | 24 | `029_recompras.sql` | Tabla `buybacks` (XBRL frames de la SEC, una fila por emisor y trimestre) y portafolio `recompras-top20`. | Esquema base | Sí |
@@ -38,6 +39,7 @@ el CLI, respetando el mismo orden).
 | 27 | `032_hechos_esenciales.sql` | Tabla `cl_material_events` (hechos esenciales CMF con categoría clasificada) y portafolio `hechos-esenciales-cl`. | Esquema base | Sí |
 | 28 | `033_mayores_accionistas.sql` | Tabla `cl_top_shareholders` (12 mayores accionistas por emisor y trimestre CMF), con RLS y lectura pública. | Esquema base | Sí |
 | 29 | `034_fondos_mutuos.sql` | Tablas `cl_mutual_funds` y `cl_mutual_fund_holdings`, vista `cl_mutual_funds_ranking` (`security_invoker`) y portafolio `fondos-mutuos-acciones-cl`. | Esquema base; trigger `updated_at` de `schema.sql` | Sí |
+| 29b | `035_flujos_etf.sql` | Tabla `etf_flows` (symbol, fecha, acciones, nav, flujo_usd; único por symbol+fecha): flujo diario = Δ acciones en circulación × NAV de los ETF iShares. Lectura pública, escritura solo service role. La carga la etapa `etf_flows`. | Esquema base; trigger `updated_at` de `schema.sql` | Sí |
 | 30 | `036_oge_funcionarios.sql` | Un portafolio por funcionario del gabinete de EE.UU. (`bessent-oge`, `lutnick-oge`, `hegseth-oge`), source `oge_278t` y `premium=false`. Reutiliza la tabla y las funciones de la 019. | `019_trump_compra.sql` | Sí |
 | 31 | `037_reglas_alerta.sql` | Tabla `alert_rules` (ticker/portfolio/source/min_amount y canal email/telegram/both) con RLS solo del dueño y trigger `enforce_alert_rule_limits` (topes 3 gratis / 50 pago, Telegram solo pago o prueba). | `008_planes_alertas.sql` (`profiles.plan`, `trial_ends_at`) | Sí |
 | 32 | `038_comunidad.sql` | Tablas `creator_profiles` y `creator_portfolios` para comunidad de creadores; carteras nacen `pending`, lectura pública solo `approved`, moderación solo `service_role` y triggers que congelan estado/verificado. Apagada en la app por `COMMUNITY_ENABLED`. | Esquema base (patrón `reclu.trusted` de la 007) | Sí |
@@ -62,8 +64,7 @@ El rango `007`–`020` ya está fusionado y sus archivos viven en
 antes de la `021`; esta tabla documenta en detalle desde la `021` porque
 las anteriores ya tienen su propio encabezado y sus `NOTAS-*.md`.
 
-No existen `026` ni `035`: son huecos de numeración de frentes que se
-descartaron o se renumeraron. No hay que crearlos para completar la secuencia.
+La `026` (F26) y la `035` (F35) existen; ver sus filas en la tabla.
 La `040` existe y es la de claves de API (F53); ver su sección más abajo.
 
 ## Duplicados conocidos (A8)
