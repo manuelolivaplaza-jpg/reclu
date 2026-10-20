@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearPublishRecords, publishDraft, recentPublishRecords } from "@/lib/publish";
-import { isChannelEnabled, publishMode } from "@/lib/publish/flags";
+import { canSendLive, isChannelEnabled, publishMode } from "@/lib/publish/flags";
 import type { Channel, Draft, DraftStatus, Publisher } from "@/lib/publish/types";
 
 const ENV_KEYS = [
@@ -89,6 +89,34 @@ describe("flags de publicación", () => {
     process.env.PUBLISH_MODE = "live";
     expect(publishMode()).toBe("live");
   });
+
+  const CHANNEL_ENV = {
+    x: "PUBLISH_X_ENABLED",
+    telegram: "PUBLISH_TELEGRAM_ENABLED",
+    newsletter: "PUBLISH_NEWSLETTER_ENABLED",
+  } as const satisfies Record<Channel, string>;
+
+  it.each(Object.keys(CHANNEL_ENV) as Channel[])(
+    "el canal %s queda apagado si la env no es exactamente true",
+    (channel) => {
+      const key = CHANNEL_ENV[channel];
+      const noVerdaderos = [undefined, "", " ", "true ", " true", "TRUE", "True", "1", "yes", "on", "false"];
+
+      for (const value of noVerdaderos) {
+        clearPublishEnv();
+        if (value !== undefined) process.env[key] = value;
+        expect(isChannelEnabled(channel)).toBe(false);
+        process.env.PUBLISH_MODE = "live";
+        expect(canSendLive(channel, "approved")).toBe(false);
+      }
+
+      clearPublishEnv();
+      process.env[key] = "true";
+      expect(isChannelEnabled(channel)).toBe(true);
+      process.env.PUBLISH_MODE = "live";
+      expect(canSendLive(channel, "approved")).toBe(true);
+    },
+  );
 });
 
 describe("publishDraft", () => {
