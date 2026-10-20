@@ -16,6 +16,10 @@ import {
   type AccessRole,
 } from "@/lib/access";
 import { isPublicDisclosureSource } from "@/lib/public-disclosure";
+import {
+  FREE_BACKTEST_WINDOW_DAYS,
+  trimSeriesToWindow,
+} from "@/lib/backtest-window";
 
 /** True cuando Supabase está configurado con valores reales (no placeholder). */
 function isSupabaseLive(): boolean {
@@ -133,21 +137,24 @@ function performanceValue(raw: unknown): number | null {
 /**
  * Serie real de rendimiento. value = value_pct.
  * Sin tabla, sin filas o ante cualquier fallo: [] (no se inventa una curva).
+ *
+ * Muro 048: se pide por `get_portfolio_performance`, que recorta según el
+ * plan de auth.uid() (premium oculto a no pagos, 90 días para anon/free).
+ * Además se recorta otra vez en el servidor por si la RPC devolviera más
+ * historial del que corresponde (defensa en profundidad).
  */
 export async function getPerformance(
   portfolioId: string,
   limit = 365,
+  opts?: { role?: AccessRole; source?: string | null },
 ): Promise<{ date: string; value: number }[]> {
   if (!isSupabaseLive()) return [];
 
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("portfolio_performance")
-      .select("date, value_pct")
-      .eq("portfolio_id", portfolioId)
-      .order("date", { ascending: true })
-      .limit(limit);
+    const { data, error } = await supabase.rpc("get_portfolio_performance", {
+      p_portfolio: portfolioId,
+    });
 
     if (error || !Array.isArray(data)) {
       if (error) console.warn("[reclu] getPerformance error:", error.message);
@@ -162,7 +169,12 @@ export async function getPerformance(
       if (typeof record.date !== "string" || record.date.length === 0 || value === null) continue;
       points.push({ date: record.date, value });
     }
-    return points;
+
+    const trimmed =
+      opts?.role && opts.role !== "paid"
+        ? trimSeriesToWindow(points, FREE_BACKTEST_WINDOW_DAYS, opts?.source)
+        : points;
+    return trimmed.slice(-limit);
   } catch (err) {
     console.warn(
       "[reclu] getPerformance error:",
@@ -260,54 +272,80 @@ export async function getAllHoldingsAdmin(portfolioId: string): Promise<Holding[
 
 // ---- Alerts ----
 /**
- * Alertas publicadas. Muro de pago: acepta un rol para recortar cuántas
- * ve el usuario (anónimo 3, free 10, pago todo). `limit` general se
- * mantiene para listados internos (dashboard, rankings).
+ * Alertas publicadas. Muro de pago: usa la función security definer
+ * `get_alerts`, que recorta según el plan de auth.uid() (topes 3/10/p_limit)
+ * y devuelve `summary` solo a pro/elite. El rol de la app se aplica otra vez
+ * en el servidor (defensa en profundidad).
+ *
+ * `portfolioIds` permite juntar las alertas de varios portafolios (dashboard)
+ * sin leer la tabla directo. La lectura directa de `alerts` ya no sirve para
+ * anon/authenticated: la 048 revocó el privilegio sobre `summary` y un
+ * `select("*")` falla.
  */
 export async function getAlerts(
   portfolioId?: string,
   limit = 20,
-  opts?: { role?: AccessRole },
+  opts?: { role?: AccessRole; portfolioIds?: string[] },
 ): Promise<Alert[]> {
+  const ids = opts?.portfolioIds?.length
+    ? opts.portfolioIds
+    : [portfolioId];
+
   if (!isSupabaseLive()) {
-    const demo = demoAlerts(portfolioId);
-    return sliceAlerts(demo, opts?.role).slice(0, limit);
+    const demo = portfolioId
+      ? demoAlerts(portfolioId)
+      : opts?.portfolioIds?.length
+        ? demoAlerts().filter((alert) => ids.includes(alert.portfolio_id))
+        : demoAlerts();
+    return applyAlertAccess(demo, opts?.role).slice(0, limit);
   }
 
-  const supabase = await createClient();
-  let query = supabase
-    .from("alerts")
-    .select(
-      `
-      *,
-      portfolio:portfolios!inner ( id, slug, name )
-    `,
-    )
-    .eq("is_published", true)
-    .order("created_at", { ascending: false });
+  try {
+    const supabase = await createClient();
+    const responses = await Promise.all(
+      ids.map((id) =>
+        supabase.rpc("get_alerts", {
+          p_portfolio: id ?? null,
+          p_limit: Math.min(Math.max(limit, 1), 100),
+        }),
+      ),
+    );
 
-  if (portfolioId) {
-    query = query.eq("portfolio_id", portfolioId);
-  }
-  if (opts?.role && Number.isFinite(ALERT_LIMITS[opts.role])) {
-    query = query.limit(Math.min(limit, ALERT_LIMITS[opts.role]));
-  } else {
-    query = query.limit(limit);
-  }
+    const merged: Alert[] = [];
+    for (const { data, error } of responses) {
+      if (error) {
+        console.warn("[reclu] getAlerts error:", error.message);
+        continue;
+      }
+      if (Array.isArray(data)) merged.push(...(data as Alert[]));
+    }
 
-  const { data, error } = await query;
-  if (error) {
-    console.warn("[reclu] getAlerts error:", error.message);
+    const byId = new Map<string, Alert>();
+    for (const alert of merged) {
+      if (alert?.id) byId.set(alert.id, alert);
+    }
+    const sorted = [...byId.values()].sort((a, b) =>
+      String(b.created_at ?? "").localeCompare(String(a.created_at ?? "")),
+    );
+    return applyAlertAccess(sorted, opts?.role).slice(0, limit);
+  } catch (err) {
+    console.warn(
+      "[reclu] getAlerts error:",
+      err instanceof Error ? err.message : "unknown",
+    );
     return [];
   }
-  return data ?? [];
 }
 
-/** Recorte de alertas según rol (muro de pago real). */
-function sliceAlerts(list: Alert[], role: AccessRole | undefined): Alert[] {
-  if (!role) return list;
-  const limit = ALERT_LIMITS[role];
-  return Number.isFinite(limit) ? list.slice(0, limit) : list;
+/**
+ * Recorte de alertas según rol (muro de pago real). Para anon/free el
+ * resumen AI se elimina aunque la RPC lo devolviera.
+ */
+function applyAlertAccess(list: Alert[], role: AccessRole | undefined): Alert[] {
+  const limit = role ? ALERT_LIMITS[role] : Infinity;
+  const capped = Number.isFinite(limit) ? list.slice(0, limit) : list;
+  if (!role || role === "paid") return capped;
+  return capped.map((alert) => ({ ...alert, summary: null }));
 }
 
 // ---- Profile ----

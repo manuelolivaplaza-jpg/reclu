@@ -12,6 +12,8 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { getProfile } from "@/lib/queries";
+import { isPaidPlan } from "@/lib/types";
 import {
   computePerformanceMetrics,
   fromPctToLevel,
@@ -113,7 +115,15 @@ export interface PrecomputedMetrics {
   method: string;
 }
 
-/** Métricas precalculadas (period TOTAL) desde portfolio_metrics. */
+/**
+ * Métricas precalculadas (period TOTAL) desde portfolio_metrics.
+ *
+ * Muro de pago (migración 048): usa la función security definer
+ * `get_portfolio_metrics`, que recorta según el plan de auth.uid(). Un
+ * portafolio premium no devuelve métricas a anon/free. Sin RPC (migración
+ * sin aplicar) no se lee la tabla directo: se falla cerrado para no
+ * saltarse el muro.
+ */
 export async function getPrecomputedMetrics(
   portfolioId: string,
   benchmarkSymbol: string,
@@ -121,32 +131,38 @@ export async function getPrecomputedMetrics(
   if (!isSupabaseLive()) return null;
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("portfolio_metrics")
-      .select("*")
-      .eq("portfolio_id", portfolioId)
-      .eq("period", "TOTAL")
-      .eq("benchmark_symbol", benchmarkSymbol)
-      .order("as_of", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (error || !data) {
-      if (error) console.warn("[reclu] getPrecomputedMetrics error:", error.message);
+    const { data, error } = await supabase.rpc("get_portfolio_metrics", {
+      p_portfolio: portfolioId,
+    });
+    if (error) {
+      console.warn("[reclu] getPrecomputedMetrics error:", error.message);
       return null;
     }
+    const rows = Array.isArray(data) ? data : [];
+    const data2 = rows
+      .filter(
+        (row: Record<string, unknown>) =>
+          row?.period === "TOTAL" &&
+          String(row?.benchmark_symbol ?? "").toUpperCase() ===
+            benchmarkSymbol.toUpperCase(),
+      )
+      .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
+        String(b?.as_of ?? "").localeCompare(String(a?.as_of ?? "")),
+      )[0];
+    if (!data2) return null;
     return {
-      period: data.period,
-      return_pct: data.return_pct != null ? Number(data.return_pct) : null,
+      period: String(data2.period),
+      return_pct: data2.return_pct != null ? Number(data2.return_pct) : null,
       benchmark_return_pct:
-        data.benchmark_return_pct != null ? Number(data.benchmark_return_pct) : null,
-      sharpe: data.sharpe != null ? Number(data.sharpe) : null,
-      max_drawdown: data.max_drawdown != null ? Number(data.max_drawdown) : null,
-      volatility: data.volatility != null ? Number(data.volatility) : null,
-      alpha_pct: data.alpha_pct != null ? Number(data.alpha_pct) : null,
-      win_rate: data.win_rate != null ? Number(data.win_rate) : null,
-      data_points: data.data_points != null ? Number(data.data_points) : null,
-      as_of: data.as_of,
-      method: data.method,
+        data2.benchmark_return_pct != null ? Number(data2.benchmark_return_pct) : null,
+      sharpe: data2.sharpe != null ? Number(data2.sharpe) : null,
+      max_drawdown: data2.max_drawdown != null ? Number(data2.max_drawdown) : null,
+      volatility: data2.volatility != null ? Number(data2.volatility) : null,
+      alpha_pct: data2.alpha_pct != null ? Number(data2.alpha_pct) : null,
+      win_rate: data2.win_rate != null ? Number(data2.win_rate) : null,
+      data_points: data2.data_points != null ? Number(data2.data_points) : null,
+      as_of: String(data2.as_of),
+      method: String(data2.method),
     };
   } catch (err) {
     console.warn(
@@ -264,20 +280,26 @@ export async function getPortfolioPerformanceData(options: {
   };
 }
 
-/** Serie del portafolio (retornos acumulados %) desde portfolio_performance. */
+/**
+ * Serie del portafolio (retornos acumulados %) desde portfolio_performance.
+ * Muro 048: la RPC recorta por plan (premium oculto a no pagos, 90 días para
+ * anon/free). Nunca se lee la tabla directo para servir series a usuarios.
+ */
 async function getPerformanceSeriesDirect(
   portfolioId: string,
   limit = 400,
 ): Promise<{ date: string; value: number }[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("portfolio_performance")
-      .select("date, value_pct")
-      .eq("portfolio_id", portfolioId)
-      .order("date", { ascending: true })
-      .limit(limit);
-    if (error || !Array.isArray(data)) return [];
+    const { data, error } = await supabase.rpc("get_portfolio_performance", {
+      p_portfolio: portfolioId,
+    });
+    if (error || !Array.isArray(data)) {
+      if (error) {
+        console.warn("[reclu] getPerformanceSeriesDirect error:", error.message);
+      }
+      return [];
+    }
     const points: { date: string; value: number }[] = [];
     for (const row of data) {
       const value = Number(row?.value_pct);
@@ -285,7 +307,7 @@ async function getPerformanceSeriesDirect(
         points.push({ date: row.date, value });
       }
     }
-    return points;
+    return points.slice(-limit);
   } catch (err) {
     console.warn(
       "[reclu] getPerformanceSeriesDirect error:",
@@ -338,7 +360,10 @@ export interface BeatMarketRow {
 
 /**
  * Ranking por exceso de retorno o Sharpe desde portfolio_metrics (TOTAL).
- * Devuelve [] si no hay datos precalculados.
+ *
+ * Muro 048: las métricas se piden por portafolio con `get_portfolio_metrics`
+ * (recorta por plan). Además se filtran los premium para quien no paga, de
+ * modo que ni siquiera se consulta su métrica. Devuelve [] si no hay datos.
  */
 export async function getBeatTheMarketRanking(
   limit = 5,
@@ -347,49 +372,75 @@ export async function getBeatTheMarketRanking(
   if (!isSupabaseLive()) return [];
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("portfolio_metrics")
-      .select(
-        `
-        portfolio_id,
-        return_pct,
-        benchmark_return_pct,
-        sharpe,
-        max_drawdown,
-        benchmark_symbol,
-        data_points,
-        as_of,
-        portfolio:portfolios!inner ( slug, name, is_active )
-      `,
-      )
-      .eq("period", "TOTAL")
-      .limit(500);
-    if (error || !Array.isArray(data)) {
-      if (error) console.warn("[reclu] getBeatTheMarketRanking error:", error.message);
+    const profile = await getProfile();
+    const paid = isPaidPlan(profile?.plan);
+
+    const { data: portfolioRows, error: portfoliosError } = await supabase
+      .from("portfolios")
+      .select("id, slug, name, is_active, premium")
+      .eq("is_active", true);
+    if (portfoliosError || !Array.isArray(portfolioRows)) {
+      if (portfoliosError) {
+        console.warn("[reclu] getBeatTheMarketRanking error:", portfoliosError.message);
+      }
       return [];
     }
 
+    const candidates = (portfolioRows as {
+      id: string;
+      slug: string;
+      name: string;
+      is_active?: boolean;
+      premium?: boolean;
+    }[]).filter((portfolio) => portfolio.premium !== true || paid);
+
     const rows: BeatMarketRow[] = [];
-    for (const row of data) {
-      const portfolio = row.portfolio as { slug?: string; name?: string; is_active?: boolean } | null;
-      if (!portfolio?.slug || !portfolio?.name) continue;
-      if (portfolio.is_active === false) continue;
-      const ret = row.return_pct != null ? Number(row.return_pct) : null;
-      const bench = row.benchmark_return_pct != null ? Number(row.benchmark_return_pct) : null;
-      if (ret === null || bench === null) continue;
-      rows.push({
-        portfolio_id: row.portfolio_id,
-        slug: portfolio.slug,
-        name: portfolio.name,
-        return_pct: ret,
-        benchmark_return_pct: bench,
-        excess_return_pct: Number((ret - bench).toFixed(4)),
-        sharpe: row.sharpe != null ? Number(row.sharpe) : null,
-        max_drawdown: row.max_drawdown != null ? Number(row.max_drawdown) : null,
-        benchmark_symbol: row.benchmark_symbol,
-        data_points: row.data_points != null ? Number(row.data_points) : null,
-        as_of: String(row.as_of ?? ""),
-      });
+    const CONCURRENCY = 8;
+
+    for (let index = 0; index < candidates.length; index += CONCURRENCY) {
+      const batch = candidates.slice(index, index + CONCURRENCY);
+      await Promise.all(
+        batch.map(async (portfolio) => {
+          const { data: metricRows, error: metricError } = await supabase.rpc(
+            "get_portfolio_metrics",
+            { p_portfolio: portfolio.id },
+          );
+          if (metricError || !Array.isArray(metricRows)) {
+            if (metricError) {
+              console.warn("[reclu] getBeatTheMarketRanking rpc:", metricError.message);
+            }
+            return;
+          }
+          const totals = metricRows
+            .filter(
+              (row: Record<string, unknown>) =>
+                row?.period === "TOTAL" &&
+                row?.return_pct != null &&
+                row?.benchmark_return_pct != null,
+            )
+            .sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
+              String(b?.as_of ?? "").localeCompare(String(a?.as_of ?? "")),
+            );
+          const metric = totals[0];
+          if (!metric) return;
+          const ret = Number(metric.return_pct);
+          const bench = Number(metric.benchmark_return_pct);
+          if (!Number.isFinite(ret) || !Number.isFinite(bench)) return;
+          rows.push({
+            portfolio_id: portfolio.id,
+            slug: portfolio.slug,
+            name: portfolio.name,
+            return_pct: ret,
+            benchmark_return_pct: bench,
+            excess_return_pct: Number((ret - bench).toFixed(4)),
+            sharpe: metric.sharpe != null ? Number(metric.sharpe) : null,
+            max_drawdown: metric.max_drawdown != null ? Number(metric.max_drawdown) : null,
+            benchmark_symbol: String(metric.benchmark_symbol ?? ""),
+            data_points: metric.data_points != null ? Number(metric.data_points) : null,
+            as_of: String(metric.as_of ?? ""),
+          });
+        }),
+      );
     }
 
     rows.sort((x, y) =>

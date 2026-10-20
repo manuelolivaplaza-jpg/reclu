@@ -48,6 +48,11 @@ export interface RankingSourceInput {
   source?: string;
   /** Nota corta y verificable (nº de eventos, exclusiones, método). */
   note?: string;
+  /**
+   * Portafolio premium sin plan de pago: se muestra con candado y sin cifras
+   * (muro 048). No es "sin datos": el dato existe pero requiere plan.
+   */
+  locked?: boolean;
 }
 
 export interface RankedSource extends RankingSourceInput {

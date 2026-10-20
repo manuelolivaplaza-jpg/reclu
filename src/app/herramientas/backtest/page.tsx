@@ -113,17 +113,17 @@ export default async function BacktestPage() {
       const batch = candidates.slice(index, index + CONCURRENCY);
       await Promise.all(
         batch.map(async (portfolio) => {
-          const { data, error } = await supabase
-            .from("portfolio_performance")
-            .select("date, value_pct")
-            .eq("portfolio_id", portfolio.id)
-            .order("date", { ascending: false })
-            .limit(MAX_SERIES_POINTS);
+          // Muro 048: la RPC recorta por plan (premium oculto a no pagos,
+          // 90 días para anon/free). El recorte de abajo se mantiene como
+          // segunda barrera antes de serializar al cliente.
+          const { data, error } = await supabase.rpc("get_portfolio_performance", {
+            p_portfolio: portfolio.id,
+          });
           if (error) {
             console.warn("[reclu] backtest performance error:", error.message);
             return;
           }
-          const points = cleanPerformanceRows(data).reverse();
+          const points = cleanPerformanceRows(data).slice(-MAX_SERIES_POINTS);
           if (points.length >= 2) seriesById.set(portfolio.id, points);
         }),
       );

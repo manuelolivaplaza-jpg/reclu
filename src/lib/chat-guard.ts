@@ -265,14 +265,15 @@ export async function portfolioSystemContext(supabase: SupabaseClient, slug: str
 
   const holdings = (rows ?? []).slice(0, 15).map(holdingLine).filter((line): line is string => !!line);
 
-  const alertsQuery = await supabase
-    .from("alerts")
-    .select("title, summary")
-    .eq("portfolio_id", portfolioId)
-    .eq("is_published", true)
-    .order("created_at", { ascending: false })
-    .limit(5);
-  const alerts = Array.isArray(alertsQuery.data) ? alertsQuery.data.map(alertLine).filter(Boolean) : [];
+  // Muro 048: `summary` ya no es legible directo por anon/authenticated.
+  // La RPC devuelve el resumen solo si el plan es pro/elite.
+  const alertsQuery = await supabase.rpc("get_alerts", {
+    p_portfolio: portfolioId,
+    p_limit: 5,
+  });
+  const alerts = Array.isArray(alertsQuery.data)
+    ? alertsQuery.data.map(alertLine).filter(Boolean)
+    : [];
 
   return formatContext(name, holdings, alerts);
 }

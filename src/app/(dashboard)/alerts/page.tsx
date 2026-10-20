@@ -1,18 +1,13 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { createClient } from "@/lib/supabase/server";
 import { getAlerts, getFollows, getPortfolios, getProfile } from "@/lib/queries";
 import { isPaidPlan, type Alert, type PortfolioCategory } from "@/lib/types";
+import { roleFor } from "@/lib/access";
 import { AlertsFeed, type EnrichedAlert } from "@/components/alerts-feed";
 
 export const metadata = { title: "Alertas" };
 // Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
 export const instant = false;
-
-function isSupabaseLive(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-  return url.startsWith("https://") && !url.includes("placeholder");
-}
 
 export default function AlertsPage() {
   return (
@@ -45,30 +40,19 @@ function AlertsSkeleton() {
 async function AlertsContent() {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
-  const supabase = await createClient();
-  const [follows, profile, allPortfolios, globalAlerts] = await Promise.all([
+  const [follows, profile, allPortfolios] = await Promise.all([
     getFollows(),
     getProfile(),
     getPortfolios(),
-    getAlerts(undefined, 100),
   ]);
   const isPro = isPaidPlan(profile?.plan);
   const followedIds = follows.map((f) => f.portfolio_id);
 
-  let rawAlerts: Alert[] = globalAlerts;
-
-  if (isSupabaseLive()) {
-    const { data: dbAlerts } = await supabase
-      .from("alerts")
-      .select("*, portfolio:portfolios!inner(id, slug, name, category, manager)")
-      .eq("is_published", true)
-      .order("created_at", { ascending: false })
-      .limit(100);
-
-    if (dbAlerts && dbAlerts.length > 0) {
-      rawAlerts = dbAlerts as Alert[];
-    }
-  }
+  // Muro 048: RPC `get_alerts` (topes por plan, summary solo pro/elite).
+  // El resumen AI y los topes ya vienen recortados del servidor.
+  const rawAlerts: Alert[] = await getAlerts(undefined, 100, {
+    role: roleFor(profile),
+  });
 
   const portfolioById = new Map(allPortfolios.map((p) => [p.id, p]));
   const portfolioBySlug = new Map(allPortfolios.map((p) => [p.slug, p]));
