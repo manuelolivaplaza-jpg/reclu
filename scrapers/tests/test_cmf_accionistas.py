@@ -31,6 +31,9 @@ from cmf_client import CmfBlocked  # noqa: E402
 from stages import discover_stages  # noqa: E402
 
 MIGRACION = RAIZ.parent / "supabase" / "migrations" / "033_mayores_accionistas.sql"
+MIGRACION_ANONIMIZAR = (
+    RAIZ.parent / "supabase" / "migrations" / "045_accionistas_anonimizar.sql"
+)
 
 # Recorte representativo de la pestania 5 real (RUT 96766110, periodo 09/2026).
 HTML = """
@@ -388,3 +391,21 @@ def test_migracion_033_es_idempotente_por_texto() -> None:
     assert "drop table" not in sentencias
     assert "truncate" not in sentencias
     assert "delete from" not in sentencias
+
+
+def test_migracion_045_anonimiza_de_forma_idempotente() -> None:
+    assert MIGRACION_ANONIMIZAR.is_file(), f"falta {MIGRACION_ANONIMIZAR}"
+    sql = MIGRACION_ANONIMIZAR.read_text(encoding="utf-8")
+    sentencias = "\n".join(
+        linea for linea in sql.splitlines() if not linea.lstrip().startswith("--")
+    ).lower()
+    assert "add column if not exists es_persona_natural boolean not null default false" in sentencias
+    assert "persona natural (#" in sentencias
+    assert "coalesce(ranking::text" in sentencias
+    assert "accionista !~*" in sentencias
+    assert "rollback" in sql.lower()
+    # No borra datos ni toca otras tablas.
+    assert "delete from" not in sentencias
+    assert "truncate" not in sentencias
+    assert "drop table" not in sentencias
+    assert "drop column" not in sentencias
