@@ -39,6 +39,9 @@ Sin push, sin Supabase real, sin `.env*`, sin servidores.
 
 ```
 uv run --no-project python scrapers/tests/test_migracion_048.py   # 8 ok
+uv run --no-project --with pglast python -c "import pglast; \
+  print(len(pglast.parse_sql(open('supabase/migrations/048_muro_series_alertas.sql', encoding='utf-8').read())))"
+                                                                  # 25 statements (parser real de Postgres)
 npm run lint                                                      # ok
 npm run typecheck                                                 # ok
 npx vitest run --maxWorkers=1                                     # 605 ok (52 suites)
