@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { getHoldings, getPortfolios, getPortfolioBySlug } from "@/lib/queries";
@@ -107,14 +108,14 @@ function WidgetFrame({
 
       <footer className="mt-2 flex shrink-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-t border-ink-200 pt-2 text-[10px] leading-snug text-ink-500">
         <span className="min-w-0">{footerNote}</span>
-        <a
+        <Link
           href="/?utm_source=embed&utm_medium=widget"
           target="_top"
           rel="noreferrer"
           className="shrink-0 font-medium text-ink-900 underline underline-offset-4"
         >
           Datos de reclu.cl
-        </a>
+        </Link>
       </footer>
     </div>
   );
