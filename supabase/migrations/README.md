@@ -6,48 +6,64 @@ el CLI, respetando el mismo orden).
 
 ## Orden actual (archivos existentes en `supabase/migrations/`)
 
-| # | Archivo | Qué hace |
-|---|---------|----------|
-| 0 | `../schema.sql` (o `../SETUP-COMPLETO.sql`) | Esquema base + seeds. SETUP incluye schema + migraciones tempranas. |
-| 1 | `002_holdings_returns.sql` | Precios y `return_pct` en holdings. |
-| 2 | `003_portfolio_snapshots.sql` | Snapshots históricos para gráficos. |
-| 3 | `004_chat_quota.sql` | Cuotas de chat AI + historial de mensajes. |
-| 4 | `004_cover_image.sql` | Columna `cover_image` en portfolios. |
-| 5 | `005_assign_covers.sql` | Asignación de imágenes de portada. |
-| 6 | `006_elite_plan.sql` | Restringe constraint de plan a free/pro/elite. |
-| 7 | `006_elite_plan_and_13f_portfolios.sql` | Plan Elite completo: cuotas diferenciadas, portafolios 13F Wave 2/3. **Reemplaza al 006 anterior en la práctica** (ambos son idempotentes; aplicar ambos no rompe, pero basta con este). |
-| 8 | `prices.sql` | Tabla de precios diarios por símbolo (sin número: aplicar después de 002). |
-| 9 | `012_muro_pago.sql` | Muro de pago real: quita lectura pública de `holdings`/`portfolio_snapshots`, funciones `get_portfolio_holdings(p_slug)` y `get_portfolio_snapshots(p_slug)` con recorte por plan. **Incluir bloque `-- rollback` si se quiere revertir.** |
-| 10 | `013_portafolios_tematicos.sql` | Tres portafolios temáticos + holdings semilla. |
-| 11 | `014_trump_dice.sql` | Tabla `mentions` (lectura pública solo `status='verificada'`, sin políticas de escritura), portafolio `trump-dice`, 15 menciones y holdings semilla. |
-| 12 | `016_insiders.sql` | Compras de ejecutivos (Form 4): tabla `insider_trades` (lectura pública, sin direcciones ni políticas de escritura) y portafolio `insiders-compras-1m`. |
-| 13 | `019_trump_compra.sql` | Tabla `disclosure_trades` (lectura pública solo `verificada`), portafolio `trump-compra` (`premium=false`, source `oge_278t`) y excepción de muro para `oge_278t` / `house_ptr` / `senate_ptr`. |
-| 14 | `020_afp_carteras.sql` | F14: portafolio `afp-modelo-acciones-cl` (AFP Modelo, acciones chilenas al 29-05-2026) y holdings semilla. No modifica `afp-consenso-chile`. |
-| 15 | `017_musk_dice.sql` | Amplía `mentions.kind` con `critica` y `empresa_propia`, portafolio `musk-dice`, 4 menciones (URL de X) y holdings ETSY/GME al 50%. Reutiliza la tabla de la 014. La 015 sigue reservada para F9. |
-| 16 | `018_inverse_cramer.sql` | Amplía `mentions.kind` con `recomienda_compra` y `recomienda_venta`. Portafolio `inverse-cramer-real`, 27 picks y holdings semilla al 2026-10-16. El proxy `inverse-cramer` no se toca. La 015 queda reservada para F9. |
-| 17 | `044_corredoras_cl.sql` | F23: portafolios `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Solo filas de `portfolios`; los holdings los carga la etapa `corredoras_cl`. Aplicar después de `021_infoprobidad_agregado.sql` (y de la `043` si existe); independiente de `022-042`. Re-ejecutable. |
-| 18 | `045_accionistas_anonimizar.sql` | F33-B: agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`. Aplicar después de `033_mayores_accionistas.sql`. Re-ejecutable. |
-| 19 | `046_endurecer_permisos.sql` | SB1 (M3/B1/037): `revoke` de escritura a `anon`/`authenticated` en las 9 tablas públicas nuevas, `revoke execute` de `enforce_alert_rule_limits()` y función `anonimizar_accionista()` + trigger `BEFORE INSERT OR UPDATE` en `cl_top_shareholders` que fuerza la anonimización de personas naturales (mismo regex que la 045). Re-ejecutable. |
-| 20 | `047_telegram_link_code.sql` | M10: RPC `create_telegram_link_code()` (`security definer`, `set search_path = ''`) que genera el código con `auth.uid()` y escribe `profiles.telegram_link_code` marcando `reclu.trusted` para el trigger de la 007. Solo `authenticated`. Re-ejecutable. |
-| 21 | `048_muro_series_alertas.sql` | SD2-A (M6/M7): quita la lectura pública de `portfolio_performance`/`portfolio_metrics` para portafolios premium y expone `get_portfolio_performance(uuid)` (90 días para anon/free), `get_portfolio_metrics(uuid)` y `get_alerts(uuid, int)` (topes 3/10/p_limit, `summary` solo pro/elite). `alerts` deja de exponer `summary` por lectura directa y se agrega `alerts_public`. Re-ejecutable. |
+| # | Archivo | Qué hace | Depende de | Idempotente |
+|---|---------|----------|------------|-------------|
+| 0 | `../schema.sql` (o `../SETUP-COMPLETO.sql`) | Esquema base + seeds. SETUP incluye schema + migraciones tempranas. | — | Sí |
+| 1 | `002_holdings_returns.sql` | Precios y `return_pct` en holdings. | Esquema base | Sí |
+| 2 | `003_portfolio_snapshots.sql` | Snapshots históricos para gráficos. | Esquema base | Sí |
+| 3 | `004_chat_quota.sql` | Cuotas de chat AI + historial de mensajes. | Esquema base | Sí |
+| 4 | `004_cover_image.sql` | Columna `cover_image` en portfolios. | Esquema base | Sí |
+| 5 | `005_assign_covers.sql` | Asignación de imágenes de portada. | `004_cover_image.sql` | Sí |
+| 6 | `006_elite_plan.sql` | Restringe constraint de plan a free/pro/elite. | Esquema base | Sí |
+| 7 | `006_elite_plan_and_13f_portfolios.sql` | Plan Elite completo: cuotas diferenciadas, portafolios 13F Wave 2/3. **Reemplaza al 006 anterior en la práctica** (basta con este; aplicar ambos no rompe). | `006_elite_plan.sql` | Sí |
+| 8 | `prices.sql` | Tabla de precios diarios por símbolo (sin número: aplicar después de 002). | `002_holdings_returns.sql` | Sí |
+| 9 | `012_muro_pago.sql` | Muro de pago real: quita lectura pública de `holdings`/`portfolio_snapshots`, funciones `get_portfolio_holdings(p_slug)` y `get_portfolio_snapshots(p_slug)` con recorte por plan. **Incluye bloque `-- rollback`.** | `008_planes_alertas.sql` (plan del perfil) | Sí |
+| 10 | `013_portafolios_tematicos.sql` | Tres portafolios temáticos + holdings semilla. | Esquema base | Sí |
+| 11 | `014_trump_dice.sql` | Tabla `mentions` (lectura pública solo `status='verificada'`, sin políticas de escritura), portafolio `trump-dice`, 15 menciones y holdings semilla. | Esquema base | Sí |
+| 12 | `016_insiders.sql` | Compras de ejecutivos (Form 4): tabla `insider_trades` (lectura pública, sin direcciones ni políticas de escritura) y portafolio `insiders-compras-1m`. | Esquema base | Sí |
+| 13 | `019_trump_compra.sql` | Tabla `disclosure_trades` (lectura pública solo `verificada`), portafolio `trump-compra` (`premium=false`, source `oge_278t`) y excepción de muro para `oge_278t` / `house_ptr` / `senate_ptr`. | `012_muro_pago.sql` | Sí |
+| 14 | `020_afp_carteras.sql` | F14: portafolio `afp-modelo-acciones-cl` (AFP Modelo, acciones chilenas al 29-05-2026) y holdings semilla. No modifica `afp-consenso-chile`. | Esquema base | Sí |
+| 15 | `017_musk_dice.sql` | Amplía `mentions.kind` con `critica` y `empresa_propia`, portafolio `musk-dice`, 4 menciones (URL de X) y holdings ETSY/GME al 50%. Reutiliza la tabla de la 014. | `014_trump_dice.sql` | Sí |
+| 16 | `018_inverse_cramer.sql` | Amplía `mentions.kind` con `recomienda_compra` y `recomienda_venta`. Portafolio `inverse-cramer-real`, 27 picks y holdings semilla al 2026-10-16. El proxy `inverse-cramer` no se toca. | `014_trump_dice.sql` | Sí |
+| 17 | `021_infoprobidad_agregado.sql` | Tabla pública `infoprobidad_empresas` (agregado por RUT de la sociedad, sin personas). El slug `infoProbidad-cl` no cambia. | Esquema base | Sí |
+| 18 | `022_publicaciones.sql` | Núcleo de borradores de publicación (`publish_drafts`) para X, Telegram y newsletter; estados draft/approved/rejected/sent/failed. RLS sin policies: solo `service_role`. No envía nada por sí sola. | Esquema base (`alerts`, `auth.users`) | Sí |
+| 19 | `023_newsletter.sql` | Lista propia de suscriptores con doble opt-in (`pending` → `confirmed`), baja en un clic y consentimiento guardado. Tabla cerrada; altas y bajas solo por `newsletter_subscribe`, `newsletter_confirm` y `newsletter_unsubscribe` (`security definer`). | Esquema base | Sí |
+| 20 | `024_consenso_corredoras.sql` | Portafolios `bice-acciones-destacadas`, `mbi-acciones-recomendadas` y el agregado `consenso-corredoras-cl`, con holdings semilla al 2026-10-05. El consenso promedia solo carteras completas. | `021_infoprobidad_agregado.sql`; independiente de `022-043` y `044` | Sí |
+| 21 | `025_13f_soberanos.sql` | Cuatro portafolios 13F: `norges-bank-13f`, `snb-13f`, `gates-foundation-13f` e `icahn-13f` (`premium=false`). No crea tablas: los holdings los carga `sec13f`. | Esquema base (`portfolios`) | Sí |
+| 22 | `027_activistas.sql` | Tabla `activist_filings` (Schedule 13D/13D/A, sin direcciones) y portafolio `activistas-13d` de los últimos 90 días. | Esquema base | Sí |
+| 23 | `028_spinoffs.sql` | Tabla `spinoffs` (Form 10-12B/10-12B/A, una fila por CIK) y portafolio `spinoffs-12m`. | Esquema base | Sí |
+| 24 | `029_recompras.sql` | Tabla `buybacks` (XBRL frames de la SEC, una fila por emisor y trimestre) y portafolio `recompras-top20`. | Esquema base | Sí |
+| 25 | `030_polymarket.sql` | Tablas `prediction_trades` y `prediction_leaderboard` (billetera seudónima y alias público; sin bio, foto ni redes) y portafolio `polymarket-ballenas`. | Esquema base | Sí |
+| 26 | `031_dividendos_cl.sql` | Tabla `cl_dividends` (calendario de dividendos CMF por emisor, serie y fecha de pago) y portafolio `dividendos-cl`. | Esquema base | Sí |
+| 27 | `032_hechos_esenciales.sql` | Tabla `cl_material_events` (hechos esenciales CMF con categoría clasificada) y portafolio `hechos-esenciales-cl`. | Esquema base | Sí |
+| 28 | `033_mayores_accionistas.sql` | Tabla `cl_top_shareholders` (12 mayores accionistas por emisor y trimestre CMF), con RLS y lectura pública. | Esquema base | Sí |
+| 29 | `034_fondos_mutuos.sql` | Tablas `cl_mutual_funds` y `cl_mutual_fund_holdings`, vista `cl_mutual_funds_ranking` (`security_invoker`) y portafolio `fondos-mutuos-acciones-cl`. | Esquema base; trigger `updated_at` de `schema.sql` | Sí |
+| 30 | `036_oge_funcionarios.sql` | Un portafolio por funcionario del gabinete de EE.UU. (`bessent-oge`, `lutnick-oge`, `hegseth-oge`), source `oge_278t` y `premium=false`. Reutiliza la tabla y las funciones de la 019. | `019_trump_compra.sql` | Sí |
+| 31 | `037_reglas_alerta.sql` | Tabla `alert_rules` (ticker/portfolio/source/min_amount y canal email/telegram/both) con RLS solo del dueño y trigger `enforce_alert_rule_limits` (topes 3 gratis / 50 pago, Telegram solo pago o prueba). | `008_planes_alertas.sql` (`profiles.plan`, `trial_ends_at`) | Sí |
+| 32 | `038_comunidad.sql` | Tablas `creator_profiles` y `creator_portfolios` para comunidad de creadores; carteras nacen `pending`, lectura pública solo `approved`, moderación solo `service_role` y triggers que congelan estado/verificado. Apagada en la app por `COMMUNITY_ENABLED`. | Esquema base (patrón `reclu.trusted` de la 007) | Sí |
+| 33 | `039_referidos.sql` | Refuerza el esquema de referidos de la 009: un invitado por fila, `referrals` solo-lectura para el cliente y `reward_referral()` para el primer pago. No duplica tablas ni códigos. | `009_pagos_suscripciones.sql` | Sí |
+| 34 | `041_socios.sql` | Tabla `partners` para marca blanca (`/p/[socio]/[tipo]`): logo, acento validado y slugs de portafolios permitidos; lectura pública solo de socios activos. | Esquema base | Sí |
+| 35 | `042_patrocinios.sql` | Tabla `sponsorships` para espacios pagados rotulados; `placement` solo ubicaciones editoriales (nunca `portfolio` ni `alerts`) y lectura pública solo de campañas vigentes. | Esquema base | Sí |
+| 36 | `043_ocultar_demos.sql` | Agrega `portfolios.replaced_by_slug` y `hidden_reason`, y oculta (sin borrar) los 4 portafolios con cifras inventadas apuntando a su versión real. Reversión en `supabase/rollback/043_ocultar_demos_down.sql`. | `014`, `017`, `020`; la 018 solo si `inverse-cramer-real` existe | Sí |
+| 37 | `044_corredoras_cl.sql` | F23: filas de `portfolios` para `bice-acciones-destacadas` y `mbi-acciones-recomendadas` (`broker_cl`, `CL`, `premium=false`). Sin holdings: los carga `corredoras_cl`. | `021_infoprobidad_agregado.sql` (y `043` si existe); independiente de `022-042` | Sí |
+| 38 | `045_accionistas_anonimizar.sql` | Agrega `cl_top_shareholders.es_persona_natural` y anonimiza las personas naturales históricas como `Persona natural (#ranking)`, conservando porcentaje, acciones y ranking. | `033_mayores_accionistas.sql` | Sí |
+| 39 | `046_endurecer_permisos.sql` | SB1 (M3/B1/037): `revoke` de escritura a `anon`/`authenticated` en las 9 tablas públicas nuevas, `revoke execute` de `enforce_alert_rule_limits()` y función `anonimizar_accionista()` + trigger `BEFORE INSERT OR UPDATE` en `cl_top_shareholders` (mismo regex que la 045). | `045_accionistas_anonimizar.sql`; tablas de `027-034` y `042` | Sí |
+| 40 | `047_telegram_link_code.sql` | M10: RPC `create_telegram_link_code()` (`security definer`, `set search_path = ''`) que genera el código con `auth.uid()` y escribe `profiles.telegram_link_code` marcando `reclu.trusted` para el trigger de la 007. Solo `authenticated`. | `008_planes_alertas.sql` (columna `telegram_link_code`) | Sí |
+| 41 | `048_muro_series_alertas.sql` | SD2-A (M6/M7): quita la lectura pública de `portfolio_performance`/`portfolio_metrics` para portafolios premium y expone `get_portfolio_performance(uuid)` (90 días para anon/free), `get_portfolio_metrics(uuid)` y `get_alerts(uuid, int)` (topes 3/10/p_limit, `summary` solo pro/elite). `alerts` deja de exponer `summary` por lectura directa y se agrega `alerts_public`. | `011_rendimiento.sql` y `012_muro_pago.sql` (`current_user_plan()`) | Sí |
+| 42 | `049_token_baja.sql` | M5: agrega `profiles.unsubscribe_token_created_at` y reescribe `unsubscribe_by_token` con expiración de 180 días y rotación del token al usarse. Solo `service_role`. | `007_seguridad_rls.sql` (trigger de perfiles) y `008_planes_alertas.sql` (`unsubscribe_by_token`) | Sí |
 
-## Migraciones que vendrán de otros frentes (reservadas)
+## Rango 007–020 y huecos de numeración
 
-Estos números están asignados a otros frentes en paralelo. Cuando se
-fusionen las ramas, aplicar en este orden:
+El rango `007`–`020` ya está fusionado y sus archivos viven en
+`supabase/migrations/` (`007_seguridad_rls.sql`, `008_planes_alertas.sql`,
+`009_pagos_suscripciones.sql`, `010_nuevas_fuentes.sql`,
+`011_rendimiento.sql`, `015_holders_por_simbolo.sql`, etc.). Se aplican
+antes de la `021`; esta tabla documenta en detalle desde la `021` porque
+las anteriores ya tienen su propio encabezado y sus `NOTAS-*.md`.
 
-| # | Frente | Tema |
-|---|--------|------|
-| 007 | Seguridad | Endurecimiento de RLS/auth |
-| 008 | Planes/alertas | Configuración de planes y alertas |
-| 009 | Pagos | Cobro de suscripciones |
-| 010 | Fuentes | Nuevas fuentes de datos |
-| 011 | Rendimiento | Índices y optimizaciones |
-| 012 | **Este frente (F6)** | Muro de pago (ya presente arriba) |
-| 013 | Portafolios | Nuevos portafolios/seed |
-| 015 | F9 — muro pago en /accion | RPC `get_symbol_holders(p_symbol)`: quién tiene un ticker. El rank se calcula sobre todas las posiciones del `as_of` vigente (`weight desc, id`) y después se filtra el símbolo; luego `rank <= holdings_limit_for_plan(current_user_plan())` y premium solo pagos. Aplicar después de 012. Re-ejecutable. |
-| 016 | F10 - compras de ejecutivos | `016_insiders.sql`: tabla `insider_trades` y portafolio `insiders-compras-1m`. Re-ejecutable. |
-| 020 | F14 | `020_afp_carteras.sql` — carteras AFP (este frente). |
+No existen `026`, `035` ni `040`: son huecos de numeración de frentes que
+se descartaron o se renumeraron. No hay que crearlos para completar la
+secuencia.
 
 ## Duplicados conocidos (A8)
 

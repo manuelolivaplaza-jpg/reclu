@@ -1,7 +1,8 @@
 # Fuentes de datos — reclu.cl
 
 Documentación de cada fuente scrapeada, su estado y limitaciones conocidas.
-Estado verificado en vivo el **2026-10-18** (frente F3).
+Estado verificado en vivo entre el **2026-10-18** y el **2026-10-20**
+(frentes F3, F23–F36 y F57-A).
 
 ## Resumen
 
@@ -14,7 +15,7 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | BTG Pactual Chile | btg-cartera-recomendada | ✅ Funcional (verificado) | PDF estático público S3 |
 | InfoProbidad | infoProbidad-cl | ✅ Funcional (SPARQL verificado 2026-10-18) | El CSV de la versión anterior NO existe; la fuente real es el endpoint SPARQL datos.cplt.cl/sparql |
 | Superintendencia de Pensiones | afp-modelo-acciones-cl | ✅ Modo A (cuadro 14, verificado 2026-10-19) | AFP Modelo, acciones chilenas, hasta mayo 2026. Desde junio el portal cifra el parámetro. No se guardan CUSIP. `afp-consenso-chile` sigue siendo la semilla demo de la 006 |
-| SEC 13F (EDGAR) | 25 fondos (ver `load_13f.py`) | ✅ Funcional | data.sec.gov, sin login. CIK verificados en docs de expansión |
+| SEC 13F (EDGAR) | 29 fondos (ver `load_13f.py`) | ✅ Funcional | data.sec.gov, sin login. CIK verificados en docs de expansión. F25 sumó Norges Bank, SNB, Gates Foundation e Icahn (top 50 en Norges/SNB) |
 | SEC Form 4 (insiders) | insiders-compras-1m | ✅ Funcional (feed verificado 2026-10-19) | Compras P de officers y directores ≥ US$1M. Señal informativa: en el 1S-2026 no le ganó al SPY. Sin direcciones del insider |
 | ARK Invest | arkk, arkg, arkw, arkq, arkf | ✅ Funcional (verificado 2026-10-18) | CSV diario del emisor con pesos exactos |
 | Global X | copx, lit, bug, hero | ✅ Funcional | CSV con fecha, se sondea hacia atrás |
@@ -25,6 +26,18 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
 | LarrainVial | larrainvial-top-picks | ⛔ Login wall | Research tras login (clientes.larrainvial.com) |
 | X (@elonmusk) | musk-dice | 🔧 Archivo verificado; sin API en producción | Menciones en `scrapers/data/musk_menciones.json`. Solo id, fecha, cita y URL. La API de X exige plan de pago |
 | CNBC Lightning Round (Mad Money) | inverse-cramer-real | ✅ RSS verificado 2026-10-19 | Artículos públicos. Se guarda solo ticker, fecha, cita de hasta 10 palabras y URL. El proxy `inverse-cramer` (SQQQ/PSQ) no se toca. Términos de uso de CNBC: pendientes de que Manu los revise antes de lanzar |
+| SEC Schedule 13D (EDGAR EFTS) | activistas-13d | ✅ Funcional (verificado 2026-10-19) | `efts.sec.gov` sin clave; `primary_doc.xml` con emisor, filer, % de la clase y fecha del evento. User-Agent de `sec13f` y <10 req/s (política SEC). Sin direcciones ni personas autorizadas |
+| SEC Form 10-12B (EDGAR EFTS) | spinoffs-12m | ✅ Funcional (verificado 2026-10-19) | EFTS con `forms=10-12B` (incluye enmiendas `/A`), ventana de 12 meses. Una fila por CIK; `status` es heurística (ticker presente en `display_names`). Sin teléfonos ni direcciones |
+| SEC XBRL frames — recompras | recompras-top20 | ✅ Funcional (verificado 2026-10-19) | `data.sec.gov/api/xbrl/frames` (`PaymentsForRepurchaseOfCommonStock`) y `company_tickers.json`; % de capitalización aproximado con acciones en circulación y Yahoo. Dominio público |
+| Polymarket (Data API + Gamma API) | polymarket-ballenas | ✅ Funcional (verificado 2026-10-19) | Sin clave. Solo apuestas ≥ US$10.000 en política/economía; se descartan deportes por tag. Billetera seudónima y alias público, sin bio/foto/redes. Términos de uso de Polymarket no revisados |
+| CMF — dividendos | dividendos-cl | ✅ Funcional (verificado 2026-10-19) | Grilla pública `acc_dividendos1grid.php`; el WAF de la CMF bloquea datacenters: `curl_cffi`, 1 req/s y backoff. Dato oficial, informativo (Ley Fintec), sin datos personales |
+| CMF — hechos esenciales | hechos-esenciales-cl | ✅ Funcional (verificado 2026-10-19) | Portada de últimos 7 días sin captcha; el buscador completo (`hechos2.php`) exige captcha y no se usa. Link permanente `ver_sgd.php`; sin datos personales |
+| CMF — 12 mayores accionistas | — (tabla `cl_top_shareholders`) | ✅ Funcional (verificado 2026-10-19) | Pestaña 5 de la ficha del emisor; periodo trimestral por POST. Personas naturales anonimizadas como `Persona natural (#n)`, sin nombre ni RUT (Leyes 19.628/21.719) |
+| CMF — fondos mutuos (Circular 1333) | fondos-mutuos-acciones-cl | ✅ Funcional (verificado 2026-10-20) | Archivo `;` de ~3,5 MB (`ffm_download.php`, `cartera=NACI`); top 5 fondos de acciones nacionales. Patrimonio aproximado por suma de valorizaciones; sin datos personales |
+| BICE / MBI — carteras recomendadas | bice-acciones-destacadas, mbi-acciones-recomendadas, consenso-corredoras-cl | ✅ Funcional (dry-run 2026-10-19) | PDF público de cada corredora; BICE tiene URL fija y MBI se descubre en `/publicaciones`. Solo nemotécnico, peso, fecha y URL. Sin condiciones de reutilización explícitas: revisar antes de uso comercial |
+| OGE 278-T — funcionarios del gabinete | bessent-oge, lutnick-oge, hegseth-oge | ✅ Funcional (índice verificado 2026-10-19) | `extapps2.oge.gov`; parser de F13. Todo entra `pendiente` y solo la revisión humana genera holdings/alertas. 5 U.S.C. § 13107: público, gratuito y fuera del muro |
+| Truth Social / menciones de Trump | trump-dice | ✅ Archivo curado verificado | `scrapers/data/trump_dice_menciones.json` (15 menciones con cita y URL). No hay API: la fuente de verdad es el archivo. Las candidatas quedan `pendiente` y no generan holding ni alerta |
+| CongressInvests API (bridge) | — (solo reconstrucción histórica) | 🔧 Bridge de terceros, fuera de `run_all.py` | `congressinfor-production.up.railway.app`; no es fuente oficial ni está en el cron. Lo usa `reconstruct_congress.py`; tolera caídas devolviendo lista vacía |
 
 ## Flujo automatizado (GitHub Actions + Vercel Cron)
 
@@ -34,7 +47,11 @@ Estado verificado en vivo el **2026-10-18** (frente F3).
     ↓ POSICIONES: house → senate → renta4 → btg → infoprobidad → 13f → etfs
     ↓ PRECIOS: prices (Yahoo EOD) → RENDIMIENTOS: compute_returns
     ↓ SNAPSHOTS: performance (series históricas)
-    ↓ trump_dice → insiders_form4 → oge_trump → spensiones → musk_dice → inverse_cramer → radar_ia
+    ↓ trump_dice → insiders_form4 → oge_trump → spensiones → musk_dice → inverse_cramer
+    ↓ stages/*.py (orden alfabético): activists_13d → buybacks → cmf_accionistas
+       → cmf_dividendos → cmf_fondos → cmf_hechos → corredoras_cl → oge_officials
+       → polymarket → spinoffs
+    ↓ radar_ia
     ↓ holdings upsert con previous_weight (detección de cambios)
     ↓ curl GET /api/run-pipeline con CRON_SECRET
     ↓
@@ -317,7 +334,10 @@ modifica.
 Etapas (en orden): `house_disclosure` → `senate_disclosure` → `renta4` →
 `btg_pactual` → `infoprobidad` → `sec13f` → `etfs` → `prices` →
 `compute_returns` → `performance` → `trump_dice` → `insiders_form4` →
-`oge_trump` → `spensiones` → `musk_dice` → `inverse_cramer` → `radar_ia`.
+`oge_trump` → `spensiones` → `musk_dice` → `inverse_cramer` →
+`stages/*.py` (alfabético: `activists_13d`, `buybacks`, `cmf_accionistas`,
+`cmf_dividendos`, `cmf_fondos`, `cmf_hechos`, `corredoras_cl`,
+`oge_officials`, `polymarket`, `spinoffs`) → `radar_ia`.
 
 - `--only <etapas>` / `--skip <etapas>`: selección de etapas.
 - `--dry-run`: fetch + parse + resumen **sin escribir nada** en Supabase.
