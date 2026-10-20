@@ -32,7 +32,8 @@ comment on column public.cl_top_shareholders.es_persona_natural is
   'F33-B: true si la CMF publica una persona natural. Su nombre y RUT no se guardan; `accionista` queda como "Persona natural (#ranking)".';
 
 -- Anonimiza las filas historicas que no traen marcador societario.
--- El regex replica la lista de `es_persona_natural` (sin tildes, ~*
+-- El regex replica la lista de `es_persona_natural` con limites de palabra
+-- (para que 'Inc' no calce con 'Vincent' ni 'SpA' con 'Esparza'), ~*
 -- cubre mayusculas/minusculas).
 update public.cl_top_shareholders
 set accionista = 'Persona natural (#' || coalesce(ranking::text, '?') || ')',
@@ -40,10 +41,10 @@ set accionista = 'Persona natural (#' || coalesce(ranking::text, '?') || ')',
     updated_at = now()
 where es_persona_natural = false
   and accionista !~* (
-    '(S\.A\.|S\.A\.C\.|SpA|Ltda|Limitada|Inversiones|Sociedad|Fondo|AFP|'
+    '(^|[^[:alnum:]])(S\.A\.|S\.A\.C\.|SpA|Ltda|Limitada|Inversiones|Sociedad|Fondo|AFP|'
     || 'Banco|Corredores|Administradora|Holding|Trust|Inc|LLC|Ltd|Fund|'
     || 'Custodia|Compania|Compañia|Compañía|E\.I\.R\.L\.|Fundacion|'
-    || 'Fundación|Corporacion|Corporación|Agencia)'
+    || 'Fundación|Corporacion|Corporación|Agencia)([^[:alnum:]]|$)'
   );
 
 -- Las filas juridicas quedan explicitamente marcadas (por si alguna
@@ -52,8 +53,8 @@ update public.cl_top_shareholders
 set es_persona_natural = false
 where es_persona_natural = true
   and accionista ~* (
-    '(S\.A\.|S\.A\.C\.|SpA|Ltda|Limitada|Inversiones|Sociedad|Fondo|AFP|'
+    '(^|[^[:alnum:]])(S\.A\.|S\.A\.C\.|SpA|Ltda|Limitada|Inversiones|Sociedad|Fondo|AFP|'
     || 'Banco|Corredores|Administradora|Holding|Trust|Inc|LLC|Ltd|Fund|'
     || 'Custodia|Compania|Compañia|Compañía|E\.I\.R\.L\.|Fundacion|'
-    || 'Fundación|Corporacion|Corporación|Agencia)'
+    || 'Fundación|Corporacion|Corporación|Agencia)([^[:alnum:]]|$)'
   );
