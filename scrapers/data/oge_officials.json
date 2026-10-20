@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "source": "oge_278t",
+  "note": "Funcionarios del gabinete de EE.UU. con formularios OGE 278-T. Índices verificados el 2026-10-19 en extapps2.oge.gov. Datos públicos, gratis y fuera del muro (5 U.S.C. 13107). No incluye a la Fed: desde 2022 sus miembros no pueden tener acciones individuales.",
+  "officials": [
+    {
+      "slug": "bessent-oge",
+      "filer": "Bessent, Scott",
+      "display_name": "Scott Bessent",
+      "position": "Secretario del Tesoro",
+      "agency": "Department of the Treasury",
+      "index_url": "https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v3/rest?draw=1&start=0&length=200&search%5Bvalue%5D=Bessent",
+      "portfolio_name": "Scott Bessent (OGE)"
+    },
+    {
+      "slug": "lutnick-oge",
+      "filer": "Lutnick, Howard",
+      "display_name": "Howard Lutnick",
+      "position": "Secretario de Comercio",
+      "agency": "Department of Commerce",
+      "index_url": "https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v3/rest?draw=1&start=0&length=200&search%5Bvalue%5D=Lutnick",
+      "portfolio_name": "Howard Lutnick (OGE)"
+    },
+    {
+      "slug": "hegseth-oge",
+      "filer": "Hegseth, Pete",
+      "display_name": "Pete Hegseth",
+      "position": "Secretario de Defensa",
+      "agency": "Department of Defense/Office of The Secretary",
+      "index_url": "https://extapps2.oge.gov/201/Presiden.nsf/API.xsp/v3/rest?draw=1&start=0&length=200&search%5Bvalue%5D=Hegseth",
+      "portfolio_name": "Pete Hegseth (OGE)"
+    }
+  ]
+}
