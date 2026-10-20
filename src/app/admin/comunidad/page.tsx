@@ -291,7 +291,8 @@ export default async function ComunidadPage() {
                         className="mt-4 border border-ink-900 p-3 text-xs leading-relaxed text-ink-900"
                       >
                         Aviso: el texto parece incluir una instrucción de
-                        inversión ("compra ya", "vende ahora"...). La comunidad
+                        inversión (&ldquo;compra ya&rdquo;, &ldquo;vende
+                        ahora&rdquo;...). La comunidad
                         no publica asesoría: rechaza o pide una corrección.
                       </p>
                     )}
