@@ -13,7 +13,7 @@ export const metadata = {
 export const instant = false;
 
 interface BajaPageProps {
-  searchParams: Promise<{ token?: string; ok?: string }>;
+  searchParams: Promise<{ token?: string; ok?: string; error?: string }>;
 }
 
 export default async function BajaPage({ searchParams }: BajaPageProps) {
@@ -21,6 +21,7 @@ export default async function BajaPage({ searchParams }: BajaPageProps) {
   const params = await searchParams;
   const token = params.token ?? "";
   const done = params.ok === "1";
+  const failed = params.error === "1";
   const valid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(token);
 
   return (
@@ -37,13 +38,18 @@ export default async function BajaPage({ searchParams }: BajaPageProps) {
             <p className="mt-4 text-[15px] leading-relaxed text-ink-500">
               Listo. No te enviaremos más correos de alertas.
             </p>
+          ) : failed ? (
+            <p className="mt-4 text-[15px] leading-relaxed text-ink-500">
+              No pudimos procesar la baja. Usa el enlace del último correo.
+            </p>
           ) : valid ? (
             <>
               <p className="mt-4 text-[15px] leading-relaxed text-ink-500">
                 Confirma si quieres dejar de recibir los correos de los portafolios que sigues.
                 Esta acción no cierra tu cuenta.
               </p>
-              <form method="POST" action={`/api/unsubscribe?token=${encodeURIComponent(token)}`} className="mt-8">
+              <form method="POST" action="/api/unsubscribe" className="mt-8">
+                <input type="hidden" name="token" value={token} />
                 <input type="hidden" name="confirm" value="1" />
                 <Button type="submit">Confirmar baja</Button>
               </form>
