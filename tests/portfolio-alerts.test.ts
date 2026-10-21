@@ -380,4 +380,30 @@ describe("POST /api/impact/alerts", () => {
     expect(json.delivered).toBe(0);
     expect(state.upserts).toHaveLength(0);
   });
+
+  it("Pro recibe el resumen por Telegram si eligió ese canal", async () => {
+    process.env.TELEGRAM_BOT_TOKEN = "tg-token";
+    state.settings = [settingsFor(PRO_ID, { alert_channel: "telegram" })];
+    state.profiles = [userProfile(PRO_ID, "pro", { telegram_chat_id: "999" })];
+    state.holdings = [holding(PRO_ID)];
+
+    const res = await POST(request());
+    const json = await body(res);
+
+    expect(res.status).toBe(200);
+    expect(json.telegrams).toBe(1);
+    expect(json.emails).toBe(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("https://api.telegram.org/bottg-token/sendMessage");
+    const payload = JSON.parse(String(init.body)) as { chat_id: string; text: string };
+    expect(payload.chat_id).toBe("999");
+    expect(payload.text).toContain("NVDA reporta resultados trimestrales");
+    expect(payload.text).toContain("50% de tu cartera");
+    expect(payload.text).toContain("https://www.sec.gov/archives/edgar/0");
+    expect(payload.text).toContain("Información, no recomendación");
+
+    expect(state.upserts[0].rows[0].channel).toBe("telegram");
+  });
 });

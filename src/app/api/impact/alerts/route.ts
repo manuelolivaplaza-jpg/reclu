@@ -441,6 +441,7 @@ export async function POST(request: Request) {
   const { data: sentData, error: sentError } = await supabase
     .from("user_portfolio_alerts")
     .select("user_id, news_id, symbol, sent_at")
+    .in("user_id", userIds)
     .in("news_id", newsIds);
 
   if (sentError) {
@@ -462,6 +463,7 @@ export async function POST(request: Request) {
   const { data: todayData, error: todayError } = await supabase
     .from("user_portfolio_alerts")
     .select("user_id, sent_at")
+    .in("user_id", userIds)
     .gte("sent_at", dayStart);
 
   if (todayError) {

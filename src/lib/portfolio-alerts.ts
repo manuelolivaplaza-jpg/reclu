@@ -213,19 +213,25 @@ export function renderPortfolioAlertTelegram(items: readonly PortfolioAlertItem[
   if (items.length === 0) return "";
   if (items.length === 1) {
     const item = items[0];
+    const url = safeUrl(item.url);
     return [
       `<b>${escapeHtml(item.symbol)}</b> · ${formatExposure(item.exposurePct)} de tu cartera`,
       escapeHtml(item.title),
-      `<a href="${escapeAttr(item.url)}">Ver la fuente</a>`,
+      url ? `<a href="${escapeAttr(url)}">Ver la fuente</a>` : "",
       `<i>${escapeHtml(PORTFOLIO_NEWS_DISCLAIMER)}</i>`,
-    ].join("\n");
+    ]
+      .filter(Boolean)
+      .join("\n");
   }
 
-  const lines = items.map(
-    (item) =>
+  const lines = items.map((item) => {
+    const url = safeUrl(item.url);
+    const title = escapeHtml(item.title);
+    return (
       `• <b>${escapeHtml(item.symbol)}</b> (${formatExposure(item.exposurePct)}) ` +
-      `<a href="${escapeAttr(item.url)}">${escapeHtml(item.title)}</a>`,
-  );
+      (url ? `<a href="${escapeAttr(url)}">${title}</a>` : title)
+    );
+  });
   return [
     "<b>Noticias que tocan tu cartera</b>",
     ...lines,
@@ -259,10 +265,14 @@ export function renderPortfolioAlertEmail(input: EmailRenderInput): string {
   const rows = items
     .map((item) => {
       const meta = `${escapeHtml(item.symbol)} · ${formatExposure(item.exposurePct)} de tu cartera · ${escapeHtml(relationLabel(item.relation))}`;
+      const url = safeUrl(item.url);
+      const sourceLink = url
+        ? `<a href="${escapeAttr(url)}" style="font-size:14px;line-height:1.4;color:#0a0a0a;text-decoration:underline;">Ver la fuente</a>`
+        : "";
       return `<div style="padding:16px 0;border-top:1px solid #e6e6e6;">
         <p style="margin:0 0 6px;font-size:12px;line-height:1.4;color:#6b6b6b;">${meta}</p>
         <p style="margin:0 0 10px;font-size:16px;font-weight:500;letter-spacing:-0.03em;line-height:1.3;color:#0a0a0a;">${escapeHtml(item.title)}</p>
-        <a href="${escapeAttr(item.url)}" style="font-size:14px;line-height:1.4;color:#0a0a0a;text-decoration:underline;">Ver la fuente</a>
+        ${sourceLink}
       </div>`;
     })
     .join("");
@@ -297,6 +307,16 @@ export function renderPortfolioAlertEmail(input: EmailRenderInput): string {
 }
 
 // ---- Helpers ----
+
+/** Solo http(s): evita que una URL rara termine en un href de correo. */
+function safeUrl(raw: string): string {
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
+}
 
 function escapeHtml(value: string): string {
   return value
