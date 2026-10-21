@@ -42,6 +42,11 @@ const entryRowSchema = z.object({
   name: z.string().trim().max(100).optional(),
   /** Porcentaje, cantidad de acciones o monto, según el modo. */
   value: z.number().finite().positive("Ingresa un valor mayor que 0."),
+  /**
+   * Cantidad conocida de la posición. En modo porcentaje se conserva para no
+   * perder la valorización; en los otros modos la calcula el servidor.
+   */
+  quantity: z.number().finite().min(0).optional(),
   currency: z.enum(["USD", "CLP"]).optional(),
   market: z.enum(["US", "CL"]).optional(),
   avg_cost: z.number().finite().min(0).optional(),
@@ -139,6 +144,11 @@ function toEntryRows(
       : mode === "shares"
         ? { shares: row.value }
         : { amount: row.value }),
+    // En modo porcentaje la cantidad conocida se conserva para no perder la
+    // valorización de la posición.
+    ...(mode === "percentage" && row.quantity !== undefined
+      ? { shares: row.quantity }
+      : {}),
   }));
 }
 

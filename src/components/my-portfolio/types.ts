@@ -11,6 +11,8 @@ export interface EditablePosition {
   /** Último cierre de `prices`; null = "sin precio". */
   price: number | null;
   priceDate: string | null;
+  /** Peso guardado (0–100). Permite precargar el modo porcentaje (F78). */
+  weight: number | null;
 }
 
 /** Fila valorizada que consume la tabla (incluye nombre y mercado). */

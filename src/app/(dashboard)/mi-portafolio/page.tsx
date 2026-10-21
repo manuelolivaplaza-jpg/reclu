@@ -26,6 +26,7 @@ interface HoldingRow {
   avg_cost: number | string | null;
   currency: string | null;
   market: string | null;
+  weight: number | string | null;
 }
 
 interface PriceRow {
@@ -158,7 +159,7 @@ export default async function MyPortfolioPage() {
   if (consentAt) {
     const { data: holdings, error: holdingsError } = await supabase
       .from("user_holdings")
-      .select("symbol, name, quantity, avg_cost, currency, market")
+      .select("symbol, name, quantity, avg_cost, currency, market, weight")
       .eq("user_id", profile.id)
       .order("weight", { ascending: false });
     if (holdingsError) {
@@ -200,6 +201,8 @@ export default async function MyPortfolioPage() {
         // posición. Se ignoran las posiciones sin cierre en `prices`.
         price: price?.close ?? null,
         priceDate: price?.date ?? null,
+        // El peso guardado precarga el modo porcentaje (F78).
+        weight: toNumber(row.weight),
       };
     });
   }
