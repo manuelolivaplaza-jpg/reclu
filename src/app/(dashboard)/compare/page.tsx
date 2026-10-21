@@ -59,10 +59,6 @@ export default async function ComparePage() {
   // Sin consentimiento vigente la ruta responde 403, así que el botón tampoco
   // se ofrece: el consent card de arriba explica qué falta.
   const imageImportEnabled = isPortfolioImageImportEnabled() && hasConsent;
-  const maxPositions = portfolioLimitsFor(
-    profile?.plan,
-    profile?.trial_ends_at,
-  ).maxPositions;
 
   const allowedCatalog = catalog.filter(
     (portfolio) => !portfolio.premium || canViewPremium(role),
