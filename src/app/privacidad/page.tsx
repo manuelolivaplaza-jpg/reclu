@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
+import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
 export const metadata = {
   title: "Política de privacidad",
@@ -25,7 +27,7 @@ export default function PrivacidadPage() {
           <h1 className="mt-8 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
             Política de privacidad
           </h1>
-          <p className="mt-2 text-sm text-ink-500">Última actualización: 10 de octubre de 2026</p>
+          <p className="mt-2 text-sm text-ink-500">Última actualización: 20 de octubre de 2026</p>
 
           <div className="mt-10 flex flex-col gap-6 text-ink-700">
             <section>
@@ -93,6 +95,67 @@ export default function PrivacidadPage() {
                   privacidad@reclu.cl
                 </a>{" "}
                 y procesaremos la solicitud dentro de 30 días.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-ink-900">Mi portafolio</h2>
+              <DraftLegalNotice scope="Describe el tratamiento de tenencias personales y el derecho de supresión." />
+              <p className="mt-3 leading-relaxed">
+                Si decides usar <strong className="text-ink-900">Mi portafolio</strong>,
+                guardamos los símbolos, cantidades, precio promedio, pesos y moneda que
+                cargues, junto con tu consentimiento y tus preferencias de alerta. Son
+                datos financieros y los tratamos como sensibles.
+              </p>
+              <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 leading-relaxed">
+                <li>
+                  <strong className="text-ink-900">Finalidad limitada:</strong> cruzar tus
+                  posiciones con noticias y datos públicos para enviarte avisos
+                  informativos. No se usan para publicidad ni se venden.
+                </li>
+                <li>
+                  <strong className="text-ink-900">Consentimiento explícito:</strong> el
+                  consentimiento es obligatorio, el checkbox parte sin marcar y puedes
+                  retirarlo cuando quieras desde Ajustes. Sin consentimiento no tratamos
+                  tu cartera para alertas automáticas.
+                </li>
+                <li>
+                  <strong className="text-ink-900">Acceso restringido:</strong> solo tu
+                  cuenta puede leer o escribir tus posiciones mediante row-level
+                  security. No existen vistas públicas de tu cartera.
+                </li>
+                <li>
+                  <strong className="text-ink-900">Derecho a borrar:</strong> el botón
+                  «Borrar mi cartera» de Ajustes elimina tus posiciones, tu consentimiento
+                  y tus preferencias de forma inmediata e irreversible.
+                </li>
+                <li>
+                  <strong className="text-ink-900">Cartolas:</strong> cuando la carga de
+                  cartolas esté disponible, el archivo se procesará en memoria y no se
+                  guardará. Nunca pedimos la clave de tu corredora.
+                </li>
+              </ul>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-ink-900">IA</h2>
+              <DraftLegalNotice scope="Describe la transferencia internacional a OpenRouter y el alcance del análisis con IA." />
+              <p className="mt-3 leading-relaxed">{AI_DISCLAIMER}</p>
+              <p className="mt-3 leading-relaxed">
+                Para generar un resumen o responder una consulta enviamos a la IA solo
+                información de mercado pública y, cuando corresponde, los símbolos y
+                pesos en porcentaje de tu cartera.{" "}
+                <strong className="text-ink-900">
+                  Nunca enviamos montos invertidos, cantidades, tu nombre, tu correo ni
+                  ningún dato que te identifique.
+                </strong>
+              </p>
+              <p className="mt-2 leading-relaxed">
+                El proveedor de IA es <strong className="text-ink-900">OpenRouter</strong>,
+                que opera con servidores fuera de Chile, y el modelo de lenguaje se
+                configura en el servidor. Al otorgar el consentimiento de Mi portafolio
+                aceptas esta transferencia internacional para la finalidad descrita. No
+                usamos modelos gratuitos que permitan entrenar con datos de usuarios.
               </p>
             </section>
 
