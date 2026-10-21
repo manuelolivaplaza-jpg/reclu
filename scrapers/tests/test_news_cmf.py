@@ -88,6 +88,8 @@ def test_flag_solo_se_enciende_con_true(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("NEWS_IMPACT_ENABLED", "1")
     assert news_enabled() is False
     monkeypatch.setenv("NEWS_IMPACT_ENABLED", "TRUE")
+    assert news_enabled() is False
+    monkeypatch.setenv("NEWS_IMPACT_ENABLED", "true")
     assert news_enabled() is True
 
 
