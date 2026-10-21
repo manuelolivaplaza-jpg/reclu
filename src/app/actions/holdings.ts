@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { userHoldingsSchema } from "@/lib/validation";
+import { canAddPositions, portfolioLimitsFor } from "@/lib/plans";
+import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 import {
   MAX_CSV_LENGTH,
   importSymbolsSchema,
@@ -11,9 +13,79 @@ import {
   type OverlapHolder,
 } from "@/lib/import-holdings";
 
+type Currency = "USD" | "CLP";
+type Market = "US" | "CL";
+
+interface NormalizedHolding {
+  symbol: string;
+  name: string;
+  weight: number;
+  quantity?: number;
+  avg_cost?: number;
+  currency: Currency;
+  market?: Market;
+  broker?: string;
+}
+
 /**
- * Save the user's own holdings (replacing existing ones).
- * Accepts a list from CSV parse or manual entry.
+ * Une símbolos repetidos (sin distinguir mayúsculas) antes del upsert: Postgres
+ * no permite tocar la misma fila dos veces en un mismo ON CONFLICT. Las
+ * cantidades se suman y el costo promedio se pondera por cantidad.
+ */
+function mergeHoldings(holdings: NormalizedHolding[]): NormalizedHolding[] {
+  const bySymbol = new Map<string, NormalizedHolding>();
+
+  for (const holding of holdings) {
+    const symbol = holding.symbol.toUpperCase().trim();
+    const previous = bySymbol.get(symbol);
+    if (!previous) {
+      bySymbol.set(symbol, { ...holding, symbol });
+      continue;
+    }
+
+    const previousQuantity = previous.quantity ?? 0;
+    const incomingQuantity = holding.quantity ?? 0;
+    const quantity = previousQuantity + incomingQuantity;
+    const hasQuantity =
+      previous.quantity !== undefined || holding.quantity !== undefined;
+    const avgCost =
+      previous.avg_cost !== undefined &&
+      holding.avg_cost !== undefined &&
+      quantity > 0
+        ? (previousQuantity * previous.avg_cost +
+            incomingQuantity * holding.avg_cost) /
+          quantity
+        : (holding.avg_cost ?? previous.avg_cost);
+
+    bySymbol.set(symbol, {
+      symbol,
+      name: holding.name || previous.name,
+      weight: previous.weight + holding.weight,
+      quantity: hasQuantity ? quantity : undefined,
+      avg_cost: avgCost,
+      currency: holding.currency ?? previous.currency,
+      market: holding.market ?? previous.market,
+      broker: holding.broker ?? previous.broker,
+    });
+  }
+
+  return [...bySymbol.values()];
+}
+
+/** Traduce el raise del trigger `enforce_user_holdings_limit` (052). */
+function friendlyHoldingDbError(message: string): string {
+  if (/límite de posiciones/i.test(message)) {
+    return "Alcanzaste el límite de posiciones de tu plan.";
+  }
+  return message;
+}
+
+/**
+ * Guarda la cartera del usuario con upsert por (user_id, symbol): conserva
+ * las posiciones que no vienen, actualiza las enviadas y borra solo las que
+ * el usuario quitó. Respeta el tope del plan (F74) y, con
+ * MY_PORTFOLIO_ENABLED=true, exige consentimiento explícito (F58).
+ * Usa siempre el cliente de sesión para que la RLS aplique.
  */
 export async function saveUserHoldings(input: unknown) {
   const supabase = await createClient();
@@ -24,35 +96,100 @@ export async function saveUserHoldings(input: unknown) {
 
   const parsed = userHoldingsSchema.safeParse(input);
   if (!parsed.success) {
-    return { error: "Datos inválidos. Verifica símbolo y ponderación." };
+    return { error: "Datos inválidos. Verifica símbolo, cantidad y costo." };
+  }
+
+  // Consentimiento explícito para datos financieros (Ley 21.719), solo
+  // cuando Mi portafolio está encendido.
+  if (isMyPortfolioEnabled()) {
+    const { data: settings, error: settingsError } = await supabase
+      .from("user_portfolio_settings")
+      .select("consent_at")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (settingsError) {
+      return { error: "No pudimos verificar tu consentimiento. Intenta de nuevo." };
+    }
+    if (!settings?.consent_at) {
+      return {
+        error:
+          "Necesitamos tu consentimiento explícito para guardar tu cartera. Actívalo en Ajustes y vuelve a intentar.",
+      };
+    }
   }
 
   // Normalize weights to sum 100
-  const total = parsed.data.reduce((sum, h) => sum + h.weight, 0);
+  const holdings = mergeHoldings(parsed.data);
+  const total = holdings.reduce((sum, holding) => sum + holding.weight, 0);
   if (total <= 0) return { error: "Las ponderaciones deben sumar más de 0." };
 
-  const normalized = parsed.data.map((h) => ({
-    ...h,
-    weight: (h.weight / total) * 100,
+  const normalized = holdings.map((holding) => ({
+    ...holding,
+    weight: Math.round((holding.weight / total) * 10000) / 100,
   }));
 
-  // Replace all: delete then insert
-  const { error: delError } = await supabase
-    .from("user_holdings")
-    .delete()
-    .eq("user_id", user.id);
-  if (delError) return { error: delError.message };
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan, trial_ends_at")
+    .eq("id", user.id)
+    .single();
+  const plan = (profile?.plan ?? "free") as string;
+  const trialEndsAt = (profile?.trial_ends_at as string | null) ?? null;
 
-  const { error } = await supabase.from("user_holdings").insert(
-    normalized.map((h) => ({
+  const { data: existingRows, error: existingError } = await supabase
+    .from("user_holdings")
+    .select("symbol")
+    .eq("user_id", user.id);
+  if (existingError) {
+    return { error: "No pudimos leer tu cartera actual. Intenta de nuevo." };
+  }
+
+  const existingSymbols = new Set(
+    (existingRows ?? []).map((row) => String(row.symbol).toUpperCase()),
+  );
+  const incomingSymbols = new Set(normalized.map((holding) => holding.symbol));
+  const newPositions = normalized.filter(
+    (holding) => !existingSymbols.has(holding.symbol),
+  ).length;
+
+  if (
+    !canAddPositions(plan, existingSymbols.size, newPositions, trialEndsAt)
+  ) {
+    const limit = portfolioLimitsFor(plan, trialEndsAt).maxPositions;
+    return {
+      error: `Alcanzaste el límite de ${limit} posiciones de tu plan. Elimina una posición o mejora tu plan para agregar más.`,
+    };
+  }
+
+  const { error } = await supabase.from("user_holdings").upsert(
+    normalized.map((holding) => ({
       user_id: user.id,
-      symbol: h.symbol.toUpperCase().trim(),
-      name: h.name,
-      weight: Math.round(h.weight * 100) / 100,
+      symbol: holding.symbol,
+      name: holding.name,
+      weight: holding.weight,
+      ...(holding.quantity !== undefined ? { quantity: holding.quantity } : {}),
+      ...(holding.avg_cost !== undefined ? { avg_cost: holding.avg_cost } : {}),
+      currency: holding.currency,
+      ...(holding.market ? { market: holding.market } : {}),
+      ...(holding.broker ? { broker: holding.broker } : {}),
       source: "csv" as const,
     })),
+    { onConflict: "user_id,symbol" },
   );
-  if (error) return { error: error.message };
+  if (error) return { error: friendlyHoldingDbError(error.message) };
+
+  // Solo se borran los símbolos que el usuario quitó de la cartera.
+  const removedSymbols = [...existingSymbols].filter(
+    (symbol) => !incomingSymbols.has(symbol),
+  );
+  if (removedSymbols.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("user_holdings")
+      .delete()
+      .eq("user_id", user.id)
+      .in("symbol", removedSymbols);
+    if (deleteError) return { error: deleteError.message };
+  }
 
   revalidatePath("/compare");
   return { success: `Cartera guardada: ${normalized.length} activos.` };
