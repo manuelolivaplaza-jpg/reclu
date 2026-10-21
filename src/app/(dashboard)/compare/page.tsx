@@ -12,6 +12,7 @@ import { PortfolioManager } from "@/components/portfolio-manager";
 import { AlignmentPanel } from "@/components/alignment-panel";
 import { PortfolioConsent } from "@/components/portfolio-consent";
 import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
+import { isPortfolioImageImportEnabled } from "@/lib/portfolio-flags";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mi cartera" };
@@ -53,6 +54,15 @@ export default async function ComparePage() {
     consent?.consent_version ?? null,
   );
   const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
+
+  // F79: importación desde una captura (flag apagado por defecto).
+  // Sin consentimiento vigente la ruta responde 403, así que el botón tampoco
+  // se ofrece: el consent card de arriba explica qué falta.
+  const imageImportEnabled = isPortfolioImageImportEnabled() && hasConsent;
+  const maxPositions = portfolioLimitsFor(
+    profile?.plan,
+    profile?.trial_ends_at,
+  ).maxPositions;
 
   const allowedCatalog = catalog.filter(
     (portfolio) => !portfolio.premium || canViewPremium(role),
@@ -98,6 +108,7 @@ export default async function ComparePage() {
         pairs={compare.pairs}
         maxPositions={limits.maxPositions}
         planName={planName}
+        imageImportEnabled={imageImportEnabled}
       />
       <AlignmentPanel catalog={compare.portfolios} />
     </div>

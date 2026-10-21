@@ -2,7 +2,7 @@ import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/queries";
-import { isMyPortfolioEnabled, isNewsImpactEnabled } from "@/lib/portfolio-flags";
+import { isMyPortfolioEnabled, isNewsImpactEnabled, isPortfolioImageImportEnabled } from "@/lib/portfolio-flags";
 import { getPlan, portfolioLimitsFor } from "@/lib/plans";
 import { PortfolioConsent } from "@/components/portfolio-consent";
 import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
@@ -255,6 +255,7 @@ export default async function MyPortfolioPage() {
           maxPositions={limits.maxPositions}
           canExportCsv={limits.exportCsv}
           planName={planName}
+          imageImportEnabled={isPortfolioImageImportEnabled()}
         />
       ) : (
         <Card>

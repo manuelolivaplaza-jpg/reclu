@@ -14,7 +14,10 @@ import {
   HoldingsEntryPanel,
   type EntryPanelRow,
 } from "@/components/my-portfolio/holdings-entry-panel";
-import { emptyEntryValues } from "@/lib/holdings-entry";
+import { emptyEntryValues, type HoldingEntryMode } from "@/lib/holdings-entry";
+import { PortfolioImageImport } from "@/components/portfolio-image-import";
+import { detectedToEntryRows } from "@/lib/portfolio-image-entry";
+import type { DetectedPosition } from "@/lib/portfolio-image-rows";
 import type {
   CompareCross,
   ComparePairSummary,
@@ -37,6 +40,8 @@ interface PortfolioManagerProps {
   maxPositions?: number;
   /** Nombre del plan para los mensajes. */
   planName?: string;
+  /** Muestra el importador de capturas (F79). Apagado por flag. */
+  imageImportEnabled?: boolean;
 }
 
 /**
@@ -92,6 +97,7 @@ export function PortfolioManager({
   pairs = [],
   maxPositions = 10,
   planName = "Gratis",
+  imageImportEnabled = false,
 }: PortfolioManagerProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"mine" | "cross">("mine");
@@ -111,6 +117,23 @@ export function PortfolioManager({
       market: null,
     })),
   );
+
+  // El panel guarda su propio estado: al importar (CSV o captura) se
+  // remonta con una key nueva para que tome las filas importadas.
+  const [panelKey, setPanelKey] = useState(0);
+  const [panelMode, setPanelMode] = useState<HoldingEntryMode>("percentage");
+
+  /** F79: usa las posiciones detectadas en la captura; guardar sigue siendo la accion normal. */
+  function handleDetectedPositions(positions: DetectedPosition[]) {
+    const { rows, mode: detectedMode } = detectedToEntryRows(positions);
+    setEntryRows(rows);
+    setPanelMode(detectedMode);
+    setPanelKey((key) => key + 1);
+    setMessage({
+      type: "success",
+      text: `${rows.length} activo${rows.length === 1 ? "" : "s"} listo${rows.length === 1 ? "" : "s"}. Revisa los valores y guarda.`,
+    });
+  }
 
   // --- Modo cruce: portafolio A y B del catálogo ---
   const crossable = useMemo(
@@ -163,6 +186,8 @@ export function PortfolioManager({
         market: null,
       })),
     );
+    setPanelMode("percentage");
+    setPanelKey((key) => key + 1);
     setMessage({
       type: "success",
       text:
@@ -312,6 +337,14 @@ export function PortfolioManager({
         </Card>
       </div>
 
+      {/* F79: importación desde una captura de la corredora (detrás de flag). */}
+      {imageImportEnabled && (
+        <PortfolioImageImport
+          onUse={handleDetectedPositions}
+          maxPositions={maxPositions}
+        />
+      )}
+
       {/* Current holdings */}
       <Card>
         <CardHeader>
@@ -331,7 +364,14 @@ export function PortfolioManager({
           </div>
         </CardHeader>
         <CardContent>
+          {imageImportEnabled && (
+            <div className="mb-6">
+              <PortfolioImageImport onUse={handleDetectedPositions} maxPositions={maxPositions} />
+            </div>
+          )}
           <HoldingsEntryPanel
+            key={panelKey}
+            defaultMode={panelMode}
             initialRows={entryRows}
             maxPositions={maxPositions}
             planName={planName}
