@@ -1,0 +1,57 @@
+symbol,sector,industry,country,peers,suppliers,macro_factors
+AAPL,Tecnología,Hardware y dispositivos,US,MSFT|GOOGL|AMZN,TSM|QCOM|SWKS,tecnologia|aranceles|consumo
+MSFT,Tecnología,Software y nube,US,AAPL|GOOGL|ORCL,NVDA|AMD|INTC,tecnologia|aranceles
+NVDA,Tecnología,Semiconductores,US,AMD|AVGO|INTC,TSM|MU|ASML,tecnologia|aranceles
+AMZN,Consumo discrecional,Comercio electrónico,US,WMT|COST|GOOGL,AAPL|MSFT|UPS,consumo|tecnologia|aranceles
+GOOGL,Tecnología,Publicidad digital,US,META|MSFT|AMZN,NVDA|AMD|TSM,tecnologia|aranceles
+META,Tecnología,Redes sociales,US,GOOGL|SNAP|PINS,NVDA|AMD|TSM,tecnologia|aranceles
+TSLA,Consumo discrecional,Automóviles eléctricos,US,GM|F|RIVN,PANASONIC|CATL|ALB,tecnologia|consumo|aranceles
+JPM,Financiero,Banca,US,BAC|GS|MS,,tasas|credito
+XOM,Energía,Petróleo y gas,US,CVX|SHEL|BP,,petroleo|aranceles
+CVX,Energía,Petróleo y gas,US,XOM|SHEL|BP,,petroleo|aranceles
+JNJ,Salud,Farmacéutica,US,PFE|MRK|LLY,,consumo|aranceles
+UNH,Salud,Seguros de salud,US,CVS|CI|HUM,,consumo|tasas
+V,Financiero,Pagos,US,MA|AXP|PYPL,,consumo|tecnologia
+MA,Financiero,Pagos,US,V|AXP|PYPL,,consumo|tecnologia
+WMT,Consumo básico,Retail,US,COST|TGT|AMZN,,consumo|aranceles
+COST,Consumo básico,Retail,US,WMT|TGT|AMZN,,consumo|aranceles
+PG,Consumo básico,Productos de consumo,US,KO|PEP|UL,,consumo|aranceles
+KO,Consumo básico,Bebidas,US,PEP|MNST|CCU,,consumo|aranceles|dolar_clp
+PEP,Consumo básico,Bebidas y snacks,US,KO|MNST|CCU,,consumo|aranceles|dolar_clp
+DIS,Consumo discrecional,Entretenimiento,US,NFLX|CMCSA|WBD,,consumo|tecnologia
+NFLX,Consumo discrecional,Streaming,US,DIS|GOOGL|AMZN,,consumo|tecnologia
+AMD,Tecnología,Semiconductores,US,NVDA|INTC|AVGO,TSM|ASML|MU,tecnologia|aranceles
+AVGO,Tecnología,Semiconductores,US,NVDA|AMD|QCOM,TSM|ASML|MU,tecnologia|aranceles
+INTC,Tecnología,Semiconductores,US,NVDA|AMD|TSM,ASML|AMAT|LRCX,tecnologia|aranceles
+BA,Industriales,Aeroespacial y defensa,US,AIR|LMT|RTX,GE|SPR|HWM,aranceles|petroleo
+CAT,Industriales,Maquinaria,US,DE|KMT|PCAR,,cobre|aranceles
+PFE,Salud,Farmacéutica,US,JNJ|MRK|LLY,,consumo|aranceles
+MRK,Salud,Farmacéutica,US,JNJ|PFE|LLY,,consumo|aranceles
+LLY,Salud,Farmacéutica,US,JNJ|PFE|MRK,,consumo|aranceles
+BAC,Financiero,Banca,US,JPM|GS|WFC,,tasas|credito
+ORCL,Tecnología,Software y nube,US,MSFT|CRM|SAP,NVDA|AMD,tecnologia|aranceles
+UBER,Industriales,Transporte por aplicación,US,LYFT|DIDI|GRAB,,consumo|tecnologia|petroleo
+SQM-B,Materiales,Litio y yodo,CL,ALB|LAC|PUCOBRE,,litio|cobre|dolar_clp|aranceles
+CHILE,Financiero,Banca,CL,BSANTANDER|BCI|ITAUCL,,tasas|credito|dolar_clp
+BSANTANDER,Financiero,Banca,CL,CHILE|BCI|ITAUCL,,tasas|credito|dolar_clp
+BCI,Financiero,Banca,CL,CHILE|BSANTANDER|ITAUCL,,tasas|credito|dolar_clp
+ITAUCL,Financiero,Banca,CL,CHILE|BSANTANDER|BCI,,tasas|credito|dolar_clp
+SECURITY,Financiero,Banca,CL,CHILE|BSANTANDER|BCI,,tasas|credito|consumo
+FALABELLA,Consumo discrecional,Retail,CL,CENCOSUD|RIPLEY|SMU,,consumo|tasas|dolar_clp
+CENCOSUD,Consumo discrecional,Retail,CL,FALABELLA|RIPLEY|SMU,,consumo|dolar_clp|aranceles
+RIPLEY,Consumo discrecional,Retail,CL,FALABELLA|CENCOSUD|SMU,,consumo|tasas
+SMU,Consumo básico,Supermercados,CL,CENCOSUD|FALABELLA|ANDINA-B,,consumo|dolar_clp
+ANDINA-B,Consumo básico,Bebidas,CL,CCU|CONCHATORO|KO,,consumo|dolar_clp
+CONCHATORO,Consumo básico,Vinos,CL,CCU|ANDINA-B|KO,,consumo|dolar_clp|aranceles
+CCU,Consumo básico,Bebidas,CL,ANDINA-B|CONCHATORO|KO,,consumo|dolar_clp
+COPEC,Energía,Combustibles y energía,CL,XOM|CVX|ENELAM,,petroleo|dolar_clp|consumo
+CMPC,Materiales,Madera y celulosa,CL,PUCOBRE|CAP|COPEC,,dolar_clp|aranceles
+ENELAM,Servicios públicos,Electricidad,CL,COLBUN|COPEC|AGUAS-A,,tasas|dolar_clp
+COLBUN,Servicios públicos,Electricidad,CL,ENELAM|AGUAS-A|COPEC,,tasas|dolar_clp
+AGUAS-A,Servicios públicos,Agua,CL,ENELAM|COLBUN|COPEC,,tasas|dolar_clp
+LTM,Industriales,Aerolíneas,CL,VAPORES|CCU|UBER,,petroleo|consumo|dolar_clp
+VAPORES,Industriales,Transporte marítimo,CL,LTM|CAP|CMPC,,consumo|aranceles|dolar_clp
+CAP,Materiales,Acero y minería,CL,PUCOBRE|CMPC|SQM-B,,cobre|aranceles|dolar_clp
+PUCOBRE,Materiales,Minería del cobre,CL,SQM-B|CAP|CMPC,,cobre|dolar_clp
+MALLPLAZA,Inmobiliario,Centros comerciales,CL,FALABELLA|CENCOSUD|RIPLEY,,consumo|tasas
+ECL,Tecnología,Servicios de TI,CL,ORCL|MSFT|CRM,,tecnologia|dolar_clp
