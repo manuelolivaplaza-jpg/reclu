@@ -9,12 +9,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { PositionsTable } from "@/components/my-portfolio/positions-table";
 import { ExportCsvButton } from "@/components/my-portfolio/export-csv-button";
+import { PortfolioImageImport } from "@/components/portfolio-image-import";
 import {
   formatMoney,
   formatPercent,
 } from "@/components/my-portfolio/format";
 import type { EditablePosition, ValuedPositionRow } from "@/components/my-portfolio/types";
 import { valuatePortfolio } from "@/lib/portfolio-valuation";
+import { toEditableRows, type DetectedPosition } from "@/lib/portfolio-image-rows";
 import {
   clearUserHoldings,
   saveUserHoldings,
@@ -69,11 +71,14 @@ export function PortfolioEditor({
   maxPositions,
   canExportCsv,
   planName,
+  imageImportEnabled = false,
 }: {
   initialPositions: EditablePosition[];
   maxPositions: number;
   canExportCsv: boolean;
   planName: string;
+  /** Muestra el importador de capturas (F79). Apagado por flag. */
+  imageImportEnabled?: boolean;
 }) {
   const router = useRouter();
   const [positions, setPositions] = useState<EditablePosition[]>(initialPositions);
@@ -221,6 +226,40 @@ export function PortfolioEditor({
     setMessage(null);
   }
 
+  /**
+   * F79: usa las posiciones detectadas en una captura. La cantidad y el
+   * costo promedio salen de lo que se leyó (cantidad y monto÷cantidad); lo
+   * que no apareció en la imagen queda vacío, no se inventa. Guardar sigue
+   * siendo la acción normal del editor.
+   */
+  function handleDetectedPositions(detected: DetectedPosition[]) {
+    const rows = toEditableRows(detected);
+    setPositions((current) => {
+      const existing = new Map(
+        current.map((position) => [position.symbol.toUpperCase(), position]),
+      );
+      return rows.map((row) => {
+        // Si el símbolo ya estaba en la cartera, se conserva su precio.
+        const previous = existing.get(row.symbol);
+        return {
+          symbol: row.symbol,
+          name: previous?.name ?? "",
+          quantity: row.quantity,
+          avgCost: row.avgCost,
+          currency: row.currency,
+          market: previous?.market ?? null,
+          price: previous?.price ?? null,
+          priceDate: previous?.priceDate ?? null,
+        } satisfies EditablePosition;
+      });
+    });
+    setDirty(true);
+    setMessage({
+      type: "success",
+      text: `${rows.length} posición${rows.length === 1 ? "" : "es"} lista${rows.length === 1 ? "" : "s"}. Revísalas y guarda la cartera.`,
+    });
+  }
+
   async function handleSave() {
     setPending(true);
     // `weight` va en % (0–100) porque el esquema lo valida así. Se reparte
@@ -289,6 +328,14 @@ export function PortfolioEditor({
         >
           {message.text}
         </p>
+      )}
+
+      {/* F79: importación desde una captura de la corredora (detrás de flag). */}
+      {imageImportEnabled && (
+        <PortfolioImageImport
+          onUse={handleDetectedPositions}
+          maxPositions={maxPositions}
+        />
       )}
 
       {/* Alta / edición */}
