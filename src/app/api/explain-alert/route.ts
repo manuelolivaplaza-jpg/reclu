@@ -12,7 +12,8 @@
  */
 
 import { enforceAnonQuota, enforceSignedInQuota } from "@/lib/chat-guard";
-import { AI_DISCLAIMER, sanitizeAdvice } from "@/lib/advice-filter";
+import { adviceRule, AI_DISCLAIMER, sanitizeAdvice } from "@/lib/advice-filter";
+import { logAdviceBlock } from "@/lib/chat-advice";
 import {
   EXPLAIN_SYSTEM_PROMPT,
   buildExplainUserPrompt,
@@ -174,6 +175,10 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   }
+
+  // Mismo filtro que el chat; el log no incluye el texto explicado.
+  const rule = adviceRule(explanation);
+  if (rule) logAdviceBlock("/api/explain-alert", rule);
 
   return Response.json(
     {

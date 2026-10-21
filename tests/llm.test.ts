@@ -176,8 +176,49 @@ describe("streamChat", () => {
   });
 });
 
-describe("rutas: la IA se apaga sin key o sin modelo", () => {
-  it("POST /api/chat responde 503 sin key y no llama a OpenRouter", async () => {
+function streamResponse(text: string): Response {
+  return new Response(
+    `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\ndata: [DONE]\n\n`,
+    { status: 200, headers: { "Content-Type": "text/event-stream" } },
+  );
+}
+
+describe("POST /api/chat: filtro de recomendaciones (F69B)", () => {
+  beforeEach(() => {
+    process.env.OPENROUTER_API_KEY = "test-key";
+    process.env.OPENROUTER_MODEL = MODEL;
+  });
+
+  it("una respuesta limpia pasa completa y termina con el descargo", async () => {
+    fetchMock.mockResolvedValue(streamResponse("Pelosi declaró un cambio en NVDA."));
+
+    const res = await chatPOST(chatRequest());
+    const raw = await res.text();
+
+    expect(res.status).toBe(200);
+    expect(raw).toContain("Pelosi declaró un cambio en NVDA.");
+    expect(raw).toContain("Respuesta generada automáticamente por inteligencia artificial");
+    expect(raw).toContain("[DONE]");
+  });
+
+  it("un texto con 'te recomiendo comprar' se corta y se reemplaza", async () => {
+    fetchMock.mockResolvedValue(
+      streamResponse("Te recomiendo comprar NVDA ahora: va a subir con fuerza."),
+    );
+
+    const res = await chatPOST(chatRequest());
+    const raw = await res.text();
+
+    expect(res.status).toBe(200);
+    expect(raw).not.toContain("Te recomiendo comprar");
+    expect(raw).not.toContain("va a subir");
+    expect(raw).toContain("No puedo entregar recomendaciones de compra, venta o mantención");
+    expect(raw).toContain("Respuesta generada automáticamente por inteligencia artificial");
+    expect(raw).toContain("[DONE]");
+  });
+});
+
+describe("rutas: la IA se apaga sin key o sin modelo", () => {  it("POST /api/chat responde 503 sin key y no llama a OpenRouter", async () => {
     process.env.OPENROUTER_MODEL = MODEL;
 
     const res = await chatPOST(chatRequest());

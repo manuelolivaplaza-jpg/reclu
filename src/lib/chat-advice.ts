@@ -66,7 +66,7 @@ function recluEvent(type: RecluStreamEventType, text: string): string {
 const DONE_EVENT = "data: [DONE]\n\n";
 
 /** Log acotado: timestamp, ruta y regla. Sin texto del usuario ni del modelo. */
-function logBlocked(route: string, rule: string): void {
+export function logAdviceBlock(route: string, rule: string): void {
   console.warn(
     "[reclu] advice-filter blocked",
     JSON.stringify({ ts: new Date().toISOString(), route, rule }),
@@ -135,7 +135,7 @@ export function filterChatAdvice(
 
         let finalContent: string;
         if (blockedBy) {
-          logBlocked(options.route, blockedBy);
+          logAdviceBlock(options.route, blockedBy);
           controller.enqueue(encoder.encode(recluEvent("replacement", NEUTRAL_ADVICE_REPLACEMENT)));
           finalContent = NEUTRAL_ADVICE_REPLACEMENT;
         } else {
@@ -161,7 +161,11 @@ export function filterChatAdvice(
         } catch {
           /* upstream ya cerrado */
         }
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          /* el consumidor ya canceló */
+        }
       }
     },
     cancel() {
