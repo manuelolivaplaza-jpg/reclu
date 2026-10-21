@@ -41,6 +41,14 @@ const WINDOW_HOURS = 48;
 const MAX_NEWS = 100;
 const NEWS_RELATIONS = new Set(["direct", "sector", "supplier", "competitor", "macro"]);
 
+/**
+ * F80: tope global de entregas por corrida. Cuenta los correos y los mensajes
+ * de Telegram enviados en una sola corrida del job, entre todos los usuarios.
+ * Lo que no cabe queda diferido para la próxima corrida (no se pierde: los
+ * avisos no registrados se reintentan).
+ */
+const MAX_DELIVERIES_PER_RUN = 200;
+
 // ---- Autenticación ----
 
 /** Valida el header Authorization contra CRON_SECRET. null = válido. */
@@ -500,6 +508,12 @@ export async function POST(request: Request) {
   let emails = 0;
   let telegrams = 0;
   let failedWrites = 0;
+  /**
+   * F80: mensajes entregados en esta corrida (correos + Telegram, entre todos
+   * los usuarios) y avisos que quedaron fuera por el tope global.
+   */
+  let deliveries = 0;
+  let deferred = 0;
 
   for (const settings of optIn) {
     const profile = profilesById.get(settings.userId);
@@ -585,9 +599,18 @@ export async function POST(request: Request) {
       : null;
     const name = asString(profile.email).split("@")[0] || null;
 
+    // F80: tope global de entregas por corrida. Si ya se alcanzó, este
+    // usuario y los siguientes quedan diferidos para la próxima corrida: no
+    // se marca nada como entregado, así que no se pierde ningún aviso.
+    if (deliveries >= MAX_DELIVERIES_PER_RUN) {
+      deferred += selected.length;
+      continue;
+    }
+
     if (mode === "daily_digest") {
       // Un correo y/o un mensaje con todos los avisos del día.
-      if (emailReady) {
+      let deliveredSomething = false;
+      if (emailReady && deliveries < MAX_DELIVERIES_PER_RUN) {
         const ok = await sendEmail(
           resendKey,
           from,
@@ -598,10 +621,12 @@ export async function POST(request: Request) {
         );
         if (ok) {
           emails += 1;
+          deliveries += 1;
+          deliveredSomething = true;
           for (const item of selected) mark(item, "email");
         }
       }
-      if (telegramReady) {
+      if (telegramReady && deliveries < MAX_DELIVERIES_PER_RUN) {
         const ok = await sendTelegram(
           telegramToken,
           telegramChatId,
@@ -609,13 +634,20 @@ export async function POST(request: Request) {
         );
         if (ok) {
           telegrams += 1;
+          deliveries += 1;
+          deliveredSomething = true;
           for (const item of selected) mark(item, "telegram");
         }
+      }
+      // F80: no salió nada y el tope ya estaba alcanzado -> avisos diferidos.
+      if (!deliveredSomething && deliveries >= MAX_DELIVERIES_PER_RUN) {
+        deferred += selected.length;
       }
     } else {
       // Tiempo real: un aviso por noticia.
       for (const item of selected) {
-        if (emailReady) {
+        let deliveredSomething = false;
+        if (emailReady && deliveries < MAX_DELIVERIES_PER_RUN) {
           const ok = await sendEmail(
             resendKey,
             from,
@@ -626,10 +658,12 @@ export async function POST(request: Request) {
           );
           if (ok) {
             emails += 1;
+            deliveries += 1;
+            deliveredSomething = true;
             mark(item, "email");
           }
         }
-        if (telegramReady) {
+        if (telegramReady && deliveries < MAX_DELIVERIES_PER_RUN) {
           const ok = await sendTelegram(
             telegramToken,
             telegramChatId,
@@ -637,8 +671,14 @@ export async function POST(request: Request) {
           );
           if (ok) {
             telegrams += 1;
+            deliveries += 1;
+            deliveredSomething = true;
             mark(item, "telegram");
           }
+        }
+        // F80: quedó fuera por el tope global de la corrida.
+        if (!deliveredSomething && deliveries >= MAX_DELIVERIES_PER_RUN) {
+          deferred += 1;
         }
       }
     }
@@ -674,6 +714,12 @@ export async function POST(request: Request) {
     sentToday.set(settings.userId, (sentToday.get(settings.userId) ?? 0) + rows.length);
   }
 
+  // F80: solo el CONTEO de diferidos. Nunca la lista de símbolos, noticias ni
+  // usuarios: esos datos son de cartera y no van a los logs.
+  if (deferred > 0) {
+    console.warn("[reclu] portfolio alerts diferidos por tope de corrida:", deferred);
+  }
+
   return Response.json(
     {
       ok: true,
@@ -684,6 +730,8 @@ export async function POST(request: Request) {
       emails,
       telegrams,
       failed_writes: failedWrites,
+      /** Avisos que quedaron fuera por el tope global de la corrida. */
+      deferred,
     },
     { headers: { "Cache-Control": "no-store" } },
   );
