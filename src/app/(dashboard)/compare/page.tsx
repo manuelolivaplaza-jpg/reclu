@@ -53,7 +53,9 @@ export default async function ComparePage() {
   const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
 
   // F79: importación desde una captura (flag apagado por defecto).
-  const imageImportEnabled = isPortfolioImageImportEnabled();
+  // Sin consentimiento vigente la ruta responde 403, así que el botón tampoco
+  // se ofrece: el consent card de arriba explica qué falta.
+  const imageImportEnabled = isPortfolioImageImportEnabled() && hasConsent;
   const maxPositions = portfolioLimitsFor(
     profile?.plan,
     profile?.trial_ends_at,

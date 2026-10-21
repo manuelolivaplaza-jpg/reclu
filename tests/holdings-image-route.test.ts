@@ -46,7 +46,11 @@ function completionResponse(content: string): Response {
   });
 }
 
-function postFile(bytes: Uint8Array, name = "captura.png", type = "image/png"): Promise<Response> {
+function postFile(
+  bytes: Uint8Array<ArrayBuffer>,
+  name = "captura.png",
+  type = "image/png",
+): Promise<Response> {
   const form = new FormData();
   form.append("file", new File([bytes], name, { type }));
   return POST(
