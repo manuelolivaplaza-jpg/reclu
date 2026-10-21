@@ -174,13 +174,17 @@ describe("POST /api/holdings/image: modelo de visión", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("un modelo :free no se admite => 503", async () => {
+  it("un modelo :free se admite y viaja con data_collection deny", async () => {
     process.env.OPENROUTER_VISION_MODEL = "google/gemini-2.0-flash:free";
 
     const res = await postFile(PNG_BYTES);
 
-    expect(res.status).toBe(503);
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(res.status).not.toBe(503);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+    expect(body.model).toBe("google/gemini-2.0-flash:free");
+    expect(body.provider).toEqual({ data_collection: "deny" });
   });
 });
 

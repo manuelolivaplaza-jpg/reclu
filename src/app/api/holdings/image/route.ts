@@ -32,7 +32,6 @@ import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
 import { isPortfolioImageImportEnabled } from "@/lib/portfolio-flags";
 import {
   callVisionModel,
-  isFreeTierModel,
   visionConfig,
   visionUnavailableResponse,
 } from "@/lib/portfolio-vision";
@@ -126,12 +125,9 @@ export async function POST(request: Request) {
   if (!config.enabled) {
     return visionUnavailableResponse(config.missing);
   }
-  if (isFreeTierModel(config.model)) {
-    return jsonError(
-      "El modelo de visión configurado no es admisible. Define uno que no use modelos gratuitos.",
-      503,
-    );
-  }
+  // Decision de Manu: se admiten modelos de pago o `:free`. La privacidad la
+  // garantiza `provider.data_collection = "deny"` en cada pedido
+  // (OpenRouter excluye a los proveedores que guardan o entrenan con datos).
 
   // 5. Cupo de IA: una imagen procesada cuesta 1.
   const quota = await enforceSignedInQuota(user.id);
