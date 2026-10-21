@@ -118,7 +118,7 @@ export async function loadRecentNews(
   return rows.map((row) => ({
     id: row.id,
     source: row.source,
-    url: row.url,
+    url: safeHttpUrl(row.url),
     title: row.title,
     publishedAt: row.published_at,
     tickers: tickersByNews.get(row.id) ?? [],
@@ -210,4 +210,15 @@ export async function loadImpactFeed(
     now,
     limit: options.limit,
   });
+}
+
+/** Solo http(s): una URL de la fuente con otro esquema (javascript:, data:) se descarta. */
+export function safeHttpUrl(value: unknown): string {
+  if (typeof value !== "string") return "";
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : "";
+  } catch {
+    return "";
+  }
 }
