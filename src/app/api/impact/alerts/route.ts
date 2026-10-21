@@ -356,7 +356,10 @@ export async function POST(request: Request) {
       alertChannel: asString(row.alert_channel) || "email",
       consentAt: asString(row.consent_at) || null,
     }))
-    .filter((row) => row.userId.length > 0 && row.consentAt !== null);
+    .filter(
+      (row) =>
+        row.userId.length > 0 && row.autoAlerts === true && row.consentAt !== null,
+    );
 
   if (optIn.length === 0) {
     return Response.json(
