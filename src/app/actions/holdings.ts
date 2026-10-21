@@ -103,12 +103,27 @@ function mergeHoldings(holdings: NormalizedHolding[]): NormalizedHolding[] {
   return [...bySymbol.values()];
 }
 
-/** Traduce el raise del trigger `enforce_user_holdings_limit` (052). */
+/**
+ * Traduce el raise del trigger `enforce_user_holdings_limit` (052).
+ *
+ * F80: el mensaje crudo de Postgres nunca llega al usuario (puede filtrar
+ * nombres de tablas, columnas o detalle interno). Solo se reconoce el caso
+ * conocido del tope de posiciones; el resto es un mensaje genérico.
+ */
 function friendlyHoldingDbError(message: string): string {
   if (/límite de posiciones/i.test(message)) {
     return "Alcanzaste el límite de posiciones de tu plan.";
   }
-  return message;
+  return "No pudimos guardar tu cartera. Intenta de nuevo.";
+}
+
+/**
+ * F80: log técnico del fallo de Supabase. Se registra SOLO el código del
+ * error (`error.code`), nunca el mensaje: el mensaje puede traer detalle
+ * interno de la base que no debe terminar en los logs ni en la respuesta.
+ */
+function logDbError(scope: string, error: { code?: string } | null): void {
+  console.error(`[reclu] ${scope}:`, error?.code ?? "sin código");
 }
 
 /**
@@ -190,7 +205,10 @@ export async function saveUserHoldings(input: unknown) {
       .delete()
       .eq("user_id", user.id)
       .in("symbol", removedSymbols);
-    if (deleteError) return { error: deleteError.message };
+    if (deleteError) {
+      logDbError("holdings delete (saveUserHoldings)", deleteError);
+      return { error: "No pudimos borrar tu cartera. Intenta de nuevo." };
+    }
   }
 
   const { error } = await supabase.from("user_holdings").upsert(
@@ -208,7 +226,10 @@ export async function saveUserHoldings(input: unknown) {
     })),
     { onConflict: "user_id,symbol" },
   );
-  if (error) return { error: friendlyHoldingDbError(error.message) };
+  if (error) {
+    logDbError("holdings upsert (saveUserHoldings)", error);
+    return { error: friendlyHoldingDbError(error.message) };
+  }
 
 
   revalidatePath("/compare");
@@ -293,7 +314,10 @@ export async function importHoldings(rawCsv: unknown) {
     .from("user_holdings")
     .delete()
     .eq("user_id", user.id);
-  if (delError) return { error: delError.message };
+  if (delError) {
+    logDbError("holdings delete (importHoldings)", delError);
+    return { error: "No pudimos borrar tu cartera. Intenta de nuevo." };
+  }
 
   const { error } = await supabase.from("user_holdings").insert(
     normalized.map((row) => ({
@@ -304,7 +328,10 @@ export async function importHoldings(rawCsv: unknown) {
       source: "csv" as const,
     })),
   );
-  if (error) return { error: error.message };
+  if (error) {
+    logDbError("holdings insert (importHoldings)", error);
+    return { error: "No pudimos guardar tu cartera. Intenta de nuevo." };
+  }
 
   revalidatePath("/compare");
   return {
@@ -360,7 +387,8 @@ export async function getOverlapForSymbols(rawSymbols: unknown) {
           p_symbol: symbol,
         });
         if (error) {
-          console.warn("[reclu] get_symbol_holders error:", error.message);
+          // F80: solo el código del error, nunca el mensaje crudo de Supabase.
+          console.warn("[reclu] get_symbol_holders error:", error.code ?? "sin código");
           return { symbol, totalHolders: 0, holders: [], unavailable: true };
         }
         const holders = (Array.isArray(data) ? data : []).flatMap((row) => {
@@ -390,7 +418,10 @@ export async function clearUserHoldings() {
   if (!user) return { error: "No autenticado." };
 
   const { error } = await supabase.from("user_holdings").delete().eq("user_id", user.id);
-  if (error) return { error: error.message };
+  if (error) {
+    logDbError("holdings delete (clearUserHoldings)", error);
+    return { error: "No pudimos borrar tu cartera. Intenta de nuevo." };
+  }
 
   revalidatePath("/compare");
   return { success: "Cartera eliminada." };
