@@ -83,8 +83,23 @@ def test_user_portfolio_settings_parte_apagada_y_con_consentimiento_nulo() -> No
     assert "check (alert_channel in ('email', 'telegram', 'both'))" in sql
     # Sin fecha de consentimiento = todavía no consintió.
     assert "consent_at timestamptz" in sql
+    # La versión del texto aceptado se guarda junto a la fecha (F75B).
+    assert "consent_version text" in sql
     assert "created_at timestamptz not null default now()" in sql
     assert "updated_at timestamptz not null default now()" in sql
+
+
+def test_consent_version_es_idempotente_y_obligatoria_con_consent_at() -> None:
+    sql = _activo()
+    # Se puede aplicar sobre una base que ya tenía la tabla de la 050.
+    assert "add column if not exists consent_version text" in sql
+    # Regla: no hay consentimiento acreditado sin versión del texto.
+    assert (
+        "drop constraint if exists user_portfolio_settings_consent_version_check"
+        in sql
+    )
+    assert "user_portfolio_settings_consent_version_check" in sql
+    assert "check (consent_at is null or consent_version is not null)" in sql
 
 
 def test_rls_solo_para_el_dueno() -> None:
@@ -154,6 +169,11 @@ def test_rollback_comentado_y_completo() -> None:
     sql = _sql()
     rollback = sql[sql.find("-- ROLLBACK") :]
     assert "drop function if exists public.delete_my_portfolio();" in rollback
+    assert (
+        "drop constraint if exists user_portfolio_settings_consent_version_check"
+        in rollback
+    )
+    assert "drop column if exists consent_version" in rollback
     assert "drop table if exists public.user_portfolio_settings;" in rollback
     assert "drop column if exists quantity" in rollback
     assert "drop column if exists avg_cost" in rollback

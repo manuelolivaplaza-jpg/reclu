@@ -27,6 +27,7 @@ vi.mock("next/cache", () => ({
 }));
 
 import { saveUserHoldings } from "@/app/actions/holdings";
+import { PORTFOLIO_CONSENT_VERSION } from "@/lib/portfolio-consent";
 
 const ORIGINAL_FLAG = process.env.MY_PORTFOLIO_ENABLED;
 
@@ -217,7 +218,10 @@ describe("saveUserHoldings: consentimiento (MY_PORTFOLIO_ENABLED)", () => {
   it("guarda si ya dio consentimiento", async () => {
     process.env.MY_PORTFOLIO_ENABLED = "true";
     mocks.maybeSingle.mockResolvedValue({
-      data: { consent_at: "2026-10-20T12:00:00Z" },
+      data: {
+        consent_at: "2026-10-20T12:00:00Z",
+        consent_version: PORTFOLIO_CONSENT_VERSION,
+      },
       error: null,
     });
 
@@ -225,6 +229,22 @@ describe("saveUserHoldings: consentimiento (MY_PORTFOLIO_ENABLED)", () => {
 
     expect(result.error).toBeUndefined();
     expect(mocks.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it("una versión vieja obliga a aceptar de nuevo y no guarda", async () => {
+    process.env.MY_PORTFOLIO_ENABLED = "true";
+    mocks.maybeSingle.mockResolvedValue({
+      data: {
+        consent_at: "2026-10-01T12:00:00Z",
+        consent_version: "2026-10-01.v0",
+      },
+      error: null,
+    });
+
+    const result = await saveUserHoldings([{ symbol: "AAPL", quantity: 1, avg_cost: 10 }]);
+
+    expect(result.error).toMatch(/de nuevo/i);
+    expect(mocks.upsert).not.toHaveBeenCalled();
   });
 
   it("con el flag apagado no consulta el consentimiento", async () => {

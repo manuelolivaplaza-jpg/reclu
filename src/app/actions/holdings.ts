@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { userHoldingsSchema } from "@/lib/validation";
 import { canAddPositions, portfolioLimitsFor } from "@/lib/plans";
 import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
+import { portfolioConsentErrorMessage } from "@/lib/portfolio-consent";
 import {
   MAX_CSV_LENGTH,
   importSymbolsSchema,
@@ -12,6 +13,37 @@ import {
   type OverlapEntry,
   type OverlapHolder,
 } from "@/lib/import-holdings";
+
+type SupabaseSessionClient = Awaited<ReturnType<typeof createClient>>;
+
+/**
+ * Bloqueo por consentimiento (F75B): si Mi portafolio está encendido, la
+ * cartera solo se guarda con un consentimiento vigente. Una versión anterior
+ * del texto obliga a aceptar de nuevo.
+ */
+async function portfolioConsentError(
+  supabase: SupabaseSessionClient,
+  userId: string,
+): Promise<string | null> {
+  if (!isMyPortfolioEnabled()) return null;
+
+  const { data, error } = await supabase
+    .from("user_portfolio_settings")
+    .select("consent_at, consent_version")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    return "No pudimos verificar tu consentimiento. Intenta de nuevo.";
+  }
+
+  const settings = data as
+    | { consent_at?: string | null; consent_version?: string | null }
+    | null;
+  return portfolioConsentErrorMessage(
+    settings?.consent_at,
+    settings?.consent_version,
+  );
+}
 
 type Currency = "USD" | "CLP";
 type Market = "US" | "CL";
@@ -100,23 +132,9 @@ export async function saveUserHoldings(input: unknown) {
   }
 
   // Consentimiento explícito para datos financieros (Ley 21.719), solo
-  // cuando Mi portafolio está encendido.
-  if (isMyPortfolioEnabled()) {
-    const { data: settings, error: settingsError } = await supabase
-      .from("user_portfolio_settings")
-      .select("consent_at")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    if (settingsError) {
-      return { error: "No pudimos verificar tu consentimiento. Intenta de nuevo." };
-    }
-    if (!settings?.consent_at) {
-      return {
-        error:
-          "Necesitamos tu consentimiento explícito para guardar tu cartera. Actívalo en Ajustes y vuelve a intentar.",
-      };
-    }
-  }
+  // cuando Mi portafolio está encendido. Vale para guardar y para importar.
+  const consentError = await portfolioConsentError(supabase, user.id);
+  if (consentError) return { error: consentError };
 
   // Normalize weights to sum 100
   const holdings = mergeHoldings(parsed.data);
@@ -226,6 +244,11 @@ export async function importHoldings(rawCsv: unknown) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { error: "No autenticado." };
+
+  // Mismo bloqueo que saveUserHoldings: sin consentimiento vigente no se
+  // importa ni se reemplaza la cartera.
+  const consentError = await portfolioConsentError(supabase, user.id);
+  if (consentError) return { error: consentError };
 
   // Defensa extra: el mismo esquema que ya valida saveUserHoldings.
   const validated = userHoldingsSchema.safeParse(

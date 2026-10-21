@@ -72,9 +72,24 @@ create table if not exists public.user_portfolio_settings (
   alert_channel text not null default 'email'
     check (alert_channel in ('email', 'telegram', 'both')),
   consent_at timestamptz,
+  consent_version text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- VersiA3n del texto de consentimiento aceptado (F75B). Sin versiA3n no se
+-- puede acreditar quA� texto aceptA3 el usuario, asA- que no puede haber
+-- `consent_at` sin `consent_version`. Idempotente para bases ya creadas.
+alter table public.user_portfolio_settings
+  add column if not exists consent_version text;
+alter table public.user_portfolio_settings
+  drop constraint if exists user_portfolio_settings_consent_version_check;
+alter table public.user_portfolio_settings
+  add constraint user_portfolio_settings_consent_version_check
+  check (consent_at is null or consent_version is not null);
+
+comment on column public.user_portfolio_settings.consent_version is
+  'VersiA3n del texto de consentimiento aceptado (p. ej. 2026-10-20.v1).';
 
 alter table public.user_portfolio_settings enable row level security;
 
@@ -151,6 +166,9 @@ grant execute on function public.delete_my_portfolio() to authenticated;
 -- drop function if exists public.delete_my_portfolio();
 -- drop trigger if exists set_user_portfolio_settings_updated_at
 --   on public.user_portfolio_settings;
+-- alter table public.user_portfolio_settings
+--   drop constraint if exists user_portfolio_settings_consent_version_check,
+--   drop column if exists consent_version;
 -- drop table if exists public.user_portfolio_settings;
 -- alter table public.user_holdings
 --   drop constraint if exists user_holdings_source_check;

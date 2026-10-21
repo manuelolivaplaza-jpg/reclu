@@ -11,19 +11,21 @@ import type { FormState } from "@/lib/form-state";
 import {
   formatConsentDate,
   portfolioConsentParagraphs,
+  portfolioConsentStatus,
 } from "@/lib/portfolio-consent";
 
 /**
- * Consentimiento explícito de Mi portafolio (F75). El checkbox parte sin
- * marcar; el texto explica finalidad, minimización, transferencia
- * internacional y derecho a borrar. Si ya hay consentimiento, permite
- * retirarlo.
+ * Consentimiento explícito de Mi portafolio (F75B). El checkbox parte sin
+ * marcar; el texto es el de la §2.5 del informe legal. Si la versión aceptada
+ * quedó atrás, se pide aceptar de nuevo. Retirarlo borra la cartera.
  */
 export function PortfolioConsent({
   consentAt,
+  consentVersion,
   model,
 }: {
   consentAt: string | null;
+  consentVersion: string | null;
   model: string;
 }) {
   const [checked, setChecked] = useState(false);
@@ -37,11 +39,12 @@ export function PortfolioConsent({
   >(withdrawPortfolioConsent, {});
 
   const paragraphs = portfolioConsentParagraphs(model);
+  const status = portfolioConsentStatus(consentAt, consentVersion);
   const grantedAt = formatConsentDate(consentAt);
 
   return (
     <div className="flex flex-col gap-5">
-      {consentAt ? (
+      {status === "current" ? (
         <>
           <div className="border border-ink-200 p-4">
             <p className="text-[15px] text-ink-900">Consentimiento otorgado.</p>
@@ -49,14 +52,17 @@ export function PortfolioConsent({
               {grantedAt
                 ? `Registrado el ${grantedAt}.`
                 : "Registrado en tu cuenta."}{" "}
-              Puedes retirarlo cuando quieras.
+              Texto aceptado: {consentVersion ?? "versión vigente"}. Puedes
+              retirarlo cuando quieras.
             </p>
           </div>
 
           <p className="text-[13px] leading-relaxed text-ink-500">
-            Al retirar el consentimiento dejamos de tratar tu cartera para
-            alertas automáticas y apagamos ese interruptor. Tus posiciones
-            siguen guardadas hasta que decidas borrarlas.
+            Al retirar el consentimiento{" "}
+            <strong className="font-medium text-ink-900">se borra tu cartera</strong>{" "}
+            de forma inmediata e irreversible: posiciones, cantidades, costos y
+            estos ajustes. No se borra tu cuenta, los portafolios que sigues ni
+            tus reglas de alerta.
           </p>
 
           {withdrawState.error && (
@@ -69,14 +75,32 @@ export function PortfolioConsent({
               {withdrawState.success}
             </p>
           )}
-          <form action={withdrawAction}>
+          <form
+            action={withdrawAction}
+            onSubmit={(event) => {
+              const confirmed = window.confirm(
+                "Al retirar el consentimiento se borra tu cartera de forma inmediata e irreversible. ¿Continuar?",
+              );
+              if (!confirmed) event.preventDefault();
+            }}
+          >
             <Button type="submit" variant="outline" loading={withdrawPending}>
-              Retirar consentimiento
+              Retirar consentimiento y borrar mi cartera
             </Button>
           </form>
         </>
       ) : (
         <form action={grantAction} className="flex flex-col gap-5">
+          {status === "outdated" && (
+            <p
+              role="status"
+              className="border border-ink-200 p-4 text-[13px] leading-relaxed text-ink-900"
+            >
+              Actualizamos el texto de consentimiento. Para volver a guardar o
+              importar tu cartera, acepta la versión vigente.
+            </p>
+          )}
+
           <div className="flex flex-col gap-3 text-[13px] leading-relaxed text-ink-600">
             {paragraphs.map((paragraph) => (
               <p key={paragraph.slice(0, 32)}>{paragraph}</p>
@@ -102,10 +126,10 @@ export function PortfolioConsent({
               className="mt-0.5 size-4 shrink-0 accent-ink-900"
             />
             <span className="text-[14px] leading-relaxed text-ink-900">
-              He leído y acepto el tratamiento de mis tenencias para la
-              finalidad descrita, incluida la transferencia internacional a
-              OpenRouter y al modelo indicado. Entiendo que puedo retirar este
-              consentimiento y borrar mi cartera cuando quiera.
+              He leído y acepto el consentimiento de la versión vigente,
+              incluida la transferencia internacional a OpenRouter y al
+              proveedor del modelo. Entiendo que puedo retirarlo y que al
+              hacerlo se borra mi cartera.
             </span>
           </label>
 
