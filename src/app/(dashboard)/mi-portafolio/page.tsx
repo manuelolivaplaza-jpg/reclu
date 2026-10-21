@@ -2,13 +2,17 @@ import { connection } from "next/server";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/queries";
-import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
+import { isMyPortfolioEnabled, isNewsImpactEnabled } from "@/lib/portfolio-flags";
 import { getPlan, portfolioLimitsFor } from "@/lib/plans";
 import { PortfolioConsent } from "@/components/portfolio-consent";
 import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { PortfolioEditor } from "@/components/my-portfolio/portfolio-editor";
 import type { EditablePosition } from "@/components/my-portfolio/types";
+import { valuatePortfolio } from "@/lib/portfolio-valuation";
+import { loadImpactFeed } from "@/lib/news-feed";
+import type { ImpactFeedEntry } from "@/lib/impact-feed";
+import { ImpactFeed } from "@/components/impact-feed";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Mi portafolio" };
@@ -200,6 +204,34 @@ export default async function MyPortfolioPage() {
     });
   }
 
+  // Feed "Noticias que te tocan" (F72). Las noticias y los perfiles son de
+  // lectura pública; los pesos salen de la valorización ya calculada con el
+  // cliente de sesión. Sin consentimiento no hay posiciones ni feed.
+  const newsImpactEnabled = isNewsImpactEnabled();
+  let feedEntries: ImpactFeedEntry[] = [];
+  let feedHasPositions = false;
+
+  if (consentAt && newsImpactEnabled) {
+    const valuation = valuatePortfolio(positions);
+    const weights = valuation.positions
+      .filter(
+        (position): position is typeof position & { weightPct: number } =>
+          typeof position.weightPct === "number" && position.weightPct > 0,
+      )
+      .map((position) => ({ symbol: position.symbol, weight: position.weightPct }));
+
+    feedHasPositions = weights.length > 0;
+    if (weights.length > 0) {
+      feedEntries = await loadImpactFeed(supabase, {
+        positions: weights,
+        // `limits.plan` ya resuelve la prueba vigente como Pro.
+        plan: limits.plan,
+        trialEndsAt: profile.trial_ends_at,
+        delayHours: limits.newsDelayHours,
+      });
+    }
+  }
+
   const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
 
   return (
@@ -239,6 +271,15 @@ export default async function MyPortfolioPage() {
             />
           </CardContent>
         </Card>
+      )}
+
+      {consentAt && newsImpactEnabled && (
+        <ImpactFeed
+          entries={feedEntries}
+          planName={planName}
+          delayHours={limits.newsDelayHours}
+          hasPositions={feedHasPositions}
+        />
       )}
 
       {/* Descargo general al pie (Fintec / no asesoría). */}
