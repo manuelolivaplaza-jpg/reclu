@@ -482,7 +482,9 @@ export async function getUserHoldings(): Promise<UserHolding[]> {
 
   const { data, error } = await supabase
     .from("user_holdings")
-    .select("*")
+    // F80: solo las columnas que usan los consumidores (compare y el editor).
+    // Antes era select("*"), que también arrastraba id, user_id y created_at.
+    .select("symbol,name,weight,quantity,avg_cost,market,currency")
     .eq("user_id", user.id)
     .order("weight", { ascending: false });
   if (error) {

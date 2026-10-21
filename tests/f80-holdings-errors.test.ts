@@ -119,7 +119,9 @@ afterEach(() => {
 /** Todo lo que se registró en consola, en texto plano. */
 function logged(): string {
   return [...consoleError.mock.calls, ...consoleWarn.mock.calls]
-    .map((call) => call.map((value) => String(value)).join(" "))
+    .map((call) =>
+      call.map((value: unknown) => String(value)).join(" "),
+    )
     .join("\n");
 }
 

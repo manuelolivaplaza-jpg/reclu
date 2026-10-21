@@ -146,15 +146,24 @@ export interface Profile {
 }
 
 // ---- User's own portfolio (for comparison) ----
+/**
+ * F80: el `select` de `getUserHoldings` pide solo las columnas que los
+ * consumidores usan (antes era `select("*")`). Los campos que ya no se
+ * selecionan quedan opcionales para no romper a quien ya los use.
+ */
 export interface UserHolding {
-  id: string;
-  user_id: string;
   symbol: string;
   name: string;
   weight: number;
+  quantity?: number | null;
+  avg_cost?: number | null;
+  market?: string | null;
+  currency?: string | null;
+  id?: string;
+  user_id?: string;
   /** Whether added via CSV upload or manual entry. */
-  source: "csv" | "manual";
-  created_at: string;
+  source?: "csv" | "manual" | "cartola";
+  created_at?: string;
 }
 
 // ---- Freemium limits ----
