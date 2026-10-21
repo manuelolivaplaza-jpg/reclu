@@ -114,6 +114,18 @@ describe("saveHoldingsByMode: porcentaje", () => {
     expect(rows.map((row: { weight: number }) => row.weight)).toEqual([75, 25]);
     expect(rows[0].quantity).toBeUndefined();
   });
+
+  it("conserva la cantidad conocida para no perder la valorización", async () => {
+    const result = await saveHoldingsByMode({
+      mode: "percentage",
+      rows: [{ symbol: "AAPL", value: 100, quantity: 10 }],
+    });
+
+    expect(result.error).toBeUndefined();
+    const [rows] = mocks.upsert.mock.calls[0];
+    expect(rows[0].quantity).toBe(10);
+    expect(rows[0].weight).toBe(100);
+  });
 });
 
 describe("saveHoldingsByMode: cantidad de acciones", () => {
