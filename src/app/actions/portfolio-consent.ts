@@ -7,6 +7,7 @@ import {
   DELETE_CONFIRMATION_WORD,
   isDeleteConfirmationValid,
   isPortfolioConsentChecked,
+  PORTFOLIO_CONSENT_VERSION,
   validatePortfolioAlertSettings,
 } from "@/lib/portfolio-consent";
 import type { FormState } from "@/lib/form-state";
@@ -44,6 +45,7 @@ export async function grantPortfolioConsent(
     {
       user_id: user.id,
       consent_at: now,
+      consent_version: PORTFOLIO_CONSENT_VERSION,
       updated_at: now,
     },
     { onConflict: "user_id" },
@@ -79,6 +81,7 @@ export async function withdrawPortfolioConsent(
     .from("user_portfolio_settings")
     .update({
       consent_at: null,
+      consent_version: null,
       auto_alerts: false,
       updated_at: new Date().toISOString(),
     })
