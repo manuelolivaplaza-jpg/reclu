@@ -2,6 +2,8 @@ import Link from "next/link";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
+import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
 export const metadata = {
   title: "Disclaimer de inversión",
@@ -67,6 +69,36 @@ export default function DisclaimerPage() {
                 de datos públicos. Pueden contener imprecisiones, interpretaciones erróneas o
                 información desactualizada. Deben tratarse como material de lectura inicial,
                 no como análisis definitivo.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-ink-900">Mi portafolio</h2>
+              <DraftLegalNotice scope="Confirma que el análisis de la cartera del usuario no constituye asesoría personalizada bajo la Ley Fintec 21.521." />
+              <p className="mt-3 leading-relaxed">
+                «Mi portafolio» permite guardar tus propias posiciones para cruzar la
+                información pública con tus símbolos y mostrarte qué noticias podrían
+                afectarte. Es una herramienta descriptiva:{" "}
+                <strong className="text-ink-900">
+                  no evalúa si una posición es adecuada para ti, no propone pesos
+                  objetivo y no emite recomendaciones de compra, venta o mantención.
+                </strong>{" "}
+                Puedes desactivar las alertas, retirar el consentimiento y borrar tu
+                cartera en cualquier momento desde Ajustes.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-semibold text-ink-900">IA</h2>
+              <DraftLegalNotice scope="Revisa el descargo, la minimización de datos y la transferencia internacional a OpenRouter." />
+              <p className="mt-3 leading-relaxed">{AI_DISCLAIMER}</p>
+              <p className="mt-3 leading-relaxed">
+                Los análisis con IA describen noticias y datos públicos; no son
+                asesoría personalizada ni una recomendación de inversión. El proveedor
+                es OpenRouter, con servidores fuera de Chile, y el modelo se configura
+                en el servidor. Nunca enviamos montos invertidos, cantidades, tu nombre,
+                tu correo ni tu identidad: solo símbolos y pesos en porcentaje cuando
+                corresponde.
               </p>
             </section>
 

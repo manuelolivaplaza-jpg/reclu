@@ -10,8 +10,13 @@ import { TelegramConnect } from "@/components/telegram-connect";
 import { ReferralCard } from "@/components/referral-card";
 import { BillingStatus } from "@/components/billing-status";
 import { LegalNotice } from "@/components/legal/legal-notice";
+import { PortfolioConsent } from "@/components/portfolio-consent";
+import { PortfolioAlertSettings } from "@/components/portfolio-alert-settings";
+import { DeletePortfolioForm } from "@/components/delete-portfolio-form";
 import { alertRuleLimitFor, parseAlertRuleRows } from "@/lib/alert-rules";
-import { canUseTelegram } from "@/lib/plans";
+import { canUseTelegram, portfolioLimitsFor } from "@/lib/plans";
+import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
+import { portfolioAlertChannelsFor } from "@/lib/portfolio-consent";
 import { referralsEnabled } from "@/lib/referrals";
 import { isPaidPlan } from "@/lib/types";
 
@@ -35,6 +40,13 @@ interface SubscriptionRow {
   cancel_at_period_end: boolean;
 }
 
+interface PortfolioSettingsRow {
+  auto_alerts: boolean;
+  min_relevance: number | string;
+  alert_channel: string;
+  consent_at: string | null;
+}
+
 export default async function SettingsPage() {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
@@ -44,6 +56,7 @@ export default async function SettingsPage() {
 
   // Suscripción y reglas son lecturas independientes (RLS: solo lo propio).
   const supabase = await createClient();
+  const myPortfolioEnabled = isMyPortfolioEnabled();
   const subscriptionPromise = isPro
     ? supabase
         .from("subscriptions")
@@ -67,10 +80,19 @@ export default async function SettingsPage() {
         .eq("user_id", profile.id)
         .maybeSingle()
     : Promise.resolve({ data: null, error: null });
-  const [subscriptionResult, rulesResult, referralResult] = await Promise.all([
+  // F75: preferencias y consentimiento de Mi portafolio, solo con el flag.
+  const portfolioSettingsPromise = myPortfolioEnabled
+    ? supabase
+        .from("user_portfolio_settings")
+        .select("auto_alerts, min_relevance, alert_channel, consent_at")
+        .eq("user_id", profile.id)
+        .maybeSingle()
+    : Promise.resolve({ data: null, error: null });
+  const [subscriptionResult, rulesResult, referralResult, portfolioResult] = await Promise.all([
     subscriptionPromise,
     rulesPromise,
     referralCodePromise,
+    portfolioSettingsPromise,
   ]);
   const activeSubscription = (subscriptionResult.data as SubscriptionRow | null) ?? null;
   if (rulesResult.error) {
@@ -93,6 +115,21 @@ export default async function SettingsPage() {
     ? ((referralResult.data as { code: string } | null)?.code ?? null)
     : null;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://reclu.cl";
+
+  // F75: datos de Mi portafolio. Si la tabla aún no existe (migración 050 sin
+  // aplicar) la página sigue funcionando y las acciones fallan con elegancia.
+  if (portfolioResult.error) {
+    console.warn("[reclu] user_portfolio_settings:", portfolioResult.error.message);
+  }
+  const portfolioRow = (portfolioResult.data as PortfolioSettingsRow | null) ?? null;
+  const portfolioLimits = portfolioLimitsFor(profile.plan, profile.trial_ends_at);
+  const portfolioChannels = portfolioAlertChannelsFor(
+    profile.plan,
+    profile.trial_ends_at,
+  );
+  const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
+  const rawMinRelevance = Number(portfolioRow?.min_relevance ?? 0.5);
+  const portfolioMinRelevance = Number.isFinite(rawMinRelevance) ? rawMinRelevance : 0.5;
 
   return (
     <div className="flex max-w-2xl flex-col gap-8">
@@ -212,6 +249,62 @@ export default async function SettingsPage() {
       </Card>
 
       <TelegramConnect profile={profile} />
+
+      {myPortfolioEnabled && (
+        <>
+          {/* F75: consentimiento explícito (Ley 21.719). Va antes de las
+              alertas porque sin consentimiento no se tratan las tenencias. */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Mi portafolio: consentimiento</CardTitle>
+              <CardDescription>
+                Tratamos tus tenencias como datos financieros sensibles. Lee la
+                finalidad antes de aceptar.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PortfolioConsent
+                consentAt={portfolioRow?.consent_at ?? null}
+                model={aiModel}
+              />
+            </CardContent>
+          </Card>
+
+          {/* F75: alertas automáticas, apagadas por defecto y según plan. */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Alertas automáticas de mi cartera</CardTitle>
+              <CardDescription>
+                Avisos cuando una noticia pública supere tu umbral de relevancia.
+                Este interruptor parte apagado.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PortfolioAlertSettings
+                autoAlerts={Boolean(portfolioRow?.auto_alerts)}
+                minRelevance={portfolioMinRelevance}
+                alertChannel={portfolioRow?.alert_channel ?? "email"}
+                planAutoAlerts={portfolioLimits.autoAlerts}
+                allowedChannels={[...portfolioChannels]}
+                hasConsent={Boolean(portfolioRow?.consent_at)}
+              />
+            </CardContent>
+          </Card>
+
+          {/* F75: derecho de supresión. Solo con el flag encendido. */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Borrar mi cartera</CardTitle>
+              <CardDescription>
+                Elimina tus posiciones, el consentimiento y estos ajustes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DeletePortfolioForm />
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {referralCode && <ReferralCard code={referralCode} siteUrl={siteUrl} />}
 
