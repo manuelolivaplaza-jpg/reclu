@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { getProviderById } from "@/lib/billing";
+import { getProviderById, PaymentsNotConfiguredError } from "@/lib/billing";
+import { PAYMENTS_UNAVAILABLE_ERROR } from "@/lib/billing/messages";
 import { getBillingServiceClient } from "@/lib/billing/supabase-admin";
 import { revalidatePath } from "next/cache";
 
@@ -42,7 +43,20 @@ export async function POST() {
   // El proveedor se elige por la FILA (la suscripción se creó con él),
   // no por el env actual — permite migrar de proveedor sin romper las
   // suscripciones vigentes.
-  const provider = getProviderById(sub.provider);
+  let provider;
+  try {
+    provider = getProviderById(sub.provider);
+  } catch (err) {
+    // F82: sin claves del proveedor de la suscripción no se puede cancelar
+    // por API. Se responde 503 con mensaje genérico en vez de un 500.
+    if (err instanceof PaymentsNotConfiguredError) {
+      return Response.json(
+        { ok: false, error: PAYMENTS_UNAVAILABLE_ERROR },
+        { status: 503 },
+      );
+    }
+    throw err;
+  }
   let cancelAtPeriodEnd = false;
   if (sub.provider_subscription_id) {
     try {

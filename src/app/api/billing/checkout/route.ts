@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { getPaymentProvider, PaymentsNotConfiguredError } from "@/lib/billing";
+import { PAYMENTS_UNAVAILABLE_ERROR } from "@/lib/billing/messages";
 import { recordPendingCheckout } from "@/lib/billing/pending";
 import { revalidatePath } from "next/cache";
 
@@ -43,17 +44,11 @@ export async function POST(request: Request) {
     provider = getPaymentProvider();
   } catch (err) {
     // FAIL CLOSED: sin claves del proveedor pedido no hay fallback a mock.
-    // Si el no-configurado es el mock (entorno productivo), la respuesta no
-    // revela nada; en desarrollo el mensaje sí es explícito.
-    if (err instanceof PaymentsNotConfiguredError && err.providerId === "mock") {
-      return Response.json(
-        { ok: false, error: "Pagos no configurados." },
-        { status: 503 },
-      );
-    }
+    // F82: se responde 503 con un mensaje genérico (no 500), sin revelar
+    // qué proveedor se pidió ni qué claves faltan.
     if (err instanceof PaymentsNotConfiguredError) {
       return Response.json(
-        { ok: false, error: "Pagos no configurados: falta configurar las claves del proveedor." },
+        { ok: false, error: PAYMENTS_UNAVAILABLE_ERROR },
         { status: 503 },
       );
     }

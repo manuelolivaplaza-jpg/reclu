@@ -107,4 +107,29 @@ export function isMockProvider(): boolean {
   return getPaymentProvider().id === "mock";
 }
 
+/**
+ * Estado de los pagos para la UI: ¿hay un proveedor utilizable?
+ *
+ * Útil para páginas que deben MOSTRAR los planes aunque el pago no esté
+ * operativo: si no hay proveedor se avisa y se deshabilita el checkout en
+ * vez de romper la página.
+ *
+ * Captura SOLO `PaymentsNotConfiguredError` (cualquier otro error se
+ * propaga) y NUNCA cae a mock por falta de claves: el fail closed de
+ * `getPaymentProvider` se mantiene intacto.
+ */
+export type PaymentsAvailability =
+  | { available: true; isTestMode: boolean }
+  | { available: false };
+
+export function getPaymentsAvailability(): PaymentsAvailability {
+  try {
+    const provider = getPaymentProvider();
+    return { available: true, isTestMode: provider.id === "mock" };
+  } catch (err) {
+    if (err instanceof PaymentsNotConfiguredError) return { available: false };
+    throw err;
+  }
+}
+
 export { createFlowProvider, createMercadoPagoProvider, createMockProvider };

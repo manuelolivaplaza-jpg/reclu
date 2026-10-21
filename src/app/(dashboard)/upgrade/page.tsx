@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
-import { isMockProvider } from "@/lib/billing";
+import { getPaymentsAvailability } from "@/lib/billing";
 import {
   UpgradeCheckout,
   type BillingCycle,
@@ -44,13 +44,19 @@ export default async function UpgradePage({ searchParams }: UpgradePageProps) {
   const initialBilling: BillingCycle =
     params.billing === "annual" || params.billing === "anual" ? "annual" : "monthly";
 
+  // F82: sin proveedor de pagos la página NO se cae: se muestran los planes
+  // con un aviso y el checkout queda deshabilitado. getPaymentsAvailability
+  // nunca cae a mock por falta de claves (fail closed).
+  const payments = getPaymentsAvailability();
+
   return (
     <UpgradeCheckout
       currentPlan={profile?.plan ?? "free"}
       initialSelectedPlan={initialSelectedPlan}
       initialBilling={initialBilling}
       userEmail={profile?.email ?? user?.email ?? ""}
-      isTestMode={isMockProvider()}
+      isTestMode={payments.available && payments.isTestMode}
+      paymentsAvailable={payments.available}
     />
   );
 }
