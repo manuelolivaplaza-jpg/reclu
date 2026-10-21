@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { userHoldingsSchema } from "@/lib/validation";
 import { canAddPositions, portfolioLimitsFor } from "@/lib/plans";
-import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 import { portfolioConsentErrorMessage } from "@/lib/portfolio-consent";
 import {
   MAX_CSV_LENGTH,
@@ -25,8 +24,8 @@ async function portfolioConsentError(
   supabase: SupabaseSessionClient,
   userId: string,
 ): Promise<string | null> {
-  if (!isMyPortfolioEnabled()) return null;
-
+  // M1 (F77, decision de Manu): el consentimiento se exige SIEMPRE, tambien
+  // en /compare y con MY_PORTFOLIO_ENABLED apagado.
   const { data, error } = await supabase
     .from("user_portfolio_settings")
     .select("consent_at, consent_version")
@@ -395,4 +394,30 @@ export async function clearUserHoldings() {
 
   revalidatePath("/compare");
   return { success: "Cartera eliminada." };
+}
+
+/**
+ * M3 (F77): boton "Borrar" de /compare. Borra TODO lo de la cartera del
+ * usuario con `delete_my_portfolio()` (tenencias, ajustes y consentimiento,
+ * alertas personales y auditoria; migraciones 050/053/054).
+ * `clearUserHoldings` se mantiene para vaciar solo las posiciones desde el
+ * editor de Mi portafolio sin perder el consentimiento.
+ */
+export async function deleteEntirePortfolio() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "No autenticado." };
+
+  const { error } = await supabase.rpc("delete_my_portfolio");
+  if (error) {
+    console.warn("[reclu] delete_my_portfolio (compare):", error.message);
+    return { error: "No pudimos borrar tu cartera. Intenta de nuevo." };
+  }
+
+  revalidatePath("/compare");
+  revalidatePath("/mi-portafolio");
+  revalidatePath("/settings");
+  return { success: "Cartera eliminada por completo." };
 }

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
   saveUserHoldings,
-  clearUserHoldings,
+  deleteEntirePortfolio,
   importHoldings as importHoldingsCsv,
 } from "@/app/actions/holdings";
 import { OverlapPanel } from "@/components/overlap-panel";
@@ -175,11 +175,22 @@ export function PortfolioManager({
   }
 
   async function handleClear() {
+    if (
+      !window.confirm(
+        "Se borrará toda tu cartera: posiciones, consentimiento, alertas y registro de consultas. No se puede deshacer.",
+      )
+    ) {
+      return;
+    }
     setLoading(true);
-    await clearUserHoldings();
+    const result = await deleteEntirePortfolio();
     setLoading(false);
+    if (result.error) {
+      setMessage({ type: "error", text: result.error });
+      return;
+    }
     setHoldings([]);
-    setMessage({ type: "success", text: "Cartera eliminada." });
+    setMessage({ type: "success", text: result.success! });
     router.refresh();
   }
 

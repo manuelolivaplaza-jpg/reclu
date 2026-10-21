@@ -63,8 +63,9 @@ beforeEach(() => {
     data: { plan: "free", trial_ends_at: null },
     error: null,
   });
+  // Por defecto hay consentimiento vigente (M1: se exige siempre).
   mocks.maybeSingle.mockResolvedValue({
-    data: { consent_at: null },
+    data: { consent_at: "2026-10-20T12:00:00Z", consent_version: PORTFOLIO_CONSENT_VERSION },
     error: null,
   });
   mocks.existing = { data: [], error: null };
@@ -208,6 +209,7 @@ describe("saveUserHoldings: tope del plan", () => {
 describe("saveUserHoldings: consentimiento (MY_PORTFOLIO_ENABLED)", () => {
   it("exige consent_at cuando el flag está encendido", async () => {
     process.env.MY_PORTFOLIO_ENABLED = "true";
+    mocks.maybeSingle.mockResolvedValue({ data: { consent_at: null }, error: null });
 
     const result = await saveUserHoldings([{ symbol: "AAPL", quantity: 1, avg_cost: 10 }]);
 
@@ -247,10 +249,20 @@ describe("saveUserHoldings: consentimiento (MY_PORTFOLIO_ENABLED)", () => {
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 
-  it("con el flag apagado no consulta el consentimiento", async () => {
+  it("M1: con el flag apagado (/compare) tambien exige consentimiento", async () => {
+    mocks.maybeSingle.mockResolvedValue({ data: null, error: null });
+
+    const result = await saveUserHoldings([{ symbol: "AAPL", weight: 100 }]);
+
+    expect(result.error).toMatch(/consentimiento/i);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+
+  it("M1: con el flag apagado y consentimiento vigente guarda", async () => {
     const result = await saveUserHoldings([{ symbol: "AAPL", weight: 100 }]);
 
     expect(result.error).toBeUndefined();
-    expect(mocks.maybeSingle).not.toHaveBeenCalled();
+    expect(mocks.maybeSingle).toHaveBeenCalled();
+    expect(mocks.upsert).toHaveBeenCalledTimes(1);
   });
 });

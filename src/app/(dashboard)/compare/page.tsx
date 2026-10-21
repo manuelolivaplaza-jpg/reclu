@@ -9,6 +9,9 @@ import { canViewPremium, roleFor } from "@/lib/access";
 import { buildComparePayload, type ComparePortfolioInput } from "@/lib/compare-overlap";
 import { PortfolioManager } from "@/components/portfolio-manager";
 import { AlignmentPanel } from "@/components/alignment-panel";
+import { PortfolioConsent } from "@/components/portfolio-consent";
+import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mi cartera" };
 // Auth-gated route — never prerendered.
@@ -26,6 +29,26 @@ export default async function ComparePage() {
     getUserHoldings(),
     getPortfolios(),
   ]);
+
+  // M1 (F77): guardar la cartera exige consentimiento vigente tambien aqui.
+  const supabase = await createClient();
+  const consentRow = profile
+    ? (
+        await supabase
+          .from("user_portfolio_settings")
+          .select("consent_at, consent_version")
+          .eq("user_id", profile.id)
+          .maybeSingle()
+      ).data
+    : null;
+  const consent = consentRow as
+    | { consent_at: string | null; consent_version: string | null }
+    | null;
+  const hasConsent = hasCurrentPortfolioConsent(
+    consent?.consent_at ?? null,
+    consent?.consent_version ?? null,
+  );
+  const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
 
   const allowedCatalog = catalog.filter(
     (portfolio) => !portfolio.premium || canViewPremium(role),
@@ -58,6 +81,13 @@ export default async function ComparePage() {
 
   return (
     <div className="flex flex-col gap-6">
+      {profile && !hasConsent && (
+        <PortfolioConsent
+          consentAt={consent?.consent_at ?? null}
+          consentVersion={consent?.consent_version ?? null}
+          model={aiModel}
+        />
+      )}
       <PortfolioManager
         initialHoldings={userHoldings}
         catalog={compare.portfolios}

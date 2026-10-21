@@ -246,11 +246,11 @@ describe("server action: consentimiento", () => {
     expect(upsert?.options).toEqual({ onConflict: "user_id" });
   });
 
-  it("está apagada sin MY_PORTFOLIO_ENABLED=true", async () => {
+  it("M1: funciona con MY_PORTFOLIO_ENABLED apagado (lo usa /compare)", async () => {
     vi.stubEnv("MY_PORTFOLIO_ENABLED", "false");
     const result = await grantPortfolioConsent({}, formData({ consent: "on" }));
-    expect(result.error).toMatch(/no está disponible/i);
-    expect(state.calls).toHaveLength(0);
+    expect(result.error).toBeUndefined();
+    expect(state.calls.length).toBeGreaterThan(0);
   });
 
   it("no guarda si Supabase devuelve error", async () => {
@@ -319,11 +319,11 @@ describe("server action: borrar mi cartera", () => {
     expect(result.success).toBeUndefined();
   });
 
-  it("está apagada sin el flag", async () => {
+  it("borrar funciona aunque el flag esté apagado (derecho de supresión)", async () => {
     vi.stubEnv("MY_PORTFOLIO_ENABLED", "false");
     const result = await deleteMyPortfolio({}, formData({ confirm: "BORRAR" }));
-    expect(result.error).toMatch(/no está disponible/i);
-    expect(state.rpcCalls).toHaveLength(0);
+    expect(result.error).toBeUndefined();
+    expect(state.rpcCalls).toHaveLength(1);
   });
 });
 
