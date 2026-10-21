@@ -79,8 +79,10 @@ def test_flag_apagada_por_defecto(monkeypatch: pytest.MonkeyPatch) -> None:
     assert user_holdings_prices_enabled() is False
     monkeypatch.setenv("USER_HOLDINGS_PRICES_ENABLED", "1")
     assert user_holdings_prices_enabled() is False
-    monkeypatch.setenv("USER_HOLDINGS_PRICES_ENABLED", "TRUE")
+    monkeypatch.setenv("USER_HOLDINGS_PRICES_ENABLED", "true")
     assert user_holdings_prices_enabled() is True
+    monkeypatch.setenv("USER_HOLDINGS_PRICES_ENABLED", "TRUE")
+    assert user_holdings_prices_enabled() is False
 
 
 def test_normaliza_chilenos_con_sufijo_sn_sin_duplicar() -> None:

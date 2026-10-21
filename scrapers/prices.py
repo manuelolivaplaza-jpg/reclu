@@ -9,7 +9,9 @@ Usage:
     PRICE_SYMBOLS="NVDA,AAPL" python prices.py --dry-run
 
 Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see base.get_db),
-except in --dry-run mode which never touches the database.
+except in --dry-run mode which never writes to the database. With
+USER_HOLDINGS_PRICES_ENABLED=true the dry-run only reads user_holdings to
+report how many symbols would be added.
 """
 
 from __future__ import annotations
@@ -46,7 +48,7 @@ CHILE_SUFFIX = ".SN"
 
 def _flag_enabled(name: str) -> bool:
     """Flags del proyecto: solo se encienden con el valor exacto "true"."""
-    return os.environ.get(name, "").strip().lower() == "true"
+    return os.environ.get(name) == "true"
 
 
 def user_holdings_prices_enabled() -> bool:
