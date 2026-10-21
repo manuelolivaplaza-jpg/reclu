@@ -84,6 +84,7 @@ function sentPrompt(): string {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.OPENROUTER_API_KEY = "test-key";
+  process.env.OPENROUTER_MODEL = "test/model";
   mocks.chain.maybeSingle.mockResolvedValue({ data: PORTFOLIO, error: null });
   mocks.getUser.mockResolvedValue({ data: { user: { id: "user-1" } }, error: null });
   mocks.rpc.mockResolvedValue({ data: [], error: null });
@@ -108,6 +109,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.OPENROUTER_API_KEY;
+  delete process.env.OPENROUTER_MODEL;
 });
 
 describe("POST /api/explain-alert (M8 + SD2-C): solo explica alertas de la base", () => {

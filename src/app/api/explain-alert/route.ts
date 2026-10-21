@@ -12,6 +12,7 @@
  */
 
 import { enforceAnonQuota, enforceSignedInQuota } from "@/lib/chat-guard";
+import { AI_DISCLAIMER, sanitizeAdvice } from "@/lib/advice-filter";
 import {
   EXPLAIN_SYSTEM_PROMPT,
   buildExplainUserPrompt,
@@ -22,11 +23,10 @@ import {
   type ExplainAlertInput,
 } from "@/lib/explain-prompt";
 import { FINTEC_NOTICE } from "@/lib/legal";
+import { completeChat, llmConfig, llmUnavailableResponse } from "@/lib/llm";
 import { createClient } from "@/lib/supabase/server";
 import { firstZodMessage } from "@/lib/validation";
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-2.0-flash-001";
 /** Body acotado: la alerta es pequeña; el payload se resume en el servidor. */
 const MAX_BODY_BYTES = 24_000;
 
@@ -74,17 +74,6 @@ function firstAlertRow(data: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
 
-function completionText(data: unknown): string | null {
-  if (!data || typeof data !== "object") return null;
-  const choices = (data as { choices?: unknown }).choices;
-  if (!Array.isArray(choices) || choices.length === 0) return null;
-  const first: unknown = choices[0];
-  if (!first || typeof first !== "object") return null;
-  const message = (first as { message?: unknown }).message;
-  if (!message || typeof message !== "object") return null;
-  return normalizeExplanation((message as { content?: unknown }).content);
-}
-
 export async function POST(request: Request) {
   let raw: string;
   try {
@@ -106,6 +95,12 @@ export async function POST(request: Request) {
   const parsed = explainAlertIdSchema.safeParse(json);
   if (!parsed.success) {
     return Response.json({ error: firstZodMessage(parsed.error) }, { status: 400 });
+  }
+
+  // F69: sin key y modelo configurados no hay IA (503). Antes de tocar la base.
+  const config = llmConfig();
+  if (!config.enabled) {
+    return llmUnavailableResponse(config.missing);
   }
 
   const supabase = await createClient();
@@ -146,17 +141,6 @@ export async function POST(request: Request) {
     return Response.json({ error: "Alerta no encontrada." }, { status: 404 });
   }
 
-  const apiKey = process.env.OPENROUTER_API_KEY;
-  if (!apiKey) {
-    return Response.json(
-      {
-        error:
-          "La explicación con IA no está disponible en este entorno (falta OPENROUTER_API_KEY).",
-      },
-      { status: 503 },
-    );
-  }
-
   // Misma cuota que el asistente: sesión vía RPC, anónimo por IP.
   const {
     data: { user },
@@ -169,51 +153,21 @@ export async function POST(request: Request) {
   }
 
   const sources = explainSources(alert);
-  const model = process.env.OPENROUTER_MODEL || DEFAULT_MODEL;
 
-  let upstream: Response;
-  try {
-    upstream = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: EXPLAIN_SYSTEM_PROMPT },
-          { role: "user", content: buildExplainUserPrompt(alert) },
-        ],
-        max_tokens: 600,
-        temperature: 0.2,
-        stream: false,
-      }),
-      signal: AbortSignal.timeout(25_000),
-    });
-  } catch {
-    return Response.json({ error: "No se pudo contactar a OpenRouter." }, { status: 502 });
+  const result = await completeChat({
+    messages: [
+      { role: "system", content: EXPLAIN_SYSTEM_PROMPT },
+      { role: "user", content: buildExplainUserPrompt(alert) },
+    ],
+    maxTokens: 600,
+    temperature: 0.2,
+  });
+
+  if (!result.ok) {
+    return Response.json({ error: result.error }, { status: result.status });
   }
 
-  if (!upstream.ok) {
-    console.warn("[reclu] explain-alert OpenRouter:", upstream.status);
-    return Response.json(
-      { error: "OpenRouter no devolvió una respuesta válida." },
-      { status: 502 },
-    );
-  }
-
-  let data: unknown;
-  try {
-    data = await upstream.json();
-  } catch {
-    return Response.json(
-      { error: "OpenRouter no devolvió una respuesta válida." },
-      { status: 502 },
-    );
-  }
-
-  const explanation = completionText(data);
+  const explanation = normalizeExplanation(result.content);
   if (!explanation) {
     return Response.json(
       { error: "La IA no entregó una explicación. Intenta de nuevo." },
@@ -223,9 +177,10 @@ export async function POST(request: Request) {
 
   return Response.json(
     {
-      explanation,
+      explanation: sanitizeAdvice(explanation),
       sources,
       notice: FINTEC_NOTICE,
+      disclaimer: AI_DISCLAIMER,
     },
     {
       headers: {
