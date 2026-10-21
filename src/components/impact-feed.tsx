@@ -100,7 +100,7 @@ export function ImpactFeed({
         <p className="border-t border-ink-200 pt-4 text-[14px] leading-relaxed text-ink-500">
           {hasPositions
             ? "Aún no hay noticias recientes que toquen tu cartera. Vuelve a revisar más tarde."
-            : "Agrega posiciones a tu cartera para ver qué noticias te tocan."}
+            : "Necesitamos al menos una posición con cantidad y último cierre para calcular qué parte de tu cartera toca cada noticia."}
         </p>
       ) : (
         <ul className="flex flex-col">

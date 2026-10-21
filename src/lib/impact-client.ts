@@ -74,9 +74,17 @@ export function isImpactAnalysis(value: unknown): value is ImpactAnalysis {
 
 interface ImpactResponseBody {
   analysis?: unknown;
+  /** Alias tolerado por si F71 responde en español. */
+  analisis?: unknown;
+  data?: { analysis?: unknown } | null;
   cached?: unknown;
   disclaimer?: unknown;
   error?: unknown;
+}
+
+/** Extrae el análisis aceptando `analysis`, `analisis` o `{ data: { analysis } }`. */
+function analysisFrom(body: ImpactResponseBody): unknown {
+  return body.analysis ?? body.analisis ?? body.data?.analysis;
 }
 
 /**
@@ -135,13 +143,13 @@ export async function requestImpact(
     return { status: "error", message };
   }
 
-  if (!isImpactAnalysis(body.analysis)) {
+  if (!isImpactAnalysis(analysisFrom(body))) {
     return { status: "error", message: IMPACT_EMPTY_ANALYSIS_MESSAGE };
   }
 
   return {
     status: "ok",
-    analysis: body.analysis,
+    analysis: analysisFrom(body) as ImpactAnalysis,
     cached: body.cached === true,
     disclaimer:
       typeof body.disclaimer === "string" && body.disclaimer.trim().length > 0

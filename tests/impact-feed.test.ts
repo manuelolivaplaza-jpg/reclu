@@ -25,6 +25,7 @@ import {
   type FeedNews,
 } from "@/lib/impact-feed";
 import { portfolioLimitsFor } from "@/lib/plans";
+import { loadRecentNews } from "@/lib/news-feed";
 import type { Position, TickerProfile } from "@/lib/news-match";
 import { ImpactFeed } from "@/components/impact-feed";
 
@@ -248,6 +249,40 @@ describe("formatos del feed", () => {
   });
 });
 
+describe("lectura pública de noticias", () => {
+  it("pide solo las columnas permitidas por la migración 051 (nunca summary)", async () => {
+    const selects: string[] = [];
+
+    function makeBuilder() {
+      const builder = {
+        gte: () => builder,
+        order: () => builder,
+        limit: async () => ({ data: [], error: null }),
+        in: async () => ({ data: [], error: null }),
+      };
+      return builder;
+    }
+
+    const client = {
+      from: () => ({
+        select: (columns: string) => {
+          selects.push(columns);
+          return makeBuilder();
+        },
+      }),
+    };
+
+    await loadRecentNews(
+      client as unknown as Parameters<typeof loadRecentNews>[0],
+      { sinceIso: hoursAgo(24 * 7) },
+    );
+
+    expect(selects).toHaveLength(1);
+    expect(selects[0]).toBe("id, source, url, title, published_at");
+    expect(selects[0]).not.toContain("summary");
+  });
+});
+
 describe("render básico del feed", () => {
   it("pinta título, chips, exposición, fuente y botón de IA", () => {
     const feed = buildImpactFeed({
@@ -298,7 +333,7 @@ describe("render básico del feed", () => {
       }),
     );
 
-    expect(html).toContain("Agrega posiciones a tu cartera");
+    expect(html).toContain("Necesitamos al menos una posición");
     expect(html).not.toContain("Pregunta a la IA");
   });
 });
