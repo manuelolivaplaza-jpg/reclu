@@ -6,6 +6,8 @@ import { Upload, Plus, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { PortfolioImageImport } from "@/components/portfolio-image-import";
+import { toWeightRows, type DetectedPosition } from "@/lib/portfolio-image-rows";
 import {
   saveUserHoldings,
   deleteEntirePortfolio,
@@ -69,6 +71,10 @@ interface PortfolioManagerProps {
   catalog?: ComparePortfolioSummary[];
   /** Cruces precalculados entre pares del catálogo. */
   pairs?: ComparePairSummary[];
+  /** Muestra el importador de capturas (F79). Apagado por flag. */
+  imageImportEnabled?: boolean;
+  /** Tope de posiciones del plan, para el aviso del importador. */
+  maxPositions?: number;
 }
 
 /**
@@ -83,6 +89,8 @@ export function PortfolioManager({
   initialHoldings,
   catalog = [],
   pairs = [],
+  imageImportEnabled = false,
+  maxPositions,
 }: PortfolioManagerProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"mine" | "cross">("mine");
@@ -160,6 +168,26 @@ export function PortfolioManager({
 
   function removeHolding(index: number) {
     setHoldings((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  /**
+   * F79: usa las posiciones detectadas en una captura. /compare solo guarda
+   * pesos, así que las posiciones se traducen a peso relativo (mismo criterio
+   * que la importación CSV). Guardar sigue siendo la acción normal.
+   */
+  function handleDetectedPositions(positions: DetectedPosition[]) {
+    const rows = toWeightRows(positions);
+    setHoldings(
+      rows.map((row) => ({
+        symbol: row.symbol,
+        name: "",
+        weight: row.weight,
+      })),
+    );
+    setMessage({
+      type: "success",
+      text: `${rows.length} activo${rows.length === 1 ? "" : "s"} listo${rows.length === 1 ? "" : "s"}. Revisa los pesos y guarda.`,
+    });
   }
 
   async function handleSave() {
@@ -330,6 +358,14 @@ export function PortfolioManager({
           </CardContent>
         </Card>
       </div>
+
+      {/* F79: importación desde una captura de la corredora (detrás de flag). */}
+      {imageImportEnabled && (
+        <PortfolioImageImport
+          onUse={handleDetectedPositions}
+          maxPositions={maxPositions}
+        />
+      )}
 
       {/* Current holdings */}
       <Card>

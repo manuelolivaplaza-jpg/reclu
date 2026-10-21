@@ -11,6 +11,8 @@ import { PortfolioManager } from "@/components/portfolio-manager";
 import { AlignmentPanel } from "@/components/alignment-panel";
 import { PortfolioConsent } from "@/components/portfolio-consent";
 import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
+import { isPortfolioImageImportEnabled } from "@/lib/portfolio-flags";
+import { portfolioLimitsFor } from "@/lib/plans";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Mi cartera" };
@@ -49,6 +51,13 @@ export default async function ComparePage() {
     consent?.consent_version ?? null,
   );
   const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
+
+  // F79: importación desde una captura (flag apagado por defecto).
+  const imageImportEnabled = isPortfolioImageImportEnabled();
+  const maxPositions = portfolioLimitsFor(
+    profile?.plan,
+    profile?.trial_ends_at,
+  ).maxPositions;
 
   const allowedCatalog = catalog.filter(
     (portfolio) => !portfolio.premium || canViewPremium(role),
@@ -92,6 +101,8 @@ export default async function ComparePage() {
         initialHoldings={userHoldings}
         catalog={compare.portfolios}
         pairs={compare.pairs}
+        imageImportEnabled={imageImportEnabled}
+        maxPositions={maxPositions}
       />
       <AlignmentPanel catalog={compare.portfolios} />
     </div>
