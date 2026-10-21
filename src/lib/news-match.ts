@@ -188,7 +188,13 @@ export function newsImportance(news: Pick<NewsItem, "title" | "form" | "items">)
   const items = (news.items ?? []).map((item) => item.trim());
   const titleItems = title.match(/\b(1\.01|2\.01|5\.02)\b/g) ?? [];
   const all = new Set([...items, ...titleItems]);
-  return IMPORTANT_8K_ITEMS.some((item) => all.has(item))
+  // Acepta "5.02" y también "Item 5.02".
+  const codes = new Set(
+    [...all]
+      .map((item) => item.match(/\b(1\.01|2\.01|5\.02)\b/)?.[1])
+      .filter((code): code is string => Boolean(code)),
+  );
+  return IMPORTANT_8K_ITEMS.some((item) => codes.has(item))
     ? IMPORTANT_8K_IMPORTANCE
     : DEFAULT_IMPORTANCE;
 }
@@ -262,7 +268,7 @@ export function matchNewsToPortfolio(
   const importance = newsImportance(news);
   const bySymbol = profileMap(profiles);
 
-  const newsTickers = news.tickers
+  const newsTickers = (news.tickers ?? [])
     .map((ticker) => ({
       symbol: normalizeSymbol(ticker.symbol),
       confidence: clamp01(ticker.confidence, 1),
@@ -386,7 +392,9 @@ export function matchNewsToPortfolio(
  */
 export function exposurePct(news: NewsItem, positions: Position[]): number {
   const touched = new Set(
-    news.tickers.map((ticker) => normalizeSymbol(ticker.symbol)).filter(Boolean),
+    (news.tickers ?? [])
+      .map((ticker) => normalizeSymbol(ticker.symbol))
+      .filter(Boolean),
   );
   let total = 0;
   for (const position of positions) {

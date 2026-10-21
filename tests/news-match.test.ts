@@ -189,6 +189,9 @@ describe("relevancia e importancia", () => {
       newsImportance({ title: "Current report", form: "8-K", items: ["1.01"] }),
     ).toBe(1.2);
     expect(
+      newsImportance({ title: "Current report", form: "8-K", items: ["Item 5.02"] }),
+    ).toBe(1.2);
+    expect(
       newsImportance({ title: "Current report", form: "10-Q", items: ["5.02"] }),
     ).toBe(1);
   });
