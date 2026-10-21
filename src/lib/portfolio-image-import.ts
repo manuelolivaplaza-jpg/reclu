@@ -192,6 +192,12 @@ export function normalizeDetectedRow(row: unknown): DetectedPosition | null {
         ? Math.round(weight * 100) / 100
         : null,
     currency: normalizeCurrency(raw.currency),
+    // Montos solo en USD: si la imagen trae otra moneda se marca para avisar.
+    ...((amount !== null &&
+      amount > 0 &&
+      typeof raw.currency === "string" &&
+      raw.currency.trim() !== "" &&
+      normalizeCurrency(raw.currency) !== "USD") ? { amountNeedsUsd: true } : {}),
   };
 }
 

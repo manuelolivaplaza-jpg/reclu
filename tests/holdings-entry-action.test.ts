@@ -195,10 +195,10 @@ describe("saveHoldingsByMode: monto en dinero", () => {
     };
 
     const result = await saveHoldingsByMode({
-      mode: "amount",
+      mode: "shares",
       rows: [
-        { symbol: "AAPL", value: 100 },
-        { symbol: "SQM-B", value: 95000 },
+        { symbol: "AAPL", value: 1 },
+        { symbol: "SQM-B", value: 100 },
       ],
     });
 
@@ -213,10 +213,10 @@ describe("saveHoldingsByMode: monto en dinero", () => {
     };
 
     const result = await saveHoldingsByMode({
-      mode: "amount",
+      mode: "shares",
       rows: [
-        { symbol: "AAPL", value: 100 },
-        { symbol: "SQM-B", value: 95000 },
+        { symbol: "AAPL", value: 1 },
+        { symbol: "SQM-B", value: 100 },
       ],
       fx: 950,
     });
@@ -278,6 +278,27 @@ describe("saveHoldingsByMode: consentimientos y límites", () => {
     });
 
     expect(result.error).toMatch(/No autenticado/i);
+    expect(mocks.upsert).not.toHaveBeenCalled();
+  });
+});
+
+describe("saveHoldingsByMode: montos solo en USD", () => {
+  it("rechaza una accion chilena en modo monto", async () => {
+    mocks.prices = {
+      AAPL: { close: 100, currency: "USD" },
+      "SQM-B": { close: 950, currency: "CLP" },
+    };
+
+    const result = await saveHoldingsByMode({
+      mode: "amount",
+      rows: [
+        { symbol: "AAPL", value: 100 },
+        { symbol: "SQM-B", value: 95000 },
+      ],
+      fx: 950,
+    });
+
+    expect(result.error).toMatch(/acciones chilenas/i);
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 });

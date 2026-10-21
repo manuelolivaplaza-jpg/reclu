@@ -1,4 +1,4 @@
-import { emptyEntryValues, type HoldingEntryMode } from "@/lib/holdings-entry";
+import { emptyEntryValues, isChileanPosition, type HoldingEntryMode } from "@/lib/holdings-entry";
 import type { EntryPanelRow } from "@/components/my-portfolio/holdings-entry-panel";
 import { toWeightRows, type DetectedPosition } from "@/lib/portfolio-image-rows";
 
@@ -28,12 +28,21 @@ export function detectedToEntryRows(positions: DetectedPosition[]): {
       rows: positions.map((p) => ({ ...base(p), values: { ...emptyEntryValues(), shares: p.quantity } })),
     };
   }
-  if (positions.length > 0 && positions.every((p) => p.amount !== null && p.amount > 0)) {
+  // Montos solo en USD y nunca para acciones chilenas (decision de Manu).
+  const usdAmount = (p: DetectedPosition) =>
+    p.amount !== null &&
+    p.amount > 0 &&
+    p.currency !== "CLP" &&
+    p.amountNeedsUsd !== true &&
+    !isChileanPosition({ symbol: p.symbol, currency: p.currency });
+  if (positions.length > 0 && positions.every(usdAmount)) {
     return {
       mode: "amount",
       rows: positions.map((p) => ({ ...base(p), values: { ...emptyEntryValues(), amount: p.amount } })),
     };
   }
+  // Un monto que no es USD no sirve de base para el peso: se ignora.
+  positions = positions.map((p) => (usdAmount(p) || p.amount === null ? p : { ...p, amount: null }));
   const bySymbol = new Map(positions.map((p) => [p.symbol, p]));
   return {
     mode: "percentage",

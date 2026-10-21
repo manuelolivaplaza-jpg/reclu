@@ -22,6 +22,27 @@ import { normalizeCurrency, type PositionCurrency } from "@/lib/portfolio-valuat
 
 export type HoldingEntryMode = "percentage" | "shares" | "amount";
 
+/**
+ * Decision de Manu (21-oct): los montos se ingresan SOLO en USD. Las acciones
+ * chilenas (precio en CLP, mercado CL o simbolo .SN) no se aceptan en modo
+ * monto: se ingresan por cantidad de acciones o por porcentaje. Asi un monto
+ * nunca necesita tipo de cambio y no se mezclan USD con CLP.
+ */
+export const CHILE_AMOUNT_MESSAGE =
+  "Las acciones chilenas no se ingresan por monto (los montos son solo en USD). Usa cantidad de acciones o porcentaje.";
+
+/** true si la posicion es chilena (precio en CLP, mercado CL o simbolo .SN). */
+export function isChileanPosition(row: {
+  symbol?: string | null;
+  currency?: string | null;
+  priceCurrency?: string | null;
+  market?: string | null;
+}): boolean {
+  const symbol = String(row.symbol ?? "").trim().toUpperCase();
+  const currency = String(row.priceCurrency ?? row.currency ?? "").trim().toUpperCase();
+  return currency === "CLP" || row.market === "CL" || symbol.endsWith(".SN");
+}
+
 export const HOLDING_ENTRY_MODES: readonly HoldingEntryMode[] = [
   "shares",
   "amount",
@@ -30,7 +51,7 @@ export const HOLDING_ENTRY_MODES: readonly HoldingEntryMode[] = [
 
 export const HOLDING_ENTRY_MODE_LABELS: Record<HoldingEntryMode, string> = {
   shares: "Cantidad de acciones",
-  amount: "Monto en dinero",
+  amount: "Monto en USD",
   percentage: "Porcentaje",
 };
 
@@ -45,7 +66,7 @@ export interface HoldingEntryRow {
   percentage?: number | null;
   /** Modo `shares`: cantidad de acciones. */
   shares?: number | null;
-  /** Modo `amount`: monto en la moneda del precio. */
+  /** Modo `amount`: monto en USD (decision de Manu, 21-oct). */
   amount?: number | null;
   /** Costo promedio opcional, en la moneda de la posición. */
   avg_cost?: number | null;
@@ -335,6 +356,9 @@ export function resolveHoldingsEntry(
             ? "Ingresa una cantidad de acciones mayor que 0."
             : "Ingresa un monto mayor que 0.",
       });
+    }
+    if (mode === "amount" && isChileanPosition({ ...row, symbol })) {
+      errors.push({ symbol, message: CHILE_AMOUNT_MESSAGE });
     }
     if (price === null) {
       errors.push({

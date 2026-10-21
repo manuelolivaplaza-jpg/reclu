@@ -132,8 +132,21 @@ describe("monedas", () => {
     row({ symbol: "SQM-B", amount: 95000, price: 950, priceCurrency: "CLP" }),
   ];
 
-  it("rechaza mezclar USD y CLP sin tipo de cambio", () => {
+  // Montos solo en USD (decision de Manu): la mezcla USD/CLP solo puede
+  // aparecer en modo acciones.
+  const sharesRows = [
+    row({ symbol: "AAPL", shares: 1, price: 100, priceCurrency: "USD" }),
+    row({ symbol: "SQM-B", shares: 100, price: 950, priceCurrency: "CLP" }),
+  ];
+
+  it("modo monto rechaza la accion chilena en vez de pedir tipo de cambio", () => {
     const result = resolveHoldingsEntry("amount", rows);
+    expect(result.holdings).toEqual([]);
+    expect(result.errors.some((e) => /acciones chilenas/i.test(e.message))).toBe(true);
+  });
+
+  it("rechaza mezclar USD y CLP sin tipo de cambio", () => {
+    const result = resolveHoldingsEntry("shares", sharesRows);
 
     expect(result.holdings).toEqual([]);
     expect(result.errors[0].symbol).toBe("*");
@@ -142,7 +155,7 @@ describe("monedas", () => {
   });
 
   it("convierte con CLP por USD cuando se entrega el tipo de cambio", () => {
-    const result = resolveHoldingsEntry("amount", rows, { fx: 950 });
+    const result = resolveHoldingsEntry("shares", sharesRows, { fx: 950 });
 
     expect(result.errors).toEqual([]);
     expect(result.usesFx).toBe(true);

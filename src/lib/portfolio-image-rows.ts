@@ -22,6 +22,8 @@ export interface DetectedPosition {
   amount: number | null;
   weight: number | null;
   currency: "USD" | "CLP" | null;
+  /** El monto venia en una moneda distinta de USD (CLP, EUR, ...): hay que corregirlo. */
+  amountNeedsUsd?: boolean;
 }
 
 /** Símbolo estricto: mayúsculas, dígitos, punto y guion (SQM-B, BRK.B). */
@@ -118,4 +120,21 @@ export function toEditableRows(
         : null,
     currency: position.currency ?? "USD",
   }));
+}
+
+export const AMOUNT_USD_MESSAGE =
+  "Los montos se ingresan solo en USD. Convierte a dólares o borra el monto de";
+
+/**
+ * Simbolos con un monto que no esta en USD (decision de Manu, 21-oct). La UI
+ * avisa y no deja usar las posiciones hasta que se corrijan.
+ */
+export function amountCurrencyProblems(positions: readonly DetectedPosition[]): string[] {
+  return positions
+    .filter(
+      (position) =>
+        position.amount !== null &&
+        (position.currency === "CLP" || (position.amountNeedsUsd === true && position.currency !== "USD")),
+    )
+    .map((position) => position.symbol);
 }
