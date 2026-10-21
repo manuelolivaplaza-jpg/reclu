@@ -38,7 +38,7 @@ import {
   type NewsTicker,
 } from "@/lib/news-match";
 import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
-import { isNewsImpactEnabled } from "@/lib/portfolio-flags";
+import { isMyPortfolioEnabled, isNewsImpactEnabled } from "@/lib/portfolio-flags";
 import { getServiceClient } from "@/lib/supabase/service";
 import { createClient } from "@/lib/supabase/server";
 import { firstZodMessage } from "@/lib/validation";
@@ -95,7 +95,8 @@ function jsonError(message: string, status: number): Response {
 
 export async function POST(request: Request) {
   // 1. Función detrás de flag: apagada responde 404 (no revela que existe).
-  if (!isNewsImpactEnabled()) {
+  // F77 (M4): lee la cartera, asi que exige ambos flags.
+  if (!isNewsImpactEnabled() || !isMyPortfolioEnabled()) {
     return jsonError("Noticia no encontrada.", 404);
   }
 

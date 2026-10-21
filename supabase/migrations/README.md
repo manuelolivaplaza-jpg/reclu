@@ -58,6 +58,7 @@ el CLI, respetando el mismo orden).
 | 45 | `051_noticias_impacto.sql` | F59/F70: `news_items`, `news_tickers`, `ticker_profile` y `ai_impact_cache` (sin `user_id`, análisis genérico por noticia y ticker), `user_impact_requests` y purga a 90 días. Lectura pública solo de columnas permitidas; escritura del `service_role`. | 050 | Sí |
 | 46 | `052_limites_portafolio.sql` | F60: trigger de tope de posiciones por plan (10/50/200) e índice único `(user_id, symbol)`; actualizar un símbolo existente no cuenta contra el tope. | 050 | Sí |
 | 47 | `053_alertas_portafolio.sql` | F73: `user_portfolio_alerts` (avisos personales enviados, clave `(user_id, news_id, symbol)`), RLS de lectura solo del dueño, escritura solo `service_role`; recrea `delete_my_portfolio()` para borrar también ese historial. No toca `alerts`. | 050, 051 | Sí |
+| 48 | `054_borrado_cartera_completo.sql` | F77: arregla `delete_my_portfolio()` (con la 053 fallaba por falta de DELETE sobre `user_portfolio_alerts`) y ahora borra tambien `user_impact_requests`; policies de delete del dueno; `revoke` a PUBLIC en `user_holdings`; tope de 300 caracteres en `news_items.title` (NOT VALID); `revoke execute` de `enforce_user_holdings_limit()`. | 050-053 | Si |
 
 ## Rango 007–020 y huecos de numeración
 

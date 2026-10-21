@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   deleteEq: vi.fn(),
   insert: vi.fn(),
   revalidatePath: vi.fn(),
+  profileSingle: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -32,6 +33,9 @@ const CSV = "symbol,quantity\nAAPL,10\nMSFT,5\n";
 function table(name: string) {
   if (name === "user_portfolio_settings") {
     return { select: () => ({ eq: () => ({ maybeSingle: mocks.maybeSingle }) }) };
+  }
+  if (name === "profiles") {
+    return { select: () => ({ eq: () => ({ single: mocks.profileSingle }) }) };
   }
   if (name === "user_holdings") {
     return {
@@ -56,6 +60,7 @@ beforeEach(() => {
   mocks.deleteFn.mockReturnValue({ eq: mocks.deleteEq });
   mocks.deleteEq.mockResolvedValue({ error: null });
   mocks.insert.mockResolvedValue({ error: null });
+  mocks.profileSingle.mockResolvedValue({ data: { plan: "free", trial_ends_at: null }, error: null });
 });
 
 afterEach(() => {
@@ -112,5 +117,20 @@ describe("importHoldings: consentimiento", () => {
     expect(result.error).toBeUndefined();
     expect(mocks.maybeSingle).not.toHaveBeenCalled();
     expect(mocks.insert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("importHoldings: tope del plan (F77 M2)", () => {
+  it("un CSV sobre el tope no borra la cartera actual", async () => {
+    mocks.maybeSingle.mockResolvedValue({
+      data: { consent_at: "2026-10-20T12:00:00Z", consent_version: PORTFOLIO_CONSENT_VERSION },
+      error: null,
+    });
+    const rows = Array.from({ length: 11 }, (_, i) => `T${String.fromCharCode(65 + i)}X,1`);
+    const result = await importHoldings(`symbol,quantity\n${rows.join("\n")}\n`);
+
+    expect(result.error).toMatch(/no se modific/i);
+    expect(mocks.deleteFn).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
   });
 });

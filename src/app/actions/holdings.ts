@@ -273,6 +273,23 @@ export async function importHoldings(rawCsv: unknown) {
     weight: Math.round((row.quantity / total) * 10000) / 100,
   }));
 
+  // F77 (M2): validar el tope del plan ANTES de borrar. Si no, un CSV que
+  // excede el limite borraba la cartera y el trigger de la 052 rechazaba
+  // el insert: la cartera quedaba vacia.
+  const { data: importProfile } = await supabase
+    .from("profiles")
+    .select("plan, trial_ends_at")
+    .eq("id", user.id)
+    .single();
+  const importPlan = (importProfile?.plan ?? "free") as string;
+  const importTrialEndsAt = (importProfile?.trial_ends_at as string | null) ?? null;
+  if (!canAddPositions(importPlan, 0, normalized.length, importTrialEndsAt)) {
+    const limit = portfolioLimitsFor(importPlan, importTrialEndsAt).maxPositions;
+    return {
+      error: `El archivo tiene ${normalized.length} activos y tu plan permite ${limit}. Tu cartera no se modificó.`,
+    };
+  }
+
   const { error: delError } = await supabase
     .from("user_holdings")
     .delete()

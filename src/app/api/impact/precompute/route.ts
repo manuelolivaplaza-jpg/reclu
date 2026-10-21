@@ -160,6 +160,15 @@ export async function POST(request: Request) {
     );
   }
 
+  // F77 (M6): retencion de 90 dias de user_impact_requests (051). Es
+  // best-effort: si falla, el precompute sigue.
+  try {
+    const { error: purgeError } = await supabase.rpc("purge_old_impact_requests");
+    if (purgeError) console.warn("[reclu] impact purge:", purgeError.message);
+  } catch (err) {
+    console.warn("[reclu] impact purge:", err instanceof Error ? err.message : err);
+  }
+
   const since = new Date(Date.now() - WINDOW_HOURS * 60 * 60 * 1000).toISOString();
 
   const { data: newsData, error: newsError } = await supabase

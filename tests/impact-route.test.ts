@@ -115,6 +115,7 @@ function sentBody(): string {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.NEWS_IMPACT_ENABLED = "true";
+  process.env.MY_PORTFOLIO_ENABLED = "true";
   process.env.OPENROUTER_API_KEY = "test-key";
   process.env.OPENROUTER_MODEL = "test/model";
 
@@ -172,6 +173,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllGlobals();
   delete process.env.NEWS_IMPACT_ENABLED;
+  delete process.env.MY_PORTFOLIO_ENABLED;
   delete process.env.OPENROUTER_API_KEY;
   delete process.env.OPENROUTER_MODEL;
 });
@@ -184,6 +186,16 @@ describe("POST /api/impact: acceso y consentimiento", () => {
 
     expect(res.status).toBe(404);
     expect(mocks.getUser).not.toHaveBeenCalled();
+  });
+
+  it("con MY_PORTFOLIO_ENABLED apagado => 404 (F77 M4)", async () => {
+    delete process.env.MY_PORTFOLIO_ENABLED;
+
+    const res = await post({ newsId: NEWS_ID, question: "x" });
+
+    expect(res.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(mocks.enforceSignedInQuota).not.toHaveBeenCalled();
   });
 
   it("sin sesión => 401", async () => {
