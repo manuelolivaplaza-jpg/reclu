@@ -246,7 +246,15 @@ export function resolveHoldingsEntry(
       });
     }
 
-    const marketValue = price !== null && isPositive(value) ? value * price : null;
+    // En modo acciones el valor de mercado es cantidad × precio. En modo
+    // monto el valor de mercado ES el monto ingresado: el precio solo sirve
+    // para derivar la cantidad (monto / precio).
+    const marketValue =
+      price !== null && isPositive(value)
+        ? mode === "shares"
+          ? value * price
+          : value
+        : null;
     return {
       row,
       symbol,
