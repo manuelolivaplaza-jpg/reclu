@@ -8,11 +8,13 @@ import {
   PieChart,
   Settings,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { LogoLockup } from "@/components/logo";
 import { DashboardNavLink, type NavItem } from "@/components/dashboard-nav-link";
 import { isPaidPlan, isElitePlan } from "@/lib/types";
+import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/dashboard", label: "Resumen", icon: LayoutDashboard },
@@ -21,6 +23,19 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/compare", label: "Mi cartera", icon: PieChart },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
+
+/** F62: el enlace a Mi portafolio solo existe con MY_PORTFOLIO_ENABLED=true. */
+function navItems(): NavItem[] {
+  if (!isMyPortfolioEnabled()) return NAV_ITEMS;
+  const [dashboard, explore, alerts, ...rest] = NAV_ITEMS;
+  return [
+    dashboard,
+    explore,
+    alerts,
+    { href: "/mi-portafolio", label: "Mi portafolio", icon: Wallet },
+    ...rest,
+  ];
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
@@ -38,6 +53,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .single();
   const isPro = isPaidPlan(profile?.plan);
   const isElite = isElitePlan(profile?.plan);
+  const nav = navItems();
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -66,7 +82,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         {/* Sidebar */}
         <aside className="hidden w-52 shrink-0 lg:block">
           <nav className="sticky top-24 flex flex-col gap-1" aria-label="Dashboard">
-            {NAV_ITEMS.map((item) => (
+            {nav.map((item) => (
               <DashboardNavLink key={item.href} item={item} variant="sidebar" />
             ))}
           </nav>
@@ -83,7 +99,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         className="sticky bottom-0 z-40 flex border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
         aria-label="Dashboard móvil"
       >
-        {NAV_ITEMS.map((item) => (
+        {nav.map((item) => (
           <DashboardNavLink key={item.href} item={item} variant="bottom" />
         ))}
       </nav>
