@@ -46,8 +46,6 @@ import { firstZodMessage } from "@/lib/validation";
 /** Body pequeño: una pregunta libre corta. */
 const MAX_BODY_BYTES = 8_000;
 
-type ServiceClient = NonNullable<ReturnType<typeof getServiceClient>>;
-
 interface ImpactRow {
   [key: string]: unknown;
 }
