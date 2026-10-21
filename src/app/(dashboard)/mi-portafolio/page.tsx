@@ -5,6 +5,7 @@ import { getProfile } from "@/lib/queries";
 import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 import { getPlan, portfolioLimitsFor } from "@/lib/plans";
 import { PortfolioConsent } from "@/components/portfolio-consent";
+import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { PortfolioEditor } from "@/components/my-portfolio/portfolio-editor";
 import type { EditablePosition } from "@/components/my-portfolio/types";
@@ -130,14 +131,22 @@ export default async function MyPortfolioPage() {
 
   const { data: settings, error: settingsError } = await supabase
     .from("user_portfolio_settings")
-    .select("consent_at")
+    .select("consent_at, consent_version")
     .eq("user_id", profile.id)
     .maybeSingle();
   if (settingsError) {
     console.warn("[reclu] user_portfolio_settings:", settingsError.message);
   }
-  const consentAt =
-    (settings as { consent_at: string | null } | null)?.consent_at ?? null;
+  const consentRow = settings as
+    | { consent_at: string | null; consent_version: string | null }
+    | null;
+  const storedConsentAt = consentRow?.consent_at ?? null;
+  const storedConsentVersion = consentRow?.consent_version ?? null;
+  // Solo cuenta el consentimiento del texto vigente (F75B): con una version
+  // vieja se pide aceptar de nuevo y no se leen las posiciones.
+  const consentAt = hasCurrentPortfolioConsent(storedConsentAt, storedConsentVersion)
+    ? storedConsentAt
+    : null;
 
   let positions: EditablePosition[] = [];
 
@@ -223,7 +232,11 @@ export default async function MyPortfolioPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <PortfolioConsent consentAt={null} model={aiModel} />
+            <PortfolioConsent
+              consentAt={storedConsentAt}
+              consentVersion={storedConsentVersion}
+              model={aiModel}
+            />
           </CardContent>
         </Card>
       )}
