@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { PositionsTable } from "@/components/my-portfolio/positions-table";
 import { ExportCsvButton } from "@/components/my-portfolio/export-csv-button";
+import { EntryModeSelector } from "@/components/my-portfolio/entry-mode-selector";
 import {
   formatMoney,
   formatPercent,
@@ -16,9 +17,16 @@ import {
 import type { EditablePosition, ValuedPositionRow } from "@/components/my-portfolio/types";
 import { valuatePortfolio } from "@/lib/portfolio-valuation";
 import {
+  emptyEntryValues,
+  readEntryValue,
+  writeEntryValue,
+  type HoldingEntryMode,
+  type HoldingEntryValues,
+} from "@/lib/holdings-entry";
+import {
   clearUserHoldings,
-  saveUserHoldings,
 } from "@/app/actions/holdings";
+import { saveHoldingsByMode } from "@/app/actions/holdings-entry";
 
 const SYMBOL_PATTERN = /^[A-Z0-9.\-]{1,20}$/;
 
@@ -29,6 +37,19 @@ interface DraftForm {
   currency: "USD" | "CLP";
   market: "" | "US" | "CL";
 }
+
+/** Etiqueta del campo principal según el modo de ingreso (F78). */
+const VALUE_LABEL: Record<HoldingEntryMode, string> = {
+  shares: "Cantidad de acciones",
+  amount: "Monto",
+  percentage: "Peso %",
+};
+
+const VALUE_PLACEHOLDER: Record<HoldingEntryMode, string> = {
+  shares: "10",
+  amount: "1500",
+  percentage: "25",
+};
 
 const EMPTY_FORM: DraftForm = {
   symbol: "",
@@ -43,18 +64,6 @@ function parseNumber(raw: string): number | null {
   if (text === "") return null;
   const value = Number(text);
   return Number.isFinite(value) ? value : null;
-}
-
-/**
- * Peso para `saveUserHoldings`: valor de mercado si hay precio, si no el
- * costo, y como último recurso la cantidad. `saveUserHoldings` lo normaliza a
- * 100 entre todas las posiciones, así que solo importa la proporción.
- */
-function weightFor(position: EditablePosition): number {
-  if (position.quantity === null || position.quantity <= 0) return 1;
-  const basis = position.price ?? position.avgCost;
-  if (basis !== null && basis > 0) return position.quantity * basis;
-  return position.quantity;
 }
 
 /**
@@ -89,6 +98,23 @@ export function PortfolioEditor({
   const [editingSymbol, setEditingSymbol] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [dirty, setDirty] = useState(false);
+  // F78: un solo modo por cartera. Cada posición guarda el valor de los tres
+  // modos para que cambiar de modo no borre lo ya tipeado.
+  const [mode, setMode] = useState<HoldingEntryMode>("shares");
+  const [entryValues, setEntryValues] = useState<Record<string, HoldingEntryValues>>(
+    () =>
+      Object.fromEntries(
+        initialPositions.map((position) => [
+          position.symbol,
+          {
+            ...emptyEntryValues(),
+            shares: position.quantity,
+            percentage: position.weight,
+          },
+        ]),
+      ),
+  );
+  const [fx, setFx] = useState("");
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(
     null,
   );
@@ -133,9 +159,16 @@ export function PortfolioEditor({
     const position = positions.find((row) => row.symbol === symbol);
     if (!position) return;
     setEditingSymbol(symbol);
+    const values = entryValues[symbol] ?? emptyEntryValues();
     setForm({
       symbol: position.symbol,
-      quantity: position.quantity === null ? "" : String(position.quantity),
+      // El campo principal muestra el valor del modo vigente (F78).
+      quantity:
+        readEntryValue(values, mode) !== null
+          ? String(readEntryValue(values, mode))
+          : mode === "shares" && position.quantity !== null
+            ? String(position.quantity)
+            : "",
       cost: position.avgCost === null ? "" : String(position.avgCost),
       currency: position.currency,
       market: position.market ?? "",
@@ -154,6 +187,13 @@ export function PortfolioEditor({
     const quantity = parseNumber(form.quantity);
     if (quantity !== null && quantity < 0) {
       setMessage({ type: "error", text: "La cantidad no puede ser negativa." });
+      return;
+    }
+    if (quantity !== null && quantity === 0 && mode !== "percentage") {
+      setMessage({
+        type: "error",
+        text: `Ingresa un valor mayor que 0 en ${VALUE_LABEL[mode].toLowerCase()}.`,
+      });
       return;
     }
     const avgCost = parseNumber(form.cost);
@@ -193,13 +233,16 @@ export function PortfolioEditor({
     const next: EditablePosition = {
       symbol,
       name: previous?.name ?? "",
-      quantity,
+      // En modo acciones la cantidad es el valor tipeado; en monto y
+      // porcentaje la calcula el servidor con el precio (F78).
+      quantity: mode === "shares" ? quantity : (previous?.quantity ?? null),
       avgCost,
       currency: form.currency,
       market: nextMarket,
       // Si cambió el ticker, la moneda o el mercado, el precio anterior ya no aplica.
       price: sameContext ? (previous?.price ?? null) : null,
       priceDate: sameContext ? (previous?.priceDate ?? null) : null,
+      weight: previous?.weight ?? null,
     };
 
     setPositions((current) =>
@@ -209,6 +252,15 @@ export function PortfolioEditor({
           )
         : [...current, next],
     );
+    // F78: el valor tipeado se guarda en el modo vigente.
+    setEntryValues((current) => ({
+      ...current,
+      [symbol]: writeEntryValue(
+        current[symbol] ?? emptyEntryValues(),
+        mode,
+        quantity,
+      ),
+    }));
     setDirty(true);
     setMessage(null);
     resetForm();
@@ -223,29 +275,52 @@ export function PortfolioEditor({
 
   async function handleSave() {
     setPending(true);
-    // `weight` va en % (0–100) porque el esquema lo valida así. Se reparte
-    // según valor de mercado, costo o cantidad, y saveUserHoldings lo vuelve
-    // a normalizar a 100.
-    const rawWeights = positions.map(weightFor);
-    const rawTotal = rawWeights.reduce((sum, weight) => sum + weight, 0);
-    const weights = rawWeights.map((weight) =>
-      rawTotal > 0 ? Math.min(100, Math.round((weight / rawTotal) * 10_000) / 100) : 0,
-    );
 
-    const result =
-      positions.length === 0
-        ? await clearUserHoldings()
-        : await saveUserHoldings(
-            positions.map((position, index) => ({
-              symbol: position.symbol,
-              name: position.name,
-              quantity: position.quantity ?? undefined,
-              avg_cost: position.avgCost ?? undefined,
-              currency: position.currency,
-              market: position.market ?? undefined,
-              weight: weights[index] ?? 0,
-            })),
-          );
+    if (positions.length === 0) {
+      const cleared = await clearUserHoldings();
+      setPending(false);
+      if (cleared.error) {
+        setMessage({ type: "error", text: cleared.error });
+        return;
+      }
+      setDirty(false);
+      setMessage({ type: "success", text: cleared.success ?? "Cartera guardada." });
+      router.refresh();
+      return;
+    }
+
+    // F78: cada posición se envía con el valor del modo vigente. El servidor
+    // convierte con el último precio y calcula el peso.
+    const rows = positions.map((position) => {
+      const values = entryValues[position.symbol] ?? emptyEntryValues();
+      const value = readEntryValue(values, mode);
+      return {
+        symbol: position.symbol,
+        name: position.name,
+        value: value ?? 0,
+        quantity: position.quantity ?? undefined,
+        avg_cost: position.avgCost ?? undefined,
+        currency: position.currency,
+        market: position.market ?? undefined,
+      };
+    });
+
+    const missing = rows.filter((row) => row.value <= 0);
+    if (missing.length > 0) {
+      setPending(false);
+      setMessage({
+        type: "error",
+        text: `Completa ${VALUE_LABEL[mode].toLowerCase()} de ${missing.map((row) => row.symbol).join(", ")}.`,
+      });
+      return;
+    }
+
+    const fxValue = parseNumber(fx);
+    const result = await saveHoldingsByMode({
+      mode,
+      rows,
+      fx: fxValue !== null && fxValue > 0 ? fxValue : undefined,
+    });
     setPending(false);
 
     if (result.error) {
@@ -291,6 +366,26 @@ export function PortfolioEditor({
         </p>
       )}
 
+      {/* Modo de ingreso (F78): un solo modo por cartera */}
+      <EntryModeSelector mode={mode} onChange={setMode} disabled={pending} />
+
+      {mode !== "percentage" && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="portfolio-fx" className="text-[13px] font-normal text-ink-500">
+            Tipo de cambio (CLP por USD) — solo si mezclas USD y CLP
+          </label>
+          <input
+            id="portfolio-fx"
+            type="number"
+            min={0}
+            step={1}
+            value={fx}
+            onChange={(event) => setFx(event.target.value)}
+            className="h-11 w-40 border border-ink-200 bg-white px-3 num text-[15px] text-ink-900 focus:border-ink-900 focus:outline-none"
+          />
+        </div>
+      )}
+
       {/* Alta / edición */}
       <Card>
         <CardHeader>
@@ -315,7 +410,7 @@ export function PortfolioEditor({
                 required
               />
               <Input
-                label="Cantidad"
+                label={VALUE_LABEL[mode]}
                 name="quantity"
                 type="number"
                 inputMode="decimal"
@@ -323,7 +418,7 @@ export function PortfolioEditor({
                 min="0"
                 value={form.quantity}
                 onChange={(event) => updateField("quantity", event.target.value)}
-                placeholder="10"
+                placeholder={VALUE_PLACEHOLDER[mode]}
               />
               <Input
                 label="Costo promedio"

@@ -6,6 +6,7 @@ import {
   getProfile,
 } from "@/lib/queries";
 import { canViewPremium, roleFor } from "@/lib/access";
+import { getPlan, portfolioLimitsFor } from "@/lib/plans";
 import { buildComparePayload, type ComparePortfolioInput } from "@/lib/compare-overlap";
 import { PortfolioManager } from "@/components/portfolio-manager";
 import { AlignmentPanel } from "@/components/alignment-panel";
@@ -24,6 +25,9 @@ export default async function ComparePage() {
   // recorte HOLDING_LIMITS del rol antes de calcular cualquier solape.
   const profile = await getProfile();
   const role = roleFor(profile);
+  // F78: el tope de posiciones del plan también aplica al ingreso por modo.
+  const limits = portfolioLimitsFor(profile?.plan, profile?.trial_ends_at);
+  const planName = getPlan(limits.plan).name;
 
   const [holdings, catalog] = await Promise.all([
     getUserHoldings(),
@@ -92,6 +96,8 @@ export default async function ComparePage() {
         initialHoldings={userHoldings}
         catalog={compare.portfolios}
         pairs={compare.pairs}
+        maxPositions={limits.maxPositions}
+        planName={planName}
       />
       <AlignmentPanel catalog={compare.portfolios} />
     </div>

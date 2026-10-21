@@ -2,16 +2,19 @@
 
 import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Plus, X, Trash2 } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import {
-  saveUserHoldings,
   deleteEntirePortfolio,
   importHoldings as importHoldingsCsv,
 } from "@/app/actions/holdings";
 import { OverlapPanel } from "@/components/overlap-panel";
+import {
+  HoldingsEntryPanel,
+  type EntryPanelRow,
+} from "@/components/my-portfolio/holdings-entry-panel";
+import { emptyEntryValues } from "@/lib/holdings-entry";
 import type {
   CompareCross,
   ComparePairSummary,
@@ -22,6 +25,18 @@ interface Holding {
   symbol: string;
   name: string;
   weight: number;
+}
+
+interface PortfolioManagerProps {
+  initialHoldings: Holding[];
+  /** Resumen por portafolio (sin holdings completos), calculado en servidor. */
+  catalog?: ComparePortfolioSummary[];
+  /** Cruces precalculados entre pares del catálogo. */
+  pairs?: ComparePairSummary[];
+  /** Tope de posiciones del plan (F78: el modo de ingreso lo respeta). */
+  maxPositions?: number;
+  /** Nombre del plan para los mensajes. */
+  planName?: string;
 }
 
 /**
@@ -63,14 +78,6 @@ function formatWeight(w: number): string {
   return `${w.toFixed(1)}%`;
 }
 
-interface PortfolioManagerProps {
-  initialHoldings: Holding[];
-  /** Resumen por portafolio (sin holdings completos), calculado en servidor. */
-  catalog?: ComparePortfolioSummary[];
-  /** Cruces precalculados entre pares del catálogo. */
-  pairs?: ComparePairSummary[];
-}
-
 /**
  * Portfolio manager — two input modes:
  * 1. CSV upload (auto-parsed with Papa Parse)
@@ -83,15 +90,27 @@ export function PortfolioManager({
   initialHoldings,
   catalog = [],
   pairs = [],
+  maxPositions = 10,
+  planName = "Gratis",
 }: PortfolioManagerProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"mine" | "cross">("mine");
-  const [holdings, setHoldings] = useState<Holding[]>(initialHoldings);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
-  const [newSymbol, setNewSymbol] = useState("");
-  const [newWeight, setNewWeight] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // F78: la tabla de posiciones se maneja en el panel de ingreso por modo.
+  // Las filas iniciales vienen del peso guardado (modo porcentaje).
+  const [entryRows, setEntryRows] = useState<EntryPanelRow[]>(() =>
+    initialHoldings.map((holding) => ({
+      symbol: holding.symbol,
+      name: holding.name,
+      values: { ...emptyEntryValues(), percentage: holding.weight },
+      avgCost: null,
+      currency: "USD" as const,
+      market: null,
+    })),
+  );
 
   // --- Modo cruce: portafolio A y B del catálogo ---
   const crossable = useMemo(
@@ -114,8 +133,10 @@ export function PortfolioManager({
       ? portfolioA.returnYtd - portfolioB.returnYtd
       : null;
 
-  const totalWeight = holdings.reduce((s, h) => s + h.weight, 0);
-  const overlapSymbols = useMemo(() => holdings.map((h) => h.symbol), [holdings]);
+  const overlapSymbols = useMemo(
+    () => entryRows.map((row) => row.symbol),
+    [entryRows],
+  );
 
   async function handleImport(file: File) {
     if (file.size > 1_000_000) {
@@ -130,11 +151,16 @@ export function PortfolioManager({
       setMessage({ type: "error", text: result.error });
       return;
     }
-    setHoldings(
+    // F78: el CSV trae cantidades; el panel los muestra en modo porcentaje
+    // porque el peso es lo comparable sin precios.
+    setEntryRows(
       (result.holdings ?? []).map((row) => ({
         symbol: row.symbol,
         name: "",
-        weight: row.weight,
+        values: { ...emptyEntryValues(), percentage: row.weight },
+        avgCost: null,
+        currency: "USD" as const,
+        market: null,
       })),
     );
     setMessage({
@@ -144,34 +170,6 @@ export function PortfolioManager({
         (result.warnings ? ` ${result.warnings} fila(s) con problemas se ignoraron.` : ""),
     });
     router.refresh();
-  }
-
-  function addHolding() {
-    const weight = parseFloat(newWeight);
-    if (!newSymbol.trim() || isNaN(weight) || weight <= 0) {
-      setMessage({ type: "error", text: "Ingresa un símbolo y una ponderación válida." });
-      return;
-    }
-    setHoldings((prev) => [...prev, { symbol: newSymbol.trim(), name: "", weight }]);
-    setNewSymbol("");
-    setNewWeight("");
-    setMessage(null);
-  }
-
-  function removeHolding(index: number) {
-    setHoldings((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  async function handleSave() {
-    if (holdings.length === 0) return;
-    setLoading(true);
-    const result = await saveUserHoldings(holdings);
-    setLoading(false);
-    if (result.error) setMessage({ type: "error", text: result.error });
-    else {
-      setMessage({ type: "success", text: result.success! });
-      router.refresh();
-    }
   }
 
   async function handleClear() {
@@ -189,7 +187,7 @@ export function PortfolioManager({
       setMessage({ type: "error", text: result.error });
       return;
     }
-    setHoldings([]);
+    setEntryRows([]);
     setMessage({ type: "success", text: result.success! });
     router.refresh();
   }
@@ -300,33 +298,16 @@ export function PortfolioManager({
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Agregar manual</CardTitle>
-            <CardDescription>Ingresa un activo a la vez.</CardDescription>
+            <CardDescription>
+              Elige cómo ingresas tu cartera en la tabla de abajo: por cantidad
+              de acciones, por monto en dinero o por porcentaje.
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <Input
-                  value={newSymbol}
-                  onChange={(e) => setNewSymbol(e.target.value)}
-                  placeholder="AAPL"
-                  label="Símbolo"
-                />
-              </div>
-              <div className="w-24">
-                <Input
-                  value={newWeight}
-                  onChange={(e) => setNewWeight(e.target.value)}
-                  placeholder="25"
-                  label="Peso %"
-                  type="number"
-                  min="0"
-                  max="100"
-                />
-              </div>
-              <Button variant="outline" onClick={addHolding} className="mb-0.5">
-                <Plus className="size-4" />
-              </Button>
-            </div>
+            <p className="text-[12px] leading-relaxed text-ink-500">
+              Un solo modo por cartera. Si mezclas USD y CLP te pediremos el
+              tipo de cambio (CLP por USD) para no sumar monedas distintas.
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -338,74 +319,24 @@ export function PortfolioManager({
             <div>
               <CardTitle>Tu cartera</CardTitle>
               <CardDescription>
-                {holdings.length} activo{holdings.length !== 1 ? "s" : ""}
-                {totalWeight > 0 && (
-                  <>
-                    {" "}· Total: <strong className="tabular-nums">{totalWeight.toFixed(1)}%</strong>{" "}
-                    {Math.abs(totalWeight - 100) > 0.5 && (
-                      <span className="text-warning">
-                        (se normalizará a 100% al guardar)
-                      </span>
-                    )}
-                  </>
-                )}
+                {entryRows.length} activo{entryRows.length !== 1 ? "s" : ""} · los
+                pesos se calculan con el último cierre disponible.
               </CardDescription>
             </div>
-            {holdings.length > 0 && (
-              <div className="flex gap-2">
-                <Button onClick={handleSave} loading={loading}>
-                  Guardar
-                </Button>
-                <Button variant="ghost" onClick={handleClear} disabled={loading}>
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
+            {entryRows.length > 0 && (
+              <Button variant="ghost" onClick={handleClear} disabled={loading}>
+                <Trash2 className="size-4" />
+              </Button>
             )}
           </div>
         </CardHeader>
         <CardContent>
-          {holdings.length === 0 ? (
-            <p className="py-8 text-center text-sm text-ink-600">
-              Aún no tienes activos. Sube un CSV o agrega uno manualmente.
-            </p>
-          ) : (
-            <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
-            <table className="w-full min-w-[420px] text-sm">
-              <thead>
-                <tr className="border-b border-ink-200 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
-                  <th className="pb-2">Símbolo</th>
-                  <th className="pb-2">Nombre</th>
-                  <th className="pb-2 text-right">Peso</th>
-                  <th className="pb-2 text-right">Normalizado</th>
-                  <th className="pb-2"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink-100">
-                {holdings.map((h, i) => (
-                  <tr key={`${h.symbol}-${i}`}>
-                    <td className="py-2.5 font-medium text-ink-900">{h.symbol}</td>
-                    <td className="py-2.5 text-ink-600">{h.name || "—"}</td>
-                    <td className="py-2.5 text-right tabular-nums text-ink-900">
-                      {h.weight.toFixed(1)}%
-                    </td>
-                    <td className="py-2.5 text-right tabular-nums text-ink-500">
-                      {totalWeight > 0 ? ((h.weight / totalWeight) * 100).toFixed(1) : "0.0"}%
-                    </td>
-                    <td className="py-2.5 text-right">
-                      <button
-                        onClick={() => removeHolding(i)}
-                        className="-m-3 inline-flex size-11 items-center justify-center rounded text-ink-400 hover:bg-ink-100 hover:text-negative"
-                        aria-label={`Eliminar ${h.symbol}`}
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-          )}
+          <HoldingsEntryPanel
+            initialRows={entryRows}
+            maxPositions={maxPositions}
+            planName={planName}
+            onRowsChange={setEntryRows}
+          />
         </CardContent>
       </Card>
 
