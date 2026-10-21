@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  adviceRule,
   AI_DISCLAIMER,
   containsAdvice,
   NEUTRAL_ADVICE_REPLACEMENT,
@@ -82,9 +83,29 @@ describe("sanitizeAdvice", () => {
     expect(sanitizeAdvice("   ")).toBe("");
   });
 
-  it("el descargo cubre recomendación, asesoría y CMF", () => {
-    expect(AI_DISCLAIMER).toContain("No es una recomendación de inversión");
+  it("usa el descargo §2.2 del informe legal", () => {
+    expect(AI_DISCLAIMER).toContain("Respuesta generada automáticamente por inteligencia artificial");
+    expect(AI_DISCLAIMER).toContain("No es una recomendación de compra, venta ni mantención");
     expect(AI_DISCLAIMER).toContain("asesoría personalizada");
-    expect(AI_DISCLAIMER).toContain("CMF");
+    expect(AI_DISCLAIMER).toContain("revisa siempre la fuente citada");
+    expect(AI_DISCLAIMER).toContain("Las decisiones de inversión son solo tuyas");
+  });
+});
+
+describe("adviceRule", () => {
+  it("identifica la frase que saltó sin exponer el texto", () => {
+    expect(adviceRule("Te recomiendo vender ahora.")).toBe("imperative");
+    expect(adviceRule("Compra NVDA mañana.")).toBe("token:compra");
+  });
+
+  it("devuelve null cuando el texto es informativo", () => {
+    expect(adviceRule("La compraventa de acciones aumentó en el trimestre.")).toBeNull();
+    expect(adviceRule("")).toBeNull();
+  });
+
+  it("no incluye el texto analizado en la regla", () => {
+    const regla = adviceRule("Te recomiendo comprar NVDA por el momentum.");
+    expect(regla).not.toBeNull();
+    expect(regla).not.toContain("NVDA");
   });
 });
