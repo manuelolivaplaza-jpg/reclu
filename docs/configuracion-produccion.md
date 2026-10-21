@@ -63,3 +63,14 @@ Preparado el 20-10-2026, actualizado tras F26 y F35. Nada de esto se ha aplicado
 - Cron: `/api/impact/precompute` y `/api/impact/alerts` con `Authorization: Bearer CRON_SECRET`. Las alertas automáticas solo salen a usuarios con opt-in y consentimiento de la versión vigente.
 - Correo y Telegram de alertas: `RESEND_API_KEY`, `EMAIL_FROM`, bot de Telegram ya configurado.
 - Ramas de respaldo para borrar al cerrar: `v2/f62-*`, `v2/f71-pregunta-ia`, `v2/f72-feed-noticias`, `v2/f73-alertas-portafolio`, `v2/f77-*`.
+
+## Carga de cartera (F78-F79, M1, M3)
+
+- **Modo de ingreso (F78):** en `/compare` y `/mi-portafolio` el usuario elige cantidad de acciones, monto o porcentaje. Usa los precios que ya existen; no agrega variables ni migraciones.
+- **Importar desde captura (F79):**
+  - Flag `PORTFOLIO_IMAGE_IMPORT_ENABLED` (solo `"true"` exacto lo enciende; apagado por defecto).
+  - `OPENROUTER_VISION_MODEL`: modelo de visión de OpenRouter, sin valor por defecto (sin él, la ruta responde 503). Reusa `OPENROUTER_API_KEY`. Puede ser de pago o `:free`.
+  - Cada pedido va con `provider: { data_collection: "deny" }`: OpenRouter solo enruta a proveedores que no guardan ni entrenan con los datos. Si el modelo elegido no tiene ningún proveedor así, el pedido falla en vez de caer en uno que entrene: elegir el modelo con eso en mente.
+  - La imagen no se guarda. Solo PNG, JPEG o WebP de hasta 4 MB. Descuenta 1 del cupo de IA.
+- **M1:** guardar o importar la cartera en `/compare` exige consentimiento vigente, aunque `MY_PORTFOLIO_ENABLED` esté apagado. `/compare` muestra el aviso de consentimiento cuando falta. Los usuarios que ya tienen cartera en `/compare` sin consentimiento pueden verla, pero deben aceptar antes de volver a guardar.
+- **M3:** el botón Borrar de `/compare` llama a `delete_my_portfolio()` y borra todo (posiciones, consentimiento, alertas y auditoría). Requiere la 054 aplicada.
