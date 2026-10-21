@@ -238,6 +238,19 @@ export function validatePortfolioAlertSettings(
   };
 }
 
+/**
+ * true solo si el consentimiento existe y corresponde a la versión vigente del
+ * texto. `consent_at` sin la versión actual exige volver a aceptar (F71).
+ */
+export function isPortfolioConsentCurrent(
+  consentAt: string | null | undefined,
+  consentVersion: string | null | undefined,
+): boolean {
+  if (!consentAt) return false;
+  if (!Number.isFinite(Date.parse(consentAt))) return false;
+  return consentVersion === PORTFOLIO_CONSENT_VERSION;
+}
+
 /** Formatea `consent_at` de forma estable (UTC) para no romper la hidratación. */
 export function formatConsentDate(iso: string | null | undefined): string | null {
   if (!iso) return null;
