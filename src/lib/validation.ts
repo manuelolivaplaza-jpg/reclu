@@ -61,16 +61,43 @@ export const signUpSchema = z.object({
   full_name: z.string().trim().max(100).optional().default(""),
 });
 
-export const userHoldingSchema = z.object({
-  symbol: z
-    .string()
-    .trim()
-    .min(1)
-    .max(20)
-    .regex(/^[A-Za-z0-9.\-]+$/, "Símbolo inválido."),
-  name: z.string().trim().max(100).optional().default(""),
-  weight: z.number().finite().min(0).max(100),
-});
+/**
+ * Posición de la cartera del usuario (F60). Se acepta `weight` (peso 0–100)
+ * o, desde la 050, cantidad y costo promedio. Si no viene `weight`, el peso
+ * queda expresado como valor de costo (cantidad × costo) y `saveUserHoldings`
+ * lo normaliza a 100 junto con el resto de la cartera.
+ */
+export const userHoldingSchema = z
+  .object({
+    symbol: z
+      .string()
+      .trim()
+      .min(1)
+      .max(20)
+      .regex(/^[A-Za-z0-9.\-]+$/, "Símbolo inválido."),
+    name: z.string().trim().max(100).optional().default(""),
+    weight: z.number().finite().min(0).max(100).optional(),
+    quantity: z.number().finite().min(0).optional(),
+    avg_cost: z.number().finite().min(0).optional(),
+    currency: z.enum(["USD", "CLP"]).optional().default("USD"),
+    market: z.enum(["US", "CL"]).optional(),
+    broker: z.string().trim().max(60, "La corredora no puede superar 60 caracteres.").optional(),
+  })
+  .refine(
+    (holding) =>
+      holding.weight !== undefined ||
+      (holding.quantity !== undefined && holding.avg_cost !== undefined),
+    {
+      message: "Indica una ponderación o cantidad y costo promedio.",
+      path: ["weight"],
+    },
+  )
+  .transform((holding) => ({
+    ...holding,
+    weight:
+      holding.weight ??
+      (holding.quantity as number) * (holding.avg_cost as number),
+  }));
 
 export const userHoldingsSchema = z.array(userHoldingSchema).max(100);
 
