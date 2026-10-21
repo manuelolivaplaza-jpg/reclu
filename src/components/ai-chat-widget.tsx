@@ -5,6 +5,7 @@ import { X, ArrowUp } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { AI_DISCLAIMER } from "@/lib/ai-disclaimer";
 import { isPaidPlan } from "@/lib/types";
 import { ChatGateModal, type GateReason } from "./chat-gate-modal";
 import { track } from "@/lib/analytics";
@@ -132,6 +133,15 @@ function AssistantContent({ content }: { content: string }) {
   flushList();
 
   return <>{blocks}</>;
+}
+
+/** Descargo fijo bajo cada respuesta (informe legal §2.2). */
+function AiDisclaimer() {
+  return (
+    <p className="mt-2.5 border-t border-ink-200 pt-2 text-[11px] leading-relaxed text-ink-400">
+      {AI_DISCLAIMER}
+    </p>
+  );
 }
 
 export function AiChatWidget() {
@@ -310,6 +320,16 @@ export function AiChatWidget() {
           }
           try {
             const parsed = JSON.parse(payload);
+            // Eventos del filtro de salida (F69B). No traen `choices`.
+            const reclu = parsed.reclu;
+            if (reclu?.type === "replacement" && typeof reclu.text === "string") {
+              // La respuesta traía una recomendación: se descarta lo emitido.
+              streamedReply = reclu.text;
+              setReply(reclu.text);
+              continue;
+            }
+            if (reclu?.type === "disclaimer") continue;
+
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) {
               streamedReply += delta;
@@ -487,6 +507,7 @@ export function AiChatWidget() {
                           <div className="text-[14px] whitespace-pre-wrap text-ink-900">
                             <AssistantContent content={m.content} />
                           </div>
+                          <AiDisclaimer />
                         </div>
                       )}
                     </div>
@@ -509,6 +530,7 @@ export function AiChatWidget() {
                           <AssistantContent content={reply} />
                           <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-ink-900" />
                         </div>
+                        <AiDisclaimer />
                       </div>
                     </div>
                   )}

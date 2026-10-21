@@ -9,11 +9,15 @@
  * Reutiliza `containsAdviceImperative` y `normalizeAdviceText` de
  * `community.ts` para no duplicar reglas ni romper sus tests.
  */
+import { AI_DISCLAIMER } from "@/lib/ai-disclaimer";
 import { containsAdviceImperative, normalizeAdviceText } from "@/lib/community";
 
-/** Descargo fijo que acompaña a cualquier respuesta saneada. */
-export const AI_DISCLAIMER =
-  "Información general generada por IA a partir de noticias públicas. No es una recomendación de inversión ni asesoría personalizada. Puede contener errores. Decide por tu cuenta o consulta a un asesor registrado en la CMF.";
+/**
+ * Descargo fijo que acompaña a cualquier respuesta saneada (texto §2.2 del
+ * informe legal). Se reexporta aquí porque las rutas ya lo importaban desde
+ * este módulo; la fuente única vive en `ai-disclaimer.ts`.
+ */
+export { AI_DISCLAIMER };
 
 /** Texto neutro que reemplaza una respuesta con recomendaciones. */
 export const NEUTRAL_ADVICE_REPLACEMENT =
@@ -82,22 +86,35 @@ const ADVICE_PHRASES = [
 ] as const;
 
 /**
+ * Devuelve la regla que saltó (para logs y tests) o `null` si el texto no
+ * contiene recomendaciones. No incluye el texto analizado, así que es seguro
+ * registrarlo: solo expone qué patrón calzó.
+ *
+ * Se exige límite de palabra: "compraventa" y "comprador" quedan fuera.
+ */
+export function adviceRule(text: string): string | null {
+  if (!text || !text.trim()) return null;
+
+  // Frases ya cubiertas por la comunidad (imperativos y "no compres", etc.).
+  if (containsAdviceImperative(text)) return "imperative";
+
+  const normalized = normalizeAdviceText(text);
+  if (!normalized) return null;
+
+  const padded = ` ${normalized} `;
+  const phrase = ADVICE_PHRASES.find((candidate) => padded.includes(` ${candidate} `));
+  if (phrase) return `phrase:${phrase}`;
+
+  const token = normalized.split(" ").find((candidate) => ADVICE_TOKENS.has(candidate));
+  return token ? `token:${token}` : null;
+}
+
+/**
  * true si el texto contiene una recomendación de inversión.
  * Se exige límite de palabra: "compraventa" y "comprador" quedan fuera.
  */
 export function containsAdvice(text: string): boolean {
-  if (!text || !text.trim()) return false;
-
-  // Frases ya cubiertas por la comunidad (imperativos y "no compres", etc.).
-  if (containsAdviceImperative(text)) return true;
-
-  const normalized = normalizeAdviceText(text);
-  if (!normalized) return false;
-
-  const padded = ` ${normalized} `;
-  if (ADVICE_PHRASES.some((phrase) => padded.includes(` ${phrase} `))) return true;
-
-  return normalized.split(" ").some((token) => ADVICE_TOKENS.has(token));
+  return adviceRule(text) !== null;
 }
 
 /**
