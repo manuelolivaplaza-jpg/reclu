@@ -16,7 +16,7 @@ import { DeletePortfolioForm } from "@/components/delete-portfolio-form";
 import { alertRuleLimitFor, parseAlertRuleRows } from "@/lib/alert-rules";
 import { canUseTelegram, portfolioLimitsFor } from "@/lib/plans";
 import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
-import { portfolioAlertChannelsFor } from "@/lib/portfolio-consent";
+import { hasCurrentPortfolioConsent, portfolioAlertChannelsFor } from "@/lib/portfolio-consent";
 import { referralsEnabled } from "@/lib/referrals";
 import { isPaidPlan } from "@/lib/types";
 
@@ -45,6 +45,7 @@ interface PortfolioSettingsRow {
   min_relevance: number | string;
   alert_channel: string;
   consent_at: string | null;
+  consent_version: string | null;
 }
 
 export default async function SettingsPage() {
@@ -84,7 +85,7 @@ export default async function SettingsPage() {
   const portfolioSettingsPromise = myPortfolioEnabled
     ? supabase
         .from("user_portfolio_settings")
-        .select("auto_alerts, min_relevance, alert_channel, consent_at")
+        .select("auto_alerts, min_relevance, alert_channel, consent_at, consent_version")
         .eq("user_id", profile.id)
         .maybeSingle()
     : Promise.resolve({ data: null, error: null });
@@ -265,6 +266,7 @@ export default async function SettingsPage() {
             <CardContent>
               <PortfolioConsent
                 consentAt={portfolioRow?.consent_at ?? null}
+                consentVersion={portfolioRow?.consent_version ?? null}
                 model={aiModel}
               />
             </CardContent>
@@ -286,7 +288,10 @@ export default async function SettingsPage() {
                 alertChannel={portfolioRow?.alert_channel ?? "email"}
                 planAutoAlerts={portfolioLimits.autoAlerts}
                 allowedChannels={[...portfolioChannels]}
-                hasConsent={Boolean(portfolioRow?.consent_at)}
+                hasConsent={hasCurrentPortfolioConsent(
+                  portfolioRow?.consent_at ?? null,
+                  portfolioRow?.consent_version ?? null,
+                )}
               />
             </CardContent>
           </Card>

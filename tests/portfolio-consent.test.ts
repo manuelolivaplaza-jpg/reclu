@@ -81,8 +81,11 @@ import {
 } from "@/app/actions/portfolio-consent";
 import {
   DELETE_CONFIRMATION_WORD,
+  PORTFOLIO_CONSENT_VERSION,
   isDeleteConfirmationValid,
+  portfolioConsentErrorMessage,
   portfolioConsentParagraphs,
+  portfolioConsentStatus,
   validatePortfolioAlertSettings,
 } from "@/lib/portfolio-consent";
 
@@ -110,21 +113,45 @@ afterEach(() => {
 });
 
 describe("texto de consentimiento", () => {
-  it("explica finalidad, minimización, transferencia internacional y borrado", () => {
+  it("usa el texto de la §2.5: finalidad, datos sensibles, IA y borrado", () => {
     const text = portfolioConsentParagraphs("google/gemini-2.0-flash-001").join(" ");
-    expect(text).toMatch(/finalidad/i);
-    expect(text).toMatch(/no enviamos a la ia montos/i);
-    expect(text).toMatch(/nombre/i);
-    expect(text).toContain("OpenRouter");
+    expect(text).toMatch(/autorizo a reclu a tratar los datos de mi cartera/i);
+    expect(text).toMatch(/datos sensibles/i);
+    expect(text).toMatch(/openrouter inc\./i);
     expect(text).toContain("google/gemini-2.0-flash-001");
+    expect(text).toMatch(/sin mi nombre, correo ni montos/i);
     expect(text).toMatch(/fuera de chile/i);
-    expect(text).toMatch(/derecho a borrar/i);
+    expect(text).toMatch(/no me da recomendaciones de inversión/i);
+    expect(text).toMatch(/retirar este consentimiento y borrar mi cartera/i);
+    expect(text).toContain(PORTFOLIO_CONSENT_VERSION);
   });
 
   it("no deja el modelo en blanco si no está configurado", () => {
     expect(portfolioConsentParagraphs("").join(" ")).toContain(
       "el modelo configurado en el servidor",
     );
+  });
+});
+
+describe("versión del consentimiento", () => {
+  it("sin consent_at no hay consentimiento", () => {
+    expect(portfolioConsentStatus(null, null)).toBe("none");
+  });
+
+  it("la versión vigente es la única que cuenta", () => {
+    expect(
+      portfolioConsentStatus("2026-10-20T10:00:00Z", PORTFOLIO_CONSENT_VERSION),
+    ).toBe("current");
+    expect(portfolioConsentStatus("2026-10-20T10:00:00Z", "2026-10-01.v0")).toBe(
+      "outdated",
+    );
+    expect(portfolioConsentStatus("2026-10-20T10:00:00Z", null)).toBe("outdated");
+  });
+
+  it("el mensaje pide aceptar de nuevo si la versión quedó atrás", () => {
+    expect(
+      portfolioConsentErrorMessage("2026-10-20T10:00:00Z", "vieja"),
+    ).toMatch(/de nuevo/i);
   });
 });
 
@@ -206,7 +233,7 @@ describe("server action: consentimiento", () => {
     expect(state.calls).toHaveLength(0);
   });
 
-  it("guarda consent_at cuando el checkbox está marcado", async () => {
+  it("guarda consent_at y la versión vigente cuando el checkbox está marcado", async () => {
     const result = await grantPortfolioConsent({}, formData({ consent: "on" }));
     expect(result.success).toMatch(/consentimiento guardado/i);
 
@@ -215,6 +242,7 @@ describe("server action: consentimiento", () => {
     expect(upsert?.values?.user_id).toBe("user-1");
     expect(typeof upsert?.values?.consent_at).toBe("string");
     expect(Number.isFinite(Date.parse(String(upsert?.values?.consent_at)))).toBe(true);
+    expect(upsert?.values?.consent_version).toBe(PORTFOLIO_CONSENT_VERSION);
     expect(upsert?.options).toEqual({ onConflict: "user_id" });
   });
 
@@ -233,15 +261,27 @@ describe("server action: consentimiento", () => {
 });
 
 describe("server action: retiro del consentimiento", () => {
-  it("deja consent_at en null y apaga las alertas automáticas", async () => {
+  it("llama a delete_my_portfolio y deja consent_at y versión en null", async () => {
+    state.rpcData = 5;
     state.settings = { consent_at: "2026-10-01T00:00:00Z", auto_alerts: true };
     const result = await withdrawPortfolioConsent({}, formData({}));
     expect(result.success).toMatch(/consentimiento retirado/i);
 
-    const update = state.calls.find((call) => call.op === "update");
-    expect(update?.table).toBe("user_portfolio_settings");
-    expect(update?.values?.consent_at).toBeNull();
-    expect(update?.values?.auto_alerts).toBe(false);
+    // Retirar el consentimiento borra la cartera (derecho de supresión).
+    expect(state.rpcCalls).toEqual([{ name: "delete_my_portfolio" }]);
+
+    const reset = state.calls.find((call) => call.op === "upsert");
+    expect(reset?.table).toBe("user_portfolio_settings");
+    expect(reset?.values?.consent_at).toBeNull();
+    expect(reset?.values?.consent_version).toBeNull();
+    expect(reset?.values?.auto_alerts).toBe(false);
+  });
+
+  it("si la RPC falla no deja el consentimiento retirado", async () => {
+    state.rpcError = { message: "rpc failed" };
+    const result = await withdrawPortfolioConsent({}, formData({}));
+    expect(result.error).toMatch(/no pudimos retirar/i);
+    expect(state.calls).toHaveLength(0);
   });
 
   it("está apagada sin el flag", async () => {
@@ -288,8 +328,11 @@ describe("server action: borrar mi cartera", () => {
 });
 
 describe("server action: preferencias de alertas", () => {
-  it("guarda umbral y canal cuando hay consentimiento", async () => {
-    state.settings = { consent_at: "2026-10-01T00:00:00Z" };
+  it("guarda umbral y canal cuando hay consentimiento vigente", async () => {
+    state.settings = {
+      consent_at: "2026-10-01T00:00:00Z",
+      consent_version: PORTFOLIO_CONSENT_VERSION,
+    };
     const result = await updatePortfolioAlerts(
       {},
       formData({ auto_alerts: "on", min_relevance: "0.7", alert_channel: "both" }),
@@ -312,6 +355,33 @@ describe("server action: preferencias de alertas", () => {
       formData({ auto_alerts: "on", min_relevance: "0.5", alert_channel: "email" }),
     );
     expect(result.error).toMatch(/consentimiento/i);
+    expect(state.calls).toHaveLength(0);
+  });
+
+  it("una versión vieja obliga a aceptar de nuevo", async () => {
+    state.settings = {
+      consent_at: "2026-10-01T00:00:00Z",
+      consent_version: "2026-10-01.v0",
+    };
+    const result = await updatePortfolioAlerts(
+      {},
+      formData({ auto_alerts: "on", min_relevance: "0.5", alert_channel: "email" }),
+    );
+    expect(result.error).toMatch(/consentimiento/i);
+    expect(state.calls).toHaveLength(0);
+  });
+
+  it("Gratis no puede activar auto_alerts aunque tenga consentimiento", async () => {
+    state.profile = { plan: "free", trial_ends_at: null };
+    state.settings = {
+      consent_at: "2026-10-01T00:00:00Z",
+      consent_version: PORTFOLIO_CONSENT_VERSION,
+    };
+    const result = await updatePortfolioAlerts(
+      {},
+      formData({ auto_alerts: "on", min_relevance: "0.5", alert_channel: "email" }),
+    );
+    expect(result.error).toMatch(/no incluye alertas automáticas/i);
     expect(state.calls).toHaveLength(0);
   });
 });

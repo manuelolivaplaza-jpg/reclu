@@ -18,7 +18,56 @@ import {
 export const DELETE_CONFIRMATION_WORD = "BORRAR";
 
 /** Versión del texto de consentimiento (para auditoría futura). */
-export const PORTFOLIO_CONSENT_VERSION = "2026-10";
+export const PORTFOLIO_CONSENT_VERSION = "2026-10-20.v1";
+
+/** Estado del consentimiento guardado frente al texto vigente. */
+export type PortfolioConsentStatus = "none" | "current" | "outdated";
+
+/** Mensaje cuando nunca dio consentimiento. */
+export const PORTFOLIO_CONSENT_REQUIRED_MESSAGE =
+  "Necesitamos tu consentimiento explícito para guardar tu cartera. Actívalo en Ajustes y vuelve a intentar.";
+
+/** Mensaje cuando aceptó una versión anterior del texto. */
+export const PORTFOLIO_CONSENT_OUTDATED_MESSAGE =
+  "Actualizamos el texto de consentimiento. Acéptalo de nuevo en Ajustes para guardar tu cartera.";
+
+/**
+ * Compara lo guardado con la versión vigente. Sin `consent_at` no hay
+ * consentimiento; con fecha pero sin la versión actual hay que aceptar de
+ * nuevo (Ley 21.719: hay que poder acreditar qué texto aceptó).
+ */
+export function portfolioConsentStatus(
+  consentAt: string | null | undefined,
+  consentVersion: string | null | undefined,
+  currentVersion: string = PORTFOLIO_CONSENT_VERSION,
+): PortfolioConsentStatus {
+  if (!consentAt) return "none";
+  return (consentVersion ?? "").trim() === currentVersion ? "current" : "outdated";
+}
+
+/** true solo si el consentimiento existe y corresponde al texto vigente. */
+export function hasCurrentPortfolioConsent(
+  consentAt: string | null | undefined,
+  consentVersion: string | null | undefined,
+  currentVersion: string = PORTFOLIO_CONSENT_VERSION,
+): boolean {
+  return portfolioConsentStatus(consentAt, consentVersion, currentVersion) === "current";
+}
+
+/** Mensaje en español para bloquear guardado/importación, o null si está al día. */
+export function portfolioConsentErrorMessage(
+  consentAt: string | null | undefined,
+  consentVersion: string | null | undefined,
+): string | null {
+  switch (portfolioConsentStatus(consentAt, consentVersion)) {
+    case "none":
+      return PORTFOLIO_CONSENT_REQUIRED_MESSAGE;
+    case "outdated":
+      return PORTFOLIO_CONSENT_OUTDATED_MESSAGE;
+    case "current":
+      return null;
+  }
+}
 
 /** Canales de alerta automática que entiende `user_portfolio_settings`. */
 export const PORTFOLIO_ALERT_CHANNELS: readonly AlertChannelValue[] = [
@@ -52,16 +101,18 @@ export function aiModelLabel(raw?: string | null): string {
 }
 
 /**
- * Párrafos del consentimiento. Explican finalidad, minimización, transferencia
- * internacional y derecho a borrar. La UI los renderiza en orden.
+ * Párrafos del consentimiento, tomados del texto de la §2.5 del informe legal
+ * (borrador para revisión de abogado). La UI los renderiza en orden.
  */
 export function portfolioConsentParagraphs(rawModel?: string | null): string[] {
+  const model = aiModelLabel(rawModel);
   return [
-    "Finalidad: cruzamos los símbolos de tu cartera con noticias y datos públicos para avisarte de lo que podría afectarte. No ejecutamos órdenes ni entregamos asesoría de inversión.",
-    "Datos sensibles: tus tenencias son datos financieros y los tratamos como sensibles (Ley 21.719). Se guardan asociados solo a tu cuenta, con row-level security, y nunca se publican.",
-    "Minimización: no enviamos a la IA montos invertidos, cantidades, tu nombre, tu correo ni ningún dato que te identifique. Cuando haces una consulta solo viajan símbolos y pesos en porcentaje.",
-    `Transferencia internacional: el proveedor de IA es OpenRouter, con servidores fuera de Chile, y el modelo utilizado es ${aiModelLabel(rawModel)}. Al dar tu consentimiento aceptas esta transferencia para la finalidad descrita.`,
-    "Derecho a borrar: puedes retirar el consentimiento y borrar tu cartera y estos ajustes cuando quieras desde Ajustes. El borrado es inmediato e irreversible.",
+    "Autorizo a Reclu a tratar los datos de mi cartera que ingrese o importe (instrumentos, pesos y, si los agrego, cantidades, costo promedio, moneda y corredora) con el único fin de mostrarme comparaciones, la exposición de mi cartera a noticias y, si las activo, alertas.",
+    "Entiendo que estos datos se tratan como datos sensibles (Ley 21.719).",
+    `Para responder preguntas con IA se envían a OpenRouter Inc. y al proveedor del modelo (${model}), en EE.UU., solo los pesos porcentuales, sin mi nombre, correo ni montos, y que los datos se alojan en proveedores fuera de Chile, según la Política de privacidad.`,
+    "Reclu no me da recomendaciones de inversión.",
+    "Puedo retirar este consentimiento y borrar mi cartera en cualquier momento desde Ajustes.",
+    `Versión del texto: ${PORTFOLIO_CONSENT_VERSION}.`,
   ];
 }
 
