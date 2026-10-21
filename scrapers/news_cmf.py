@@ -66,7 +66,7 @@ Resolver = Callable[[str], "str | None"]
 
 def news_enabled() -> bool:
     """Flag de producto: apagado salvo NEWS_IMPACT_ENABLED='true'."""
-    return os.environ.get("NEWS_IMPACT_ENABLED", "").strip().lower() == "true"
+    return os.environ.get("NEWS_IMPACT_ENABLED", "") == "true"
 
 
 def _norm(texto: str) -> str:
