@@ -54,6 +54,7 @@ el CLI, respetando el mismo orden).
 | 41 | `047_telegram_link_code.sql` | M10: RPC `create_telegram_link_code()` (`security definer`, `set search_path = ''`) que genera el código con `auth.uid()` y escribe `profiles.telegram_link_code` marcando `reclu.trusted` para el trigger de la 007. Solo `authenticated`. | `008_planes_alertas.sql` (columna `telegram_link_code`) | Sí |
 | 42 | `048_muro_series_alertas.sql` | SD2-A (M6/M7) + SD2-C: quita la lectura pública de `portfolio_performance`/`portfolio_metrics` para portafolios premium y expone `get_portfolio_performance(uuid)` (90 días para anon/free), `get_portfolio_metrics(uuid)`, `get_alerts(uuid, int)` (topes 3/10/p_limit, `summary` solo pro/elite) y `get_alert(uuid)` (una alerta por id, mismas reglas). `alerts` deja de exponer `summary` por lectura directa y se agrega `alerts_public`. | `011_rendimiento.sql` y `012_muro_pago.sql` (`current_user_plan()`) | Sí |
 | 43 | `049_token_baja.sql` | M5: agrega `profiles.unsubscribe_token_created_at` y reescribe `unsubscribe_by_token` con expiración de 180 días y rotación del token al usarse. Solo `service_role`. | `007_seguridad_rls.sql` (trigger de perfiles) y `008_planes_alertas.sql` (`unsubscribe_by_token`) | Sí |
+| 44 | `050_mi_portafolio.sql` | F58: `user_holdings` gana `quantity`, `avg_cost`, `currency`, `market` y `broker`, y `source` admite `cartola` (se mantiene `weight`). Agrega `user_portfolio_settings` (alertas automáticas apagadas por defecto, umbral, canal y `consent_at`) con RLS solo del dueño, `revoke` a anon y la RPC `delete_my_portfolio()` (`security invoker`, `search_path = ''`). Sin vistas públicas. | Esquema base (`user_holdings`, `auth.users`, `set_updated_at`) | Sí |
 
 ## Rango 007–020 y huecos de numeración
 
@@ -103,7 +104,7 @@ La creación de claves y las llamadas a `/api/v1` quedan apagadas salvo
 `API_PUBLIC_ENABLED=true` (exacto). Los datasets de funcionarios de EE.UU.
 (`house_ptr`, `senate_ptr`, `oge_278t`) no se redistribuyen por la API
 (5 U.S.C. § 13107). Aplicar después del esquema base; es independiente de
-`041-049`.
+`041-050`.
 
 ## 044 — Carteras BICE y MBI (F23)
 
