@@ -163,7 +163,11 @@ describe("saveUserHoldings: tope del plan", () => {
       error: null,
     };
 
-    const result = await saveUserHoldings([{ symbol: "AAPL", quantity: 1, avg_cost: 10 }]);
+    // saveUserHoldings recibe la cartera completa: las 10 actuales + AAPL = 11.
+    const result = await saveUserHoldings([
+      ...Array.from({ length: 10 }, (_, i) => ({ symbol: `SYM${i}`, quantity: 1, avg_cost: 10 })),
+      { symbol: "AAPL", quantity: 1, avg_cost: 10 },
+    ]);
 
     expect(result.error).toMatch(/límite de 10 posiciones/i);
     expect(mocks.upsert).not.toHaveBeenCalled();

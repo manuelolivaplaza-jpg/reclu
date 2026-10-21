@@ -152,13 +152,28 @@ export async function saveUserHoldings(input: unknown) {
     (holding) => !existingSymbols.has(holding.symbol),
   ).length;
 
-  if (
-    !canAddPositions(plan, existingSymbols.size, newPositions, trialEndsAt)
-  ) {
+  // La cartera enviada reemplaza a la actual: el tamano final es normalized.length.
+  // Se borran primero los simbolos quitados para que el trigger de la 052 no
+  // cuente posiciones que van a desaparecer.
+  void newPositions;
+  if (!canAddPositions(plan, 0, normalized.length, trialEndsAt)) {
     const limit = portfolioLimitsFor(plan, trialEndsAt).maxPositions;
     return {
       error: `Alcanzaste el límite de ${limit} posiciones de tu plan. Elimina una posición o mejora tu plan para agregar más.`,
     };
+  }
+
+  // Solo se borran los símbolos que el usuario quitó de la cartera.
+  const removedSymbols = [...existingSymbols].filter(
+    (symbol) => !incomingSymbols.has(symbol),
+  );
+  if (removedSymbols.length > 0) {
+    const { error: deleteError } = await supabase
+      .from("user_holdings")
+      .delete()
+      .eq("user_id", user.id)
+      .in("symbol", removedSymbols);
+    if (deleteError) return { error: deleteError.message };
   }
 
   const { error } = await supabase.from("user_holdings").upsert(
@@ -178,18 +193,6 @@ export async function saveUserHoldings(input: unknown) {
   );
   if (error) return { error: friendlyHoldingDbError(error.message) };
 
-  // Solo se borran los símbolos que el usuario quitó de la cartera.
-  const removedSymbols = [...existingSymbols].filter(
-    (symbol) => !incomingSymbols.has(symbol),
-  );
-  if (removedSymbols.length > 0) {
-    const { error: deleteError } = await supabase
-      .from("user_holdings")
-      .delete()
-      .eq("user_id", user.id)
-      .in("symbol", removedSymbols);
-    if (deleteError) return { error: deleteError.message };
-  }
 
   revalidatePath("/compare");
   return { success: `Cartera guardada: ${normalized.length} activos.` };
