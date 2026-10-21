@@ -77,6 +77,14 @@ export function PortfolioEditor({
 }) {
   const router = useRouter();
   const [positions, setPositions] = useState<EditablePosition[]>(initialPositions);
+  // Tras guardar, el servidor vuelve a mandar las posiciones con su precio más
+  // reciente (router.refresh). Patrón de React para ajustar estado cuando
+  // cambian las props, sin un efecto que dispare renders en cascada.
+  const [syncedInitial, setSyncedInitial] = useState(initialPositions);
+  if (syncedInitial !== initialPositions) {
+    setSyncedInitial(initialPositions);
+    setPositions(initialPositions);
+  }
   const [form, setForm] = useState<DraftForm>(EMPTY_FORM);
   const [editingSymbol, setEditingSymbol] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -172,30 +180,26 @@ export function PortfolioEditor({
       return;
     }
 
+    const previous = editingSymbol
+      ? positions.find((position) => position.symbol === editingSymbol)
+      : undefined;
+    const sameSymbol = previous?.symbol.toUpperCase() === symbol;
+    const nextMarket = form.market === "" ? null : form.market;
+    const sameContext =
+      sameSymbol &&
+      previous?.currency === form.currency &&
+      previous?.market === nextMarket;
+
     const next: EditablePosition = {
-      // Conserva el precio ya cargado si el ticker no cambió.
-      ...(editingSymbol
-        ? positions.find((position) => position.symbol === editingSymbol)
-        : undefined),
       symbol,
-      name:
-        (editingSymbol
-          ? positions.find((position) => position.symbol === editingSymbol)?.name
-          : "") ?? "",
+      name: previous?.name ?? "",
       quantity,
       avgCost,
       currency: form.currency,
-      market: form.market === "" ? null : form.market,
-      price:
-        editingSymbol &&
-        positions.find((position) => position.symbol === editingSymbol)?.symbol === symbol
-          ? (positions.find((position) => position.symbol === editingSymbol)?.price ?? null)
-          : null,
-      priceDate:
-        editingSymbol &&
-        positions.find((position) => position.symbol === editingSymbol)?.symbol === symbol
-          ? (positions.find((position) => position.symbol === editingSymbol)?.priceDate ?? null)
-          : null,
+      market: nextMarket,
+      // Si cambió el ticker, la moneda o el mercado, el precio anterior ya no aplica.
+      price: sameContext ? (previous?.price ?? null) : null,
+      priceDate: sameContext ? (previous?.priceDate ?? null) : null,
     };
 
     setPositions((current) =>
@@ -219,18 +223,27 @@ export function PortfolioEditor({
 
   async function handleSave() {
     setPending(true);
+    // `weight` va en % (0–100) porque el esquema lo valida así. Se reparte
+    // según valor de mercado, costo o cantidad, y saveUserHoldings lo vuelve
+    // a normalizar a 100.
+    const rawWeights = positions.map(weightFor);
+    const rawTotal = rawWeights.reduce((sum, weight) => sum + weight, 0);
+    const weights = rawWeights.map((weight) =>
+      rawTotal > 0 ? Math.min(100, Math.round((weight / rawTotal) * 10_000) / 100) : 0,
+    );
+
     const result =
       positions.length === 0
         ? await clearUserHoldings()
         : await saveUserHoldings(
-            positions.map((position) => ({
+            positions.map((position, index) => ({
               symbol: position.symbol,
               name: position.name,
               quantity: position.quantity ?? undefined,
               avg_cost: position.avgCost ?? undefined,
               currency: position.currency,
               market: position.market ?? undefined,
-              weight: weightFor(position),
+              weight: weights[index] ?? 0,
             })),
           );
     setPending(false);
@@ -321,7 +334,7 @@ export function PortfolioEditor({
                 min="0"
                 value={form.cost}
                 onChange={(event) => updateField("cost", event.target.value)}
-                placeholder="150,50"
+                placeholder="150.50"
               />
               <div className="flex flex-col gap-1.5">
                 <label htmlFor="currency" className="text-sm font-medium text-ink-900">
@@ -385,7 +398,8 @@ export function PortfolioEditor({
             <div>
               <CardTitle>Posiciones</CardTitle>
               <CardDescription>
-                Valor y P&amp;L por moneda; CLP y USD no se convierten.
+                Valor y P&amp;L por moneda; CLP y USD no se convierten y el peso
+                se calcula dentro de cada moneda.
               </CardDescription>
             </div>
             <Button
@@ -437,9 +451,15 @@ export function PortfolioEditor({
                     <p className="text-[12px] uppercase tracking-wide text-ink-500">
                       Total {total.currency}
                     </p>
-                    <p className="num mt-1 text-[22px] leading-none text-ink-900">
-                      {formatMoney(total.totalValue, total.currency)}
-                    </p>
+                    {total.pricedPositions === 0 ? (
+                      <p className="num mt-1 text-[22px] leading-none text-ink-500">
+                        Sin precios
+                      </p>
+                    ) : (
+                      <p className="num mt-1 text-[22px] leading-none text-ink-900">
+                        {formatMoney(total.totalValue, total.currency)}
+                      </p>
+                    )}
                     <p className={`mt-2 text-[13px] tabular-nums ${pnlClass}`}>
                       {formatMoney(total.pnl, total.currency)} ·{" "}
                       {formatPercent(total.pnlPct, true)}

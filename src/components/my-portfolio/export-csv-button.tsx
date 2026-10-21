@@ -70,7 +70,9 @@ export function ExportCsvButton({
     const anchor = document.createElement("a");
     anchor.href = url;
     anchor.download = "mi-portafolio.csv";
+    document.body.appendChild(anchor);
     anchor.click();
+    anchor.remove();
     URL.revokeObjectURL(url);
   }
 

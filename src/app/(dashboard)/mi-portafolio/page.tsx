@@ -50,6 +50,17 @@ function toMarket(value: string | null | undefined): "US" | "CL" | null {
   return value === "US" || value === "CL" ? value : null;
 }
 
+/** `prices.py` guarda los tickers chilenos con sufijo .SN (Yahoo). */
+function priceSymbolFor(
+  symbol: string,
+  market: "US" | "CL" | null,
+  currency: "USD" | "CLP",
+): string {
+  return (market === "CL" || currency === "CLP") && !symbol.endsWith(".SN")
+    ? `${symbol}.SN`
+    : symbol;
+}
+
 /**
  * Último cierre por símbolo. Se consulta de a 8 en paralelo para no abrir
  * cientos de requests si la cartera es grande. Sin precio se omite: la tabla
@@ -142,20 +153,38 @@ export default async function MyPortfolioPage() {
     }
 
     const rows = (holdings ?? []) as HoldingRow[];
-    const symbols = [...new Set(rows.map((row) => String(row.symbol).toUpperCase()))];
+    const symbols = [
+      ...new Set(
+        rows.flatMap((row) => {
+          const symbol = String(row.symbol).toUpperCase();
+          const candidate = priceSymbolFor(
+            symbol,
+            toMarket(row.market),
+            toCurrency(row.currency),
+          );
+          return candidate === symbol ? [symbol] : [candidate, symbol];
+        }),
+      ),
+    ];
     const prices = await loadLatestPrices(supabase, symbols);
 
     positions = rows.map((row) => {
       const symbol = String(row.symbol).toUpperCase();
-      const price = prices.get(symbol) ?? null;
+      const market = toMarket(row.market);
+      const currency = toCurrency(row.currency);
+      const price =
+        prices.get(priceSymbolFor(symbol, market, currency)) ??
+        prices.get(symbol) ??
+        null;
       return {
         symbol,
         name: row.name ?? "",
         quantity: toNumber(row.quantity),
         avgCost: toNumber(row.avg_cost),
-        currency: toCurrency(row.currency),
-        market: toMarket(row.market),
-        // No se convierte moneda: el cierre se muestra en la de la posición.
+        currency,
+        market,
+        // No se convierte moneda: el cierre se muestra en la moneda de la
+        // posición. Se ignoran las posiciones sin cierre en `prices`.
         price: price?.close ?? null,
         priceDate: price?.date ?? null,
       };

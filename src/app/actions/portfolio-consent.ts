@@ -54,6 +54,7 @@ export async function grantPortfolioConsent(
   }
 
   revalidatePath("/settings");
+  revalidatePath("/mi-portafolio");
   return { success: "Consentimiento guardado." };
 }
 
@@ -89,6 +90,7 @@ export async function withdrawPortfolioConsent(
   }
 
   revalidatePath("/settings");
+  revalidatePath("/mi-portafolio");
   return { success: "Consentimiento retirado. Las alertas automáticas quedaron apagadas." };
 }
 
@@ -123,6 +125,7 @@ export async function deleteMyPortfolio(
 
   revalidatePath("/settings");
   revalidatePath("/compare");
+  revalidatePath("/mi-portafolio");
   const removed = typeof data === "number" && data > 0 ? data : 0;
   return {
     success:
