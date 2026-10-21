@@ -29,6 +29,29 @@ export interface ChatQuota {
   window: ChatQuotaWindow;
 }
 
+/** Origen permitido para cargar posiciones en Mi portafolio. */
+export type PortfolioImportSource = "manual" | "csv" | "cartola" | "cartola_multi";
+/** Profundidad del feed de noticias que tocan la cartera. */
+export type NewsDepth = "direct" | "direct_sector" | "all";
+/** Relación entre una noticia y un ticker. */
+export type NewsRelation = "direct" | "sector" | "supplier" | "competitor" | "macro";
+/** Alertas automáticas de Mi portafolio. */
+export type AutoAlertsMode = "none" | "daily_digest" | "realtime";
+
+/** Límites efectivos de Mi portafolio (la prueba vigente usa los de Pro). */
+export interface PortfolioLimits {
+  /** Plan efectivo después de aplicar la prueba. */
+  plan: Plan;
+  maxPositions: number;
+  importSources: PortfolioImportSource[];
+  newsDepth: NewsDepth;
+  newsDelayHours: number;
+  newsRelations: NewsRelation[];
+  autoAlerts: AutoAlertsMode;
+  autoAlertsMaxPerDay: number;
+  exportCsv: boolean;
+}
+
 export interface PlanConfig {
   id: Plan;
   /** Nombre visible: "Gratis" | "Pro" | "Elite". */
@@ -51,6 +74,20 @@ export interface PlanConfig {
   alertChannels: AlertChannelValue[];
   /** Exportación CSV (Elite). */
   exportCsv: boolean;
+  /** Tope de posiciones en Mi portafolio. */
+  portfolioMaxPositions: number;
+  /** Orígenes de carga habilitados (manual, CSV, cartola). */
+  portfolioImport: PortfolioImportSource[];
+  /** Profundidad del feed de noticias que tocan la cartera. */
+  newsDepth: NewsDepth;
+  /** Horas de retraso del feed (Gratis ve las noticias con 24 h). */
+  newsDelayHours: number;
+  /** Alertas automáticas de Mi portafolio. */
+  autoAlerts: AutoAlertsMode;
+  /** Tope diario de alertas automáticas (0 = no aplica). */
+  autoAlertsMaxPerDay: number;
+  /** Exportación CSV de Mi portafolio (solo Elite). */
+  portfolioExportCsv: boolean;
   /** Bullets de la página de precios. */
   features: string[];
 }
@@ -99,6 +136,13 @@ export const PLANS: Record<Plan, PlanConfig> = {
       alertFrequencies: ["daily", "weekly"],
       alertChannels: ["email"],
       exportCsv: false,
+      portfolioMaxPositions: 10,
+      portfolioImport: ["manual", "csv"],
+      newsDepth: "direct",
+      newsDelayHours: 24,
+      autoAlerts: "none",
+      autoAlertsMaxPerDay: 0,
+      portfolioExportCsv: false,
       features: [
         "Seguir hasta 2 portafolios públicos",
         "Alertas por email con resumen diario",
@@ -115,6 +159,13 @@ export const PLANS: Record<Plan, PlanConfig> = {
       alertFrequencies: ["realtime", "daily", "weekly"],
       alertChannels: ["email", "telegram"],
       exportCsv: false,
+      portfolioMaxPositions: 50,
+      portfolioImport: ["manual", "csv", "cartola"],
+      newsDepth: "direct_sector",
+      newsDelayHours: 0,
+      autoAlerts: "daily_digest",
+      autoAlertsMaxPerDay: 1,
+      portfolioExportCsv: false,
       features: [
         "Seguir hasta 15 portafolios (Políticos EE.UU. y Corredoras Chile)",
         "Alertas en tiempo real apenas se publica el filing",
@@ -133,6 +184,13 @@ export const PLANS: Record<Plan, PlanConfig> = {
       alertFrequencies: ["realtime", "daily", "weekly"],
       alertChannels: ["email", "telegram"],
       exportCsv: true,
+      portfolioMaxPositions: 200,
+      portfolioImport: ["manual", "csv", "cartola", "cartola_multi"],
+      newsDepth: "all",
+      newsDelayHours: 0,
+      autoAlerts: "realtime",
+      autoAlertsMaxPerDay: 20,
+      portfolioExportCsv: true,
       features: [
         "Portafolios ilimitados en todas las categorías",
         "Acceso total a Fondos 13F Institucionales, Soberanos y Tesis AI",
@@ -198,7 +256,74 @@ export function isTrialPro(
   return !isPaidPlan(plan) && isInTrial(trialEndsAt, now);
 }
 
-/** ¿Puede recibir alertas en tiempo real? Pro, Elite o durante la prueba. */
+/** Relaciones de noticia que habilita cada profundidad (orden estable). */
+export const NEWS_RELATIONS_BY_DEPTH: Record<NewsDepth, readonly NewsRelation[]> = {
+  direct: ["direct"],
+  direct_sector: ["direct", "sector"],
+  all: ["direct", "sector", "supplier", "competitor", "macro"],
+};
+
+/** Plan efectivo: la prueba vigente de un plan gratis se trata como Pro. */
+function effectivePlan(
+  plan?: string | null,
+  trialEndsAt?: string | null,
+  now: number = Date.now(),
+): Plan {
+  return isTrialPro(plan, trialEndsAt, now) ? TRIAL_PLAN : getPlan(plan).id;
+}
+
+/**
+ * Límites de Mi portafolio por plan. Sin plan o con un valor desconocido cae
+ * a Gratis; Gratis con prueba vigente usa los límites de Pro.
+ */
+export function portfolioLimitsFor(
+  plan?: string | null,
+  trialEndsAt?: string | null,
+  now: number = Date.now(),
+): PortfolioLimits {
+  const effective = effectivePlan(plan, trialEndsAt, now);
+  const config = getPlan(effective);
+  return {
+    plan: effective,
+    maxPositions: config.portfolioMaxPositions,
+    importSources: [...config.portfolioImport],
+    newsDepth: config.newsDepth,
+    newsDelayHours: config.newsDelayHours,
+    newsRelations: [...NEWS_RELATIONS_BY_DEPTH[config.newsDepth]],
+    autoAlerts: config.autoAlerts,
+    autoAlertsMaxPerDay: config.autoAlertsMaxPerDay,
+    exportCsv: config.portfolioExportCsv,
+  };
+}
+
+/**
+ * ¿Caben `adding` posiciones nuevas sobre `current`? Los valores inválidos o
+ * negativos se tratan como 0. La prueba vigente usa el tope de Pro.
+ */
+export function canAddPositions(
+  plan?: string | null,
+  current: number = 0,
+  adding: number = 0,
+  trialEndsAt?: string | null,
+  now: number = Date.now(),
+): boolean {
+  const limit = portfolioLimitsFor(plan, trialEndsAt, now).maxPositions;
+  const used = Number.isFinite(current) ? Math.max(0, Math.floor(current)) : 0;
+  const incoming = Number.isFinite(adding) ? Math.max(0, Math.floor(adding)) : 0;
+  return used + incoming <= limit;
+}
+
+/** Relaciones de noticia disponibles según plan y prueba. */
+export function newsRelationsFor(
+  plan?: string | null,
+  trialEndsAt?: string | null,
+  now: number = Date.now(),
+): NewsRelation[] {
+  const effective = effectivePlan(plan, trialEndsAt, now);
+  return [...NEWS_RELATIONS_BY_DEPTH[getPlan(effective).newsDepth]];
+}
+
+
 export function canUseRealtime(
   plan?: string | null,
   trialEndsAt?: string | null,
