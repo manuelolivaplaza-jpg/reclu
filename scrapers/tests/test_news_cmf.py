@@ -309,6 +309,17 @@ def test_preview_con_json_local_no_toca_la_base() -> None:
     assert resumen["tickers"] == 1
 
 
+def test_cli_dry_run_no_abre_supabase(monkeypatch: pytest.MonkeyPatch) -> None:
+    import news_cmf
+
+    def _no_db() -> Any:
+        raise AssertionError("--dry-run no debe abrir Supabase")
+
+    monkeypatch.setattr(news_cmf, "_db", _no_db)
+
+    assert news_cmf.main(["--dry-run"]) == 0
+
+
 # --------------------------------------------------------------------------
 # Etapa
 # --------------------------------------------------------------------------

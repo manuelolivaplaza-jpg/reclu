@@ -432,6 +432,12 @@ def main(argv: list[str] | None = None) -> int:
         print(CmfNewsAdapter(dry_run=True, limit=args.limit).run())
         return 0
 
+    if not news_enabled():
+        print(
+            f"[{SOURCE}] apagado: define NEWS_IMPACT_ENABLED=true para escribir"
+        )
+        return 0
+
     adapter = CmfNewsAdapter(dry_run=False, limit=args.limit)
     print(adapter.run(_db()))
     return 0
