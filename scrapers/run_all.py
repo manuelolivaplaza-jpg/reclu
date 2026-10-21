@@ -199,12 +199,25 @@ def run_etfs(db, dry_run: bool) -> list[dict]:
 
 
 def run_prices(db, dry_run: bool) -> list[dict]:
-    import os
+    from prices import collect_price_symbols, refresh_all, user_holdings_prices_enabled
 
-    from prices import DEFAULT_SYMBOLS, refresh_all
+    read_db = db
+    if read_db is None and dry_run and user_holdings_prices_enabled():
+        # Dry-run: lectura (no escritura) solo para contar los símbolos que
+        # aportarían las tenencias de usuarios al basket de precios.
+        from base import get_db
 
-    env = os.environ.get("PRICE_SYMBOLS", "")
-    symbols = env.split(",") if env else list(DEFAULT_SYMBOLS)
+        try:
+            read_db = get_db()
+        except Exception as e:  # noqa: BLE001 - sin DB el dry-run sigue
+            log(f"[prices] WARNING user_holdings: {e}")
+
+    symbols, added = collect_price_symbols(read_db)
+    if dry_run and user_holdings_prices_enabled():
+        log(
+            f"[prices] DRY-RUN: {added} símbolos de user_holdings se "
+            f"agregarían ({len(symbols)} símbolos en total)"
+        )
     summary = refresh_all(db, symbols, dry_run=dry_run)
     return [{"source": "prices", "status": "ok", **summary}]
 
