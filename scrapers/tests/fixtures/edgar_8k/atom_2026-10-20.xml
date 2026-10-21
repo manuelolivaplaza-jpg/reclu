@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="ISO-8859-1" ?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Latest Filings - Tue, 20 Oct 2026 16:35:00 EDT</title>
+  <updated>2026-10-20T20:35:00-04:00</updated>
+  <entry>
+    <title>8-K - APPLE INC (0000320193) (Filer)</title>
+    <link rel="alternate" type="text/html" href="https://www.sec.gov/Archives/edgar/data/320193/000032019326000123/0000320193-26-000123-index.htm"/>
+    <summary>Filed: 2026-10-20 AccNo: 0000320193-26-000123 Size: 1 MB</summary>
+    <updated>2026-10-20T16:30:00-04:00</updated>
+    <id>urn:tag:sec.gov,2008:accession-number=0000320193-26-000123</id>
+    <category scheme="https://www.sec.gov/" label="form type" term="8-K"/>
+  </entry>
+  <entry>
+    <title>8-K - COCA COLA CO (0000021344) (Filer)</title>
+    <link rel="alternate" type="text/html" href="https://www.sec.gov/Archives/edgar/data/21344/000002134426000045/0000021344-26-000045-index.htm"/>
+    <summary>Filed: 2026-10-20 AccNo: 0000021344-26-000045 Size: 2 MB</summary>
+    <updated>2026-10-20T15:10:00-04:00</updated>
+    <id>urn:tag:sec.gov,2008:accession-number=0000021344-26-000045</id>
+    <category scheme="https://www.sec.gov/" label="form type" term="8-K"/>
+  </entry>
+  <entry>
+    <title>8-K/A - MICROSOFT CORP (0000789019) (Filer)</title>
+    <link rel="alternate" type="text/html" href="https://www.sec.gov/Archives/edgar/data/789019/000078901926000067/0000789019-26-000067-index.htm"/>
+    <summary>Filed: 2026-10-20 AccNo: 0000789019-26-000067 Size: 3 MB</summary>
+    <updated>2026-10-19T18:45:00-04:00</updated>
+    <id>urn:tag:sec.gov,2008:accession-number=0000789019-26-000067</id>
+    <category scheme="https://www.sec.gov/" label="form type" term="8-K/A"/>
+  </entry>
+  <entry>
+    <title>10-Q - TESLA INC (0001318605) (Filer)</title>
+    <link rel="alternate" type="text/html" href="https://www.sec.gov/Archives/edgar/data/1318605/000162828026000999/0001628280-26-000999-index.htm"/>
+    <summary>Filed: 2026-10-20 AccNo: 0001628280-26-000999 Size: 8 MB</summary>
+    <updated>2026-10-20T14:00:00-04:00</updated>
+    <id>urn:tag:sec.gov,2008:accession-number=0001628280-26-000999</id>
+    <category scheme="https://www.sec.gov/" label="form type" term="10-Q"/>
+  </entry>
+  <entry>
+    <title>8-K - EMPRESA SIN TICKER SA (0009999999) (Filer)</title>
+    <link rel="alternate" type="text/html" href="https://www.sec.gov/Archives/edgar/data/9999999/000099999926000001/0000999999-26-000001-index.htm"/>
+    <summary>Filed: 2026-10-20 AccNo: 0000999999-26-000001 Size: 1 MB</summary>
+    <updated>2026-10-20T13:05:00-04:00</updated>
+    <id>urn:tag:sec.gov,2008:accession-number=0000999999-26-000001</id>
+    <category scheme="https://www.sec.gov/" label="form type" term="8-K"/>
+  </entry>
+</feed>
