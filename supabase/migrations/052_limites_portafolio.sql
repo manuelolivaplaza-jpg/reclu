@@ -71,6 +71,15 @@ begin
   from public.user_holdings
   where user_id = new.user_id;
 
+  -- Un upsert de un simbolo que ya existe no suma posiciones: on conflict
+  -- dispara este trigger BEFORE INSERT igual, asi que no se cuenta.
+  if exists (
+    select 1 from public.user_holdings
+    where user_id = new.user_id and symbol = new.symbol
+  ) then
+    return new;
+  end if;
+
   if v_count >= v_limit then
     raise exception 'Alcanzaste el límite de posiciones de tu plan (% posiciones).', v_limit;
   end if;
@@ -82,6 +91,11 @@ $$;
 -- No se revoca EXECUTE: es una función de trigger (igual que
 -- enforce_alert_rule_limits y enforce_follow_limits). Llamarla por SQL
 -- falla con "trigger functions can only be called as triggers".
+
+-- Una posicion por simbolo y usuario: base del upsert de F60
+-- (on conflict (user_id, symbol)). Falla si ya hay duplicados: limpiarlos antes.
+create unique index if not exists user_holdings_user_symbol_key
+  on public.user_holdings (user_id, symbol);
 
 drop trigger if exists enforce_user_holdings_limit on public.user_holdings;
 create trigger enforce_user_holdings_limit
