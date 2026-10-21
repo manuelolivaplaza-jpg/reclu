@@ -83,6 +83,34 @@ function completionContent(data: unknown): string {
 }
 
 /**
+ * Código de error del proveedor, sin el resto del cuerpo.
+ *
+ * F80: el cuerpo de la respuesta de OpenRouter puede traer detalle interno
+ * (mensajes del proveedor, ids de request, etc.). Solo se extrae un código
+ * corto y saneado; el resto nunca se registra ni se devuelve.
+ */
+function providerErrorCode(bodyText: string): string {
+  const fallback = "desconocido";
+  try {
+    const parsed = JSON.parse(bodyText) as {
+      error?: { code?: unknown } | string;
+      code?: unknown;
+    };
+    const raw =
+      typeof parsed.error === "object" && parsed.error !== null
+        ? parsed.error.code
+        : typeof parsed.error === "string"
+          ? parsed.error
+          : parsed.code;
+    if (typeof raw !== "string") return fallback;
+    const clean = raw.replace(/[^A-Za-z0-9._-]/g, "").slice(0, 40);
+    return clean || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+/**
  * Manda la imagen (en base64) al modelo de visión y devuelve el texto crudo.
  *
  * La imagen viaja solo en el cuerpo de la petición: no se escribe en disco,
@@ -117,8 +145,15 @@ export async function callVisionModel(input: {
   }
 
   if (!upstream.ok) {
-    // Solo el status: el cuerpo del proveedor puede traer detalle interno.
-    console.warn("[reclu] vision OpenRouter:", upstream.status);
+    // F80: solo el status y el código del proveedor. El cuerpo de la
+    // respuesta NO se registra: puede traer detalle interno del proveedor.
+    let code = "desconocido";
+    try {
+      code = providerErrorCode(await upstream.text());
+    } catch {
+      // Cuerpo ilegible: se queda el código por defecto.
+    }
+    console.warn("[reclu] vision OpenRouter:", upstream.status, code);
     return {
       ok: false,
       status: 502,

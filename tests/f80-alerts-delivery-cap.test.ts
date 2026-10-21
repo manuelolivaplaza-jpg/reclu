@@ -246,7 +246,9 @@ describe("F80: tope global de entregas por corrida", () => {
     await POST(request());
 
     const text = consoleWarn.mock.calls
-      .map((call) => call.map((value) => String(value)).join(" "))
+      .map((call: unknown[]) =>
+        call.map((value: unknown) => String(value)).join(" "),
+      )
       .join("\n");
 
     expect(text).toContain("40");
