@@ -229,9 +229,23 @@ describe("POST /api/impact: acceso y consentimiento", () => {
       body: { error: "Alcanzaste las 5 preguntas de hoy." },
     });
 
-    const res = await post({ newsId: NEWS_ID });
+    const res = await post({ newsId: NEWS_ID, question: "¿Qué cambia?" });
 
     expect(res.status).toBe(429);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("sin pregunta no descuenta cupo: el análisis cacheado se ve aunque el cupo esté agotado", async () => {
+    mocks.enforceSignedInQuota.mockResolvedValue({
+      ok: false,
+      status: 429,
+      body: { error: "Alcanzaste las 5 preguntas de hoy." },
+    });
+
+    const res = await post({ newsId: NEWS_ID });
+
+    expect(res.status).toBe(200);
+    expect(mocks.enforceSignedInQuota).not.toHaveBeenCalled();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -252,7 +266,7 @@ describe("POST /api/impact: camino sin LLM", () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(mocks.enforceSignedInQuota).toHaveBeenCalledWith(USER_ID);
+    expect(mocks.enforceSignedInQuota).not.toHaveBeenCalled();
 
     expect(body.exposurePct).toBe(25);
     expect(body.answer).toBeNull();
@@ -300,6 +314,8 @@ describe("POST /api/impact: camino con LLM", () => {
 
     expect(res.status).toBe(200);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(mocks.enforceSignedInQuota).toHaveBeenCalledTimes(1);
+    expect(mocks.enforceSignedInQuota).toHaveBeenCalledWith(USER_ID);
     expect(body.answer).toBe("La noticia describe un cambio de directivos.");
     expect(body.disclaimer).toBe(AI_DISCLAIMER);
   });

@@ -208,13 +208,18 @@ export async function POST(request: Request) {
     return llmUnavailableResponse(config.missing);
   }
 
-  // 5. Cupo del asistente: cada consulta cuesta 1.
-  const quota = await enforceSignedInQuota(user.id);
-  if (!quota.ok) {
-    return Response.json(quota.body, {
-      status: quota.status,
-      headers: { "Cache-Control": "no-store" },
-    });
+  // 5. Cupo del asistente: solo la pregunta libre (que llama al LLM)
+  //    descuenta 1. Abrir el panel y ver el análisis cacheado es gratis.
+  let quotaHeaders: Record<string, string> = {};
+  if (question) {
+    const quota = await enforceSignedInQuota(user.id);
+    if (!quota.ok) {
+      return Response.json(quota.body, {
+        status: quota.status,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
+    quotaHeaders = { ...quota.headers };
   }
 
   // 6. Cruce noticia × cartera SIN LLM.
@@ -328,7 +333,7 @@ export async function POST(request: Request) {
     },
     {
       headers: {
-        ...quota.headers,
+        ...quotaHeaders,
         "Cache-Control": "no-store",
       },
     },
