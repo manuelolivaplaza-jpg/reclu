@@ -15,6 +15,23 @@
  *   el esquema (símbolo y, opcionalmente, cantidad, monto, peso y moneda).
  */
 import { z } from "zod";
+import {
+  DETECTED_SYMBOL_PATTERN,
+  parseDetectedNumber,
+  type DetectedMode,
+  type DetectedPosition,
+} from "@/lib/portfolio-image-rows";
+
+// Los tipos y las conversiones viven en `portfolio-image-rows.ts` para que el
+// navegador no cargue zod. Se reexportan aquí para no romper los imports.
+export {
+  DETECTED_SYMBOL_PATTERN,
+  parseDetectedNumber,
+  toEditableRows,
+  toWeightRows,
+  type DetectedMode,
+  type DetectedPosition,
+} from "@/lib/portfolio-image-rows";
 
 /** Tope de tamaño de la imagen (4 MB). */
 export const MAX_IMAGE_BYTES = 4 * 1024 * 1024;
@@ -24,18 +41,6 @@ export const MAX_DETECTED_POSITIONS = 200;
 
 /** Formatos aceptados (detectados por magic bytes, no por extensión). */
 export type ImageMime = "image/png" | "image/jpeg" | "image/webp";
-
-/** Campo detectado que describe la posición. */
-export type DetectedMode = "quantity" | "amount" | "weight" | "mixed" | "symbol";
-
-/** Posición detectada en la imagen, ya validada. */
-export interface DetectedPosition {
-  symbol: string;
-  quantity: number | null;
-  amount: number | null;
-  weight: number | null;
-  currency: "USD" | "CLP" | null;
-}
 
 /* ------------------------------------------------------------------ */
 /* Magic bytes                                                         */
@@ -128,9 +133,6 @@ const rawPositionSchema = z.object({
   currency: z.union([z.string(), z.number()]).optional(),
 });
 
-/** Símbolo estricto: mayúsculas, dígitos, punto y guion (SQM-B, BRK.B). */
-export const DETECTED_SYMBOL_PATTERN = /^[A-Z0-9][A-Z0-9.\-]{0,19}$/;
-
 /**
  * Marcas de prompt injection dentro de la respuesta del modelo.
  * Si aparecen, la respuesta se descarta completa.
@@ -152,43 +154,6 @@ const INJECTION_PATTERNS: RegExp[] = [
 /** true si el texto trae una marca de instrucción inyectada. */
 export function hasInjectionMarker(text: string): boolean {
   return INJECTION_PATTERNS.some((pattern) => pattern.test(text));
-}
-
-/**
- * Convierte un número del modelo a número usable.
- * Acepta "1.234,56" (chileno), "1,234.56" (anglosajón) y "12 345".
- */
-export function parseDetectedNumber(raw: unknown): number | null {
-  if (typeof raw === "number") {
-    return Number.isFinite(raw) ? raw : null;
-  }
-  if (typeof raw !== "string") return null;
-  let text = raw.trim();
-  if (!text) return null;
-  text = text.replace(/\s/g, "").replace(/[^\d.,+-]/g, "");
-  if (!text) return null;
-
-  const lastComma = text.lastIndexOf(",");
-  const lastDot = text.lastIndexOf(".");
-  if (lastComma !== -1 && lastDot !== -1) {
-    if (lastComma > lastDot) text = text.replace(/\./g, "").replace(",", ".");
-    else text = text.replace(/,/g, "");
-  } else if (lastComma !== -1) {
-    const parts = text.split(",");
-    text =
-      parts.length === 2 && parts[1].length !== 3
-        ? `${parts[0]}.${parts[1]}`
-        : text.replace(/,/g, "");
-  } else if (lastDot !== -1) {
-    const parts = text.split(".");
-    text =
-      parts.length > 2 || (parts.length === 2 && parts[1].length === 3)
-        ? text.replace(/\./g, "")
-        : text;
-  }
-
-  const value = Number(text);
-  return Number.isFinite(value) ? value : null;
 }
 
 function normalizeCurrency(raw: unknown): "USD" | "CLP" | null {
@@ -366,64 +331,4 @@ export function buildVisionRequest(input: {
     temperature: 0,
     max_tokens: 2000,
   };
-}
-
-/* ------------------------------------------------------------------ */
-/* Salida hacia los editores                                           */
-/* ------------------------------------------------------------------ */
-
-/**
- * Convierte las posiciones detectadas a filas de peso relativo (%) para el
- * editor de /compare, que solo guarda pesos.
- *
- * Base: el peso detectado si viene; si no, el monto; si no, la cantidad. Como
- * `user_holdings.weight` es un porcentaje relativo (no el peso real del
- * patrimonio, que exige precios), se normaliza a 100 igual que el CSV.
- */
-export function toWeightRows(
-  positions: DetectedPosition[],
-): Array<{ symbol: string; weight: number }> {
-  const bases = positions.map((position) => {
-    if (position.weight !== null) return position.weight;
-    if (position.amount !== null) return position.amount;
-    if (position.quantity !== null) return position.quantity;
-    return 0;
-  });
-  const total = bases.reduce((sum, base) => sum + base, 0);
-  if (total <= 0) {
-    const equal = positions.length > 0 ? 100 / positions.length : 0;
-    return positions.map((position) => ({
-      symbol: position.symbol,
-      weight: Math.round(equal * 100) / 100,
-    }));
-  }
-  return positions.map((position, index) => ({
-    symbol: position.symbol,
-    weight: Math.round((bases[index] / total) * 10000) / 100,
-  }));
-}
-
-/**
- * Convierte las posiciones detectadas a filas editables de Mi portafolio.
- *
- * `avgCost` solo se completa si la captura trae monto y cantidad (el costo
- * promedio es monto ÷ cantidad). Si no, queda null: no se inventa.
- */
-export function toEditableRows(
-  positions: DetectedPosition[],
-): Array<{
-  symbol: string;
-  quantity: number | null;
-  avgCost: number | null;
-  currency: "USD" | "CLP";
-}> {
-  return positions.map((position) => ({
-    symbol: position.symbol,
-    quantity: position.quantity,
-    avgCost:
-      position.amount !== null && position.quantity !== null && position.quantity > 0
-        ? Math.round((position.amount / position.quantity) * 100) / 100
-        : null,
-    currency: position.currency ?? "USD",
-  }));
 }
