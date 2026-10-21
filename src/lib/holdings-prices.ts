@@ -113,11 +113,16 @@ export async function loadHoldingPrices(
     const results = await Promise.all(
       chunk.map(async (item): Promise<HoldingPrice | null> => {
         const symbol = item.symbol.trim().toUpperCase();
-        for (const candidate of priceSymbolCandidates(
-          symbol,
-          item.market,
-          item.currency,
-        )) {
+        // Se prueban los candidatos declarados y, como respaldo, la versión
+        // `.SN`: los tickers chilenos se guardan en `prices` con ese sufijo
+        // y el usuario puede no saber si es chileno o no.
+        const candidates = [
+          ...priceSymbolCandidates(symbol, item.market, item.currency),
+          ...(symbol.endsWith(CHILE_PRICE_SUFFIX)
+            ? []
+            : [`${symbol}${CHILE_PRICE_SUFFIX}`]),
+        ];
+        for (const candidate of candidates) {
           const { data, error } = (await supabase
             .from("prices")
             .select("symbol, close, currency, date")

@@ -89,6 +89,104 @@ export interface HoldingsEntryOptions {
   fx?: number | null;
 }
 
+/**
+ * Fila de la tabla de posiciones en la UI (F78). Guarda el valor de los tres
+ * modos para que al cambiar de modo no se pierda lo ya tipeado.
+ */
+export interface HoldingEntryDraft {
+  symbol: string;
+  name?: string;
+  /** Modo `percentage`: peso Ingressado (0–100). */
+  percentage?: number | null;
+  /** Modo `shares`: cantidad de acciones. */
+  shares?: number | null;
+  /** Modo `amount`: monto en la moneda del precio. */
+  amount?: number | null;
+  avgCost?: number | null;
+  market?: "US" | "CL" | null;
+  currency?: "USD" | "CLP" | null;
+}
+
+/**
+ * Los tres valores de una posición, uno por modo. El editor los guarda
+ * todos para que cambiar de modo no borre lo tipeado.
+ */
+export type HoldingEntryValues = Record<HoldingEntryMode, number | null>;
+
+/** Valores vacíos de una posición. */
+export function emptyEntryValues(): HoldingEntryValues {
+  return { percentage: null, shares: null, amount: null };
+}
+
+/** El valor de la posición en el modo indicado, o null si no está. */
+export function readEntryValue(
+  values: HoldingEntryValues,
+  mode: HoldingEntryMode,
+): number | null {
+  const value = values[mode];
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : null;
+}
+
+/** Escribe el valor de la posición en el modo indicado. */
+export function writeEntryValue(
+  values: HoldingEntryValues,
+  mode: HoldingEntryMode,
+  value: number | null,
+): HoldingEntryValues {
+  return { ...values, [mode]: value };
+}
+
+/** Valor de la fila en el modo indicado, o null si no está completo. */
+export function draftValueForMode(
+  draft: HoldingEntryDraft,
+  mode: HoldingEntryMode,
+): number | null {
+  const value =
+    mode === "percentage"
+      ? draft.percentage
+      : mode === "shares"
+        ? draft.shares
+        : draft.amount;
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : null;
+}
+
+/** true si la fila tiene valor en el modo indicado. */
+export function draftHasValue(
+  draft: HoldingEntryDraft,
+  mode: HoldingEntryMode,
+): boolean {
+  return draftValueForMode(draft, mode) !== null;
+}
+
+/**
+ * Convierte las filas de la UI a filas del helper. Solo incluye las que
+ * tienen valor en el modo vigente: una posición sin valor en ese modo no se
+ * puede guardar (la UI avisa antes).
+ */
+export function draftsToEntryRows(
+  mode: HoldingEntryMode,
+  drafts: readonly HoldingEntryDraft[],
+): HoldingEntryRow[] {
+  return drafts
+    .filter((draft) => draftHasValue(draft, mode))
+    .map((draft) => ({
+      symbol: draft.symbol,
+      name: draft.name,
+      currency: draft.currency ?? null,
+      market: draft.market ?? null,
+      avg_cost: draft.avgCost ?? null,
+      ...(mode === "percentage"
+        ? { percentage: draft.percentage ?? undefined }
+        : mode === "shares"
+          ? { shares: draft.shares ?? undefined }
+          : { amount: draft.amount ?? undefined }),
+    }));
+}
+
 function isPositive(value: number | null | undefined): value is number {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
