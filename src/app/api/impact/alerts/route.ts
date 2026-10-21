@@ -33,6 +33,7 @@ import {
 } from "@/lib/portfolio-alerts";
 import { isNewsImpactEnabled } from "@/lib/portfolio-flags";
 import { timingSafeEqual } from "@/lib/safe-compare";
+import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
 import { siteUrl } from "@/lib/site";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -69,6 +70,7 @@ interface SettingsRow {
   min_relevance?: unknown;
   alert_channel?: unknown;
   consent_at?: unknown;
+  consent_version?: unknown;
 }
 
 interface ProfileRow {
@@ -336,7 +338,7 @@ export async function POST(request: Request) {
   //    para no depender de que la consulta lo aplique.
   const { data: settingsData, error: settingsError } = await supabase
     .from("user_portfolio_settings")
-    .select("user_id, auto_alerts, min_relevance, alert_channel, consent_at")
+    .select("user_id, auto_alerts, min_relevance, alert_channel, consent_at, consent_version")
     .eq("auto_alerts", true);
 
   if (settingsError) {
@@ -354,7 +356,13 @@ export async function POST(request: Request) {
       autoAlerts: row.auto_alerts === true,
       minRelevance: asNumber(row.min_relevance, 0.5),
       alertChannel: asString(row.alert_channel) || "email",
-      consentAt: asString(row.consent_at) || null,
+      // Solo vale el consentimiento del texto vigente (F75B).
+      consentAt: hasCurrentPortfolioConsent(
+        asString(row.consent_at) || null,
+        asString(row.consent_version) || null,
+      )
+        ? asString(row.consent_at) || null
+        : null,
     }))
     .filter(
       (row) =>

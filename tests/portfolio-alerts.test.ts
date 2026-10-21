@@ -86,6 +86,7 @@ vi.mock("@/lib/supabase/admin", () => {
 });
 
 import { POST } from "@/app/api/impact/alerts/route";
+import { PORTFOLIO_CONSENT_VERSION } from "@/lib/portfolio-consent";
 
 const PRO_ID = "11111111-1111-4111-8111-111111111111";
 const ELITE_ID = "22222222-2222-4222-8222-222222222222";
@@ -147,6 +148,7 @@ function settingsFor(
     min_relevance: 0.3,
     alert_channel: "email",
     consent_at: "2026-10-01T00:00:00.000Z",
+    consent_version: PORTFOLIO_CONSENT_VERSION,
     ...overrides,
   };
 }
@@ -324,6 +326,19 @@ describe("POST /api/impact/alerts", () => {
     expect(json.delivered).toBe(2);
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(state.upserts[0].rows).toHaveLength(2);
+  });
+
+  it("con consentimiento de una version vieja del texto no recibe nada", async () => {
+    state.settings = [settingsFor(PRO_ID, { consent_version: "old-version" })];
+    state.profiles = [userProfile(PRO_ID, "pro")];
+    state.holdings = [holding(PRO_ID)];
+
+    const res = await POST(request());
+    const json = await body(res);
+
+    expect(json.delivered).toBe(0);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(state.upserts).toHaveLength(0);
   });
 
   it("sin consentimiento vigente no recibe nada", async () => {
