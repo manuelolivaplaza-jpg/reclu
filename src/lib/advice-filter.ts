@@ -60,6 +60,16 @@ const ADVICE_TOKENS = new Set([
   "recomienda",
   "recomendamos",
   "recomiendan",
+  // F80: más formas de recomendar en español que se escapaban del filtro.
+  "recomendar",
+  "recomendacion",
+  "recomendaciones",
+  "sugerir",
+  "sugiero",
+  "sugieres",
+  "sugerimos",
+  "sugieren",
+  "conviene",
   // Inglés
   "buy",
   "sell",
@@ -83,6 +93,17 @@ const ADVICE_PHRASES = [
   "would sell",
   "recommend buying",
   "recommend selling",
+  // F80: formas de recomendar que se escapaban del filtro.
+  "te sugiero",
+  "te sugerimos",
+  "les sugiero",
+  "apuesta por",
+  "apuesten por",
+  "podrias considerar",
+  "podria considerar",
+  "es buena idea",
+  "son buena idea",
+  "buena idea para",
 ] as const;
 
 /**
