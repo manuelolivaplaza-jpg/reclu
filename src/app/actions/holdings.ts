@@ -6,6 +6,11 @@ import { userHoldingsSchema } from "@/lib/validation";
 import { canAddPositions, portfolioLimitsFor } from "@/lib/plans";
 import { portfolioConsentErrorMessage } from "@/lib/portfolio-consent";
 import {
+  CSV_SOURCE,
+  DEFAULT_HOLDING_SOURCE,
+  normalizeHoldingSource,
+} from "@/lib/holding-source";
+import {
   MAX_CSV_LENGTH,
   importSymbolsSchema,
   parseHoldingsCsv,
@@ -132,8 +137,21 @@ function logDbError(scope: string, error: { code?: string } | null): void {
  * el usuario quitó. Respeta el tope del plan (F74) y, con
  * MY_PORTFOLIO_ENABLED=true, exige consentimiento explícito (F58).
  * Usa siempre el cliente de sesión para que la RLS aplique.
+ *
+ * F80: `source` indica el origen de la cartera ("manual" por defecto,
+ * "csv" para la importación de archivo, "cartola" para la cartola de la
+ * corredora). Se valida en el servidor contra la lista cerrada: un valor
+ * desconocido se rechaza y nunca se escribe en la base.
  */
-export async function saveUserHoldings(input: unknown) {
+export async function saveUserHoldings(
+  input: unknown,
+  source: unknown = DEFAULT_HOLDING_SOURCE,
+) {
+  const resolvedSource = normalizeHoldingSource(source);
+  if (!resolvedSource) {
+    return { error: "Origen de cartera inválido." };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -222,7 +240,7 @@ export async function saveUserHoldings(input: unknown) {
       currency: holding.currency,
       ...(holding.market ? { market: holding.market } : {}),
       ...(holding.broker ? { broker: holding.broker } : {}),
-      source: "csv" as const,
+      source: resolvedSource,
     })),
     { onConflict: "user_id,symbol" },
   );
@@ -325,7 +343,8 @@ export async function importHoldings(rawCsv: unknown) {
       symbol: row.symbol,
       name: "",
       weight: row.weight,
-      source: "csv" as const,
+      // La importación viene de un archivo: el origen es "csv".
+      source: CSV_SOURCE,
     })),
   );
   if (error) {
