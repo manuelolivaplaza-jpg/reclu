@@ -152,7 +152,6 @@ grant execute on function public.delete_my_portfolio() to authenticated;
 -- drop trigger if exists set_user_portfolio_settings_updated_at
 --   on public.user_portfolio_settings;
 -- drop table if exists public.user_portfolio_settings;
--- revoke all on table public.user_holdings from anon;
 -- alter table public.user_holdings
 --   drop constraint if exists user_holdings_source_check;
 -- alter table public.user_holdings
