@@ -63,16 +63,47 @@ describe("requestImpact", () => {
     expect(url).toBe("/api/impact");
     expect(init.method).toBe("POST");
     expect(JSON.parse(String(init.body))).toEqual({
-      news_id: "news-1",
-      symbol: "AAPL",
+      newsId: "news-1",
       question: "¿qué reviso?",
     });
     expect(result).toEqual({
       status: "ok",
       analysis: ANALYSIS,
+      answer: null,
       cached: true,
       disclaimer: AI_DISCLAIMER,
     });
+  });
+
+  it("entiende la respuesta de F71: matches por ticker y answer libre", async () => {
+    stubFetch(
+      jsonResponse(200, {
+        matches: [
+          { symbol: "MSFT", analysis: null },
+          { symbol: "AAPL", analysis: ANALYSIS },
+        ],
+        answer: "  Revisa la fuente original.  ",
+        disclaimer: AI_DISCLAIMER,
+      }),
+    );
+
+    const result = await requestImpact({ newsId: "news-1", symbol: "aapl", question: "x" });
+
+    expect(result).toEqual({
+      status: "ok",
+      analysis: ANALYSIS,
+      answer: "Revisa la fuente original.",
+      cached: true,
+      disclaimer: AI_DISCLAIMER,
+    });
+  });
+
+  it("con solo answer (sin analisis cacheado) igual responde ok", async () => {
+    stubFetch(jsonResponse(200, { matches: [{ symbol: "AAPL", analysis: null }], answer: "Texto." }));
+
+    const result = await requestImpact({ newsId: "news-1", symbol: "AAPL", question: "x" });
+
+    expect(result).toMatchObject({ status: "ok", analysis: null, answer: "Texto.", cached: false });
   });
 
   it("no manda question si viene vacía", async () => {
@@ -82,8 +113,7 @@ describe("requestImpact", () => {
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(init.body))).toEqual({
-      news_id: "news-1",
-      symbol: "AAPL",
+      newsId: "news-1",
     });
   });
 

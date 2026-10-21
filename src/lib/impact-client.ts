@@ -23,7 +23,10 @@ export interface ImpactRequestInput {
 export type ImpactClientResult =
   | {
       status: "ok";
-      analysis: ImpactAnalysis;
+      /** Análisis genérico precalculado (F70) para el ticker, si existe. */
+      analysis: ImpactAnalysis | null;
+      /** Respuesta libre de la IA a la pregunta (F71), ya filtrada. */
+      answer: string | null;
       cached: boolean;
       /** Descargo fijo §2.2 del informe legal. */
       disclaimer: string;
@@ -78,13 +81,30 @@ interface ImpactResponseBody {
   analisis?: unknown;
   data?: { analysis?: unknown } | null;
   cached?: unknown;
+  /** F71: análisis cacheado por ticker afectado. */
+  matches?: unknown;
+  /** F71: respuesta a la pregunta libre (pasa por sanitizeAdvice). */
+  answer?: unknown;
   disclaimer?: unknown;
   error?: unknown;
 }
 
 /** Extrae el análisis aceptando `analysis`, `analisis` o `{ data: { analysis } }`. */
-function analysisFrom(body: ImpactResponseBody): unknown {
-  return body.analysis ?? body.analisis ?? body.data?.analysis;
+function analysisFrom(body: ImpactResponseBody, symbol: string): unknown {
+  const direct = body.analysis ?? body.analisis ?? body.data?.analysis;
+  if (direct !== undefined && direct !== null) return direct;
+  // F71 responde `matches: [{ symbol, analysis }]`.
+  if (Array.isArray(body.matches)) {
+    const wanted = symbol.trim().toUpperCase();
+    const match = body.matches.find(
+      (m: unknown) =>
+        typeof m === "object" &&
+        m !== null &&
+        String((m as { symbol?: unknown }).symbol ?? "").toUpperCase() === wanted,
+    ) as { analysis?: unknown } | undefined;
+    return match?.analysis;
+  }
+  return undefined;
 }
 
 /**
@@ -102,9 +122,10 @@ export async function requestImpact(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
+      // Contrato de F71: solo el id de la noticia y la pregunta. Las
+      // posiciones las lee el servidor; nunca viajan desde el navegador.
       body: JSON.stringify({
-        news_id: input.newsId,
-        symbol: input.symbol,
+        newsId: input.newsId,
         ...(question.length > 0 ? { question } : {}),
       }),
     });
@@ -143,14 +164,22 @@ export async function requestImpact(
     return { status: "error", message };
   }
 
-  if (!isImpactAnalysis(analysisFrom(body))) {
+  const rawAnalysis = analysisFrom(body, input.symbol);
+  const analysis = isImpactAnalysis(rawAnalysis) ? rawAnalysis : null;
+  const answer =
+    typeof body.answer === "string" && body.answer.trim().length > 0
+      ? body.answer.trim()
+      : null;
+
+  if (!analysis && !answer) {
     return { status: "error", message: IMPACT_EMPTY_ANALYSIS_MESSAGE };
   }
 
   return {
     status: "ok",
-    analysis: analysisFrom(body) as ImpactAnalysis,
-    cached: body.cached === true,
+    analysis,
+    answer,
+    cached: analysis !== null && (body.cached === true || body.analysis === undefined),
     disclaimer:
       typeof body.disclaimer === "string" && body.disclaimer.trim().length > 0
         ? body.disclaimer.trim()

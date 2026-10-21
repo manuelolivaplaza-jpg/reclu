@@ -329,6 +329,13 @@ function ImpactResult({ result }: { result: ImpactClientResult }) {
   const analysis = result.analysis;
   return (
     <div className="flex flex-col gap-4">
+      {result.answer && (
+        <p className="whitespace-pre-line text-[15px] leading-relaxed text-ink-900">
+          {result.answer}
+        </p>
+      )}
+      {analysis && (
+        <>
       <p className="text-[15px] leading-relaxed text-ink-900">
         {analysis.resumen}
       </p>
@@ -373,6 +380,8 @@ function ImpactResult({ result }: { result: ImpactClientResult }) {
           ? "Análisis genérico cacheado para esta noticia y ticker."
           : "Análisis generado para esta noticia y ticker."}
       </p>
+        </>
+      )}
     </div>
   );
 }
