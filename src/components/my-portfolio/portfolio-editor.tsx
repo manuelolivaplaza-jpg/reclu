@@ -44,7 +44,7 @@ interface DraftForm {
 /** Etiqueta del campo principal según el modo de ingreso (F78). */
 const VALUE_LABEL: Record<HoldingEntryMode, string> = {
   shares: "Cantidad de acciones",
-  amount: "Monto",
+  amount: "Monto (USD)",
   percentage: "Peso %",
 };
 
@@ -414,7 +414,7 @@ export function PortfolioEditor({
       {/* Modo de ingreso (F78): un solo modo por cartera */}
       <EntryModeSelector mode={mode} onChange={setMode} disabled={pending} />
 
-      {mode !== "percentage" && (
+      {mode === "shares" && (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="portfolio-fx" className="text-[13px] font-normal text-ink-500">
             Tipo de cambio (CLP por USD) — solo si mezclas USD y CLP

@@ -53,7 +53,7 @@ const SYMBOL_PATTERN = /^[A-Z0-9.\-]{1,20}$/;
 const VALUE_LABEL: Record<HoldingEntryMode, string> = {
   percentage: "Peso %",
   shares: "Cantidad",
-  amount: "Monto",
+  amount: "Monto (USD)",
 };
 
 const VALUE_PLACEHOLDER: Record<HoldingEntryMode, string> = {

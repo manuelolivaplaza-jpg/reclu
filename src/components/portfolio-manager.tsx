@@ -330,8 +330,9 @@ export function PortfolioManager({
           </CardHeader>
           <CardContent>
             <p className="text-[12px] leading-relaxed text-ink-500">
-              Un solo modo por cartera. Si mezclas USD y CLP te pediremos el
-              tipo de cambio (CLP por USD) para no sumar monedas distintas.
+              Un solo modo por cartera. Los montos se ingresan solo en USD; las
+              acciones chilenas van por cantidad de acciones o porcentaje. Si en
+              modo acciones mezclas USD y CLP te pediremos el tipo de cambio.
             </p>
           </CardContent>
         </Card>

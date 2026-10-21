@@ -74,3 +74,7 @@ Preparado el 20-10-2026, actualizado tras F26 y F35. Nada de esto se ha aplicado
   - La imagen no se guarda. Solo PNG, JPEG o WebP de hasta 4 MB. Descuenta 1 del cupo de IA.
 - **M1:** guardar o importar la cartera en `/compare` exige consentimiento vigente, aunque `MY_PORTFOLIO_ENABLED` esté apagado. `/compare` muestra el aviso de consentimiento cuando falta. Los usuarios que ya tienen cartera en `/compare` sin consentimiento pueden verla, pero deben aceptar antes de volver a guardar.
 - **M3:** el botón Borrar de `/compare` llama a `delete_my_portfolio()` y borra todo (posiciones, consentimiento, alertas y auditoría). Requiere la 054 aplicada.
+- **Montos solo en USD (decisión de Manu, 21-oct):** en el modo monto de `/compare`, Mi portafolio y la carga por imagen, el monto es siempre en dólares (etiqueta "Monto (USD)").
+  - Las acciones chilenas (precio en CLP, mercado CL o símbolo `.SN`) no se aceptan por monto: se ingresan por cantidad de acciones o por porcentaje. Así un monto nunca necesita tipo de cambio ni mezcla monedas. La regla se aplica también en el servidor (`saveHoldingsByMode`).
+  - El tipo de cambio solo aparece en modo acciones, cuando la cartera mezcla USD y CLP.
+  - Carga por imagen: si la captura trae montos en CLP u otra moneda, se avisa y no se pueden usar hasta convertirlos a USD, borrarlos o pasar a cantidad o porcentaje.

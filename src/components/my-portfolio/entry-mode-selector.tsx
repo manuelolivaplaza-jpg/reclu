@@ -19,7 +19,7 @@ import {
 
 const MODE_HINTS: Record<HoldingEntryMode, string> = {
   shares: "Ingresa cuántas acciones tienes de cada símbolo.",
-  amount: "Ingresa el monto invertido en cada símbolo, en su moneda.",
+  amount: "Ingresa el monto invertido en cada símbolo, solo en dólares (USD). Las acciones chilenas van por cantidad o porcentaje.",
   percentage: "Ingresa el porcentaje de la cartera de cada símbolo.",
 };
 

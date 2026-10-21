@@ -6,8 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DETECTED_SYMBOL_PATTERN,
-  type DetectedPosition,
-} from "@/lib/portfolio-image-rows";
+  type DetectedPosition, AMOUNT_USD_MESSAGE, amountCurrencyProblems } from "@/lib/portfolio-image-rows";
 
 /**
  * Importación de cartera desde una captura de la corredora (F79).
@@ -32,6 +31,8 @@ interface DraftRow {
   amount: string;
   weight: string;
   currency: "USD" | "CLP" | "";
+  /** El monto detectado no venia en USD: hay que corregirlo. */
+  amountNeedsUsd: boolean;
 }
 
 /** Convierte texto a número: vacío o inválido se guarda como null. */
@@ -49,6 +50,7 @@ function toDraft(position: DetectedPosition): DraftRow {
     amount: position.amount === null ? "" : String(position.amount),
     weight: position.weight === null ? "" : String(position.weight),
     currency: position.currency ?? "",
+    amountNeedsUsd: position.amountNeedsUsd === true,
   };
 }
 
@@ -64,6 +66,7 @@ function fromDraft(row: DraftRow): DetectedPosition | null {
     amount: amount !== null && amount > 0 ? amount : null,
     weight: weight !== null && weight >= 0 && weight <= 100 ? weight : null,
     currency: row.currency === "" ? null : row.currency,
+    ...(row.amountNeedsUsd ? { amountNeedsUsd: true } : {}),
   };
 }
 
@@ -130,6 +133,13 @@ export function PortfolioImageImport({
   }
 
   function updateRow(index: number, key: keyof DraftRow, value: string) {
+    if (key === "amount" || key === "currency") {
+      setRows((current) =>
+        current.map((row, position) =>
+          position === index ? { ...row, amountNeedsUsd: key === "currency" ? value !== "USD" && row.amountNeedsUsd : false } : row,
+        ),
+      );
+    }
     setRows((current) =>
       current.map((row, position) =>
         position === index ? { ...row, [key]: value } : row,
@@ -146,6 +156,15 @@ export function PortfolioImageImport({
     for (const row of rows) {
       const position = fromDraft(row);
       if (position) positions.push(position);
+    }
+    // Montos solo en USD (decision de Manu): se pide corregir antes de usar.
+    const problems = amountCurrencyProblems(positions);
+    if (problems.length > 0) {
+      setMessage({
+        type: "error",
+        text: `${AMOUNT_USD_MESSAGE} ${problems.join(", ")} (o usa cantidad o porcentaje).`,
+      });
+      return;
     }
     if (positions.length === 0) {
       setMessage({
@@ -222,7 +241,7 @@ export function PortfolioImageImport({
                   <tr className="border-b border-ink-200 text-left text-xs font-semibold uppercase tracking-wide text-ink-500">
                     <th className="pb-2">Símbolo</th>
                     <th className="pb-2">Cantidad</th>
-                    <th className="pb-2">Monto</th>
+                    <th className="pb-2">Monto (USD)</th>
                     <th className="pb-2">Peso %</th>
                     <th className="pb-2">Moneda</th>
                     <th className="pb-2"></th>
