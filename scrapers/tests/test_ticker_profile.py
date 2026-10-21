@@ -184,7 +184,9 @@ def test_run_hace_upsert_por_symbol_y_reporta_faltantes() -> None:
 
     assert summary["written"] == len(PROFILES)
     assert summary["user_symbols"] == 4
-    assert summary["missing"] == ["BABA"]
+    # F80: el summary lleva el conteo, no la lista de tickers.
+    assert summary["missing_count"] == 1
+    assert "missing" not in summary
     assert db.selects == [("user_holdings", "symbol")]
 
     written = [row for _table, batch, _conflict in db.upserts for row in batch]
