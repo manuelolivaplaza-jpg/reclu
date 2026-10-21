@@ -276,13 +276,15 @@ async function sendTelegram(token: string, chatId: string, text: string): Promis
 // ---- Job ----
 
 export async function POST(request: Request) {
-  const denied = checkAuth(request);
-  if (denied) return denied;
-
-  // Bandera legal/funcional: apagada por defecto.
+  // F80: la bandera va PRIMERO. Con la función apagada se responde 404
+  // aunque falte CRON_SECRET: así no se revela que el job existe ni se
+  // distingue "falta el secreto" de "no hay autorización".
   if (!isNewsImpactEnabled()) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
+
+  const denied = checkAuth(request);
+  if (denied) return denied;
 
   const supabase = createAdminClient();
   if (!supabase) {
