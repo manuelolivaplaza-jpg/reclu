@@ -29,7 +29,7 @@ export async function grantPortfolioConsent(
   formData: FormData,
 ): Promise<FormState> {
   void _prev;
-  if (!isMyPortfolioEnabled()) return DISABLED;
+  // M1: /compare tambien pide consentimiento, con o sin MY_PORTFOLIO_ENABLED.
 
   const supabase = await createClient();
   const {
@@ -58,6 +58,7 @@ export async function grantPortfolioConsent(
 
   revalidatePath("/settings");
   revalidatePath("/mi-portafolio");
+  revalidatePath("/compare");
   return { success: "Consentimiento guardado." };
 }
 
@@ -125,7 +126,7 @@ export async function deleteMyPortfolio(
   formData: FormData,
 ): Promise<FormState> {
   void _prev;
-  if (!isMyPortfolioEnabled()) return DISABLED;
+  // Borrar siempre esta permitido (derecho de supresion), con o sin flag.
 
   const supabase = await createClient();
   const {

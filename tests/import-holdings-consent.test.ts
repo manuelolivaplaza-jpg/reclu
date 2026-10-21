@@ -109,14 +109,14 @@ describe("importHoldings: consentimiento", () => {
     expect(mocks.insert).toHaveBeenCalledTimes(1);
   });
 
-  it("con el flag apagado no consulta el consentimiento", async () => {
+  it("M1: con el flag apagado (/compare) tambien exige consentimiento", async () => {
     delete process.env.MY_PORTFOLIO_ENABLED;
 
     const result = await importHoldings(CSV);
 
-    expect(result.error).toBeUndefined();
-    expect(mocks.maybeSingle).not.toHaveBeenCalled();
-    expect(mocks.insert).toHaveBeenCalledTimes(1);
+    expect(result.error).toMatch(/consentimiento/i);
+    expect(mocks.deleteFn).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
   });
 });
 
