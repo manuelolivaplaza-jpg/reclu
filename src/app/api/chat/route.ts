@@ -9,14 +9,17 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { enforceAnonQuota, enforceSignedInQuota, portfolioSystemContext } from "@/lib/chat-guard";
+import { filterChatAdvice } from "@/lib/chat-advice";
 import { chatRequestSchema, firstZodMessage } from "@/lib/validation";
 import { llmConfig, llmUnavailableResponse, streamChat } from "@/lib/llm";
 
-const SYSTEM_PROMPT = `Eres el asistente de reclu.cl, experto en inversiones y en los portafolios de la plataforma: políticos del Congreso de EE.UU., hedge funds 13F (como Warren Buffett y Michael Burry), ETFs de ARK y corredoras chilenas como Renta 4.
+const SYSTEM_PROMPT = `Eres el asistente de reclu.cl: explicas datos públicos sobre portafolios de políticos del Congreso de EE.UU., hedge funds 13F (como Warren Buffett y Michael Burry), ETFs de ARK y corredoras chilenas como Renta 4.
+
+No eres experto en inversiones ni entregas asesoría. Describes información pública y sus fuentes para que cada persona decida por su cuenta: no das recomendaciones de compra, venta ni mantención, ni sugieres cuánto invertir en un instrumento.
 
 Respondes en español de Chile, con tono profesional y conciso, en un máximo de 3 párrafos.
 
-Entregas información con fines informativos. Nunca das consejos de inversión personalizados. Si la pregunta roza la asesoría —qué comprar, vender o cuánto poner en un instrumento— declínalo con elegancia y recuerda que reclu.cl muestra datos públicos para que cada persona decida por su cuenta.`;
+Si la pregunta pide una recomendación —qué comprar, vender, mantener o cuánto poner en un instrumento— declínalo con elegancia y recuerda que reclu.cl muestra datos públicos para que cada persona decida por su cuenta.`;
 
 type ChatRole = "user" | "assistant";
 type ServerSupabase = Awaited<ReturnType<typeof createClient>>;
@@ -33,62 +36,10 @@ function latestUserContent(messages: ChatMessage[]): string | null {
   return null;
 }
 
-/** Pulls `delta.content` out of one OpenRouter SSE line. Incomplete lines yield "". */
-function deltaFromSseLine(line: string): string {
-  const trimmed = line.trim();
-  if (!trimmed.startsWith("data:")) return "";
-  const payload = trimmed.slice(5).trim();
-  if (!payload || payload === "[DONE]") return "";
-
-  try {
-    const parsed: unknown = JSON.parse(payload);
-    if (!parsed || typeof parsed !== "object") return "";
-    const choices = (parsed as { choices?: unknown }).choices;
-    if (!Array.isArray(choices) || choices.length === 0) return "";
-    const first: unknown = choices[0];
-    if (!first || typeof first !== "object") return "";
-    const delta = (first as { delta?: unknown }).delta;
-    if (!delta || typeof delta !== "object") return "";
-    const content = (delta as { content?: unknown }).content;
-    return typeof content === "string" ? content : "";
-  } catch {
-    return "";
-  }
-}
-
 /**
- * Forwards the upstream SSE bytes and, when the stream closes, stores the
- * accumulated assistant text.
+ * Persists the assistant reply once the filtered stream finishes. The stored
+ * text never includes the disclaimer: the UI renders it under every answer.
  */
-function createAssistantCapture(
-  onDone: (content: string) => Promise<void>,
-): TransformStream<Uint8Array, Uint8Array> {
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let assistant = "";
-
-  return new TransformStream<Uint8Array, Uint8Array>({
-    transform(chunk, controller) {
-      controller.enqueue(chunk);
-      buffer += decoder.decode(chunk, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop() ?? "";
-      for (const line of lines) assistant += deltaFromSseLine(line);
-    },
-    async flush() {
-      buffer += decoder.decode();
-      if (buffer) assistant += deltaFromSseLine(buffer);
-      const content = assistant.trim();
-      if (!content) return;
-      try {
-        await onDone(content);
-      } catch (error) {
-        console.warn("[reclu] assistant message insert failed:", error);
-      }
-    },
-  });
-}
-
 async function insertChatMessage(
   supabase: ServerSupabase,
   userId: string,
@@ -168,13 +119,15 @@ export async function POST(request: Request) {
     return Response.json({ error: result.error }, { status: result.status });
   }
 
-  const responseBody = user
-    ? result.stream.pipeThrough(
-        createAssistantCapture((content) =>
-          insertChatMessage(supabase, user.id, "assistant", content),
-        ),
-      )
-    : result.stream;
+  // F69B: el texto del modelo pasa por el filtro de recomendaciones antes de
+  // salir por SSE. Si aparece una recomendación se corta y se reemplaza; en
+  // toda respuesta se emite el descargo como evento aparte.
+  const responseBody = filterChatAdvice(result.stream, {
+    route: "/api/chat",
+    onComplete: user
+      ? (content) => insertChatMessage(supabase, user.id, "assistant", content)
+      : undefined,
+  });
 
   return new Response(responseBody, { headers: streamHeaders });
 }
