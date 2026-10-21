@@ -91,3 +91,13 @@ Todo el código nuevo queda detrás de `MY_PORTFOLIO_ENABLED=true` (exacto).
    ejecuta la RPC.
 7. `/privacidad` y `/disclaimer` muestran las secciones Mi portafolio e IA con el
    aviso de borrador.
+
+## Actualización F75B — versión del consentimiento y retiro con borrado
+
+Ver `NOTAS-F75B.md` para el detalle. Resumen: `user_portfolio_settings.consent_version`
+(obligatoria cuando hay `consent_at`), texto de la §2.5 con
+`PORTFOLIO_CONSENT_VERSION = "2026-10-20.v1"`, bloqueo de `saveUserHoldings` e
+`importHoldings` si falta consentimiento o la versión quedó atrás, y retiro que
+llama a `delete_my_portfolio()` y deja ambas columnas en null. La casilla sigue
+sin marcar por defecto. Tests: 854/854, lint OK, typecheck solo con el error
+conocido de `LayoutProps`.
