@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
+import { PAYMENTS_UNAVAILABLE_MESSAGE } from "@/lib/billing/messages";
 import type { Plan } from "@/lib/types";
 
 export type UpgradePlanChoice = "pro" | "elite";
@@ -18,6 +19,12 @@ export interface UpgradeCheckoutProps {
   userEmail?: string;
   /** Proveedor activo (server): muestra aviso "modo prueba" si es mock. */
   isTestMode?: boolean;
+  /**
+   * False cuando el proveedor de pagos no está configurado (F82).
+   * La página se sigue mostrando (planes y precios), pero se avisa y el
+   * botón de pago queda deshabilitado.
+   */
+  paymentsAvailable?: boolean;
 }
 
 const PLAN_DETAILS: Record<
@@ -89,6 +96,7 @@ export function UpgradeCheckout({
   initialBilling = "monthly",
   userEmail = "",
   isTestMode = false,
+  paymentsAvailable = true,
 }: UpgradeCheckoutProps) {
   const [selectedPlan, setSelectedPlan] = useState<UpgradePlanChoice>(initialSelectedPlan);
   const [billing, setBilling] = useState<BillingCycle>(initialBilling);
@@ -103,6 +111,12 @@ export function UpgradeCheckout({
 
   async function handleActivate(e: React.FormEvent) {
     e.preventDefault();
+    // Sin proveedor de pagos no hay checkout: se avisa y no se llama al API.
+    if (!paymentsAvailable) {
+      setError(PAYMENTS_UNAVAILABLE_MESSAGE);
+      setSubmitting(false);
+      return;
+    }
     // Medición: intención de pago confirmada en /upgrade.
     track("checkout_click", { plan: selectedPlan, billing, method: paymentMethod });
     setError(null);
@@ -152,6 +166,24 @@ export function UpgradeCheckout({
           Elige tu nivel de acceso y modalidad de pago en pesos chilenos. Sin contratos de permanencia.
         </p>
       </div>
+
+      {/* Aviso de pagos no disponibles (F82): los planes se siguen
+          mostrando, pero no se puede cobrar. */}
+      {!paymentsAvailable && (
+        <div
+          role="status"
+          className="border border-ink-900 bg-white p-6"
+          data-testid="payments-unavailable"
+        >
+          <p className="text-[14px] font-medium text-ink-900">
+            {PAYMENTS_UNAVAILABLE_MESSAGE}
+          </p>
+          <p className="mt-1 text-[13px] text-ink-500">
+            Los planes y sus precios siguen visibles, pero el pago no puede
+            iniciarse en este momento.
+          </p>
+        </div>
+      )}
 
       {/* Billing toggle */}
       <div className="flex flex-wrap items-center justify-between gap-4 border-y border-ink-200 py-4">
@@ -299,6 +331,7 @@ export function UpgradeCheckout({
                         name="paymentMethod"
                         value={method.id}
                         checked={active}
+                        disabled={!paymentsAvailable}
                         onChange={() => {
                           setPaymentMethod(method.id);
                           setError(null);
@@ -322,7 +355,13 @@ export function UpgradeCheckout({
 
           {/* Submit CTA */}
           <div className="flex flex-col gap-3">
-            <Button type="submit" size="lg" loading={submitting} className="w-full sm:w-fit">
+            <Button
+              type="submit"
+              size="lg"
+              loading={submitting}
+              disabled={!paymentsAvailable}
+              className="w-full sm:w-fit"
+            >
               {selectedPlan === "elite" ? "Activar Plan Elite" : "Activar Plan Pro"}
               <ArrowRight className="size-4" />
             </Button>
