@@ -192,12 +192,19 @@ def _is_unique_violation(exc: BaseException) -> bool:
     return "23505" in text or "duplicate key" in text or "idx_holdings_unique" in text
 
 
-def apply_ticker(db, name: str, ticker: str) -> bool:
-    """Set symbol to ticker on each row. On unique conflict, drop the old row.
+#: Choques de clave única registrados en esta corrida (no se borra nada).
+CONFLICTS: list[dict] = []
 
-    Returns True only when every row was updated or removed as a duplicate.
+
+def apply_ticker(db, name: str, ticker: str) -> bool:
+    """Set symbol to ticker on each row.
+
+    On a unique-key conflict (the portfolio already has a row with that
+    ticker and as_of) the row is NOT deleted: the update is skipped and the
+    conflict is logged and added to CONFLICTS for the final summary.
+    Returns True only when every row was updated.
     """
-    rows = _fetch_paged(db, "id", symbol=name)
+    rows = _fetch_paged(db, "id, portfolio_id", symbol=name)
     if not rows:
         print(f"WARNING {name}: sin filas para actualizar")
         return False
@@ -210,18 +217,33 @@ def apply_ticker(db, name: str, ticker: str) -> bool:
             continue
         try:
             db.table("holdings").update({"symbol": ticker}).eq("id", row_id).execute()
-        except Exception as exc:  # noqa: BLE001 — keep going row by row
+        except Exception as exc:  # noqa: BLE001 - keep going row by row
+            ok = False
             if not _is_unique_violation(exc):
-                ok = False
                 print(f"WARNING {name} id={row_id}: {exc}")
                 continue
-            try:
-                db.table("holdings").delete().eq("id", row_id).execute()
-                print(f"WARNING {name}: fila {row_id} choca con {ticker}, se borra la vieja")
-            except Exception as delete_exc:  # noqa: BLE001
-                ok = False
-                print(f"WARNING {name} id={row_id}: {delete_exc}")
+            conflict = {
+                "portfolio_id": row.get("portfolio_id"),
+                "old_symbol": name,
+                "ticker": ticker,
+                "id": row_id,
+            }
+            CONFLICTS.append(conflict)
+            print(
+                f"CONFLICTO portfolio={conflict['portfolio_id']} simbolo={name!r} "
+                f"ticker={ticker} id={row_id}: ya existe esa fila, se omite (no se borra)"
+            )
     return ok
+
+
+def conflicts_summary() -> str:
+    """Resumen final de choques (uno por línea)."""
+    if not CONFLICTS:
+        return "Sin choques de clave única."
+    lines = [f"{len(CONFLICTS)} choques de clave única omitidos (revisar a mano):"]
+    for c in CONFLICTS:
+        lines.append(f"  portfolio={c['portfolio_id']} simbolo={c['old_symbol']!r} ticker={c['ticker']} id={c['id']}")
+    return "\n".join(lines)
 
 
 def main() -> None:
@@ -240,6 +262,7 @@ def main() -> None:
             resolved += 1
             print(f"OK {name} -> {ticker}")
     print(f"{resolved}/{len(names)} nombres resueltos")
+    print(conflicts_summary())
 
 
 if __name__ == "__main__":
