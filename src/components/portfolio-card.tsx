@@ -6,6 +6,7 @@ import { formatCompact } from "@/lib/utils";
 import { sparklineData } from "@/components/sections/portfolio-data";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { cn } from "@/lib/utils";
+import { portraitCreditText } from "@/components/portrait-credit";
 
 interface PortfolioCardProps {
   portfolio: Portfolio;
@@ -38,7 +39,11 @@ export function PortfolioCard({
         <PortfolioAvatar
           portfolio={portfolio}
           size={64}
-          title={portfolio.portrait_image ? "Foto: retrato oficial, dominio público" : undefined}
+          title={
+            portfolio.portrait_image
+              ? portraitCreditText(portfolio.portrait_source, portfolio.portrait_license, portfolio.portrait_author)
+              : undefined
+          }
         />
       </Link>
 

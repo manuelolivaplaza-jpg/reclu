@@ -263,7 +263,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             <>
               <PortfolioAvatar portfolio={portfolio} size={96} />
               {portfolio.portrait_image ? (
-                <PortraitCredit portraitSource={portfolio.portrait_source} className="mt-2" />
+                <PortraitCredit
+                  portraitSource={portfolio.portrait_source}
+                  portraitLicense={portfolio.portrait_license}
+                  portraitAuthor={portfolio.portrait_author}
+                  className="mt-2"
+                />
               ) : null}
             </>
           }

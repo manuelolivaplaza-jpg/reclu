@@ -60,6 +60,8 @@ export interface Portfolio {
   portrait_source?: string | null;
   /** Licencia del retrato (dominio público de obra federal de EE.UU.). */
   portrait_license?: string | null;
+  /** Autor de la foto (Wikimedia Commons, migración 056), para el crédito. */
+  portrait_author?: string | null;
   created_at: string;
   updated_at: string;
 }
