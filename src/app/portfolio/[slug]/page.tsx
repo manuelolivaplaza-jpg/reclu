@@ -23,7 +23,7 @@ import { JsonLd } from "@/components/json-ld";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
-import { timeAgo, formatCompact } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
 import { OgeTradesPanel } from "@/components/oge-trades-panel";
@@ -304,10 +304,6 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                       Gestor: <span className="text-ink-900">{portfolio.manager}</span>
                     </span>
                   )}
-                  <span>
-                    <span className="num text-ink-900">{formatCompact(portfolio.followers)}</span>{" "}
-                    seguidores
-                  </span>
                   {esAgregado ? (
                     <a
                       href={INFOPROBIDAD_URL}
