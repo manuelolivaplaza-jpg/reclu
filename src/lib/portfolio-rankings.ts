@@ -71,6 +71,8 @@ export interface RankingEntry {
   name: string;
   manager: string | null;
   coverImage: string | null;
+  category?: import("@/lib/types").PortfolioCategory;
+  portraitImage?: string | null;
   followers: number;
   /** Retorno del período en %, o null si la serie no lo cubre. */
   returnPct: number | null;
@@ -194,6 +196,8 @@ export interface RankingsRow {
   manager: string | null;
   managerInitials: string | null;
   coverImage: string | null;
+  category?: import("@/lib/types").PortfolioCategory;
+  portraitImage?: string | null;
   followers: number;
 }
 
@@ -238,6 +242,8 @@ function toRow(entry: {
   name: string;
   manager: string | null;
   coverImage: string | null;
+  category?: import("@/lib/types").PortfolioCategory;
+  portraitImage?: string | null;
   followers: number;
 }): RankingsRow {
   return {
@@ -247,6 +253,8 @@ function toRow(entry: {
     manager: entry.manager,
     managerInitials: entry.manager ? initialsOf(entry.manager) : null,
     coverImage: entry.coverImage,
+    category: entry.category,
+    portraitImage: entry.portraitImage ?? null,
     followers: entry.followers,
   };
 }
@@ -294,6 +302,8 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
     name: portfolio.name,
     manager: portfolio.manager,
     coverImage: portfolio.cover_image,
+    category: portfolio.category,
+    portraitImage: portfolio.portrait_image ?? null,
     followers: portfolio.followers,
     returnPct: null,
   }));

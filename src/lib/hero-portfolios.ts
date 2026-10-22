@@ -16,6 +16,10 @@ export interface HeroCard {
   returnPct: number;
   followers: number | null;
   isExample: boolean;
+  /** Para el avatar (D4). */
+  category: import("@/lib/types").PortfolioCategory;
+  cover_image: string | null;
+  portrait_image: string | null;
 }
 
 /**
@@ -42,6 +46,9 @@ export function pickHeroPortfolios(
       returnPct: p.return_ytd as number,
       followers: p.followers,
       isExample: false,
+      category: p.category,
+      cover_image: p.cover_image,
+      portrait_image: p.portrait_image ?? null,
     }));
 }
 
@@ -57,6 +64,9 @@ export function exampleHeroCards(): HeroCard[] {
     returnPct: p.returnPct,
     followers: null,
     isExample: true,
+    category: "thematic",
+    cover_image: null,
+    portrait_image: null,
   }));
 }
 
