@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Image from "next/image";
+import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,40 +27,6 @@ interface Pill {
   pct: number | null;
 }
 
-function Cover({
-  name,
-  initials,
-  coverImage,
-}: {
-  name: string;
-  initials: string;
-  coverImage: string | null;
-}) {
-  const [failed, setFailed] = useState(false);
-
-  if (!coverImage || failed) {
-    return (
-      <span
-        aria-hidden="true"
-        className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-neutral-100 text-[15px] font-semibold text-neutral-500"
-      >
-        {initials}
-      </span>
-    );
-  }
-
-  return (
-    <Image
-      src={`/covers/${coverImage}`}
-      alt={`Portada de ${name}`}
-      width={64}
-      height={64}
-      onError={() => setFailed(true)}
-      className="size-16 shrink-0 rounded-2xl object-cover"
-    />
-  );
-}
-
 function PortfolioRow({
   slug,
   name,
@@ -68,6 +34,8 @@ function PortfolioRow({
   manager,
   managerInitials,
   coverImage,
+  category,
+  portraitImage,
   followersLabel,
   pill,
 }: {
@@ -77,6 +45,8 @@ function PortfolioRow({
   manager: string | null;
   managerInitials: string | null;
   coverImage: string | null;
+  category?: import("@/lib/types").PortfolioCategory;
+  portraitImage?: string | null;
   followersLabel: string;
   pill: Pill | null;
 }) {
@@ -87,7 +57,11 @@ function PortfolioRow({
       href={`/portfolio/${slug}`}
       className="group flex items-center gap-4 py-5 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
     >
-      <Cover name={name} initials={initials} coverImage={coverImage} />
+      <PortfolioAvatar
+        portfolio={{ slug, name, category: category ?? "thematic", cover_image: coverImage, portrait_image: portraitImage ?? null }}
+        size={64}
+        title={portraitImage ? "Foto: retrato oficial, dominio público" : undefined}
+      />
 
       <div className="min-w-0 flex-1">
         {pill ? (
@@ -226,6 +200,8 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
                     manager={row.manager}
                     managerInitials={row.managerInitials}
                     coverImage={row.coverImage}
+                    category={row.category}
+                    portraitImage={row.portraitImage}
                     followersLabel={formatFollowers(row.followers)}
                     pill={{ label: row.returnLabel, pct: row.returnPct }}
                   />
@@ -260,6 +236,8 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
                       manager={row.manager}
                       managerInitials={row.managerInitials}
                       coverImage={row.coverImage}
+                    category={row.category}
+                    portraitImage={row.portraitImage}
                       followersLabel={formatFollowers(row.followers)}
                       pill={
                         value && value.pct !== null

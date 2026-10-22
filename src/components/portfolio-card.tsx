@@ -4,6 +4,7 @@ import { Sparkline } from "@/components/sparkline";
 import { CATEGORY_META, type Portfolio } from "@/lib/types";
 import { formatCompact } from "@/lib/utils";
 import { sparklineData } from "@/components/sections/portfolio-data";
+import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { cn } from "@/lib/utils";
 
 interface PortfolioCardProps {
@@ -28,21 +29,18 @@ export function PortfolioCard({
 
   return (
     <div className="flex flex-col overflow-hidden border border-ink-200">
-      {/* Portada (imagen fotorrealista 1:1) */}
-      {portfolio.cover_image && (
-        <Link
-          href={`/portfolio/${portfolio.slug}`}
-          className="group block aspect-square w-full overflow-hidden border-b border-ink-200 bg-ink-100"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={`/covers/${portfolio.cover_image}`}
-            alt={portfolio.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
-            loading="lazy"
-          />
-        </Link>
-      )}
+      <Link
+        href={`/portfolio/${portfolio.slug}`}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="block px-6 pt-6"
+      >
+        <PortfolioAvatar
+          portfolio={portfolio}
+          size={64}
+          title={portfolio.portrait_image ? "Foto: retrato oficial, dominio público" : undefined}
+        />
+      </Link>
 
       <div className="flex flex-1 flex-col p-6">
         {/* Categoría + país */}

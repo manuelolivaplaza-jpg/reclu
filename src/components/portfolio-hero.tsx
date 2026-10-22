@@ -24,6 +24,8 @@ export interface PortfolioHeroProps {
   demo?: boolean;
   /** CTA (por ejemplo, el FollowButton). */
   action?: ReactNode;
+  /** Avatar del portafolio (D4), sobre el título. */
+  avatar?: ReactNode;
   /** Monto de la simulación en USD. */
   amount?: number;
 }
@@ -57,6 +59,7 @@ export function PortfolioHero({
   followers,
   demo = false,
   action,
+  avatar,
   amount = AMOUNT,
 }: PortfolioHeroProps) {
   const cleanSeries = (series ?? []).filter(
@@ -92,6 +95,7 @@ export function PortfolioHero({
         <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
           {/* Izquierda: título, métrica y CTA */}
           <div className="min-w-0">
+            {avatar ? <div className="mb-6">{avatar}</div> : null}
             <h1 className="font-sans text-[clamp(2.25rem,5.2vw,3.75rem)] font-semibold leading-[0.98] tracking-tight text-neutral-950">
               {simulation ? (
                 <>

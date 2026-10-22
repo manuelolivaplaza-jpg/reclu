@@ -14,6 +14,8 @@ import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
 import { PortfolioHero } from "@/components/portfolio-hero";
+import { PortfolioAvatar } from "@/components/portfolio-avatar";
+import { PortraitCredit } from "@/components/portrait-credit";
 import { LagBadge } from "@/components/lag-badge";
 import { PerformancePanel } from "@/components/performance-panel";
 import { getPortfolioPerformanceData } from "@/lib/performance-queries";
@@ -257,6 +259,14 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         {/* Hero: nombre, variación del período y simulación de inversión */}
         <PortfolioHero
           name={portfolio.name}
+          avatar={
+            <>
+              <PortfolioAvatar portfolio={portfolio} size={96} />
+              {portfolio.portrait_image ? (
+                <PortraitCredit portraitSource={portfolio.portrait_source} className="mt-2" />
+              ) : null}
+            </>
+          }
           series={heroSeries}
           followers={portfolio.followers}
           demo={heroDemo}
