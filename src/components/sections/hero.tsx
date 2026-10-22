@@ -1,60 +1,69 @@
 import Link from "next/link";
-import { ButtonLink } from "@/components/ui/button";
-import { FadeIn, StaggerList } from "@/components/ui/motion";
-import { ShowcaseList } from "./showcase-list";
-import { HERO_PORTFOLIOS } from "./portfolio-data";
+import { FadeIn } from "@/components/ui/motion";
+import { PhoneMockups } from "./phone-mockups";
+import type { HeroCard } from "@/lib/hero-portfolios";
 
 /**
- * Hero — titular enorme, negro, alineado a la izquierda. Sin fondo decorativo.
- * Debajo, una muestra de tres filas tipográficas de portafolios.
+ * Hero — titular enorme y centrado, con los mockups de teléfono debajo.
+ *
+ * Copy: se mantiene el titular vigente ("Sigue las carteras que mueven el
+ * mercado."), que ya está revisado desde el punto de vista legal: no
+ * promete rentabilidad ni invita a copiar carteras ajenas.
  */
-const textLink =
-  "text-[15px] text-ink-900 underline decoration-transparent underline-offset-[0.35em] [text-decoration-thickness:1px] transition-[text-decoration-color] duration-200 hover:decoration-ink-900";
 
-export function Hero() {
+function BrandMark() {
   return (
-    <section className="bg-white pt-24 pb-24 md:pt-36 md:pb-32 lg:pt-40">
+    <span className="inline-flex size-11 items-center justify-center rounded-xl bg-neutral-950">
+      <svg
+        viewBox="0 0 24 24"
+        className="size-6 text-white"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        role="img"
+        aria-label="reclu"
+      >
+        <path d="M4 16l5-5 4 4 7-8" />
+        <path d="M15 7h5v5" />
+      </svg>
+    </span>
+  );
+}
+
+export function Hero({ cards }: { cards: HeroCard[] }) {
+  return (
+    <section className="bg-white pt-16 pb-20 md:pt-24 md:pb-28">
       <div className="container-page">
         <FadeIn>
-          <h1
-            className="type-display max-w-[16ch] text-ink-900"
-            style={{
-              fontSize: "clamp(3.25rem, 8vw, 7.25rem)",
-              letterSpacing: "-0.052em",
-              lineHeight: 0.9,
-            }}
-          >
-            Sigue las carteras que mueven el mercado.
-          </h1>
+          <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
+            <BrandMark />
 
-          <p className="type-body mt-8 max-w-[36rem] md:mt-10">
-            Políticos de EE.UU., corredoras chilenas y fondos. Una alerta en tu correo
-            cuando algo cambia. Sin órdenes. Sin ruido.
-          </p>
-        </FadeIn>
+            <h1 className="mt-8 text-5xl font-semibold tracking-tight text-neutral-950 md:text-7xl">
+              Sigue las carteras que mueven el mercado.
+            </h1>
 
-        <FadeIn delay={0.08}>
-          <div className="mt-10 flex flex-col items-start gap-5 sm:flex-row sm:items-center sm:gap-10 md:mt-12">
-            <ButtonLink href="/signup" size="lg">
-              Empezar
-            </ButtonLink>
-            <Link href="/explore" className={textLink}>
-              Ver portafolios →
+            <p className="mt-6 max-w-xl text-lg text-neutral-500">
+              Políticos de EE.UU., corredoras chilenas y fondos. Una alerta en
+              tu correo cuando algo cambia. Sin órdenes. Sin ruido.
+            </p>
+
+            <Link
+              href="/explore"
+              className="mt-10 inline-flex items-center gap-2 rounded-full bg-neutral-950 px-5 py-2.5 text-[15px] font-medium text-white transition-colors duration-150 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
+            >
+              Explorar portafolios
+              <span aria-hidden="true">→</span>
             </Link>
+
+            <p className="mt-5 text-[13px] text-neutral-500">
+              Gratis en 2 portafolios. Sin tarjeta.
+            </p>
           </div>
         </FadeIn>
 
-        <FadeIn delay={0.12}>
-          <p className="mt-6 text-[13px] text-ink-500">
-            Gratis en 2 portafolios. Sin tarjeta.
-          </p>
-        </FadeIn>
-      </div>
-
-      <div className="container-page mt-20 md:mt-28">
-        <StaggerList>
-          <ShowcaseList portfolios={HERO_PORTFOLIOS} />
-        </StaggerList>
+        <PhoneMockups cards={cards} />
       </div>
     </section>
   );

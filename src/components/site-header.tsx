@@ -7,6 +7,8 @@ import { Menu, X } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { LogoLockup } from "@/components/logo";
 import { CommandPalette } from "@/components/command-palette";
+import { useHideOnScroll } from "@/lib/use-hide-on-scroll";
+import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/explore", label: "Portafolios" },
@@ -17,9 +19,22 @@ const NAV_LINKS = [
   { href: "/#precios", label: "Precios" },
 ];
 
+/** Enlace simple del nav: gris, se oscurece al hover. */
+const linkClass =
+  "text-sm text-neutral-600 transition-colors duration-150 hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950";
+
+/**
+ * SiteHeader — barra de navegación de la home y de las páginas públicas.
+ *
+ * Blanco translúcido con blur y filete inferior de 1px. Se oculta al bajar
+ * y vuelve al subir (`useHideOnScroll`): con el scroll en el top (o casi)
+ * siempre está visible. El menú móvil a pantalla completa, el buscador ⌘K
+ * y el acceso a sesión se mantienen.
+ */
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const reduced = useReducedMotion();
+  const hidden = useHideOnScroll(10);
 
   // Bloquea el scroll del body mientras el menú móvil está abierto.
   // Se restaura al cerrar el menú (incluido el click en cualquier link,
@@ -33,10 +48,24 @@ export function SiteHeader() {
     };
   }, [mobileOpen]);
 
+  // Con el menú móvil abierto la barra se queda visible: el overlay está
+  // anclado a su borde inferior.
+  const translated = hidden && !mobileOpen;
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-ink-200 bg-white">
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full border-b border-neutral-200/70 bg-white/90 backdrop-blur",
+        "transition-transform duration-300 motion-reduce:transition-none",
+        translated ? "-translate-y-full" : "translate-y-0",
+      )}
+    >
       <div className="container-page flex h-16 items-center justify-between">
-        <Link href="/" aria-label="reclu inicio" className="shrink-0">
+        <Link
+          href="/"
+          aria-label="reclu inicio"
+          className="shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
+        >
           <LogoLockup />
         </Link>
 
@@ -46,26 +75,23 @@ export function SiteHeader() {
           aria-label="Principal"
         >
           {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm text-ink-900 transition-opacity hover:opacity-55"
-            >
+            <Link key={link.href} href={link.href} className={linkClass}>
               {link.label}
             </Link>
           ))}
         </nav>
 
-        {/* Desktop CTAs: buscar ⌘K, Entrar y Empezar */}
+        {/* Desktop: buscar ⌘K, entrar y el CTA */}
         <div className="hidden items-center gap-4 lg:flex xl:gap-6">
           <CommandPalette />
-          <Link
-            href="/login"
-            className="text-sm text-ink-900 transition-opacity hover:opacity-55"
-          >
+          <Link href="/login" className={linkClass}>
             Entrar
           </Link>
-          <ButtonLink href="/signup" size="sm">
+          <ButtonLink
+            href="/signup"
+            size="sm"
+            className="bg-neutral-950 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
+          >
             Empezar
           </ButtonLink>
         </div>
@@ -75,7 +101,7 @@ export function SiteHeader() {
           <CommandPalette />
           <button
             type="button"
-            className="inline-flex size-10 items-center justify-center text-ink-900"
+            className="inline-flex size-10 items-center justify-center rounded-sm text-neutral-950 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={mobileOpen}
@@ -120,7 +146,7 @@ export function SiteHeader() {
                   <Link
                     href={link.href}
                     onClick={() => setMobileOpen(false)}
-                    className="type-section block border-b border-ink-200 py-5 text-ink-900"
+                    className="type-section block border-b border-neutral-200/70 py-5 text-neutral-950 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
                     style={{ fontSize: "clamp(2rem, 6vw, 2.5rem)" }}
                   >
                     {link.label}
@@ -140,7 +166,7 @@ export function SiteHeader() {
                 <Link
                   href="/login"
                   onClick={() => setMobileOpen(false)}
-                  className="block border-b border-ink-200 py-5 text-[15px] text-ink-900"
+                  className="block border-b border-neutral-200/70 py-5 text-[15px] text-neutral-950 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
                 >
                   Entrar
                 </Link>
@@ -155,7 +181,7 @@ export function SiteHeader() {
               <ButtonLink
                 href="/signup"
                 size="lg"
-                className="w-full"
+                className="w-full bg-neutral-950 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
                 onClick={() => setMobileOpen(false)}
               >
                 Empezar
