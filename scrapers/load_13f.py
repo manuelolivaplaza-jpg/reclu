@@ -12,6 +12,7 @@ sys.path.insert(0, ".")
 
 from base import get_db
 from sec13f import FUNDS, fetch_holdings
+from ticker_map import TickerResolver, save_cusip_cache
 
 # fund name in FUNDS -> slug already seeded in the portfolios table
 FUND_SLUG = {
@@ -51,6 +52,7 @@ FUND_SLUG = {
 
 def main() -> None:
     db = get_db()
+    resolver = TickerResolver()
     ok = 0
     for name, cik in FUNDS.items():
         slug = FUND_SLUG.get(name)
@@ -63,15 +65,18 @@ def main() -> None:
                 print(f"-- {name}: sin holdings")
                 continue
             pf = db.table("portfolios").select("id").eq("slug", slug).maybe_single().execute()
-            if not pf.data:
+            if pf is None or not pf.data:
                 print(f"-- {name}: slug {slug} no está en la DB (corre el seed)")
                 continue
             pid = pf.data["id"]
+            resolver.prefetch(holdings)
             payload = [
                 {
                     "portfolio_id": pid,
-                    # 13F rows have no ticker; issuer name stands in as the symbol key.
-                    "symbol": h["issuer"][:40],
+                    # 13F no trae ticker: se resuelve por CUSIP (OpenFIGI) o mapa
+                    # curado. Si no se resuelve, queda el nombre (la etapa
+                    # performance lo omite y lo registra; no se inventa).
+                    "symbol": (resolver.resolve(h["issuer"], h.get("cusip", "")) or h["issuer"])[:40],
                     "name": h["issuer"],
                     "weight": h["weight"],
                     "asset_class": "equity",
@@ -86,6 +91,9 @@ def main() -> None:
             ok += 1
         except Exception as e:  # noqa: BLE001
             print(f"WARNING {name}: {e}")
+    save_cusip_cache(resolver.cusip_cache)
+    if resolver.unresolved:
+        print(f"[load_13f] {len(resolver.unresolved)} emisores sin ticker (se omiten en performance): " + "; ".join(sorted(set(resolver.unresolved))[:50]))
     print(f"{ok}/{len(FUNDS)} fondos cargados")
 
 
