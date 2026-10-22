@@ -1,15 +1,13 @@
-import { getPortfolios, getFollows, getProfile, getAlerts, getAllHoldingsAdmin } from "@/lib/queries";
-import { PortfolioCard } from "@/components/portfolio-card";
+import { Suspense } from "react";
+import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin } from "@/lib/queries";
+import { PortfolioGrid } from "@/components/explore/portfolio-grid";
+import { ExploreRankingsSection } from "@/components/explore/explore-rankings-section";
+import { RankingsSkeleton } from "@/components/explore/skeletons";
+import { portfolioIdsWithSymbol } from "@/lib/explore-paging";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { StaggerList, StaggerItem } from "@/components/ui/motion";
 import { CATEGORY_META, isPaidPlan, type Portfolio, type PortfolioCategory } from "@/lib/types";
 import { ExploreFilters } from "@/components/explore-filters";
-import { ExploreRankings, type ConsensusTicker } from "@/components/explore-rankings";
-import { getBeatTheMarketRanking } from "@/lib/performance-queries";
-
-/** getAlerts recorta por defecto a 20. El ranking cuenta publicadas, no solo las últimas. */
-const ALERT_RANKING_LIMIT = 1000;
 
 export const metadata = {
   title: "Portafolios",
@@ -28,24 +26,19 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const search = params.q ?? "";
   const symbol = (params.simbolo ?? "").trim().toUpperCase();
 
-  const [listed, follows, profile, catalog, alerts, beatMarket] = await Promise.all([
+  const [listed, follows, profile] = await Promise.all([
     getPortfolios({ category, search }),
     getFollows(),
     getProfile(),
-    getPortfolios(),
-    getAlerts(undefined, ALERT_RANKING_LIMIT),
-    getBeatTheMarketRanking(7, "excess"),
   ]);
 
   const portfolios = symbol
     ? await filterByHoldingSymbol(listed, symbol)
     : listed;
 
-  const followedIds = new Set(follows.map((f) => f.portfolio_id));
+  const followedIds = follows.map((f) => f.portfolio_id);
   const isPro = isPaidPlan(profile?.plan);
 
-  // Radar de Consenso: tickers más repetidos entre las carteras del catálogo.
-  const consensus = await buildConsensus(catalog);
 
   const categories = Object.entries(CATEGORY_META) as [
     PortfolioCategory,
@@ -63,24 +56,16 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
             <ExploreFilters categories={categories} activeCategory={category} />
           </div>
 
-          <ExploreRankings portfolios={catalog} alerts={alerts} consensus={consensus} beatMarket={beatMarket} />
+          <Suspense fallback={<RankingsSkeleton />}>
+            <ExploreRankingsSection />
+          </Suspense>
 
           {portfolios.length === 0 ? (
             <p className="mt-16 text-[15px] text-ink-500">
               Sin resultados. Prueba con otra búsqueda o vuelve a “Todos”.
             </p>
           ) : (
-            <StaggerList className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {portfolios.map((portfolio) => (
-                <StaggerItem key={portfolio.id}>
-                  <PortfolioCard
-                    portfolio={portfolio}
-                    isFollowing={followedIds.has(portfolio.id)}
-                    isPro={isPro}
-                  />
-                </StaggerItem>
-              ))}
-            </StaggerList>
+            <PortfolioGrid portfolios={portfolios} followedIds={followedIds} isPro={isPro} />
           )}
         </div>
       </main>
@@ -89,45 +74,10 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   );
 }
 
-/**
- * Radar de Consenso: cuenta en cuántas carteras del catálogo aparece cada
- * ticker y devuelve los más repetidos. El conteo es por cartera distinta,
- * no por peso.
- */
-async function buildConsensus(
-  catalog: Portfolio[],
-  limit = 7,
-): Promise<ConsensusTicker[]> {
-  const counts = new Map<string, number>();
-  await Promise.all(
-    catalog.map(async (portfolio) => {
-      // Agregado del servidor: holdings completos solo para contar símbolos.
-      // Nunca se envían crudos al navegador.
-      const holdings = await getAllHoldingsAdmin(portfolio.id);
-      const seen = new Set<string>();
-      for (const holding of holdings) {
-        const symbol = holding.symbol.trim().toUpperCase();
-        if (!symbol || seen.has(symbol)) continue;
-        seen.add(symbol);
-        counts.set(symbol, (counts.get(symbol) ?? 0) + 1);
-      }
-    }),
-  );
-  return [...counts.entries()]
-    .map(([symbol, count]) => ({ symbol, count }))
-    .sort((a, b) => b.count - a.count || a.symbol.localeCompare(b.symbol))
-    .slice(0, limit);
-}
 
-/** Portafolios cuyo listado de holdings incluye el símbolo (ya en mayúsculas). */
+/** Portafolios cuyo listado de holdings incluye el símbolo (ya en mayúsculas). Una sola consulta. */
 async function filterByHoldingSymbol(portfolios: Portfolio[], symbol: string): Promise<Portfolio[]> {
-  const matches = await Promise.all(
-    portfolios.map(async (portfolio) => {
-      // Agregado del servidor (client de servicio): solo para decidir
-      // coincidencia sí/no, sin exponer holdings al navegador.
-      const holdings = await getAllHoldingsAdmin(portfolio.id);
-      return holdings.some((holding) => holding.symbol.trim().toUpperCase() === symbol);
-    }),
-  );
-  return portfolios.filter((_, index) => matches[index]);
+  const rows = await getHoldingSymbolsAdmin(portfolios.map((portfolio) => portfolio.id));
+  const ids = portfolioIdsWithSymbol(rows, symbol);
+  return portfolios.filter((portfolio) => ids.has(portfolio.id));
 }

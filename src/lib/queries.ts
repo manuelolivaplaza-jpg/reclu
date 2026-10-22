@@ -270,6 +270,45 @@ export async function getAllHoldingsAdmin(portfolioId: string): Promise<Holding[
   return (data ?? []) as Holding[];
 }
 
+/**
+ * Símbolos de varios portafolios en UNA consulta (cliente de servicio),
+ * para agregados del servidor (consenso, filtro por símbolo). Nunca se
+ * envía crudo al navegador. Sin cliente de servicio cae a la lectura
+ * por portafolio (getAllHoldingsAdmin).
+ */
+export async function getHoldingSymbolsAdmin(
+  portfolioIds: string[],
+): Promise<{ portfolio_id: string; symbol: string }[]> {
+  if (portfolioIds.length === 0) return [];
+  const admin = createAdminClient();
+  if (!admin) {
+    const lists = await Promise.all(
+      portfolioIds.map(async (id) =>
+        (await getAllHoldingsAdmin(id)).map((h) => ({ portfolio_id: id, symbol: h.symbol })),
+      ),
+    );
+    return lists.flat();
+  }
+  const out: { portfolio_id: string; symbol: string }[] = [];
+  for (let i = 0; i < portfolioIds.length; i += 200) {
+    const { data, error } = await admin
+      .from("holdings")
+      .select("portfolio_id, symbol")
+      .in("portfolio_id", portfolioIds.slice(i, i + 200));
+    if (error) {
+      console.warn("[reclu] getHoldingSymbolsAdmin error:", error.code ?? "unknown");
+      continue;
+    }
+    for (const row of data ?? []) {
+      const r = row as { portfolio_id?: unknown; symbol?: unknown };
+      if (typeof r.portfolio_id === "string" && typeof r.symbol === "string") {
+        out.push({ portfolio_id: r.portfolio_id, symbol: r.symbol });
+      }
+    }
+  }
+  return out;
+}
+
 // ---- Alerts ----
 /**
  * Alertas publicadas. Muro de pago: usa la función security definer
