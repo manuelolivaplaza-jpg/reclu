@@ -54,7 +54,7 @@ function PortfolioRow({
   return (
     <Link
       href={`/portfolio/${slug}`}
-      className="group flex items-center gap-4 py-5 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
+      className="group flex min-w-0 items-center gap-3 py-5 sm:gap-4 transition-colors hover:bg-neutral-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
     >
       <PortfolioAvatar
         portfolio={{ slug, name, category: category ?? "thematic", cover_image: coverImage, portrait_image: portraitImage ?? null }}
@@ -97,7 +97,7 @@ function PortfolioRow({
         </span>
         <ChevronRight
           aria-hidden="true"
-          className="size-4 text-neutral-400 transition-transform duration-200 motion-reduce:transition-none group-hover:translate-x-0.5 motion-reduce:group-hover:translate-x-0"
+          className="hidden size-4 text-neutral-400 transition-transform sm:block duration-200 motion-reduce:transition-none group-hover:translate-x-0.5 motion-reduce:group-hover:translate-x-0"
         />
       </div>
     </Link>
@@ -128,9 +128,9 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
           </p>
         </div>
 
-        <div className="mt-14 grid gap-14 md:grid-cols-2 md:gap-10">
+        <div className="mt-14 grid grid-cols-1 gap-14 md:grid-cols-2 md:gap-10">
           {/* Mejor rendimiento */}
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
               <h3 className="text-xl font-semibold tracking-tight text-neutral-950">
                 Mejor rendimiento
@@ -210,7 +210,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
           </div>
 
           {/* Populares */}
-          <div>
+          <div className="min-w-0">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
               <h3 className="text-xl font-semibold tracking-tight text-neutral-950">
                 Populares

@@ -13,7 +13,7 @@ import { PortfolioAvatar } from "@/components/portfolio-avatar";
 /** Rotaciones y alturas distintas para que el grupo se vea superpuesto. */
 const TILTS = [
   { tilt: "-rotate-6", lift: "translate-y-3", z: "z-10" },
-  { tilt: "rotate-1", lift: "-translate-y-2", z: "z-20" },
+  { tilt: "rotate-1", lift: "-translate-y-2", z: "z-30" },
   { tilt: "rotate-6", lift: "translate-y-4", z: "z-10" },
 ];
 
@@ -77,8 +77,8 @@ function Phone({ card, index }: { card: HeroCard; index: number }) {
   return (
     <div
       className={cn(
-        "w-[248px] shrink-0 rounded-[2.5rem] border-8 border-neutral-950 bg-white p-3",
-        "shadow-[0_18px_50px_-20px_rgba(10,10,10,0.45)]",
+        "relative w-[180px] shrink-0 rounded-[2rem] bg-white p-2.5 ring-1 ring-black/5 sm:w-[230px] sm:p-3 md:w-[248px] md:rounded-[2.5rem]",
+        "shadow-[0_30px_60px_-15px_rgba(15,23,42,0.25)]",
         tilt,
         lift,
         z,
@@ -101,8 +101,8 @@ export function PhoneMockups({ cards }: { cards: HeroCard[] }) {
   if (cards.length === 0) return null;
 
   return (
-    <div className="relative mt-16 flex justify-center overflow-hidden md:mt-24">
-      <div className="flex -space-x-10 sm:-space-x-12 md:-space-x-16">
+    <div className="relative mt-16 flex max-w-full justify-center px-4 pb-6 md:mt-24">
+      <div className="flex -space-x-[4.5rem] sm:-space-x-16 md:-space-x-14">
         {cards.slice(0, 3).map((card, index) => (
           <Phone key={card.slug} card={card} index={index} />
         ))}

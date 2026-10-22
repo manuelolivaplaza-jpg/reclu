@@ -71,11 +71,13 @@
 /* ---- Base layer ---- */
 @layer base {
   html {
+    overflow-x: clip;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
   }
 
   body {
+    overflow-x: clip;
     background-color: var(--color-background);
     color: var(--color-ink-900);
     font-family: var(--font-sans);

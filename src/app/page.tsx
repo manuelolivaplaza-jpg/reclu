@@ -3,7 +3,6 @@ import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Hero } from "@/components/sections/hero";
-import { SourceLine } from "@/components/sections/source-line";
 import { PortfolioRankings } from "@/components/sections/portfolio-rankings";
 import { Statement } from "@/components/sections/statement";
 import { HowItWorks } from "@/components/sections/how-it-works";
@@ -33,7 +32,6 @@ export default async function HomePage() {
         <Suspense fallback={<HeroFallback />}>
           <HeroWithPortfolios />
         </Suspense>
-        <SourceLine />
         <PortfolioRankings data={rankings} />
         <Statement />
         <HowItWorks />
