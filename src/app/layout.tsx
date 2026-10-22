@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import { Instrument_Sans } from "next/font/google";
+import { Inter } from "next/font/google";
 import { AiChatWidget } from "@/components/ai-chat-widget";
 import { PwaRegister } from "@/components/pwa-register";
 import { siteUrl } from "@/lib/site";
 import { plausibleDomain } from "@/lib/analytics";
 import "./globals.css";
 
-const instrument = Instrument_Sans({
-  variable: "--font-instrument",
+/**
+ * Fuente global: Inter (next/font/google, sin instalar nada).
+ * La variable CSS es `--font-sans` y la consume el tema de Tailwind
+ * (ver `src/app/globals.css`). Pesos variables 100–900 en un solo archivo.
+ */
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -62,7 +66,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${instrument.variable} h-full antialiased`}>
+    <html lang="es" className={`${inter.variable} h-full antialiased`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#ffffff" />
