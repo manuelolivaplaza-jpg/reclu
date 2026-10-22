@@ -18,18 +18,18 @@
 -- REVOKE/GRANT repetibles. No inserta filas.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 create table if not exists public.newsletter_subscribers (
-  id uuid primary key default public.uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   email text not null
     constraint newsletter_subscribers_email_key unique,
   status text not null default 'pending'
     constraint newsletter_subscribers_status_check
     check (status in ('pending', 'confirmed', 'unsubscribed')),
-  confirm_token uuid not null default public.uuid_generate_v4()
+  confirm_token uuid not null default gen_random_uuid()
     constraint newsletter_subscribers_confirm_token_key unique,
-  unsub_token uuid not null default public.uuid_generate_v4()
+  unsub_token uuid not null default gen_random_uuid()
     constraint newsletter_subscribers_unsub_token_key unique,
   consent_text text not null,
   consent_at timestamptz not null default now(),
@@ -42,8 +42,8 @@ create table if not exists public.newsletter_subscribers (
 -- Por si una ejecución previa creó la tabla a medias.
 alter table public.newsletter_subscribers
   add column if not exists status text not null default 'pending',
-  add column if not exists confirm_token uuid not null default public.uuid_generate_v4(),
-  add column if not exists unsub_token uuid not null default public.uuid_generate_v4(),
+  add column if not exists confirm_token uuid not null default gen_random_uuid(),
+  add column if not exists unsub_token uuid not null default gen_random_uuid(),
   add column if not exists consent_text text,
   add column if not exists consent_at timestamptz not null default now(),
   add column if not exists source text not null default 'footer',
@@ -148,7 +148,7 @@ begin
         confirm_token = case
           when public.newsletter_subscribers.status = 'confirmed'
             then public.newsletter_subscribers.confirm_token
-          else public.uuid_generate_v4()
+          else gen_random_uuid()
         end,
         unsubscribed_at = case
           when public.newsletter_subscribers.status = 'unsubscribed' then null

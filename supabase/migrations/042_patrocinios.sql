@@ -16,10 +16,10 @@
 -- drop policy if exists + create, sin seeds. Reejecutar no rompe.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 create table if not exists public.sponsorships (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   name text not null check (length(trim(name)) > 0),
   url text not null check (url ~ '^https://'),
   body text not null check (length(trim(body)) > 0),

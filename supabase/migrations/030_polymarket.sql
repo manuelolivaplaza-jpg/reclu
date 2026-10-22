@@ -18,13 +18,13 @@
 -- portafolio con on conflict do update. Reejecutar no rompe.
 -- ============================================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 -- ----------------------------------------------------------------------------
 -- Apuestas grandes individuales
 -- ----------------------------------------------------------------------------
 create table if not exists public.prediction_trades (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   wallet text not null,
   alias text not null,
   side text not null check (side in ('BUY', 'SELL')),

@@ -18,7 +18,7 @@ alter table public.profiles
 -- subscriptions: una fila por suscripción (intento de checkout o activa)
 -- ============================================================
 create table if not exists public.subscriptions (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   provider text not null check (provider in ('flow', 'mercadopago', 'mock')),
   provider_customer_id text,
@@ -50,7 +50,7 @@ create policy "own subscription read"
 -- payment_events: webhook crudo, idempotencia por event_id
 -- ============================================================
 create table if not exists public.payment_events (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   provider text not null,
   event_id text not null,
   payload jsonb not null default '{}'::jsonb,
@@ -69,7 +69,7 @@ alter table public.payment_events enable row level security;
 -- referrals: programa de referidos (M3)
 -- ============================================================
 create table if not exists public.referrals (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   referrer_id uuid not null references auth.users(id) on delete cascade,
   referred_id uuid not null references auth.users(id) on delete cascade,
   referral_code text not null,

@@ -7,7 +7,7 @@ alter table public.profiles add column if not exists chat_reset_at timestamptz n
 alter table public.profiles add column if not exists chat_quota_limit integer not null default 100;
 
 create table if not exists public.chat_messages (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   role text not null check (role in ('user', 'assistant')),
   content text not null,

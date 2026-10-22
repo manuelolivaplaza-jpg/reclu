@@ -6,9 +6,9 @@
 -- ============================================================
 
 -- ---- Extensions ----
-create extension if not exists "uuid-ossp";
-create extension if not exists pg_cron;      -- for scheduled scraper/alert jobs
-create extension if not exists pg_net;       -- for calling edge functions from triggers
+create extension if not exists "uuid-ossp" with schema extensions;
+create extension if not exists pg_cron with schema pg_catalog;      -- for scheduled scraper/alert jobs
+create extension if not exists pg_net with schema extensions;       -- for calling edge functions from triggers
 
 -- ============================================================
 -- 1. PROFILES — extends Supabase auth.users
@@ -49,7 +49,7 @@ create trigger on_auth_user_created
 -- 2. PORTFOLIOS — trackable portfolios
 -- ============================================================
 create table if not exists public.portfolios (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   slug text not null unique,
   name text not null,
   description text not null default '',
@@ -73,7 +73,7 @@ create index if not exists idx_portfolios_active on public.portfolios(is_active)
 -- 3. HOLDINGS — current + historical positions within a portfolio
 -- ============================================================
 create table if not exists public.holdings (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   symbol text not null,
   name text not null,
@@ -95,7 +95,7 @@ create unique index if not exists idx_holdings_unique on public.holdings(portfol
 -- 4. ALERTS — generated when holdings change
 -- ============================================================
 create table if not exists public.alerts (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   type text not null check (type in ('new_trade', 'sold_trade', 'weight_change', 'mention', 'threshold', 'dividend', 'earnings', '13f_update', 'scraper_error')),
   severity text not null default 'medium' check (severity in ('low', 'medium', 'high')),
@@ -147,7 +147,7 @@ create trigger on_follow_change
 -- 6. USER_HOLDINGS — user's own portfolio for comparison
 -- ============================================================
 create table if not exists public.user_holdings (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   symbol text not null,
   name text not null default '',
@@ -163,7 +163,7 @@ create unique index if not exists idx_user_holdings_unique on public.user_holdin
 -- 7. ALERT_DELIVERIES — track which alerts were emailed to whom
 -- ============================================================
 create table if not exists public.alert_deliveries (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   alert_id uuid not null references public.alerts(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
   email_sent boolean not null default false,
@@ -347,7 +347,7 @@ alter table public.holdings add column if not exists return_pct numeric(8,2);
 -- a portfolio evolved over time. Idempotent: safe to re-run.
 
 create table if not exists public.portfolio_snapshots (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   symbol text not null,
   weight numeric(6, 2) not null,
@@ -373,7 +373,7 @@ alter table public.profiles add column if not exists chat_reset_at timestamptz n
 alter table public.profiles add column if not exists chat_quota_limit integer not null default 100;
 
 create table if not exists public.chat_messages (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   role text not null check (role in ('user', 'assistant')),
   content text not null,
@@ -412,7 +412,7 @@ create trigger reset_chat_quota
 
 -- ============ PORTFOLIO PERFORMANCE ============
 create table if not exists public.portfolio_performance (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   date date not null,
   value_pct numeric(12, 4) not null,

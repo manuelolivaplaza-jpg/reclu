@@ -17,10 +17,10 @@
 -- if exists + create. Se puede reejecutar sin error.
 -- ============================================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 create table if not exists public.buybacks (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   cik text not null,
   ticker text,
   name text not null,

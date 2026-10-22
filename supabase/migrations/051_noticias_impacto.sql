@@ -24,13 +24,13 @@
 -- 100% idempotente. Bloque -- rollback al final.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 -- ------------------------------------------------------------
 -- 1. Noticias normalizadas
 -- ------------------------------------------------------------
 create table if not exists public.news_items (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   source text not null
     check (source in ('sec_8k', 'cmf_hechos')),
   url text not null,
@@ -174,7 +174,7 @@ grant all on table public.ai_impact_cache to service_role;
 -- 5. Consultas de impacto por usuario (cupo + auditoria)
 -- ------------------------------------------------------------
 create table if not exists public.user_impact_requests (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null
     references auth.users (id) on delete cascade,
   news_id uuid not null

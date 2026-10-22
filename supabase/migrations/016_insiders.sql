@@ -15,10 +15,10 @@
 -- portafolio on conflict (slug) do nothing. Reejecutar no rompe.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 create table if not exists public.insider_trades (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   accession text not null,
   issuer_cik text,
   symbol text not null,

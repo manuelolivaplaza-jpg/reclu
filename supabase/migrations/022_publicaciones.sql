@@ -15,10 +15,10 @@
 -- repetibles. No inserta filas.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 create table if not exists public.publish_drafts (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   channel text not null
     constraint publish_drafts_channel_check
     check (channel in ('x', 'telegram', 'newsletter')),

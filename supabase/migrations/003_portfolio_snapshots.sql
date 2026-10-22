@@ -3,7 +3,7 @@
 -- a portfolio evolved over time. Idempotent: safe to re-run.
 
 create table if not exists public.portfolio_snapshots (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   symbol text not null,
   weight numeric(6, 2) not null,

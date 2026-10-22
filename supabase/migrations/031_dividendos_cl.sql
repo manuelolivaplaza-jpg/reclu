@@ -14,13 +14,13 @@
 -- create, portafolio con on conflict do update. Reejecutar no rompe.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 -- ----------------------------------------------------------------------------
 -- Tabla del calendario
 -- ----------------------------------------------------------------------------
 create table if not exists public.cl_dividends (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   nemo text not null,
   razon_social text not null default '',
   rut_emisor text not null default '',

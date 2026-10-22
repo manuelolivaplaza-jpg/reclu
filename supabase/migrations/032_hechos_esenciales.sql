@@ -16,13 +16,13 @@
 -- create, portafolio con on conflict do update. Reejecutar no rompe.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 -- ----------------------------------------------------------------------------
 -- Tabla de hechos esenciales
 -- ----------------------------------------------------------------------------
 create table if not exists public.cl_material_events (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   fecha date not null,
   numero_documento text not null,
   emisor text not null,

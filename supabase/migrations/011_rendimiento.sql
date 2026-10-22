@@ -37,7 +37,7 @@ create policy "benchmark_prices public read" on public.benchmark_prices
 --    TOTAL, 1M, 3M, YTD, 1A.
 -- ----------------------------------------------------------------------------
 create table if not exists public.portfolio_metrics (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   as_of date not null default current_date,
   period text not null check (period in ('TOTAL', '1M', '3M', 'YTD', '1A')),

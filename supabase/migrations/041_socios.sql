@@ -23,10 +23,10 @@
 -- conflict do nothing. Ejecutar dos veces seguidas no da error.
 -- ============================================================
 
-create extension if not exists "uuid-ossp";
+create extension if not exists "uuid-ossp" with schema extensions;
 
 create table if not exists public.partners (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   -- Slug de la URL pública: /p/[socio]/[tipo]
   slug text not null unique check (slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'),
   -- Nombre comercial del socio (empresa, no persona natural).

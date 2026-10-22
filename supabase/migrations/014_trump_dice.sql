@@ -24,7 +24,7 @@
 --    (id de Truth Social o "M01".."M15") evita duplicar menciones/alertas.
 -- ----------------------------------------------------------------------------
 create table if not exists public.mentions (
-  id uuid primary key default uuid_generate_v4(),
+  id uuid primary key default gen_random_uuid(),
   portfolio_id uuid not null references public.portfolios(id) on delete cascade,
   speaker text not null,
   said_at timestamptz not null,
