@@ -50,6 +50,16 @@ export interface Portfolio {
   tags: string[];
   /** Cover image path under /covers (e.g. "05-algoritmo.png"), or null. */
   cover_image: string | null;
+  /**
+   * Retrato oficial de dominio público bajo /portraits (e.g.
+   * "pelosi-tracker.webp"), o null. Opcional: la migración 055 puede no
+   * estar aplicada y el campo llega undefined (fallback a cover/iniciales).
+   */
+  portrait_image?: string | null;
+  /** URL del retrato original (bioguide / Casa Blanca), para el crédito. */
+  portrait_source?: string | null;
+  /** Licencia del retrato (dominio público de obra federal de EE.UU.). */
+  portrait_license?: string | null;
   created_at: string;
   updated_at: string;
 }
