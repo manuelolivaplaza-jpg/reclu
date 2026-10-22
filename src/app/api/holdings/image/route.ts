@@ -92,7 +92,12 @@ export async function POST(request: Request) {
     .eq("user_id", user.id)
     .maybeSingle();
   if (settingsResult.error) {
-    console.warn("[reclu] image import consent:", settingsResult.error.message);
+    // F80: solo el código del error. El mensaje crudo de Supabase puede
+    // traer detalle interno de la base y no va a los logs.
+    console.warn(
+      "[reclu] image import consent:",
+      settingsResult.error.code ?? "sin código",
+    );
     return jsonError("No pudimos verificar tu consentimiento.", 503);
   }
   const settings = settingsResult.data as

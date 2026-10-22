@@ -135,13 +135,15 @@ function collectProfiles(rows: unknown): Map<string, ImpactTickerProfile> {
 }
 
 export async function POST(request: Request) {
-  const denied = checkAuth(request);
-  if (denied) return denied;
-
-  // Bandera legal/funcional: apagada por defecto. No revelamos nada más.
+  // F80: la bandera va PRIMERO. Con la función apagada se responde 404
+  // aunque falte CRON_SECRET: así no se revela que el job existe ni se
+  // distingue "falta el secreto" de "no hay autorización".
   if (!isNewsImpactEnabled()) {
     return Response.json({ error: "Not found" }, { status: 404 });
   }
+
+  const denied = checkAuth(request);
+  if (denied) return denied;
 
   // Sin API key y modelo no se hace NADA: ni consultas ni llamadas pagadas.
   const config = llmConfig();

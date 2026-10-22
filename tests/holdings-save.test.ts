@@ -101,7 +101,7 @@ describe("saveUserHoldings: cantidad y costo", () => {
         currency: "USD",
         market: "US",
         broker: "Renta 4",
-        source: "csv",
+        source: "manual",
       },
     ]);
     // No se borra toda la cartera para reinsertar.

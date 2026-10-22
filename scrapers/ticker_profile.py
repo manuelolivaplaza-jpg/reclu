@@ -33,6 +33,7 @@ import csv
 import io
 import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -212,6 +213,11 @@ def symbols_from_user_holdings(db: Any, limit: int = 1000) -> list[str]:
     """Símbolos distintos de ``user_holdings``; solo la columna symbol.
 
     No devuelve user_id, cantidades ni pesos. El cliente debe ser service role.
+
+    F80: los tickers de la cartera de los usuarios son datos de cartera. Esta
+    función NO los imprime ni los loguea: quien la usa solo puede reportar el
+    CONTOO (ver ``missing_report``). El detalle va a un artefacto local fuera
+    del repo.
     """
     rows = (
         db.table("user_holdings").select("symbol").limit(limit).execute().data or []
@@ -224,6 +230,34 @@ def symbols_from_user_holdings(db: Any, limit: int = 1000) -> list[str]:
             seen.add(symbol)
             symbols.append(symbol)
     return symbols
+
+
+def missing_artifact_path() -> Path:
+    """Ruta del artefacto local con el detalle de los tickers faltantes.
+
+    Vive fuera del repo (temp del sistema) para que la lista no termine en
+    un log, en un artefacto versionado ni en un proveedor de logs.
+    """
+    return Path(tempfile.gettempdir()) / "reclu-ticker-profile-missing.txt"
+
+
+def missing_report(missing: list[str]) -> dict[str, Any]:
+    """Reporte de los tickers faltantes SIN exponer la lista.
+
+    F80: devuelve el conteo y deja el detalle en un artefacto local fuera del
+    repo. El texto que se imprime o se loguea es solo ``faltan {n}``.
+    """
+    count = len(missing)
+    artifact = missing_artifact_path()
+    try:
+        artifact.write_text("\n".join(missing) + "\n", encoding="utf-8")
+        artifact_path = str(artifact)
+    except OSError:
+        artifact_path = ""
+    return {
+        "missing_count": count,
+        "missing_artifact": artifact_path,
+    }
 
 
 def missing_from_profiles(
@@ -305,12 +339,10 @@ class TickerProfileAdapter:
             symbols = symbols_from_user_holdings(db)
             missing = missing_from_profiles(symbols, rows)
             summary["user_symbols"] = len(symbols)
-            summary["missing"] = missing
+            # F80: nunca la lista de tickers de los usuarios. Solo el conteo.
+            summary.update(missing_report(missing))
             if missing:
-                log(
-                    f"[ticker_profile] faltan en el CSV ({len(missing)}): "
-                    f"{', '.join(missing[:20])}"
-                )
+                log(f"[ticker_profile] faltan en el CSV: {len(missing)}")
         except Exception as error:  # noqa: BLE001 — el reporte no corta la carga
             log(f"[ticker_profile] WARNING user_holdings: {error}")
 
@@ -353,12 +385,15 @@ def main() -> None:
         try:
             symbols = symbols_from_user_holdings(db)
             missing = missing_from_profiles(symbols, rows)
+            # F80: ni el log ni stdout muestran la lista de tickers.
+            report = missing_report(missing)
             log(
                 f"[ticker_profile] user_holdings: {len(symbols)} símbolos, "
-                f"{len(missing)} sin perfil"
+                f"{report['missing_count']} sin perfil"
             )
-            for symbol in missing:
-                print(symbol)
+            print(f"faltan {report['missing_count']}")
+            if report["missing_artifact"]:
+                print(f"detalle: {report['missing_artifact']}")
         except Exception as error:  # noqa: BLE001 — sin base solo se reporta
             log(f"[ticker_profile] WARNING user_holdings: {error}")
 
