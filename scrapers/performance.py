@@ -135,6 +135,12 @@ def build_performance_series(
     renormalized to sum to 1 before fetching prices.
     """
     holdings = [(symbol, weight) for symbol, weight in get_portfolio_holdings(db, portfolio_id) if weight > 0]
+    # Nombres de emisor sin resolver (13F) no son tickers: Yahoo da 404.
+    # Se omiten y se registran; los pesos se renormalizan sobre el resto.
+    skipped = [symbol for symbol, _ in holdings if " " in symbol.strip()]
+    if skipped:
+        print(f"[performance] {portfolio_id}: {len(skipped)} holdings sin ticker omitidos: " + "; ".join(skipped[:20]))
+        holdings = [(symbol, weight) for symbol, weight in holdings if symbol not in skipped]
     holdings.sort(key=lambda item: item[1], reverse=True)
     holdings = holdings[:MAX_HOLDINGS]
     total_weight = sum(weight for _, weight in holdings)

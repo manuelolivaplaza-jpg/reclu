@@ -172,6 +172,10 @@ def get_db() -> Client:
             "ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY env vars are required.\n"
             "Export them before running the scraper."
         )
+    # maybe_single() sin filas devuelve None en postgrest 2.x: se normaliza.
+    from supabase_compat import patch_maybe_single
+
+    patch_maybe_single()
     return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 

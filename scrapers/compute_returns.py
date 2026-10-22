@@ -33,7 +33,8 @@ def latest_price(db, symbol: str) -> float | None:
         .maybe_single()
         .execute()
     )
-    return result.data["close"] if result.data else None
+    data = result.data if result is not None else None
+    return data["close"] if data else None
 
 
 def compute_returns(db) -> dict[str, int]:
