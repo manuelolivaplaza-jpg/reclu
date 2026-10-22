@@ -30,7 +30,6 @@ interface Pill {
 function PortfolioRow({
   slug,
   name,
-  initials,
   manager,
   managerInitials,
   coverImage,
