@@ -56,6 +56,9 @@ begin
       'elogio_con_ticker',
       'elogio_producto',
       'elogio_acuerdo',
+      -- 'critica' y 'empresa_propia' los agrega la 017 (se instala antes): no quitarlos.
+      'critica',
+      'empresa_propia',
       'recomienda_compra',
       'recomienda_venta'
     ));

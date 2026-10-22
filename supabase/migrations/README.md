@@ -1,6 +1,10 @@
 # Migraciones — orden de aplicación
 
-Todas son idempotentes: pueden re-ejecutarse sin romper nada. Aplicar en
+Las migraciones numeradas son idempotentes: pueden re-ejecutarse sin romper nada.
+**Excepción: `../schema.sql` corre una sola vez, sobre una base vacía.** No es
+re-ejecutable: la 004_cover_image agrega `cover_image` a `portfolios` y la vista
+`portfolios_with_stats` (`select p.*`) queda con esa columna, así que volver a
+correr el `create or replace view` de schema.sql falla con 42P16. Aplicar en
 este orden en el SQL Editor de Supabase (o `supabase db push` si se usa
 el CLI, respetando el mismo orden).
 
@@ -8,7 +12,7 @@ el CLI, respetando el mismo orden).
 
 | # | Archivo | Qué hace | Depende de | Idempotente |
 |---|---------|----------|------------|-------------|
-| 0 | `../schema.sql` (o `../SETUP-COMPLETO.sql`) | Esquema base + seeds. SETUP incluye schema + migraciones tempranas. | — | Sí |
+| 0 | `../schema.sql` (o `../SETUP-COMPLETO.sql`) | Esquema base + seeds. SETUP incluye schema + migraciones tempranas. **Una sola vez, sobre una base vacía.** | — | No |
 | 1 | `002_holdings_returns.sql` | Precios y `return_pct` en holdings. | Esquema base | Sí |
 | 2 | `003_portfolio_snapshots.sql` | Snapshots históricos para gráficos. | Esquema base | Sí |
 | 3 | `004_chat_quota.sql` | Cuotas de chat AI + historial de mensajes. | Esquema base | Sí |
