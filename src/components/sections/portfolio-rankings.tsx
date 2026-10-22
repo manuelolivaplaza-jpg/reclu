@@ -124,7 +124,7 @@ function PortfolioRow({
         </span>
         <ChevronRight
           aria-hidden="true"
-          className="size-4 text-neutral-400 transition-transform duration-200 group-hover:translate-x-0.5"
+          className="size-4 text-neutral-400 transition-transform duration-200 motion-reduce:transition-none group-hover:translate-x-0.5 motion-reduce:group-hover:translate-x-0"
         />
       </div>
     </Link>
@@ -142,7 +142,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
   const popular: RankingsPopularRow[] = data.popular;
 
   return (
-    <section className="bg-white py-24 md:py-32">
+    <section className="bg-white py-24 font-sans md:py-32">
       <div className="container-page">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
@@ -175,9 +175,11 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
                 return (
                   <button
                     key={period.id}
+                    id={`tab-${period.id}`}
                     type="button"
                     role="tab"
                     aria-selected={active}
+                    aria-controls="panel-ranking"
                     aria-disabled={!period.hasData}
                     disabled={!period.hasData}
                     title={
@@ -205,8 +207,9 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
             </div>
 
             <div
+              id="panel-ranking"
               role="tabpanel"
-              aria-label="Portafolios con mejor rendimiento"
+              aria-labelledby={`tab-${periodId}`}
               className="mt-4 divide-y divide-neutral-200/70"
             >
               {rows.length === 0 ? (

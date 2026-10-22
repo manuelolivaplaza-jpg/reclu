@@ -94,8 +94,7 @@ export function periodReturn(series: RankingPoint[], days: number): number | nul
       (point) =>
         point &&
         typeof point.date === "string" &&
-        Number.isFinite(point.value) &&
-        point.value > 0,
+        Number.isFinite(point.value),
     )
     .map((point) => ({ time: parseDate(point.date), value: point.value }))
     .filter((point) => Number.isFinite(point.time))
@@ -104,6 +103,7 @@ export function periodReturn(series: RankingPoint[], days: number): number | nul
   if (points.length < 2) return null;
 
   const last = points[points.length - 1];
+  if (last.value <= 0) return null;
   const cutoff = last.time - days * DAY_MS;
 
   let base: { time: number; value: number } | null = null;
