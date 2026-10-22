@@ -39,7 +39,6 @@ export function useHideOnScroll(threshold = 10): boolean {
   useEffect(() => {
     prevY.current = window.scrollY;
     hiddenRef.current = false;
-    setHidden(false);
 
     const onScroll = () => {
       const y = window.scrollY;
