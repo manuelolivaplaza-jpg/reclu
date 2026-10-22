@@ -3,8 +3,7 @@
   "crons": [
     {
       "path": "/api/run-pipeline",
-      "schedule": "0 13 * * *",
-      "maxDuration": 300
+      "schedule": "0 13 * * *"
     }
   ]
 }

@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { timingSafeEqual } from "@/lib/safe-compare";
 
+// Duración máxima de la función (en vercel.json los crons no admiten maxDuration).
+export const maxDuration = 300;
+
 /**
  * POST/GET /api/run-pipeline — corre el pipeline de alertas completo:
  *   1. detect-changes: holdings con previous_weight → alerts (is_published=false)
