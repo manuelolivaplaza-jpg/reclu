@@ -13,6 +13,7 @@ import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
+import { PortfolioHero } from "@/components/portfolio-hero";
 import { LagBadge } from "@/components/lag-badge";
 import { PerformancePanel } from "@/components/performance-panel";
 import { getPortfolioPerformanceData } from "@/lib/performance-queries";
@@ -22,7 +23,7 @@ import { JsonLd } from "@/components/json-ld";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
-import { timeAgo, formatCompact } from "@/lib/utils";
+import { timeAgo } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
 import { OgeTradesPanel } from "@/components/oge-trades-panel";
@@ -197,6 +198,16 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         : [];
   const publication = latestDisclosureStamp(alerts);
 
+  // Serie del hero: la MISMA que ya usa la página y que el servidor recortó
+  // según el plan (queries.ts / getPerformance). Nunca se lee la tabla
+  // directo: si el muro no deja pasar la serie, el hero no muestra % ni tarjeta.
+  const heroSource = performanceReal.length > 0 ? performanceReal : demoPoints;
+  const heroSeries = heroSource.map((point) => ({
+    date: point.date,
+    value_pct: point.value,
+  }));
+  const heroDemo = performanceReal.length === 0 && demoPoints.length > 0;
+
   return (
     <div className="flex min-h-screen flex-col">
       {/* SEO: Dataset + BreadcrumbList (schema.org) */}
@@ -233,16 +244,43 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       <SiteHeader />
 
       <main className="flex-1">
+        <div className="container-page pt-6">
+          <Link
+            href="/explore"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-950"
+          >
+            <ArrowLeft className="size-4" />
+            Volver a explorar
+          </Link>
+        </div>
+
+        {/* Hero: nombre, variación del período y simulación de inversión */}
+        <PortfolioHero
+          name={portfolio.name}
+          series={heroSeries}
+          followers={portfolio.followers}
+          demo={heroDemo}
+          action={
+            <>
+              <FollowButton
+                portfolioId={portfolio.id}
+                initialFollowing={following}
+                initialIsPro={isPro}
+                portfolioPremium={portfolio.premium}
+                variant="page"
+              />
+              <p className="mt-3 text-[13px] text-neutral-500">
+                {following
+                  ? "Recibirás alertas por email de este portafolio."
+                  : "Sigue este portafolio para recibir alertas."}
+              </p>
+            </>
+          }
+        />
+
         {/* Portfolio header */}
-        <div className="border-b border-ink-200 bg-white">
+        <div className="bg-white">
           <div className="container-page py-10">
-            <Link
-              href="/explore"
-              className="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
-            >
-              <ArrowLeft className="size-4" />
-              Volver a explorar
-            </Link>
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
                 <p className="label-line">
@@ -250,7 +288,6 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                   {portfolio.premium ? " · Pro" : ""}
                 </p>
 
-                <h1 className="type-section mt-3 text-ink-900">{portfolio.name}</h1>
                 {isDemoData && (
                   <p className="mt-3">
                     <DemoBadge />
@@ -267,10 +304,6 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                       Gestor: <span className="text-ink-900">{portfolio.manager}</span>
                     </span>
                   )}
-                  <span>
-                    <span className="num text-ink-900">{formatCompact(portfolio.followers)}</span>{" "}
-                    seguidores
-                  </span>
                   {esAgregado ? (
                     <a
                       href={INFOPROBIDAD_URL}
@@ -302,14 +335,14 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 ) : null}
               </div>
 
-              {/* Retorno YTD + follow */}
+              {/* Retorno YTD (dato propio del portafolio) + enlace a comparar */}
               <div className="w-full shrink-0 lg:w-72">
                 {hasReturn && (
-                  <div className="mb-5 border-b border-ink-200 pb-4">
+                  <div className="mb-5">
                     <p className="label-line">Retorno YTD</p>
                     <span
                       className={
-                        "num mt-1 block text-[clamp(2.5rem,5vw,3.5rem)] leading-none " +
+                        "num mt-1 block text-[1.75rem] leading-none tracking-[-0.02em] " +
                         (positive ? "text-positive" : "text-negative")
                       }
                     >
@@ -318,18 +351,6 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                     </span>
                   </div>
                 )}
-                <FollowButton
-                  portfolioId={portfolio.id}
-                  initialFollowing={following}
-                  initialIsPro={isPro}
-                  portfolioPremium={portfolio.premium}
-                  variant="page"
-                />
-                <p className="mt-3 text-[13px] text-ink-500">
-                  {following
-                    ? "Recibirás alertas por email de este portafolio."
-                    : "Sigue este portafolio para recibir alertas."}
-                </p>
                 <Link
                   href="/compare"
                   className="mt-3 inline-block text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline"
