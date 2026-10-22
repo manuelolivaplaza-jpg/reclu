@@ -16,6 +16,8 @@ benchmark series in benchmark_prices (S&P 500 / IPSA, see benchmarks.py).
 
 from __future__ import annotations
 
+import time
+
 import math
 from datetime import date, datetime, timezone
 
@@ -37,20 +39,49 @@ def latest_price(db, symbol: str) -> float | None:
     return data["close"] if data else None
 
 
-def compute_returns(db) -> dict[str, int]:
-    """Fill price_current and return_pct on every holding."""
-    holdings = (
-        db.table("holdings")
-        .select("id, symbol, price_at_disclosure")
-        .execute()
-    )
-    rows = holdings.data or []
+BATCH_SIZE = 200
+MAX_ATTEMPTS = 4
+BACKOFF_BASE_S = 1.0
+_TRANSIENT_MARKERS = (
+    "server disconnected",
+    "remoteprotocolerror",
+    "connection reset",
+    "connecterror",
+    "readtimeout",
+    "readerror",
+    "timed out",
+)
 
+
+def is_transient(exc: BaseException) -> bool:
+    """Errores de red pasajeros (p. ej. httpx 'Server disconnected')."""
+    text = f"{type(exc).__name__} {exc}".lower()
+    return any(marker in text for marker in _TRANSIENT_MARKERS)
+
+
+def with_retry(fn, attempts: int = MAX_ATTEMPTS, base_delay: float = BACKOFF_BASE_S, sleep=time.sleep):
+    """Llama fn(); reintenta con backoff exponencial solo ante errores pasajeros."""
+    for attempt in range(1, attempts + 1):
+        try:
+            return fn()
+        except Exception as exc:  # noqa: BLE001
+            if not is_transient(exc) or attempt == attempts:
+                raise
+            delay = base_delay * (2 ** (attempt - 1))
+            print(f"[compute_returns] {type(exc).__name__}: reintento {attempt}/{attempts - 1} en {delay:.0f}s")
+            sleep(delay)
+    return None
+
+
+def _process_batch(db, batch: list[dict], done: set) -> int:
     updated = 0
-    for h in rows:
+    for h in batch:
+        if h["id"] in done:
+            continue
         price = latest_price(db, h["symbol"])
         if price is None:
             print(f"WARNING {h['symbol']}: no price in prices table, skipping")
+            done.add(h["id"])
             continue
 
         update: dict[str, float] = {"price_current": price}
@@ -59,10 +90,44 @@ def compute_returns(db) -> dict[str, int]:
             update["return_pct"] = round((price - disclosure) / disclosure * 100, 2)
 
         db.table("holdings").update(update).eq("id", h["id"]).execute()
+        done.add(h["id"])
         updated += 1
+    return updated
 
-    print(f"{updated}/{len(rows)} updated")
-    return {"updated": updated, "total": len(rows)}
+
+def compute_returns(db, batch_size: int = BATCH_SIZE, sleep=time.sleep) -> dict[str, int]:
+    """Fill price_current and return_pct on every holding.
+
+    Se procesa por lotes. Si un lote cae por un error de red pasajero
+    ('Server disconnected'), se reintenta con backoff solo lo que faltó de
+    ese lote; si se agotan los intentos, se registra y se sigue con el
+    siguiente lote.
+    """
+    holdings = with_retry(
+        lambda: db.table("holdings").select("id, symbol, price_at_disclosure").execute(),
+        sleep=sleep,
+    )
+    rows = (holdings.data if holdings is not None else None) or []
+
+    updated = 0
+    failed_batches = 0
+    done: set = set()
+    for start in range(0, len(rows), batch_size):
+        batch = rows[start : start + batch_size]
+        counter = {"n": 0}
+
+        def run(batch=batch, counter=counter):
+            counter["n"] += _process_batch(db, batch, done)
+
+        try:
+            with_retry(run, sleep=sleep)
+        except Exception as exc:  # noqa: BLE001
+            failed_batches += 1
+            print(f"WARNING lote {start // batch_size + 1}: {type(exc).__name__}: {exc}; se sigue con el siguiente")
+        updated += counter["n"]
+
+    print(f"{updated}/{len(rows)} updated" + (f", {failed_batches} lotes fallidos" if failed_batches else ""))
+    return {"updated": updated, "total": len(rows), "failed_batches": failed_batches}
 
 
 # ============================================================================
