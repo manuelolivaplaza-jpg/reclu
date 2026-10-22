@@ -66,7 +66,14 @@ export function SiteFooter() {
           <NewsletterSignup />
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-white/16 pt-8 text-sm md:flex-row md:items-center md:justify-between">
+        <div className="mt-12 border-t border-white/16 pt-8">
+          <h4 className="text-xs font-medium text-white/62">Fuentes de datos</h4>
+          <p className="mt-2 text-xs leading-relaxed text-pretty text-white/45">
+            House Disclosure · Senate eFD · OGE 278-T · SEC EDGAR (13F, Form 4, 13D, 10-12B, XBRL) · ARK Invest · Global X · iShares · VanEck · Renta 4 · BTG Pactual · BICE · MBI · CMF · Superintendencia de Pensiones · InfoProbidad · Polymarket · Truth Social · X (@elonmusk) · CNBC
+          </p>
+        </div>
+
+        <div className="mt-8 flex flex-col gap-4 border-t border-white/16 pt-8 text-sm md:flex-row md:items-center md:justify-between">
           <p className="text-white/45">© {CURRENT_YEAR} reclu.cl</p>
           <p className="max-w-xl text-xs leading-relaxed text-white/45">
             Información pública con fines informativos. No constituye asesoría de
