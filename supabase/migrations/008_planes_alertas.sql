@@ -148,6 +148,9 @@ grant execute on function public.check_chat_quota(uuid) to service_role;
 -- ------------------------------------------------------------
 alter table public.profiles alter column alert_frequency set default 'daily';
 
+-- trial_ends_at se usa abajo: crearla antes (idempotente; se repite en la seccion 3).
+alter table public.profiles add column if not exists trial_ends_at timestamptz;
+
 update public.profiles
 set alert_frequency = 'daily'
 where plan = 'free'
