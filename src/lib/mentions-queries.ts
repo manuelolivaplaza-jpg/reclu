@@ -167,6 +167,17 @@ export function selectVerifiedMentions(rows: readonly MentionRow[]): PublicMenti
 }
 
 /**
+ * Trump dice usa solo menciones con entrada desde esta fecha (decisión de
+ * Manu, 2026-10-23: M04-M15). M01 TSLA, M02 SPY y M03 X siguen en la base
+ * pero no se muestran.
+ */
+export const TRUMP_DICE_START = "2025-08-06";
+
+export function fromTrumpStart<T extends { entryDate: string }>(rows: readonly T[]): T[] {
+  return rows.filter((row) => row.entryDate.slice(0, 10) >= TRUMP_DICE_START);
+}
+
+/**
  * Las 15 menciones verificadas de la migración 014 (fuente: menciones.json).
  * Respaldo cuando no hay Supabase. No agrega dichos sin URL.
  */
@@ -385,7 +396,7 @@ const DEMO_TRUMP_MENTIONS: readonly MentionRow[] = [
 ];
 
 export function demoTrumpMentions(): MentionRow[] {
-  return DEMO_TRUMP_MENTIONS.map((row) => ({ ...row, sourceUrls: [...row.sourceUrls] }));
+  return fromTrumpStart(DEMO_TRUMP_MENTIONS).map((row) => ({ ...row, sourceUrls: [...row.sourceUrls] }));
 }
 
 /**
@@ -522,7 +533,8 @@ function rowFromDb(raw: Record<string, unknown>): MentionRow {
 
 /**
  * Menciones verificadas del portafolio, de más reciente a más antigua.
- * Sin Supabase: Trump dice (15) si source es trump_mentions o no viene;
+ * Trump dice: solo entradas desde TRUMP_DICE_START (12 de 15, M04-M15).
+ * Sin Supabase: Trump dice (12) si source es trump_mentions o no viene;
  * Musk (4) si source es musk_mentions; Inverse Cramer (27) si source es
  * cnbc_lightning_round. Otro source: lista vacía. isDemo true.
  * Con Supabase y sin filas (o si la consulta falla): lista vacía, isDemo false.
@@ -537,7 +549,7 @@ export async function getMentions(portfolioId: string, source?: string): Promise
       return { mentions: selectVerifiedMentions(DEMO_MUSK_MENTIONS), isDemo: true };
     }
     if (source === undefined || source === "trump_mentions") {
-      return { mentions: selectVerifiedMentions(DEMO_TRUMP_MENTIONS), isDemo: true };
+      return { mentions: selectVerifiedMentions(fromTrumpStart(DEMO_TRUMP_MENTIONS)), isDemo: true };
     }
     return { mentions: [], isDemo: true };
   }
@@ -557,7 +569,8 @@ export async function getMentions(portfolioId: string, source?: string): Promise
     }
 
     const rows = data.map((row) => rowFromDb(row as Record<string, unknown>));
-    return { mentions: selectVerifiedMentions(rows), isDemo: false };
+    const scoped = source === undefined || source === "trump_mentions" ? fromTrumpStart(rows) : rows;
+    return { mentions: selectVerifiedMentions(scoped), isDemo: false };
   } catch (err) {
     console.warn("[reclu] getMentions error:", err);
     return { mentions: [], isDemo: false };

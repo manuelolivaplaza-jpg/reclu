@@ -14,7 +14,7 @@ Archivos: `menciones.json` (menciones con cita y fuentes), `trump_dice_posicione
   (MP Materials) y los elogios colectivos dentro de listas de empresas (unas 50 en el dataset de Hudson Labs).
   Ver `excluidas` en `menciones.json`.
 - No es una lista exhaustiva: es el conjunto verificado de llamados de compra y elogios directos
-  más citados entre marzo de 2025 y octubre de 2026.
+  más citados entre agosto de 2025 y octubre de 2026. El portafolio usa solo menciones con entrada desde el 2025-08-06 (M04-M15, 12 de 15: AAPL, INTC, DELL, MU, PLTR); M01 TSLA, M02 SPY y M03 X quedan fuera. Configurable con TRUMP_DICE_FECHA_INICIO.
 
 ## 2. Simulación
 - Se compran US$1.000 por mención, al cierre del día de la mención. Si el dicho ocurrió después del

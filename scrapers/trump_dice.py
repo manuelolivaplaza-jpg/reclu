@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -41,6 +42,12 @@ from base import Holding, SourceAdapter, get_db, log
 TRUMP_DICE_SLUG = "trump-dice"
 DATA_PATH = Path(__file__).parent / "data" / "trump_dice_menciones.json"
 MONTO_DEFAULT = 1000.0
+
+# Decisión de Manu (2026-10-23): el portafolio usa SOLO menciones con entrada
+# desde esta fecha (M04-M15: AAPL, INTC, DELL, MU, PLTR; primera entrada
+# 2025-08-07). M01 TSLA, M02 SPY y M03 X siguen en el JSON (fuente de verdad)
+# pero quedan fuera. Configurable con TRUMP_DICE_FECHA_INICIO ("" = sin filtro).
+FECHA_INICIO: str | None = os.environ.get("TRUMP_DICE_FECHA_INICIO", "2025-08-06") or None
 
 # U.S. Steel (X) deslistada: Nippon pagó US$55 en efectivo el 2025-06-18.
 # La posición queda valorizada a ese precio (cash-out).
@@ -64,11 +71,23 @@ KINDS = {
 }
 
 
-def load_menciones(path: Path = DATA_PATH) -> list[dict]:
-    """Lee el JSON de menciones y valida el mínimo exigido a cada una."""
+def load_menciones(path: Path = DATA_PATH, fecha_inicio: str | None = FECHA_INICIO) -> list[dict]:
+    """Lee el JSON de menciones, valida el mínimo exigido y aplica fecha_inicio."""
     with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
-    return validate_menciones(data.get("menciones", []))
+    validas = validate_menciones(data.get("menciones", []))
+    return filtrar_desde(validas, fecha_inicio)
+
+
+def filtrar_desde(menciones: list[dict], fecha_inicio: str | None) -> list[dict]:
+    """Deja fuera las menciones con entrada anterior a fecha_inicio (se registran)."""
+    if not fecha_inicio:
+        return menciones
+    vigentes = [m for m in menciones if str(m["entrada"])[:10] >= fecha_inicio]
+    fuera = [m["id"] for m in menciones if str(m["entrada"])[:10] < fecha_inicio]
+    if fuera:
+        log(f"[trump_dice] excluidas por fecha (anterior a {fecha_inicio}): {', '.join(fuera)}")
+    return vigentes
 
 
 def validate_menciones(menciones: list[dict]) -> list[dict]:

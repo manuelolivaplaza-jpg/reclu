@@ -118,7 +118,7 @@ class FakeDB:
 
 
 def test_json_real_pesos_suman_100_cash_out_y_dell_x5():
-    menciones = load_menciones()
+    menciones = load_menciones(fecha_inicio=None)
     assert len(menciones) == 15
     assert all(any(str(u).startswith("https://") for u in m["fuentes"]) for m in menciones)
     dell = [m for m in menciones if m["ticker"] == "DELL"]
@@ -243,3 +243,13 @@ def test_json_sin_source_urls_se_rechaza():
     no_url = {**base, "fuentes": ["sin-url"]}
     with pytest.raises(ValueError, match="source_urls"):
         validate_menciones([no_url])
+
+
+def test_por_defecto_m04_a_m15():
+    menciones = load_menciones()
+    ids = [m["id"] for m in menciones]
+    assert len(menciones) == 12
+    assert ids[0] == "M04" and not {"M01", "M02", "M03"} & set(ids)
+    assert min(m["entrada"] for m in menciones) == "2025-08-07"
+    assert {m["ticker"] for m in menciones} == {"AAPL", "INTC", "DELL", "MU", "PLTR"}
+    assert len(load_menciones(fecha_inicio=None)) == 15
