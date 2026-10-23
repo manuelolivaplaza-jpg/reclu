@@ -1,7 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { X, ArrowUp } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { createPortal } from "react-dom";
+import { X, ArrowUp, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -159,6 +160,20 @@ export function AiChatWidget() {
   });
   const [lowQuota, setLowQuota] = useState(false);
   const pathname = usePathname();
+  const reduceMotion = useReducedMotion();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // Movil: bloquear el scroll del body mientras la hoja esta abierta.
+  useEffect(() => {
+    if (!open) return;
+    if (!window.matchMedia("(max-width: 639px)").matches) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
   // Rutas del dashboard con nav inferior fija: el botón flota más arriba en móvil.
   const isDashboardRoute =
@@ -178,7 +193,7 @@ export function AiChatWidget() {
 
   // Foco automático al abrir
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 350);
+    if (open) setTimeout(() => inputRef.current?.focus({ preventScroll: true }), 350);
   }, [open]);
 
   // Cerrar con Escape
@@ -367,13 +382,15 @@ export function AiChatWidget() {
     setReply("");
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
-      {/* Fondo oscurecido cuando el chat está abierto */}
+      {/* Fondo: solo en movil, muy leve */}
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-40 bg-ink-900/40"
+            className="fixed inset-0 z-[99] bg-black/20 sm:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -393,7 +410,7 @@ export function AiChatWidget() {
               setOpen(true);
             }}
             className={
-              "fixed right-5 z-50 flex h-12 items-center gap-2 rounded-full bg-ink-900 pr-4 pl-3.5 text-[14px] font-medium text-white " +
+              "fixed right-5 z-[100] flex h-12 items-center gap-2 rounded-full bg-ink-900 pr-4 pl-3.5 text-[14px] font-medium text-white shadow-lg shadow-black/20 " +
               (isDashboardRoute ? "bottom-20 lg:bottom-5" : "bottom-5")
             }
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
@@ -422,11 +439,11 @@ export function AiChatWidget() {
       <AnimatePresence>
         {open && (
           <motion.div
-            className="relative fixed inset-0 z-50 flex h-dvh flex-col bg-background sm:inset-auto sm:right-5 sm:bottom-5 sm:h-[560px] sm:w-[400px] sm:border sm:border-ink-200"
-            initial={{ opacity: 0, y: 24, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 24, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 350, damping: 32 }}
+            className="fixed inset-x-0 bottom-0 z-[100] flex h-[92dvh] flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl shadow-black/20 ring-1 ring-black/5 sm:inset-x-auto sm:right-6 sm:bottom-6 sm:h-[600px] sm:max-h-[80vh] sm:w-[400px] sm:rounded-3xl"
+            initial={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, scale: 0.98 }}
+            animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, scale: 0.98 }}
+            transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 380, damping: 34 }}
             role="dialog"
             aria-label="Asistente IA de reclu"
           >
@@ -442,12 +459,15 @@ export function AiChatWidget() {
               </p>
             )}
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-ink-200 px-5 py-4">
-              <div>
-                <p className="text-[17px] font-medium tracking-[-0.03em] text-ink-900">
+            <div className="flex items-center justify-between gap-3 border-b border-black/5 px-5 py-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-900 text-white" aria-hidden="true">
+                <Sparkles size={16} strokeWidth={2} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-semibold tracking-[-0.02em] text-ink-900">
                   Asistente reclu
                 </p>
-                <p className="text-[12px] text-ink-500">
+                <p className="truncate text-[11px] text-ink-500">
                   Información con fines informativos. No es asesoría de inversión.
                 </p>
               </div>
@@ -464,7 +484,7 @@ export function AiChatWidget() {
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="text-ink-500 transition-opacity hover:opacity-60"
+                  className="flex size-8 items-center justify-center rounded-full text-ink-500 transition-colors hover:bg-neutral-100 hover:text-ink-900"
                   aria-label="Cerrar asistente"
                 >
                   <X size={18} strokeWidth={1.8} />
@@ -481,13 +501,13 @@ export function AiChatWidget() {
                       ? "Pregúntame sobre lo que estás viendo ahora."
                       : "Pregúntame sobre los portafolios que seguimos, cómo funcionan las alertas, los 13F de los fondos o cualquier duda de inversión."}
                   </p>
-                  <div className="space-y-2">
+                  <div className="flex flex-wrap gap-2">
                     {suggestions.items.map((s) => (
                       <button
                         key={s}
                         type="button"
                         onClick={() => send(s)}
-                        className="block w-full border border-ink-200 px-4 py-2.5 text-left text-[14px] text-ink-900 transition-colors hover:bg-ink-50"
+                        className="rounded-full bg-neutral-100 px-3.5 py-2 text-left text-[13px] text-ink-900 transition-colors hover:bg-neutral-200"
                       >
                         {s}
                       </button>
@@ -499,11 +519,11 @@ export function AiChatWidget() {
                   {messages.map((m, i) => (
                     <div key={i} className={m.role === "user" ? "text-right" : ""}>
                       {m.role === "user" ? (
-                        <p className="inline-block max-w-[85%] bg-ink-900 px-4 py-2.5 text-left text-[14px] leading-relaxed text-white">
+                        <p className="inline-block max-w-[85%] rounded-2xl rounded-br-md bg-ink-900 px-4 py-2.5 text-left text-[14px] leading-relaxed text-white">
                           {m.content}
                         </p>
                       ) : (
-                        <div className="max-w-[92%] border-l-2 border-ink-900 pl-3.5">
+                        <div className="max-w-[92%] rounded-2xl rounded-bl-md bg-neutral-100 px-4 py-3">
                           <div className="text-[14px] whitespace-pre-wrap text-ink-900">
                             <AssistantContent content={m.content} />
                           </div>
@@ -525,7 +545,7 @@ export function AiChatWidget() {
                   )}
                   {loading && reply && (
                     <div>
-                      <div className="max-w-[92%] border-l-2 border-ink-900 pl-3.5">
+                      <div className="max-w-[92%] rounded-2xl rounded-bl-md bg-neutral-100 px-4 py-3">
                         <div className="text-[14px] text-ink-900">
                           <AssistantContent content={reply} />
                           <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-ink-900" />
@@ -540,7 +560,7 @@ export function AiChatWidget() {
 
             {/* Input */}
             <form
-              className="flex items-center gap-2 border-t border-ink-200 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
+              className="flex items-center gap-2 border-t border-black/5 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
               onSubmit={(e) => {
                 e.preventDefault();
                 send(input);
@@ -552,13 +572,13 @@ export function AiChatWidget() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Escribe tu pregunta…"
-                className="flex-1 bg-transparent text-[14px] text-ink-900 outline-none placeholder:text-ink-400"
+                className="h-11 flex-1 rounded-full bg-neutral-100 px-4 text-[14px] text-ink-900 outline-none ring-ink-900/10 placeholder:text-ink-400 focus:ring-2"
                 aria-label="Mensaje para el asistente"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || loading}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-ink-900 text-white transition-opacity disabled:opacity-30"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-ink-900 text-white transition-opacity disabled:opacity-30"
                 aria-label="Enviar mensaje"
               >
                 <ArrowUp size={15} strokeWidth={2.2} />
@@ -567,6 +587,7 @@ export function AiChatWidget() {
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </>,
+    document.body,
   );
 }
