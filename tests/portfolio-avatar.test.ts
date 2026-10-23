@@ -124,9 +124,9 @@ describe("avatarSource", () => {
   });
 
   it("tolera la migración 055 sin aplicar (campos undefined)", () => {
-    expect(avatarSource({ slug: "x", cover_image: "02-toro.png" })).toEqual({
+    expect(avatarSource({ slug: "x", cover_image: "08-grafico.png" })).toEqual({
       kind: "cover",
-      src: "/covers/02-toro.png",
+      src: "/covers/08-grafico.png",
     });
     expect(avatarSource({ slug: "x" })).toEqual({ kind: "initials" });
     expect(avatarSource({})).toEqual({ kind: "initials" });
@@ -136,5 +136,11 @@ describe("avatarSource", () => {
     expect(
       avatarSource({ slug: "x", portrait_image: "", cover_image: "" }),
     ).toEqual({ kind: "initials" });
+  });
+});
+
+describe("D28: toro generico", () => {
+  it("no usa 02-toro.png como avatar", () => {
+    expect(avatarSource({ slug: "arkk", cover_image: "02-toro.png" })).toEqual({ kind: "initials" });
   });
 });
