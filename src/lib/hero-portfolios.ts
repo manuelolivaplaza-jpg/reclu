@@ -20,6 +20,14 @@ export interface HeroCard {
   category: import("@/lib/types").PortfolioCategory;
   cover_image: string | null;
   portrait_image: string | null;
+  /** D28: etiqueta del periodo del retorno ("desde ago 2025", "YTD"). */
+  periodLabel?: string;
+  /** D28: niveles para el sparkline (vacío = sin gráfico). */
+  spark?: number[];
+  /** D28: la serie incluye puntos estimados. */
+  estimated?: boolean;
+  /** D28: tarjeta destacada (centro). */
+  featured?: boolean;
 }
 
 /**
