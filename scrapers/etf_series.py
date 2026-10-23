@@ -45,11 +45,9 @@ def rebase(closes: list[tuple[str, float]]) -> list[dict]:
 def save_real(db, portfolio_id: str, series: list[dict]) -> int:
     if not series:
         return 0
-    db.table("portfolio_performance").delete().eq("portfolio_id", portfolio_id).execute()
-    rows = [{"portfolio_id": portfolio_id, **p, "is_estimated": False} for p in series]
-    for i in range(0, len(rows), CHUNK):
-        db.table("portfolio_performance").upsert(rows[i : i + CHUNK], on_conflict="portfolio_id,date").execute()
-    return len(rows)
+    from perf_store import save_real_series
+
+    return save_real_series(db, portfolio_id, series, CHUNK)
 
 
 def main(argv: list[str] | None = None) -> None:

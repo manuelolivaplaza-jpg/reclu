@@ -65,6 +65,8 @@ def test_save_real_marca_no_estimado():
         def eq(self, *a):
             return self
 
+        gte = lte = eq
+
         def execute(self):
             return None
 

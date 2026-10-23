@@ -19,6 +19,8 @@ House disclosure gives amount ranges, not share counts.
 
 from __future__ import annotations
 
+from perf_store import save_real_series
+
 import argparse
 import sys
 import time
@@ -142,13 +144,8 @@ def reconstruct_member(db, member: str, slug: str) -> int:
         print(f"WARNING {member}: serie vacía")
         return 0
 
-    # clean old points and store real ones
-    db.table("portfolio_performance").delete().eq("portfolio_id", pid).execute()
-    for day, pct in series:
-        db.table("portfolio_performance").upsert(
-            {"portfolio_id": pid, "date": day, "value_pct": pct, "is_estimated": False},
-            on_conflict="portfolio_id,date",
-        ).execute()
+    # Sin borrar historia: upsert real + borra solo estimadas en el rango escrito.
+    save_real_series(db, pid, series)
     print(f"OK {slug} ({member}): {len(series)} eventos reales ({series[0][0]}→{series[-1][0]})")
     return len(series)
 
