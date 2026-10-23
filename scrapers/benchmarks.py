@@ -34,6 +34,27 @@ USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 # selective index of the Santiago exchange. SPY is kept as an alternate.
 DEFAULT_BENCHMARKS = ["^GSPC", "^IPSA"]
 ALTERNATES = {"^GSPC": ["SPY"], "^IPSA": ["IPSA.SN", "SPIPSA.SN"]}
+# Yahoo ya no publica historia del IPSA: ^IPSA e IPSA.SN dan "Not Found" y
+# SPIPSA.SN solo trae 1 fila (la ultima). Una serie mas corta que esto se
+# trata como fallo y se pasa al siguiente candidato / proxy.
+MIN_ROWS = 30
+# Proxy marcado: ECH (ETF iShares Chile) convertido a CLP con CLP=X. Es el
+# mismo "ECH en CLP (proxy del IPSA)" que ya declara la web.
+PROXIES = {"^IPSA": ("ECH", "CLP=X")}
+LAST_SOURCE: dict[str, str] = {}
+
+
+def proxy_in_clp(etf_rows, fx_rows):
+    """Multiplica el cierre del ETF en USD por el USDCLP del mismo dia (o el anterior)."""
+    fx = sorted(fx_rows)
+    out, j, rate = [], 0, None
+    for d, close in sorted(etf_rows):
+        while j < len(fx) and fx[j][0] <= d:
+            rate = fx[j][1]
+            j += 1
+        if rate is not None:
+            out.append((d, round(close * rate, 4)))
+    return out
 DEFAULT_DAYS = 730
 
 
@@ -75,10 +96,18 @@ def fetch_benchmark(symbol: str, days: int = DEFAULT_DAYS) -> list[tuple[str, fl
     for candidate in candidates:
         try:
             rows = fetch_eod(candidate, days)
-            if rows:
+            if len(rows) >= MIN_ROWS:
+                LAST_SOURCE[symbol] = candidate
                 return rows
-        except Exception as exc:  # noqa: BLE001 — try the next alternate
+            print(f"WARNING {candidate}: solo {len(rows)} filas, se descarta")
+        except Exception as exc:  # noqa: BLE001 - try the next alternate
             last_error = exc
+    if symbol in PROXIES:
+        etf, fx = PROXIES[symbol]
+        rows = proxy_in_clp(fetch_eod(etf, days), fetch_eod(fx, days))
+        if len(rows) >= MIN_ROWS:
+            LAST_SOURCE[symbol] = f"PROXY {etf}*{fx}"
+            return rows
     if last_error:
         raise last_error
     return []
@@ -103,14 +132,14 @@ def refresh_all(db, symbols: list[str], days: int = DEFAULT_DAYS, dry_run: bool 
                     first_date, first_close = rows[0]
                     last_date, last_close = rows[-1]
                     print(
-                        f"DRY-RUN {symbol}: {len(rows)} rows "
+                        f"DRY-RUN {symbol} [{LAST_SOURCE.get(symbol, symbol)}]: {len(rows)} rows "
                         f"(first {first_date} @ {first_close}, last {last_date} @ {last_close})"
                     )
                 else:
                     print(f"DRY-RUN {symbol}: 0 rows")
             else:
                 upsert_benchmarks(db, symbol, rows)
-                print(f"OK {symbol}: {len(rows)} rows")
+                print(f"OK {symbol} [{LAST_SOURCE.get(symbol, symbol)}]: {len(rows)} rows")
             ok += 1
         except Exception as e:  # noqa: BLE001 — keep going on any single-symbol error
             print(f"WARNING {symbol}: {e}")
