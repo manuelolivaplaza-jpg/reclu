@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUp, ArrowDown, CornerDownLeft, Search } from "lucide-react";
 import { DEMO_PORTFOLIOS } from "@/lib/demo-data";
+import { PortfolioAvatar, type AvatarPortfolio } from "@/components/portfolio-avatar";
 
 /**
  * CommandPalette — buscador rápido tipo terminal (⌘K / Ctrl+K).
@@ -25,6 +27,8 @@ interface PaletteItem {
   /** Términos adicionales para el match (gestor, tags). */
   keywords: string[];
   href: string;
+  /** Portafolio para el avatar; ausente en tickers. */
+  avatar?: AvatarPortfolio;
 }
 
 const POPULAR_TICKERS = [
@@ -66,6 +70,7 @@ function buildItems(): PaletteItem[] {
     hint: CATEGORY_LABEL[p.category] ?? p.category,
     keywords: [p.manager ?? "", ...p.tags],
     href: `/portfolio/${p.slug}`,
+    avatar: p,
   }));
 
   const tickers: PaletteItem[] = POPULAR_TICKERS.map((t) => ({
@@ -85,6 +90,13 @@ export function CommandPalette() {
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const reduced = useReducedMotion();
+  // Portal a <body>: el header sticky (blur + transform) crea su propio
+  // containing block y el overlay no lo cubría.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 
   const items = useMemo(() => buildItems(), []);
 
@@ -181,10 +193,12 @@ export function CommandPalette() {
       </button>
 
       {/* Modal */}
+      {mounted &&
+        createPortal(
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-[80] flex items-start justify-center bg-ink-900/50 pt-[12vh]"
+            className="fixed inset-0 z-[100] flex items-start justify-center bg-black/20 px-3 pt-3 backdrop-blur-sm sm:px-4 sm:pt-[15vh]"
             initial={reduced ? undefined : { opacity: 0 }}
             animate={reduced ? undefined : { opacity: 1 }}
             exit={reduced ? undefined : { opacity: 0 }}
@@ -195,18 +209,15 @@ export function CommandPalette() {
             aria-label="Buscar en reclu"
           >
             <motion.div
-              className="w-full max-w-xl border border-ink-900 bg-white"
-              initial={reduced ? undefined : { opacity: 0, y: -8, scale: 0.99 }}
-              animate={reduced ? undefined : { opacity: 1, y: 0, scale: 1 }}
-              exit={reduced ? undefined : { opacity: 0, y: -8, scale: 0.99 }}
+              className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/10 ring-1 ring-black/5 sm:max-h-[70vh]"
+              initial={reduced ? undefined : { opacity: 0, scale: 0.97, y: -6 }}
+              animate={reduced ? undefined : { opacity: 1, scale: 1, y: 0 }}
+              exit={reduced ? undefined : { opacity: 0, scale: 0.97, y: -6 }}
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Input tipo terminal */}
-              <div className="flex items-center gap-3 border-b border-ink-200 px-4 py-3.5">
-                <span className="num text-[15px] text-ink-400" aria-hidden>
-                  &gt;
-                </span>
+              <div className="flex items-center gap-3 border-b border-neutral-100 px-5 py-4">
+                <Search className="size-5 shrink-0 text-neutral-400" aria-hidden />
                 <input
                   ref={inputRef}
                   value={query}
@@ -215,8 +226,8 @@ export function CommandPalette() {
                     setActive(0);
                   }}
                   onKeyDown={onKeyDown}
-                  placeholder="Busca un portafolio, gestor o ticker…"
-                  className="w-full bg-transparent text-[15px] text-ink-900 placeholder:text-ink-400 focus:outline-none"
+                  placeholder="Busca un portafolio, gestor o ticker"
+                  className="w-full bg-transparent text-[17px] text-neutral-950 placeholder:text-neutral-400 focus:outline-none"
                   role="combobox"
                   aria-expanded="true"
                   aria-controls="command-list"
@@ -224,19 +235,23 @@ export function CommandPalette() {
                   autoComplete="off"
                   spellCheck={false}
                 />
-                <kbd className="num border border-ink-200 px-1.5 py-0.5 text-[11px] text-ink-400">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="shrink-0 rounded-md bg-neutral-100 px-1.5 py-0.5 text-[11px] font-medium text-neutral-500 hover:bg-neutral-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950"
+                  aria-label="Cerrar buscador"
+                >
                   esc
-                </kbd>
+                </button>
               </div>
 
-              {/* Resultados */}
               <ul
                 id="command-list"
                 role="listbox"
-                className="max-h-[50vh] overflow-y-auto"
+                className="no-scrollbar min-h-0 flex-1 overflow-y-auto p-2"
               >
                 {filtered.length === 0 ? (
-                  <li className="px-4 py-6 text-[15px] text-ink-500">
+                  <li className="px-3 py-8 text-center text-[15px] text-neutral-500">
                     Sin resultados para “{query}”.
                   </li>
                 ) : (
@@ -252,22 +267,35 @@ export function CommandPalette() {
                         onClick={() => setOpen(false)}
                         onMouseEnter={() => setActive(i)}
                         className={
-                          "flex items-baseline justify-between gap-4 border-b border-ink-100 px-4 py-3 " +
-                          (i === active ? "bg-ink-50" : "bg-white")
+                          "flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-neutral-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 " +
+                          (i === active ? "bg-neutral-100" : "")
                         }
                       >
-                        <span className="min-w-0 truncate text-[15px] text-ink-900">
+                        {item.avatar ? (
+                          <span className="shrink-0 overflow-hidden rounded-lg [&>*]:!size-8">
+                            <PortfolioAvatar portfolio={item.avatar} size={40} />
+                          </span>
+                        ) : (
+                          <span
+                            aria-hidden
+                            className="num flex size-8 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-[10px] font-semibold text-neutral-600"
+                          >
+                            {item.label.slice(0, 4)}
+                          </span>
+                        )}
+                        <span className="min-w-0 flex-1 truncate text-[15px] font-medium text-neutral-950">
                           {item.label}
                         </span>
-                        <span className="shrink-0 text-[13px] text-ink-500">{item.hint}</span>
+                        <span className="shrink-0 rounded-full bg-neutral-100 px-2.5 py-0.5 text-[12px] text-neutral-500">
+                          {item.hint}
+                        </span>
                       </Link>
                     </li>
                   ))
                 )}
               </ul>
 
-              {/* Pie de teclado */}
-              <div className="flex items-center gap-4 border-t border-ink-200 px-4 py-2.5 text-[12px] text-ink-400">
+              <div className="hidden items-center gap-4 border-t border-neutral-100 px-5 py-2.5 text-[12px] text-neutral-400 sm:flex">
                 <span className="inline-flex items-center gap-1">
                   <ArrowUp className="size-3" aria-hidden />
                   <ArrowDown className="size-3" aria-hidden />
@@ -277,11 +305,14 @@ export function CommandPalette() {
                   <CornerDownLeft className="size-3" aria-hidden />
                   abrir
                 </span>
+                <span className="ml-auto">esc cerrar</span>
               </div>
             </motion.div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+          document.body,
+        )}
     </>
   );
 }
