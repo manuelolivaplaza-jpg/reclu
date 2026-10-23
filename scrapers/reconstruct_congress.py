@@ -146,7 +146,7 @@ def reconstruct_member(db, member: str, slug: str) -> int:
     db.table("portfolio_performance").delete().eq("portfolio_id", pid).execute()
     for day, pct in series:
         db.table("portfolio_performance").upsert(
-            {"portfolio_id": pid, "date": day, "value_pct": pct},
+            {"portfolio_id": pid, "date": day, "value_pct": pct, "is_estimated": False},
             on_conflict="portfolio_id,date",
         ).execute()
     print(f"OK {slug} ({member}): {len(series)} eventos reales ({series[0][0]}→{series[-1][0]})")

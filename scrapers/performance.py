@@ -200,6 +200,73 @@ def _is_missing_table(exc: Exception) -> bool:
     return mentions_table and missing
 
 
+def stitch_estimated(
+    est: list[dict[str, Any]],
+    real: list[dict[str, Any]],
+    existing: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Puntos estimados que se pueden escribir sin pisar historia real.
+
+    - Con historia real: solo fechas anteriores al primer punto real, y la
+      proyección se reescala para empalmar en ese punto (misma base).
+    - Sin historia real: toda la proyección; si ya hay filas estimadas más
+      antiguas, se reescala para empalmar con la fila existente en su primera
+      fecha (evita un salto al rebasar a 0% en cada corrida).
+    """
+    if not est:
+        return []
+    est = sorted(est, key=lambda p: p["date"])
+
+    def level(p: dict[str, Any]) -> float:
+        return 1 + float(p["value_pct"]) / 100
+
+    def scaled(points: list[dict[str, Any]], factor: float) -> list[dict[str, Any]]:
+        return [
+            {"date": p["date"], "value_pct": round((level(p) * factor - 1) * 100, 4)}
+            for p in points
+        ]
+
+    real = sorted(real or [], key=lambda p: p["date"])
+    if real:
+        first = real[0]
+        before = [p for p in est if p["date"] < first["date"]]
+        if not before:
+            return []
+        upto = [p for p in est if p["date"] <= first["date"]]
+        join = upto[-1]
+        if level(join) <= 0:
+            return []
+        return scaled(before, level(first) / level(join))
+
+    prior = sorted(
+        (p for p in (existing or []) if p["date"] <= est[0]["date"]),
+        key=lambda p: p["date"],
+    )
+    if prior and level(est[0]) > 0:
+        return scaled(est, level(prior[-1]) / level(est[0]))
+    return est
+
+
+def _existing_rows(db, portfolio_id: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]]] | None:
+    """(reales, estimadas) actuales; None si la columna is_estimated no existe."""
+    try:
+        res = (
+            db.table("portfolio_performance")
+            .select("date,value_pct,is_estimated")
+            .eq("portfolio_id", portfolio_id)
+            .order("date")
+            .limit(5000)
+            .execute()
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING is_estimated no disponible (aplica la 057): {exc}")
+        return None
+    rows = getattr(res, "data", None) or []
+    real = [r for r in rows if r.get("is_estimated") is False]
+    est = [r for r in rows if r.get("is_estimated") is not False]
+    return real, est
+
+
 def save_snapshots(db, portfolio_id: str, series: list[dict[str, Any]]) -> bool:
     """Upsert {date, value_pct} into portfolio_performance.
 
@@ -214,6 +281,7 @@ def save_snapshots(db, portfolio_id: str, series: list[dict[str, Any]]) -> bool:
             "portfolio_id": portfolio_id,
             "date": point["date"],
             "value_pct": point["value_pct"],
+            **({"is_estimated": True} if point.get("is_estimated") else {}),
         }
         for point in series
     ]
@@ -246,6 +314,14 @@ def _active_portfolios(db) -> list[dict[str, Any]]:
 
 
 DEFAULT_LOOKBACK_DAYS = 365
+
+# ETFs: su serie real es el precio del propio fondo (etf_series.py).
+try:
+    from etf_series import ETF_TICKERS as _ETF_TICKERS
+
+    ETF_REAL_SLUGS = frozenset(_ETF_TICKERS)
+except Exception:  # noqa: BLE001
+    ETF_REAL_SLUGS = frozenset()
 
 
 def lookback_days(days: int | None = None, since: str | None = None, today=None) -> int:
@@ -293,7 +369,17 @@ def main(argv: list[str] | None = None) -> None:
         portfolio_id = portfolio["id"]
         slug = portfolio.get("slug") or portfolio_id
         try:
+            if slug in ETF_REAL_SLUGS:
+                print(f"-- {slug}: ETF con serie real (etf_series.py), no se proyecta")
+                continue
             series = build_performance_series(db, portfolio_id, days)
+            existing = _existing_rows(db, portfolio_id)
+            if existing is not None:
+                real_rows, est_rows = existing
+                series = [
+                    {**p, "is_estimated": True}
+                    for p in stitch_estimated(series, real_rows, est_rows)
+                ]
             saved = save_snapshots(db, portfolio_id, series)
             if not saved:
                 print(f"WARNING {slug}: series built ({len(series)} points) but not saved")

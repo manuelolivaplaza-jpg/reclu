@@ -25,6 +25,7 @@ import type {
 interface Pill {
   label: string;
   pct: number | null;
+  estimated?: boolean;
 }
 
 function PortfolioRow({
@@ -71,6 +72,14 @@ function PortfolioRow({
             )}
           >
             {pill.label}
+          </span>
+        ) : null}
+        {pill?.estimated ? (
+          <span
+            title="Incluye un tramo estimado con las posiciones actuales"
+            className="ml-1.5 inline-flex items-center rounded-full bg-neutral-100 px-1.5 py-0.5 text-[10px] font-medium text-neutral-500"
+          >
+            estimado
           </span>
         ) : null}
 
@@ -208,7 +217,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
                     category={row.category}
                     portraitImage={row.portraitImage}
                     followersLabel={formatFollowers(row.followers)}
-                    pill={{ label: row.returnLabel, pct: row.returnPct }}
+                    pill={{ label: row.returnLabel, pct: row.returnPct, estimated: row.estimated }}
                   />
                 ))
               )}
@@ -246,7 +255,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
                       followersLabel={formatFollowers(row.followers)}
                       pill={
                         value && value.pct !== null
-                          ? { label: value.label, pct: value.pct }
+                          ? { label: value.label, pct: value.pct, estimated: value.estimated }
                           : null
                       }
                     />
