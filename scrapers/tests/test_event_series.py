@@ -39,3 +39,13 @@ def test_entrada_en_fin_de_semana_usa_siguiente_dia():
 
 def test_performance_no_proyecta_eventos():
     assert {"trump-dice", "musk-dice", "inverse-cramer-real"} <= performance.EVENT_REAL_SLUGS
+
+
+def test_dollar_es_compra_y_mantencion_sin_rebalanceo():
+    # A se duplica y vuelve, B cae a la mitad: compra y mantención = (1 + 0.5)/2 - 1 = -25%.
+    d = ["2021-01-04", "2021-01-05", "2021-01-06"]
+    prices = {"A": dict(zip(d, [10, 20, 10])), "B": dict(zip(d, [10, 10, 5]))}
+    ev = [{"ticker": t, "entry": d[0], "exit": None, "side": 1} for t in ("A", "B")]
+    assert es.compute_event_series(ev, prices, "dollar")[-1]["value_pct"] == -25.0
+    assert es.PORTFOLIOS["musk-dice"][1] == "dollar"
+    assert es.PORTFOLIOS["inverse-cramer-real"][1] == "dollar"

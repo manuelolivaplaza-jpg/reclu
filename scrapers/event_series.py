@@ -188,8 +188,11 @@ def cramer_events() -> list[dict]:
 
 PORTFOLIOS = {
     "trump-dice": (trump_events, "dollar"),
-    "musk-dice": (musk_events, "equal"),
-    "inverse-cramer-real": (cramer_events, "equal"),
+    # "dollar" = US$1.000 por evento y se mantiene (compra y mantención).
+    # Antes musk/cramer usaban "equal" (rebalanceo diario a igual peso): con la
+    # volatilidad de GME en 2021 eso daba -1,3% aunque ETSY y GME caen >55%.
+    "musk-dice": (musk_events, "dollar"),
+    "inverse-cramer-real": (cramer_events, "dollar"),
 }
 EVENT_SLUGS = frozenset(PORTFOLIOS)
 
