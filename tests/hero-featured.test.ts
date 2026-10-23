@@ -12,7 +12,7 @@ describe("hero destacado", () => {
     expect(cumulativeFromPct([{ date: "2025-01-01", value: 10 }])).toBeNull();
   });
   it("mes y año", () => expect(monthYear("2025-08-06")).toBe("ago 2025"));
-  it("sparkline", () => expect(sparkline([{ date: "a", value: 0 }, { date: "b", value: 100 }], 3)).toEqual([1, 1.5, 2]));
+  it("sparkline", () => expect(sparkline([{ date: "a", value: 0 }, { date: "b", value: 100 }], 3)).toEqual([1, 2]));
   it("orden Berkshire, Trump (destacado), IBIT y fallback YTD", () => {
     const ps = [P("3", "ibit", { return_ytd: 5 } as Partial<Portfolio>), P("1", "berkshire-hathaway"), P("2", "trump-dice")];
     const s = new Map([["2", [{ date: "2025-08-06", value: 0 }, { date: "2026-10-22", value: 254.3 }]], ["1", [{ date: "2024-09-01", value: 0 }, { date: "2026-10-22", value: 20 }]]]);

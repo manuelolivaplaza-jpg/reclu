@@ -43,6 +43,7 @@ export function cumulativeFromPct(series: SeriesPointPct[]): number | null {
 export function sparkline(series: SeriesPointPct[], n = 48): number[] {
   const pts = (series ?? []).filter((p) => Number.isFinite(p.value)).sort((a, b) => a.date.localeCompare(b.date));
   if (pts.length < 2) return [];
+  if (pts.length <= n) return pts.map((p) => 1 + p.value / 100);
   const out: number[] = [];
   for (let i = 0; i < n; i++) {
     const idx = Math.round((i * (pts.length - 1)) / (n - 1));
