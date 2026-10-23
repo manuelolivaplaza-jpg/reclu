@@ -72,6 +72,7 @@ el CLI, respetando el mismo orden).
 | 57 | `054_borrado_cartera_completo.sql` | F77: arregla `delete_my_portfolio()` (con la 053 fallaba por falta de DELETE sobre `user_portfolio_alerts`) y ahora borra tambien `user_impact_requests`; policies de delete del dueno; `revoke` a PUBLIC en `user_holdings`; tope de 300 caracteres en `news_items.title` (NOT VALID); `revoke execute` de `enforce_user_holdings_limit()`. | 050-053 | Si |
 | 58 | `055_imagenes_portafolios.sql` | Imágenes: asigna una de las 12 ilustraciones de `/public/covers` a todo portafolio sin `cover_image` (por slug, source y category; incluye inverse-cramer) y agrega `portrait_image`/`portrait_source`/`portrait_license` con retratos oficiales de dominio público de cargos públicos de EE.UU. (`/public/portraits`). | `004_cover_image.sql` | Sí |
 | 60 | `057_estimado.sql` | `portfolio_performance.is_estimated` (default false). Al crearse marca todas las filas previas como estimadas; luego los scrapers reales (etf_series, reconstruct_*) las reescriben como reales y `performance.py` solo escribe estimadas sin pisar reales. | `011b_objetos_setup_completo.sql` | Sí |
+| 61 | `058_inverse_cramer_nombre.sql` | Nombre visible 'Inverse Cramer – Lightning Round (largo/corto)' y descripción que aclara que incluye cortos. | `018_inverse_cramer.sql` | Sí |
 
 ## Rango 007–020 y huecos de numeración
 
