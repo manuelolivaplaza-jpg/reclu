@@ -17,6 +17,7 @@ report how many symbols would be added.
 from __future__ import annotations
 
 import os
+import re
 import time
 from datetime import datetime, timezone
 
@@ -107,50 +108,111 @@ def symbols_from_user_holdings(db, limit: int = 500) -> list[str]:
 
 
 JAPAN_EXCHANGES = {"TSE", "TYO", "JPX", "JP", "TOKYO"}
-SKIP_SYMBOLS = {"USD-CASH", "CASH", "USD"}
+SKIP_SYMBOLS = {"USD-CASH", "CASH"}
+CURRENCIES = {"USD", "EUR", "CLP", "CLF", "BRL", "MXN", "JPY", "GBP", "CHF", "CAD", "AUD",
+              "CNY", "HKD", "KRW", "TWD", "ARS", "COP", "PEN", "UF"}
+CHILE_EXCHANGES = {"BCS", "SSE", "SN", "SANTIAGO"}
+MEXICO_EXCHANGES = {"BMV", "MX", "MEX", "BIVA"}
+BRAZIL_EXCHANGES = {"B3", "BVMF", "SA", "BOVESPA"}
+# Bolsas asiaticas con codigo numerico: sufijo Yahoo.
+ASIA_SUFFIX = {
+    **{e: ".T" for e in JAPAN_EXCHANGES},
+    "HK": ".HK", "HKEX": ".HK", "HKG": ".HK", "SEHK": ".HK",
+    "KRX": ".KS", "KOSPI": ".KS", "KSE": ".KS", "KOSDAQ": ".KQ",
+    "TWSE": ".TW", "TW": ".TW", "TPEX": ".TWO",
+    "SZSE": ".SZ", "SHE": ".SZ", "SSE_CN": ".SS", "SHG": ".SS", "SHSE": ".SS",
+}
+BRAZIL_RE = re.compile(r"^[A-Z]{4}(3|4|5|6|11)$")
+US_CLASS_RE = re.compile(r"^([A-Z]{1,5})[./]([A-Z])$")
 
 
 def yahoo_symbol(symbol: str, exchange: str | None = None, currency: str | None = None) -> str:
-    """Ticker de holdings -> ticker Yahoo; "" si no es cotizable.
+    """Ticker de holdings -> ticker Yahoo; "" si no es cotizable o es ambiguo.
 
-    Salta vacios, con espacios (nombres de fondos/bonos) y caja (USD-CASH).
-    Chile (exchange BCS o moneda CLP) -> .SN; Japon (bolsa TSE o codigo de
-    4 digitos, ej. 4689) -> .T. Si ya trae sufijo, lo respeta.
+    Salta caja/monedas, nombres con espacios o minusculas (empresas escritas
+    con nombre, slugs de Polymarket) y unidades /U. Mapea:
+      Chile (BCS/CLP): AGUAS.A -> AGUAS-A.SN
+      EE.UU. clases:   BRK.B -> BRK-B, TECK/B -> TECK-B
+      Brasil:          PETR4 -> PETR4.SA (4 letras + 3/4/5/6/11)
+      Mexico (BMV o '*' / CPO): WALMEX* -> WALMEX.MX
+      Asia numerico segun bolsa (TSE .T, HK .HK, KRX .KS, TW .TW); sin
+      bolsa: 4 digitos -> .T, 6 digitos 00/30 -> .SZ, 60/68 -> .SS.
     """
-    clean = (symbol or "").strip().upper()
-    if not clean or " " in clean or clean in SKIP_SYMBOLS or clean.endswith("-CASH"):
+    raw = (symbol or "").strip()
+    if not raw or " " in raw or raw != raw.upper():
         return ""
-    if "." in clean or clean.startswith("^"):
+    clean = raw.upper()
+    if clean in SKIP_SYMBOLS or clean in CURRENCIES or clean.endswith("-CASH") or clean.endswith("/U"):
+        return ""
+    if clean.startswith("^") or clean.endswith((".SN", ".SA", ".MX", ".T", ".HK", ".KS", ".KQ", ".TW", ".SS", ".SZ")):
         return clean
     ex = (exchange or "").strip().upper()
-    if ex in ("BCS", "SSE", "SN") or (currency or "").upper() == "CLP":
-        return clean + CHILE_SUFFIX
-    if ex in JAPAN_EXCHANGES or (len(clean) == 4 and clean.isdigit()):
-        return clean + ".T"
+    cur = (currency or "").strip().upper()
+    if ex in CHILE_EXCHANGES or cur == "CLP":
+        return clean.replace(".", "-") + CHILE_SUFFIX
+    if clean.isdigit():
+        if ex in ASIA_SUFFIX:
+            suf = ASIA_SUFFIX[ex]
+            return (clean.zfill(4) if suf == ".HK" else clean) + suf
+        if len(clean) == 4:
+            return clean + ".T"
+        if len(clean) == 6 and clean[:2] in ("00", "30"):
+            return clean + ".SZ"
+        if len(clean) == 6 and clean[:2] in ("60", "68"):
+            return clean + ".SS"
+        return ""  # codigo numerico sin bolsa conocida: ambiguo
+    if ex in MEXICO_EXCHANGES or clean.endswith("*") or (clean.endswith("CPO") and len(clean) > 5):
+        return clean.rstrip("*") + ".MX"
+    if ex in BRAZIL_EXCHANGES or BRAZIL_RE.match(clean):
+        return clean + ".SA"
+    m = US_CLASS_RE.match(clean)
+    if m:
+        return f"{m.group(1)}-{m.group(2)}"
+    if not re.fullmatch(r"[A-Z0-9\-]{1,10}", clean):
+        return ""
     return clean
 
 
-def symbols_from_portfolio_holdings(db, page: int = 1000) -> dict[str, str]:
-    """{simbolo_en_holdings: simbolo_yahoo} de TODOS los snapshots de holdings.
+def symbols_from_portfolio_holdings(db, page: int = 1000, all_snapshots: bool = False) -> dict[str, str]:
+    """{simbolo_en_holdings: simbolo_yahoo} de holdings (solo lectura, paginado).
 
-    Todos (no solo el ultimo) porque compute_returns recorre todas las filas.
-    Solo lectura, paginado.
+    Por defecto solo el ultimo snapshot (max as_of) de cada portafolio;
+    all_snapshots=True usa todas las filas. Orden: mas portafolios primero,
+    para que el tope de --max-symbols deje fuera lo menos usado.
     """
-    out: dict[str, str] = {}
+    rows_all: list[dict] = []
     start = 0
     while True:
         rows = (
-            db.table("holdings").select("symbol, exchange, currency")
+            db.table("holdings").select("portfolio_id, as_of, symbol, exchange, currency")
             .range(start, start + page - 1).execute().data or []
         )
-        for r in rows:
-            raw = (r.get("symbol") or "").strip()
-            ysym = yahoo_symbol(raw, r.get("exchange"), r.get("currency"))
-            if ysym and raw not in out:
-                out[raw] = ysym
+        rows_all.extend(rows)
         if len(rows) < page:
-            return out
+            break
         start += page
+    if not all_snapshots:
+        latest: dict = {}
+        for r in rows_all:
+            pid, d = r.get("portfolio_id"), str(r.get("as_of") or "")
+            if d > latest.get(pid, ""):
+                latest[pid] = d
+        rows_all = [r for r in rows_all if str(r.get("as_of") or "") == latest.get(r.get("portfolio_id"), "")]
+    counts: dict[str, set] = {}
+    out: dict[str, str] = {}
+    for r in rows_all:
+        raw = (r.get("symbol") or "").strip()
+        ysym = yahoo_symbol(raw, r.get("exchange"), r.get("currency"))
+        if not ysym:
+            continue
+        out.setdefault(raw, ysym)
+        counts.setdefault(raw, set()).add(r.get("portfolio_id"))
+    return dict(sorted(out.items(), key=lambda kv: (-len(counts[kv[0]]), kv[0])))
+
+
+def estimate_rows(n_symbols: int, days: int) -> int:
+    """Filas maximas en prices: Yahoo devuelve hasta `days` sesiones con range=Nd (730d = 730 filas)."""
+    return int(n_symbols * max(1, days))
 
 
 def fetch_with_retry(symbol: str, days: int, attempts: int = 3, sleep=time.sleep):
@@ -279,6 +341,9 @@ def main() -> None:
         help="días de historia a descargar de Yahoo (default 365; 730 = 2 años)",
     )
     parser.add_argument("--no-holdings", action="store_true", help="No sumar simbolos de la tabla holdings")
+    parser.add_argument("--all-snapshots", action="store_true", help="Usar todos los snapshots de holdings (no solo el ultimo)")
+    parser.add_argument("--max-symbols", type=int, default=int(os.environ.get("PRICES_MAX_SYMBOLS", "600")),
+                        help="Tope de seguridad de simbolos (default 600, env PRICES_MAX_SYMBOLS; 0 = sin tope)")
     parser.add_argument("--limit", type=int, default=0, help="Solo los primeros N simbolos (pruebas)")
     args = parser.parse_args()
 
@@ -309,7 +374,7 @@ def main() -> None:
         except (Exception, SystemExit) as e:  # noqa: BLE001 - sin credenciales sigue
             print(f"WARNING holdings: {e}")
     if db is not None and not args.no_holdings:
-        mapping = symbols_from_portfolio_holdings(db)
+        mapping = symbols_from_portfolio_holdings(db, all_snapshots=args.all_snapshots)
         have = set(symbols)
         extra = [s for s in mapping if s not in have]
         # Se guarda con el simbolo de holdings (lo que busca compute_returns),
@@ -319,6 +384,13 @@ def main() -> None:
         print(f"holdings: {len(extra)} symbols added ({len(symbols)} total, {len(aliases)} con sufijo)")
     if args.limit:
         symbols = symbols[: args.limit]
+    if args.max_symbols and len(symbols) > args.max_symbols:
+        print(f"WARNING tope: {len(symbols)} simbolos > --max-symbols {args.max_symbols}; "
+              f"se dejan fuera {len(symbols) - args.max_symbols} (los usados por menos portafolios)")
+        symbols = symbols[: args.max_symbols]
+    print(f"ESTIMADO: {len(symbols)} simbolos x ~{estimate_rows(1, args.days)} sesiones = "
+          f"~{estimate_rows(len(symbols), args.days):,} filas en prices"
+          + (" (dry-run, nada se escribe)" if args.dry_run else ""))
     refresh_all(db, symbols, dry_run=args.dry_run, days=args.days, aliases=aliases)
 
 
