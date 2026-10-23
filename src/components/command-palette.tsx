@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { ArrowUp, ArrowDown, CornerDownLeft } from "lucide-react";
+import { ArrowUp, ArrowDown, CornerDownLeft, Search } from "lucide-react";
 import { DEMO_PORTFOLIOS } from "@/lib/demo-data";
 
 /**
@@ -169,12 +169,13 @@ export function CommandPalette() {
           setActive(0);
           setOpen(true);
         }}
-        className="inline-flex h-9 items-center gap-2 border border-ink-200 bg-white px-3 text-[13px] text-ink-500 transition-colors hover:border-ink-900 hover:text-ink-900"
+        className="inline-flex size-10 items-center justify-center gap-2 rounded-full border border-neutral-200 bg-neutral-50 text-[14px] text-neutral-500 transition-colors hover:border-neutral-300 hover:bg-white hover:text-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950 sm:h-10 sm:w-auto sm:min-w-[200px] sm:justify-start sm:px-4"
         aria-label="Buscar (⌘K)"
         aria-haspopup="dialog"
       >
-        <span>Buscar</span>
-        <span className="num hidden border-l border-ink-200 pl-2 text-ink-400 md:inline" aria-hidden>
+        <Search aria-hidden className="size-4 shrink-0" />
+        <span className="hidden sm:inline">Buscar</span>
+        <span className="num ml-auto hidden rounded-full bg-white px-2 py-0.5 text-[11px] text-neutral-400 ring-1 ring-neutral-200 md:inline" aria-hidden>
           ⌘K
         </span>
       </button>
