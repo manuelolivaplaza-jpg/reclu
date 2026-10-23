@@ -106,6 +106,68 @@ def symbols_from_user_holdings(db, limit: int = 500) -> list[str]:
     return symbols
 
 
+JAPAN_EXCHANGES = {"TSE", "TYO", "JPX", "JP", "TOKYO"}
+SKIP_SYMBOLS = {"USD-CASH", "CASH", "USD"}
+
+
+def yahoo_symbol(symbol: str, exchange: str | None = None, currency: str | None = None) -> str:
+    """Ticker de holdings -> ticker Yahoo; "" si no es cotizable.
+
+    Salta vacios, con espacios (nombres de fondos/bonos) y caja (USD-CASH).
+    Chile (exchange BCS o moneda CLP) -> .SN; Japon (bolsa TSE o codigo de
+    4 digitos, ej. 4689) -> .T. Si ya trae sufijo, lo respeta.
+    """
+    clean = (symbol or "").strip().upper()
+    if not clean or " " in clean or clean in SKIP_SYMBOLS or clean.endswith("-CASH"):
+        return ""
+    if "." in clean or clean.startswith("^"):
+        return clean
+    ex = (exchange or "").strip().upper()
+    if ex in ("BCS", "SSE", "SN") or (currency or "").upper() == "CLP":
+        return clean + CHILE_SUFFIX
+    if ex in JAPAN_EXCHANGES or (len(clean) == 4 and clean.isdigit()):
+        return clean + ".T"
+    return clean
+
+
+def symbols_from_portfolio_holdings(db, page: int = 1000) -> dict[str, str]:
+    """{simbolo_en_holdings: simbolo_yahoo} de TODOS los snapshots de holdings.
+
+    Todos (no solo el ultimo) porque compute_returns recorre todas las filas.
+    Solo lectura, paginado.
+    """
+    out: dict[str, str] = {}
+    start = 0
+    while True:
+        rows = (
+            db.table("holdings").select("symbol, exchange, currency")
+            .range(start, start + page - 1).execute().data or []
+        )
+        for r in rows:
+            raw = (r.get("symbol") or "").strip()
+            ysym = yahoo_symbol(raw, r.get("exchange"), r.get("currency"))
+            if ysym and raw not in out:
+                out[raw] = ysym
+        if len(rows) < page:
+            return out
+        start += page
+
+
+def fetch_with_retry(symbol: str, days: int, attempts: int = 3, sleep=time.sleep):
+    """fetch_eod con reintentos (backoff 1/2 s); 404 no se reintenta."""
+    for i in range(attempts):
+        try:
+            return fetch_eod(symbol, days)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 404 or i == attempts - 1:
+                raise
+        except Exception:  # noqa: BLE001
+            if i == attempts - 1:
+                raise
+        sleep(2 ** i)
+    return []
+
+
 def fetch_eod(symbol: str, days: int = 365) -> list[tuple[str, float]]:
     """Fetch end-of-day closes for a symbol from Yahoo Finance.
 
@@ -140,16 +202,21 @@ def upsert_prices(db, symbol: str, rows: list[tuple[str, float]]) -> None:
     db.table("prices").upsert(payload, on_conflict="symbol,date").execute()
 
 
-def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365) -> dict[str, int]:
+def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365,
+                aliases: dict[str, str] | None = None, batch: int = 50) -> dict[str, int]:
     """Refresh prices for all symbols, tolerating per-symbol failures.
 
     If dry_run is True, only print how many rows would be downloaded per
     symbol plus the first and last (date, close), without writing to the DB.
     """
     ok = 0
-    for symbol in symbols:
+    aliases = aliases or {}
+    for n, symbol in enumerate(symbols, 1):
+        if n % batch == 0:
+            print(f"... lote {n}/{len(symbols)}")
+        fetch_sym = aliases.get(symbol, symbol)
         try:
-            rows = fetch_eod(symbol, days)
+            rows = fetch_with_retry(fetch_sym, days)
             if dry_run:
                 if rows:
                     first_date, first_close = rows[0]
@@ -160,14 +227,14 @@ def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365) 
                         f"last {last_date} @ {last_close})"
                     )
                 else:
-                    print(f"DRY-RUN {symbol}: 0 rows")
+                    print(f"DRY-RUN {symbol} [{fetch_sym}]: 0 rows")
             else:
                 upsert_prices(db, symbol, rows)
                 print(f"OK {symbol}: {len(rows)} rows")
             ok += 1
         except Exception as e:  # noqa: BLE001 - keep going on any single-symbol error
-            print(f"WARNING {symbol}: {e}")
-        time.sleep(1)
+            print(f"WARNING {symbol} [{fetch_sym}]: {e}")
+        time.sleep(0.3)
     print(f"{ok}/{len(symbols)} OK")
     return {"ok": ok, "total": len(symbols)}
 
@@ -211,6 +278,8 @@ def main() -> None:
         default=365,
         help="días de historia a descargar de Yahoo (default 365; 730 = 2 años)",
     )
+    parser.add_argument("--no-holdings", action="store_true", help="No sumar simbolos de la tabla holdings")
+    parser.add_argument("--limit", type=int, default=0, help="Solo los primeros N simbolos (pruebas)")
     args = parser.parse_args()
 
     from base import get_db
@@ -233,7 +302,24 @@ def main() -> None:
             if args.dry_run
             else f"user_holdings: {added} symbols added ({len(symbols)} total)"
         )
-    refresh_all(db, symbols, dry_run=args.dry_run, days=args.days)
+    aliases: dict[str, str] = {}
+    if db is None and args.dry_run and not args.no_holdings:
+        try:
+            db = get_db()  # dry-run: solo lectura de holdings
+        except (Exception, SystemExit) as e:  # noqa: BLE001 - sin credenciales sigue
+            print(f"WARNING holdings: {e}")
+    if db is not None and not args.no_holdings:
+        mapping = symbols_from_portfolio_holdings(db)
+        have = set(symbols)
+        extra = [s for s in mapping if s not in have]
+        # Se guarda con el simbolo de holdings (lo que busca compute_returns),
+        # pero se baja de Yahoo con el sufijo correcto.
+        aliases = {s: mapping[s] for s in extra if mapping[s] != s}
+        symbols = symbols + extra
+        print(f"holdings: {len(extra)} symbols added ({len(symbols)} total, {len(aliases)} con sufijo)")
+    if args.limit:
+        symbols = symbols[: args.limit]
+    refresh_all(db, symbols, dry_run=args.dry_run, days=args.days, aliases=aliases)
 
 
 if __name__ == "__main__":
