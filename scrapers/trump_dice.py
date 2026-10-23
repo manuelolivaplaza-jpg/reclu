@@ -33,7 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import defaultdict
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from base import Holding, SourceAdapter, get_db, log
@@ -226,6 +226,14 @@ def build_trump_dice(
     return rows
 
 
+def _range_days(start: str) -> int:
+    """Días desde `start` hasta hoy, con margen; mínimo 30."""
+    try:
+        return max(30, (date.today() - _parse_day(start)).days + 15)
+    except ValueError:
+        return 730
+
+
 def fetch_prices_yahoo(symbols: list[str], start: str) -> dict[str, dict[str, float]]:
     """Cierres ajustados de Yahoo (mismo endpoint que prices.py). Sin red en tests."""
     import time as _time
@@ -237,7 +245,8 @@ def fetch_prices_yahoo(symbols: list[str], start: str) -> dict[str, dict[str, fl
         try:
             resp = httpx.get(
                 YAHOO_URL.format(symbol=symbol),
-                params={"range": "730d", "interval": "1d", "events": "div,splits"},
+                # Rango desde la primera entrada (antes: 730d fijo, perdía menciones viejas).
+                params={"range": f"{_range_days(start)}d", "interval": "1d", "events": "div,splits"},
                 headers={"User-Agent": USER_AGENT},
                 timeout=30.0,
                 follow_redirects=True,
@@ -250,7 +259,8 @@ def fetch_prices_yahoo(symbols: list[str], start: str) -> dict[str, dict[str, fl
             for ts, close in zip(stamps, closes):
                 if close is None:
                     continue
-                day = datetime.fromtimestamp(ts).date().isoformat()
+                # UTC: la fecha no depende de la zona horaria de la máquina.
+                day = datetime.fromtimestamp(ts, tz=timezone.utc).date().isoformat()
                 if day >= start:
                     serie[day] = float(close)
             if serie:
