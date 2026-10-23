@@ -1,103 +1,87 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 
 export interface CompositionSlice {
   symbol: string;
   weight: number;
+  name?: string | null;
 }
 
 export interface CompositionProps {
   data: CompositionSlice[];
+  /** Cuantos activos se muestran con color propio; el resto va a "Otros". */
+  maxSlices?: number;
 }
 
-interface Tip {
-  index: number;
-  x: number;
-  edge: number;
-}
+/** Paleta suave estilo Autopilot. */
+const PALETTE = ["#6366f1", "#22c55e", "#f59e0b", "#0ea5e9", "#ec4899", "#14b8a6", "#a855f7", "#f97316"];
+const OTHERS = "#d4d4d4";
 
 function formatWeight(weight: number): string {
-  return `${weight.toFixed(1)}%`;
+  return `${(Number.isFinite(weight) ? weight : 0).toFixed(1)}%`;
 }
 
-/**
- * Barras horizontales apiladas. Cada holding es negro y el ancho
- * es su peso sobre el total, de modo que la pista cierra en 100%.
- */
-export function Composition({ data }: CompositionProps) {
-  const barRef = useRef<HTMLDivElement>(null);
-  const [tip, setTip] = useState<Tip | null>(null);
+/** Barra apilada redondeada + leyenda siempre visible. */
+export function Composition({ data, maxSlices = 7 }: CompositionProps) {
+  const [hot, setHot] = useState<number | null>(null);
 
-  const slices = data.filter((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
-  const total = slices.reduce((sum, slice) => sum + slice.weight, 0);
+  const clean = (Array.isArray(data) ? data : [])
+    .filter((s) => s && Number.isFinite(Number(s.weight)) && Number(s.weight) > 0)
+    .map((s) => ({ symbol: String(s.symbol ?? "—"), name: s.name ?? "", weight: Number(s.weight) }))
+    .sort((a, b) => b.weight - a.weight);
+  const total = clean.reduce((sum, s) => sum + s.weight, 0);
 
-  function place(segment: HTMLButtonElement, index: number) {
-    const bar = barRef.current;
-    if (!bar) return;
-    const segmentBox = segment.getBoundingClientRect();
-    const track = bar.getBoundingClientRect();
-    const x = segmentBox.left - track.left + segmentBox.width / 2;
-    const edge = track.width > 0 ? x / track.width : 0.5;
-    setTip({ index, x, edge });
-  }
-
-  if (slices.length === 0 || total <= 0) {
+  if (clean.length === 0 || total <= 0) {
     return (
-      <p className="border border-ink-200 px-3 py-10 text-[13px] text-ink-500">Sin composición.</p>
+      <p className="rounded-xl bg-neutral-50 px-3 py-10 text-center text-[13px] text-ink-500">
+        Sin composición disponible.
+      </p>
     );
   }
 
-  const active = tip !== null ? slices[tip.index] : undefined;
-  const edge = tip ? tip.edge : 0.5;
+  const top = clean.slice(0, maxSlices);
+  const restWeight = clean.slice(maxSlices).reduce((sum, s) => sum + s.weight, 0);
+  const rows = top.map((s, i) => ({ ...s, color: PALETTE[i % PALETTE.length] }));
+  if (restWeight > 0) {
+    rows.push({ symbol: "Otros", name: `${clean.length - top.length} activos`, weight: restWeight, color: OTHERS });
+  }
 
   return (
     <figure className="w-full">
-      <div ref={barRef} className="relative flex h-9 w-full sm:h-11" onPointerLeave={() => setTip(null)}>
-        {slices.map((slice, index) => {
-          const hot = tip === null || tip.index === index;
-          return (
-            <button
-              key={`${slice.symbol}-${index}`}
-              type="button"
-              className={
-                "h-full min-w-0 border-r border-white p-0 last:border-r-0 " +
-                (hot ? "bg-ink-900" : "bg-ink-400")
-              }
-              style={{ flexGrow: slice.weight, flexShrink: 1, flexBasis: "0%" }}
-              aria-label={`${slice.symbol} ${formatWeight(slice.weight)}`}
-              onPointerEnter={(event) => place(event.currentTarget, index)}
-              onPointerMove={(event) => place(event.currentTarget, index)}
-              onFocus={(event) => place(event.currentTarget, index)}
-              onBlur={() => setTip(null)}
-            />
-          );
-        })}
-        {active && tip ? (
+      <div className="flex h-4 w-full gap-[2px]" onPointerLeave={() => setHot(null)}>
+        {rows.map((r, i) => (
           <div
-            className="pointer-events-none absolute bottom-full z-10 mb-2 border border-ink-200 bg-white px-2.5 py-1.5"
+            key={`${r.symbol}-${i}`}
+            className="h-full min-w-[4px] rounded-full transition-opacity"
             style={{
-              left: tip.x,
-              transform: edge < 0.15 ? "translateX(0)" : edge > 0.85 ? "translateX(-100%)" : "translateX(-50%)",
+              flexGrow: r.weight,
+              flexBasis: 0,
+              background: r.color,
+              opacity: hot === null || hot === i ? 1 : 0.35,
             }}
-          >
-            <p className="text-[13px] text-ink-900">
-              <span className="font-medium">{active.symbol}</span>{" "}
-              <span className="num">{formatWeight(active.weight)}</span>
-            </p>
-          </div>
-        ) : null}
+            title={`${r.symbol} ${formatWeight(r.weight)}`}
+            onPointerEnter={() => setHot(i)}
+          />
+        ))}
       </div>
-      <p className="mt-2 min-h-5 text-[13px] text-ink-900">
-        {active ? (
-          <>
-            <span className="font-medium">{active.symbol}</span>{" "}
-            <span className="num text-ink-500">{formatWeight(active.weight)}</span>
-          </>
-        ) : (
-          <span className="text-ink-500">Peso sobre el total de la cartera.</span>
-        )}
-      </p>
+      <ul className="mt-5 grid gap-x-6 gap-y-2.5 sm:grid-cols-2">
+        {rows.map((r, i) => (
+          <li
+            key={`${r.symbol}-l-${i}`}
+            className={"flex items-center gap-3 rounded-lg px-1 py-0.5 transition-colors " + (hot === i ? "bg-neutral-50" : "")}
+            onPointerEnter={() => setHot(i)}
+            onPointerLeave={() => setHot(null)}
+          >
+            <span className="size-2.5 shrink-0 rounded-full" style={{ background: r.color }} aria-hidden />
+            <span className="min-w-0 flex-1 truncate text-[13px]">
+              <span className="font-medium text-ink-900">{r.symbol}</span>
+              {r.name ? <span className="ml-1.5 text-ink-500">{r.name}</span> : null}
+            </span>
+            <span className="num shrink-0 text-[13px] font-medium text-ink-900">{formatWeight(r.weight)}</span>
+          </li>
+        ))}
+      </ul>
     </figure>
   );
 }

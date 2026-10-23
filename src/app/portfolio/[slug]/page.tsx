@@ -231,6 +231,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   // Pesos actuales: dato real para la composición.
   const composition = holdings.map((holding) => ({
     symbol: holding.symbol,
+    name: holding.name,
     weight: holding.weight,
   }));
   const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
@@ -480,7 +481,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
           ) : null}
 
           {showComposition && !esAgregado ? (
-            <div className="mb-12">
+            <div className="mb-12 rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
               <ChartSection>
                 <PortfolioDetailCharts composition={composition} />
               </ChartSection>
@@ -511,7 +512,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
 
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
             {/* Holdings — censurados sin cuenta */}
-            <section>
+            <section className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
               <h2 className="text-[15px] font-medium text-ink-900">
                 {esAgregado
                   ? `Emisoras cotizadas (${holdings.length})`
@@ -594,7 +595,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
             </section>
 
             {/* Recent alerts — censuradas sin cuenta */}
-            <section>
+            <section className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
               <h2 className="text-[15px] font-medium text-ink-900">Alertas recientes</h2>
               <PaywallGate locked={locked} label="historial de alertas" className="mt-4">
                 {alerts.length > 0 ? (
