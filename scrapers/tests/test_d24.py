@@ -20,7 +20,7 @@ class Q:
 def test_holdings_paginado():
     rows=[{"symbol":f"T{i}"} for i in range(5)]+[{"symbol":"4689"},{"symbol":"USD-CASH"},{"symbol":"T1"}]
     m=p.symbols_from_portfolio_holdings(Q(rows), page=3)
-    assert len(m)==6 and m["4689"]=="4689.T"
+    assert len(m)==6 and m["4689"]==["4689.T"]
 
 def test_retry(monkeypatch):
     calls=[]

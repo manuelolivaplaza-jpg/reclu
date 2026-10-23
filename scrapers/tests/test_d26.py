@@ -19,7 +19,7 @@ def test_prioriza_visibles_y_peso_y_pais_cl():
              {"id": "cl", "country": "CL", "is_active": True}, {"id": "mx", "country": "Global", "is_active": True}]
     m = p.symbols_from_portfolio_holdings(Q({"holdings": hold, "portfolios": ports}), page=7)
     assert list(m)[:2] == ["COLBUN", "WALMEX*"]
-    assert m["COLBUN"] == "COLBUN.SN" and m["WALMEX*"] == "WALMEX.MX"
+    assert m["COLBUN"] == ["COLBUN.SN"] and m["WALMEX*"] == ["WALMEX.MX"]
 
 def test_claves_busqueda():
     assert cr.price_lookup_keys("WALMEX*") == ["WALMEX*", "WALMEX.MX"]
