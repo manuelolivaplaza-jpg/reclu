@@ -173,18 +173,48 @@ def yahoo_symbol(symbol: str, exchange: str | None = None, currency: str | None 
     return clean
 
 
-def symbols_from_portfolio_holdings(db, page: int = 1000, all_snapshots: bool = False) -> dict[str, str]:
+def portfolio_info(db, page: int = 1000) -> dict:
+    """{portfolio_id: {"visible": bool, "country": str}} (solo lectura)."""
+    out: dict = {}
+    start = 0
+    while True:
+        rows = (
+            db.table("portfolios").select("id, country, is_active, hidden_reason")
+            .range(start, start + page - 1).execute().data or []
+        )
+        for r in rows:
+            out[r.get("id")] = {
+                "visible": bool(r.get("is_active", True)) and not r.get("hidden_reason"),
+                "country": (r.get("country") or "").upper(),
+            }
+        if len(rows) < page:
+            return out
+        start += page
+
+
+def symbols_from_portfolio_holdings(db, page: int = 1000, all_snapshots: bool = False,
+                                    portfolios: dict | None = None) -> dict[str, str]:
     """{simbolo_en_holdings: simbolo_yahoo} de holdings (solo lectura, paginado).
 
-    Por defecto solo el ultimo snapshot (max as_of) de cada portafolio;
-    all_snapshots=True usa todas las filas. Orden: mas portafolios primero,
-    para que el tope de --max-symbols deje fuera lo menos usado.
+    Por defecto solo el ultimo snapshot (max as_of) de cada portafolio.
+    Orden de prioridad (para el tope --max-symbols):
+      1) usado en algun portafolio visible (is_active y sin hidden_reason)
+      2) mayor peso maximo dentro de un portafolio visible
+      3) mas portafolios visibles, luego mas portafolios en total
+    Asi un 13F/ETF con miles de posiciones chicas no desplaza a COLBUN o
+    WALMEX* de un portafolio chileno/mexicano mostrado. El pais del
+    portafolio (CL) sirve de pista para el sufijo .SN si falta la bolsa.
     """
+    if portfolios is None:
+        try:
+            portfolios = portfolio_info(db, page)
+        except Exception:  # noqa: BLE001 - sin tabla: todos visibles
+            portfolios = {}
     rows_all: list[dict] = []
     start = 0
     while True:
         rows = (
-            db.table("holdings").select("portfolio_id, as_of, symbol, exchange, currency")
+            db.table("holdings").select("portfolio_id, as_of, symbol, exchange, currency, weight")
             .range(start, start + page - 1).execute().data or []
         )
         rows_all.extend(rows)
@@ -198,16 +228,28 @@ def symbols_from_portfolio_holdings(db, page: int = 1000, all_snapshots: bool = 
             if d > latest.get(pid, ""):
                 latest[pid] = d
         rows_all = [r for r in rows_all if str(r.get("as_of") or "") == latest.get(r.get("portfolio_id"), "")]
-    counts: dict[str, set] = {}
     out: dict[str, str] = {}
+    score: dict[str, list] = {}
     for r in rows_all:
         raw = (r.get("symbol") or "").strip()
-        ysym = yahoo_symbol(raw, r.get("exchange"), r.get("currency"))
+        pid = r.get("portfolio_id")
+        info = portfolios.get(pid, {"visible": True, "country": ""})
+        cur = r.get("currency")
+        if info["country"] == "CL" and not r.get("exchange") and (cur in (None, "", "USD")):
+            cur = "CLP" if not raw.isdigit() and "." not in raw else cur
+        ysym = yahoo_symbol(raw, r.get("exchange"), cur)
         if not ysym:
             continue
         out.setdefault(raw, ysym)
-        counts.setdefault(raw, set()).add(r.get("portfolio_id"))
-    return dict(sorted(out.items(), key=lambda kv: (-len(counts[kv[0]]), kv[0])))
+        sc = score.setdefault(raw, [0, 0.0, set(), set()])
+        w = float(r.get("weight") or 0)
+        if info["visible"]:
+            sc[0] = 1
+            sc[1] = max(sc[1], w)
+            sc[2].add(pid)
+        sc[3].add(pid)
+    return dict(sorted(out.items(), key=lambda kv: (-score[kv[0]][0], -score[kv[0]][1],
+                                                     -len(score[kv[0]][2]), -len(score[kv[0]][3]), kv[0])))
 
 
 def estimate_rows(n_symbols: int, days: int) -> int:

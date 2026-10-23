@@ -24,8 +24,32 @@ from datetime import date, datetime, timezone
 from base import get_db
 
 
+def price_lookup_keys(symbol: str) -> list[str]:
+    """Simbolos a probar en prices, en orden: tal cual, sin espacios/mayusculas
+    (asi lo guarda prices.py) y el ticker Yahoo (filas antiguas guardadas con sufijo)."""
+    from prices import yahoo_symbol
+
+    keys: list[str] = []
+    for k in (symbol, (symbol or "").strip(), (symbol or "").strip().upper(), yahoo_symbol(symbol or "")):
+        if k and k not in keys:
+            keys.append(k)
+    return keys
+
+
 def latest_price(db, symbol: str) -> float | None:
-    """Latest close for a symbol from the prices table, or None."""
+    """Latest close for a symbol from the prices table, or None.
+
+    Prueba las claves de price_lookup_keys para que el simbolo guardado por
+    prices.py y el buscado aqui calcen siempre.
+    """
+    for key in price_lookup_keys(symbol):
+        value = _latest_price_exact(db, key)
+        if value is not None:
+            return value
+    return None
+
+
+def _latest_price_exact(db, symbol: str) -> float | None:
     result = (
         db.table("prices")
         .select("close")
