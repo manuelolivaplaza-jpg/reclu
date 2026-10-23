@@ -101,6 +101,50 @@ def compute_event_series(
     return out if len(out) >= 2 else []
 
 
+def apply_cash_out(
+    prices: dict[str, dict[str, float]],
+    events: list[dict],
+    cash_out: dict[str, tuple[float, str]],
+) -> dict[str, dict[str, float]]:
+    """Tickers deslistados por compra en efectivo -> serie plana al precio pagado.
+
+    U.S. Steel (X): Nippon Steel cerró la compra el 2025-06-18 pagando US$55
+    por acción en efectivo y X dejó de cotizar (Yahoo devuelve 404). Si no hay
+    precios, la posición se valoriza a US$55 desde su entrada en todos los días
+    hábiles conocidos: entra a 55 y queda plana (aproximación conservadora:
+    omite el ~4% que subió X entre el 2025-05-23 y el cierre).
+    """
+    out = dict(prices)
+    days = sorted({d for serie in prices.values() for d in serie})
+    for ticker, (cash, _close_date) in cash_out.items():
+        if out.get(ticker):
+            continue
+        entries = [e["entry"] for e in events if e["ticker"] == ticker]
+        if not entries:
+            continue
+        start = min(entries)
+        serie = {d: cash for d in days if d >= start}
+        if start not in serie:
+            serie[start] = cash
+        out[ticker] = serie
+    return out
+
+
+def breakdown(events: list[dict], prices: dict[str, dict[str, float]]) -> list[dict]:
+    """Desglose por evento: entrada, precio de entrada, precio hoy y retorno."""
+    rows = []
+    for e in sorted(events, key=lambda x: x["entry"]):
+        serie = prices.get(e["ticker"]) or {}
+        days = sorted(d for d in serie if d >= e["entry"])
+        if not days:
+            rows.append({**e, "entry_px": None, "last_px": None, "ret": None})
+            continue
+        p0, p1 = serie[days[0]], serie[max(serie)]
+        rows.append({**e, "entry_day": days[0], "entry_px": p0, "last_px": p1,
+                     "ret": (p1 / p0 - 1) * 100 * e.get("side", 1)})
+    return rows
+
+
 # ---- eventos por portafolio ----
 
 def trump_events() -> list[dict]:
@@ -157,6 +201,7 @@ def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--slugs", nargs="*", default=None)
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--desglose", action="store_true", help="imprime retorno por mención")
     args = ap.parse_args(argv or [])
 
     db = None
@@ -172,13 +217,22 @@ def main(argv: list[str] | None = None) -> None:
             print(f"-- {slug}: sin eventos verificados")
             continue
         start = min(e["entry"] for e in events)
-        prices = fetch_prices_yahoo(sorted({e["ticker"] for e in events}), start)
+        from trump_dice import CASH_OUT
+
+        tickers = sorted({e["ticker"] for e in events if e["ticker"] not in CASH_OUT})
+        prices = apply_cash_out(fetch_prices_yahoo(tickers, start), events, CASH_OUT)
         series = compute_event_series(events, prices, mode)
         if not series:
             print(f"WARNING {slug}: sin serie (faltan precios)")
             continue
         print(f"{slug}: {len(events)} eventos, {len(series)} días reales "
               f"{series[0]['date']} a {series[-1]['date']}, acumulado {series[-1]['value_pct']:+.2f}%")
+        if args.desglose:
+            for r in breakdown(events, prices):
+                if r["entry_px"] is None:
+                    print(f"  {r['entry']} {r['ticker']:<6} sin precio")
+                else:
+                    print(f"  {r['entry']} {r['ticker']:<6} entrada {r['entry_px']:9.2f}  hoy {r['last_px']:9.2f}  {r['ret']:+8.1f}%")
         if args.dry_run:
             continue
         res = db.table("portfolios").select("id").eq("slug", slug).maybe_single().execute()

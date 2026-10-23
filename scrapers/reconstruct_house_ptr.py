@@ -12,6 +12,8 @@ House PTR text is UTF-16-ish with NUL padding; we normalize before parsing.
 
 from __future__ import annotations
 
+from perf_store import save_real_series
+
 import argparse
 import io
 import re
@@ -183,12 +185,8 @@ def reconstruct_member(db, last_name: str, slug: str, years: int) -> int:
         print(f"WARNING {last_name}: serie vacía")
         return 0
 
-    db.table("portfolio_performance").delete().eq("portfolio_id", pid).execute()
-    for day, pct in series:
-        db.table("portfolio_performance").upsert(
-            {"portfolio_id": pid, "date": day, "value_pct": pct, "is_estimated": False},
-            on_conflict="portfolio_id,date",
-        ).execute()
+    # Sin borrar historia: upsert real + borra solo estimadas en el rango escrito.
+    save_real_series(db, pid, series)
     print(f"OK {slug} ({last_name}): {len(series)} eventos reales {series[0][0]}→{series[-1][0]}")
     return len(series)
 
