@@ -30,6 +30,8 @@ Usage (from the scrapers directory, with Supabase env vars set):
 
 from __future__ import annotations
 
+import sys
+
 import time
 from typing import Any
 
@@ -243,17 +245,55 @@ def _active_portfolios(db) -> list[dict[str, Any]]:
     return _paged(query)
 
 
-def main() -> None:
+DEFAULT_LOOKBACK_DAYS = 365
+
+
+def lookback_days(days: int | None = None, since: str | None = None, today=None) -> int:
+    """Días de historia a reconstruir. --since (YYYY-MM-DD) manda sobre --days.
+
+    Sin argumentos devuelve el default de siempre (365).
+    """
+    from datetime import date as _date
+
+    if since:
+        start = _date.fromisoformat(since)
+        ref = today or _date.today()
+        delta = (ref - start).days
+        if delta <= 0:
+            raise ValueError(f"--since {since} no es anterior a hoy")
+        return delta
+    if days is not None:
+        if days <= 0:
+            raise ValueError("--days debe ser > 0")
+        return days
+    return DEFAULT_LOOKBACK_DAYS
+
+
+def main(argv: list[str] | None = None) -> None:
+    """argv=None (llamado desde run_all) usa los defaults, sin leer sys.argv."""
+    import argparse
+
     from base import get_db
+
+    parser = argparse.ArgumentParser(description="Series de rendimiento históricas")
+    parser.add_argument("--days", type=int, default=None, help="días de historia (default 365)")
+    parser.add_argument("--since", default=None, help="fecha inicial YYYY-MM-DD (manda sobre --days)")
+    parser.add_argument("--slugs", nargs="*", default=None, help="limitar a estos slugs")
+    args = parser.parse_args(argv or [])
+    days = lookback_days(args.days, args.since)
+    print(f"[performance] lookback {days} días")
 
     db = get_db()
     portfolios = _active_portfolios(db)
+    if args.slugs:
+        wanted = set(args.slugs)
+        portfolios = [p for p in portfolios if p.get("slug") in wanted]
     ok = 0
     for portfolio in portfolios:
         portfolio_id = portfolio["id"]
         slug = portfolio.get("slug") or portfolio_id
         try:
-            series = build_performance_series(db, portfolio_id)
+            series = build_performance_series(db, portfolio_id, days)
             saved = save_snapshots(db, portfolio_id, series)
             if not saved:
                 print(f"WARNING {slug}: series built ({len(series)} points) but not saved")
@@ -266,4 +306,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

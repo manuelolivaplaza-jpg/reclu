@@ -276,6 +276,43 @@ export async function getAllHoldingsAdmin(portfolioId: string): Promise<Holding[
  * envía crudo al navegador. Sin cliente de servicio cae a la lectura
  * por portafolio (getAllHoldingsAdmin).
  */
+/**
+ * Serie completa de rendimiento leída con el cliente admin, SOLO para que el
+ * servidor calcule el % agregado del ranking. Nunca se envía la serie al
+ * cliente (el muro de 90 días de getPerformance sigue aplicando a los gráficos).
+ */
+export async function getPerformanceSeriesAdmin(
+  portfolioIds: string[],
+): Promise<Map<string, { date: string; value: number }[]>> {
+  const out = new Map<string, { date: string; value: number }[]>();
+  if (portfolioIds.length === 0 || !isSupabaseLive()) return out;
+  const admin = createAdminClient();
+  if (!admin) return out;
+  try {
+    const since = new Date(Date.now() - 800 * 86_400_000).toISOString().slice(0, 10);
+    for (const id of portfolioIds) {
+      const { data, error } = await admin
+        .from("portfolio_performance")
+        .select("date,value_pct")
+        .eq("portfolio_id", id)
+        .gte("date", since)
+        .order("date", { ascending: true })
+        .limit(1000);
+      if (error || !Array.isArray(data)) continue;
+      const points: { date: string; value: number }[] = [];
+      for (const row of data as { date?: unknown; value_pct?: unknown }[]) {
+        const value = performanceValue(row.value_pct);
+        if (typeof row.date !== "string" || value === null) continue;
+        points.push({ date: row.date, value });
+      }
+      out.set(id, points);
+    }
+  } catch (err) {
+    console.warn("[reclu] getPerformanceSeriesAdmin error:", err instanceof Error ? err.message : "unknown");
+  }
+  return out;
+}
+
 export async function getHoldingSymbolsAdmin(
   portfolioIds: string[],
 ): Promise<{ portfolio_id: string; symbol: string }[]> {

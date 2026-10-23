@@ -18,7 +18,7 @@
  * y están cubiertas en `tests/portfolio-rankings.test.ts`.
  */
 
-import { getPerformance, getPortfolios, getProfile } from "@/lib/queries";
+import { getPerformance, getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
 import { demoPerformance } from "@/lib/demo-data";
 import { roleFor } from "@/lib/access";
 import { fromPctToLevel, parseDate } from "@/lib/performance";
@@ -278,8 +278,17 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
   const byFollowers = [...visible].sort((a, b) => b.followers - a.followers);
   const candidates = byFollowers.slice(0, RANKING_CANDIDATES);
 
+  // Ranking: el % por período se calcula en el servidor con la serie completa
+  // (cliente admin). Al cliente solo llega el % agregado, nunca la serie, así
+  // que el muro de 90 días de los gráficos no se rompe.
+  const adminSeries = live
+    ? await getPerformanceSeriesAdmin(candidates.map((p) => p.id))
+    : new Map<string, { date: string; value: number }[]>();
+
   const seriesList = await Promise.all(
     candidates.map(async (portfolio) => {
+      const full = adminSeries.get(portfolio.id);
+      if (full && full.length > 0) return fromPctToLevel(full);
       const real = live
         ? await getPerformance(portfolio.id, MAX_SERIES_POINTS, {
             role,

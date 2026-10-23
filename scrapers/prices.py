@@ -140,7 +140,7 @@ def upsert_prices(db, symbol: str, rows: list[tuple[str, float]]) -> None:
     db.table("prices").upsert(payload, on_conflict="symbol,date").execute()
 
 
-def refresh_all(db, symbols: list[str], dry_run: bool = False) -> dict[str, int]:
+def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365) -> dict[str, int]:
     """Refresh prices for all symbols, tolerating per-symbol failures.
 
     If dry_run is True, only print how many rows would be downloaded per
@@ -149,7 +149,7 @@ def refresh_all(db, symbols: list[str], dry_run: bool = False) -> dict[str, int]
     ok = 0
     for symbol in symbols:
         try:
-            rows = fetch_eod(symbol)
+            rows = fetch_eod(symbol, days)
             if dry_run:
                 if rows:
                     first_date, first_close = rows[0]
@@ -205,6 +205,12 @@ def main() -> None:
         help="Only show how many prices would be downloaded per symbol "
         "(count + first/last), without writing to the database.",
     )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=365,
+        help="días de historia a descargar de Yahoo (default 365; 730 = 2 años)",
+    )
     args = parser.parse_args()
 
     from base import get_db
@@ -227,7 +233,7 @@ def main() -> None:
             if args.dry_run
             else f"user_holdings: {added} symbols added ({len(symbols)} total)"
         )
-    refresh_all(db, symbols, dry_run=args.dry_run)
+    refresh_all(db, symbols, dry_run=args.dry_run, days=args.days)
 
 
 if __name__ == "__main__":
