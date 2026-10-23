@@ -371,16 +371,19 @@ def compute_benchmark_metrics(db, benchmark_symbols: list[str] | None = None) ->
         )
         benchmark = _benchmark_levels(bench_rows.data or [])
         if len(benchmark) < 2:
-            print(f"WARNING {portfolio_id}: sin serie de {benchmark_symbol}, se omite")
-            continue
-
-        aligned_p, aligned_b = _align_by_date(levels, benchmark)
-        if len(aligned_p) < 2:
-            continue
+            # Sin índice igual se calculan las métricas del portafolio; el
+            # benchmark queda nulo (antes se omitía y /ranking quedaba vacío).
+            print(f"WARNING {portfolio_id}: sin serie de {benchmark_symbol}; métricas sin benchmark")
+            benchmark = []
+            aligned_p, aligned_b = levels, []
+        else:
+            aligned_p, aligned_b = _align_by_date(levels, benchmark)
+            if len(aligned_p) < 2:
+                aligned_p, aligned_b = levels, []
 
         as_of = aligned_p[-1][0]
         p_return = _cumulative_return_pct(aligned_p)
-        b_return = _cumulative_return_pct(aligned_b)
+        b_return = _cumulative_return_pct(aligned_b) if len(aligned_b) >= 2 else None
 
         # Sharpe/vol/dd sobre la serie del portafolio (no la alineada, para
         # no castigar un benchmark con menos fechas).
@@ -410,7 +413,7 @@ def compute_benchmark_metrics(db, benchmark_symbols: list[str] | None = None) ->
         # la misma ventana (el benchmark mide su propia ventana).
         for period in ("1M", "3M", "YTD", "1A"):
             p_window = _period_return_pct(levels, period)
-            b_window = _period_return_pct(benchmark, period)
+            b_window = _period_return_pct(benchmark, period) if len(benchmark) >= 2 else None
             if p_window is None:
                 continue
             row = {
