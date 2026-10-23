@@ -2,7 +2,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { getPortfolioBySlug, getPortfolioRedirect, getHoldings, getAlerts, getProfile, isFollowing, getPerformance } from "@/lib/queries";
+import { getPortfolioBySlug, getPortfolioRedirect, getHoldings, getAlerts, getProfile, isFollowing, getPerformance, getEstimatedUntil } from "@/lib/queries";
 import { getMentions, MUSK_INSIDER_NOTICE } from "@/lib/mentions-queries";
 import { getInsiderTrades, holdingsAtLatestAsOf } from "@/lib/insider-queries";
 import { InsiderTradesList } from "@/components/insider-trades-list";
@@ -242,6 +242,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const fechaAfp = esAfpModelo ? fechaCartera(corteAfp) : null;
   const fuenteAfp = esAfpModelo ? urlFuenteAfpModelo(corteAfp) : null;
   const benchmarkLabel = esAfpModelo ? ECH_PROXY_LABEL : perfPanelData.benchmarkLabel;
+  const estimatedUntil = await getEstimatedUntil(portfolio.id);
   const entrySeries =
     perfPanelData.portfolioSeries.length >= 2
       ? perfPanelData.portfolioSeries
@@ -476,6 +477,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 benchmark={perfPanelData.benchmarkSeries}
                 benchmarkLabel={benchmarkLabel}
                 maxFreeDays={isPro ? null : 90}
+                estimatedUntil={estimatedUntil}
               />
             </div>
           ) : null}

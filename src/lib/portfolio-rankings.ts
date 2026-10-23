@@ -205,11 +205,13 @@ export interface RankingsBestRow extends RankingsRow {
   returnPct: number | null;
   /** Retorno ya formateado en estilo chileno (`+12,3%`). */
   returnLabel: string;
+  /** true => el período usa puntos estimados (posiciones actuales). */
+  estimated: boolean;
 }
 
 export interface RankingsPopularRow extends RankingsRow {
   /** Retorno por período, ya formateado. */
-  returns: Record<string, { pct: number | null; label: string }>;
+  returns: Record<string, { pct: number | null; label: string; estimated: boolean }>;
 }
 
 export interface RankingsPeriodOption {
@@ -283,12 +285,29 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
   // que el muro de 90 días de los gráficos no se rompe.
   const adminSeries = live
     ? await getPerformanceSeriesAdmin(candidates.map((p) => p.id))
-    : new Map<string, { date: string; value: number }[]>();
+    : new Map<string, { date: string; value: number; estimated: boolean }[]>();
+
+  // Última fecha estimada por slug: un período es "estimado" si su ventana la toca.
+  const estimatedUntil = new Map<string, string>();
+  const lastDate = new Map<string, string>();
+  for (const portfolio of candidates) {
+    const pts = adminSeries.get(portfolio.id) ?? [];
+    const est = pts.filter((p) => p.estimated);
+    if (est.length) estimatedUntil.set(portfolio.slug, est[est.length - 1].date);
+    if (pts.length) lastDate.set(portfolio.slug, pts[pts.length - 1].date);
+  }
+  const isEstimated = (slug: string, days: number): boolean => {
+    const until = estimatedUntil.get(slug);
+    const last = lastDate.get(slug);
+    if (!until || !last) return false;
+    const cutoff = new Date(Date.parse(last) - days * DAY_MS).toISOString().slice(0, 10);
+    return until >= cutoff;
+  };
 
   const seriesList = await Promise.all(
     candidates.map(async (portfolio) => {
       const full = adminSeries.get(portfolio.id);
-      if (full && full.length > 0) return fromPctToLevel(full);
+      if (full && full.length > 0) return fromPctToLevel(full.map(({ date, value }) => ({ date, value })));
       const real = live
         ? await getPerformance(portfolio.id, MAX_SERIES_POINTS, {
             role,
@@ -340,6 +359,7 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
       ...toRow(entry),
       returnPct: entry.returnPct,
       returnLabel: formatReturnPct(entry.returnPct),
+      estimated: isEstimated(entry.slug, period.days),
     }));
     periods.push({
       id: period.id,
@@ -354,7 +374,11 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
     for (const period of RANKING_PERIODS) {
       const map = returnsByPeriod.get(period.id) as Map<string, number | null>;
       const pct = map.get(entry.slug) ?? null;
-      returns[period.id] = { pct, label: formatReturnPct(pct) };
+      returns[period.id] = {
+        pct,
+        label: formatReturnPct(pct),
+        estimated: pct !== null && isEstimated(entry.slug, period.days),
+      };
     }
     return { ...toRow(entry), returns };
   });

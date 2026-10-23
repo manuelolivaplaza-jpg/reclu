@@ -258,6 +258,7 @@ def reconstruct_fund(db, slug: str, cik: int, name: str, quarters: int, cache: d
                 "portfolio_id": pid,
                 "date": day,
                 "value_pct": pct,
+                "is_estimated": False,
             },
             on_conflict="portfolio_id,date",
         ).execute()

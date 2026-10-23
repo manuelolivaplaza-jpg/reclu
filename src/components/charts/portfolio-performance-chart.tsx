@@ -17,6 +17,8 @@ export interface PortfolioPerformanceChartProps {
   benchmarkLabel?: string;
   /** Plan gratis: periodos con mas dias quedan bloqueados. null = sin limite. */
   maxFreeDays?: number | null;
+  /** Última fecha estimada (posiciones actuales); ese tramo va punteado y gris. */
+  estimatedUntil?: string | null;
 }
 
 const PERIODS = [
@@ -82,7 +84,9 @@ export function PortfolioPerformanceChart({
   benchmark,
   benchmarkLabel = "S&P 500",
   maxFreeDays = null,
+  estimatedUntil = null,
 }: PortfolioPerformanceChartProps) {
+  const estT = estimatedUntil ? Date.parse(estimatedUntil) : NaN;
   const port = useMemo(() => clean(series), [series]);
   const bench = useMemo(() => clean(benchmark), [benchmark]);
   const lastT = port.length ? port[port.length - 1].t : 0;
@@ -125,9 +129,14 @@ export function PortfolioPerformanceChart({
     const pxy = pp.map((d) => ({ x: x(d.t), y: y(d.pct) }));
     const bxy = bb.map((d) => ({ x: x(d.t), y: y(d.pct) }));
     const line = smoothPath(pxy);
+    // Tramo estimado: puntos hasta estT (incluido el de empalme), punteado.
+    const cut = Number.isFinite(estT) ? pp.findIndex((d) => d.t > estT) : 0;
+    const estCount = cut === -1 ? pp.length : cut;
+    const estLine = estCount >= 1 ? smoothPath(pxy.slice(0, Math.min(estCount + 1, pxy.length))) : "";
+    const realLine = estCount >= 1 ? smoothPath(pxy.slice(Math.max(estCount - 0, 0))) : line;
     const area = `${line} L ${W} ${H - PAD_B} L 0 ${H - PAD_B} Z`;
-    return { pp, bb, pxy, line, area, bline: smoothPath(bxy), zeroY: y(0), last: pp[pp.length - 1].pct, t0, t1, x, y };
-  }, [port, bench, lastT, period.days]);
+    return { pp, bb, pxy, line, area, estLine, realLine, hasEst: estCount >= 1, bline: smoothPath(bxy), zeroY: y(0), last: pp[pp.length - 1].pct, t0, t1, x, y };
+  }, [port, bench, lastT, period.days, estT]);
 
   const [hover, setHover] = useState<number | null>(null);
   const positive = (view?.last ?? 0) >= 0;
@@ -229,7 +238,10 @@ export function PortfolioPerformanceChart({
             {view.bb.length ? (
               <path d={view.bline} fill="none" stroke="#a3a3a3" strokeWidth="1.5" strokeDasharray="5 5" vectorEffect="non-scaling-stroke" />
             ) : null}
-            <path d={view.line} fill="none" stroke={color} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+            {view.hasEst ? (
+              <path d={view.estLine} fill="none" stroke="#a3a3a3" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+            ) : null}
+            <path d={view.realLine} fill="none" stroke={color} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
             {hover !== null && view.pxy[hover] ? (
               <line x1={view.pxy[hover].x} x2={view.pxy[hover].x} y1={PAD_T} y2={H - PAD_B} stroke="#d4d4d4" vectorEffect="non-scaling-stroke" />
             ) : null}
@@ -255,14 +267,21 @@ export function PortfolioPerformanceChart({
             <span>{fmtDate(view.t0)}</span>
             <span>{fmtDate(view.t1)}</span>
           </div>
-          {view.bb.length ? (
-            <div className="mt-3 flex items-center gap-4 text-[12px] text-ink-500">
+          {view.bb.length || view.hasEst ? (
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-500">
+              {view.hasEst ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-0 w-4 border-t-2 border-dotted border-neutral-400" /> Estimado con posiciones actuales
+                </span>
+              ) : null}
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-0.5 w-4 rounded-full" style={{ background: color }} /> Portafolio
               </span>
+              {view.bb.length ? (
               <span className="inline-flex items-center gap-1.5">
                 <span className="h-0 w-4 border-t-2 border-dashed border-neutral-400" /> {benchmarkLabel}
               </span>
+              ) : null}
             </div>
           ) : null}
         </div>
