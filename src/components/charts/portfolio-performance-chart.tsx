@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
@@ -65,7 +65,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 }
 
 function fmtPct(v: number): string {
-  if (!Number.isFinite(v)) return "â€”";
+  if (!Number.isFinite(v)) return "—";
   return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
@@ -160,12 +160,12 @@ export function PortfolioPerformanceChart({
     <section className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-[13px] text-ink-500">Rendimiento Â· {period.label}</p>
+          <p className="text-[13px] text-ink-500">Rendimiento {"\u00b7"} {period.label}</p>
           <p
             className="num mt-1 text-[2rem] font-semibold leading-none tracking-[-0.02em]"
             style={{ color: view ? color : undefined }}
           >
-            {view ? fmtPct(hp ? hp.pct : view.last) : "â€”"}
+            {view ? fmtPct(hp ? hp.pct : view.last) : "—"}
           </p>
           {view && view.bb.length ? (
             <p className="mt-2 text-[13px] text-ink-500">
@@ -205,7 +205,8 @@ export function PortfolioPerformanceChart({
       </div>
 
       {view ? (
-        <div className="relative mt-6">
+        <div className="mt-6">
+          <div className="relative">
           <svg
             viewBox={`0 0 ${W} ${H}`}
             preserveAspectRatio="none"
@@ -249,6 +250,7 @@ export function PortfolioPerformanceChart({
               </div>
             </>
           ) : null}
+          </div>
           <div className="mt-2 flex justify-between text-[12px] text-ink-400">
             <span>{fmtDate(view.t0)}</span>
             <span>{fmtDate(view.t1)}</span>
@@ -266,9 +268,9 @@ export function PortfolioPerformanceChart({
         </div>
       ) : (
         <div className="mt-6 flex h-48 flex-col items-center justify-center rounded-xl bg-neutral-50 text-center">
-          <p className="text-[15px] font-medium text-ink-900">AÃºn no hay datos de rendimiento para este portafolio.</p>
+          <p className="text-[15px] font-medium text-ink-900">Aún no hay datos de rendimiento para este portafolio.</p>
           <p className="mt-1 max-w-sm text-[13px] text-ink-500">
-            El grÃ¡fico aparecerÃ¡ cuando tengamos precios suficientes de sus posiciones.
+            El gráfico aparecerá cuando tengamos precios suficientes de sus posiciones.
           </p>
         </div>
       )}
