@@ -243,12 +243,15 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const fuenteAfp = esAfpModelo ? urlFuenteAfpModelo(corteAfp) : null;
   const benchmarkLabel = esAfpModelo ? ECH_PROXY_LABEL : perfPanelData.benchmarkLabel;
   const estimatedUntil = await getEstimatedUntil(portfolio.id);
+  // Título, gráfico y YTD salen de la MISMA serie (portfolio_performance vía
+  // getPerformance). La serie precalculada de métricas solo es respaldo.
   const entrySeries =
-    perfPanelData.portfolioSeries.length >= 2
-      ? perfPanelData.portfolioSeries
-      : perfSourceSeries.length >= 2
-        ? fromPctToLevel(perfSourceSeries)
+    perfSourceSeries.length >= 2
+      ? fromPctToLevel(perfSourceSeries)
+      : perfPanelData.portfolioSeries.length >= 2
+        ? perfPanelData.portfolioSeries
         : [];
+  const seriesYtd = ytdFromSeries(perfSourceSeries);
   const publication = latestDisclosureStamp(alerts);
 
   // Serie del hero: la MISMA que ya usa la página y que el servidor recortó
@@ -403,9 +406,22 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
 
               {/* Retorno YTD (dato propio del portafolio) + enlace a comparar */}
               <div className="w-full shrink-0 lg:w-72">
-                {hasReturn && (
+                {seriesYtd !== null ? (
                   <div className="mb-5">
-                    <p className="label-line">Retorno YTD</p>
+                    <p className="label-line">Retorno YTD (serie)</p>
+                    <span
+                      className={
+                        "num mt-1 block text-[1.75rem] leading-none tracking-[-0.02em] " +
+                        (seriesYtd >= 0 ? "text-positive" : "text-negative")
+                      }
+                    >
+                      {seriesYtd >= 0 ? "+" : ""}
+                      {seriesYtd.toFixed(1)}%
+                    </span>
+                  </div>
+                ) : hasReturn ? (
+                  <div className="mb-5">
+                    <p className="label-line">Retorno YTD (posiciones actuales)</p>
                     <span
                       className={
                         "num mt-1 block text-[1.75rem] leading-none tracking-[-0.02em] " +
@@ -416,7 +432,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                       {portfolio.return_ytd?.toFixed(1)}%
                     </span>
                   </div>
-                )}
+                ) : null}
                 <Link
                   href="/compare"
                   className="mt-3 inline-block text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline"
@@ -672,4 +688,18 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
       </main>
     </div>
   );
+}
+
+/** Retorno del año en curso desde la serie (value_pct acumulado); null si no cubre. */
+function ytdFromSeries(points: { date: string; value: number }[]): number | null {
+  if (points.length < 2) return null;
+  const sorted = [...points].sort((a, b) => (a.date < b.date ? -1 : 1));
+  const start = `${new Date().getUTCFullYear()}-01-01`;
+  const base = [...sorted].reverse().find((p) => p.date < start);
+  const last = sorted[sorted.length - 1];
+  if (!base || last.date < start) return null;
+  const b = 1 + base.value / 100;
+  if (b <= 0) return null;
+  const v = ((1 + last.value / 100) / b - 1) * 100;
+  return Number.isFinite(v) ? v : null;
 }

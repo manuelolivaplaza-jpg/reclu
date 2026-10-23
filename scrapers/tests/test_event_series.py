@@ -49,3 +49,9 @@ def test_dollar_es_compra_y_mantencion_sin_rebalanceo():
     assert es.compute_event_series(ev, prices, "dollar")[-1]["value_pct"] == -25.0
     assert es.PORTFOLIOS["musk-dice"][1] == "dollar"
     assert es.PORTFOLIOS["inverse-cramer-real"][1] == "dollar"
+
+def test_congress_omite_miembros_de_house_ptr():
+    import reconstruct_congress as rc
+
+    src = open(rc.__file__, encoding="utf-8").read()
+    assert "house_slugs" in src and "MEMBER_SLUG" in src
