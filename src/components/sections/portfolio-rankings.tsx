@@ -106,10 +106,12 @@ function PortfolioRow({
 
 export function PortfolioRankings({ data }: { data: RankingsPayload }) {
   const firstWithData = useMemo(
-    () => data.periods.find((period) => period.hasData) ?? data.periods[0],
+    () =>
+      [...data.periods].reverse().find((period) => period.hasData) ??
+      data.periods[data.periods.length - 1],
     [data.periods],
   );
-  const [periodId, setPeriodId] = useState<string>(firstWithData?.id ?? "1S");
+  const [periodId, setPeriodId] = useState<string>(firstWithData?.id ?? "2A");
 
   const rows: RankingsBestRow[] = data.best[periodId] ?? [];
   const popular: RankingsPopularRow[] = data.popular;
@@ -117,6 +119,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
   return (
     <section className="bg-white py-24 font-sans md:py-32">
       <div className="container-page">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
             Portafolios que puedes seguir hoy
@@ -128,7 +131,51 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-1 gap-14 md:grid-cols-2 md:gap-10">
+        <div className="min-w-0 lg:max-w-md">
+          <p className="mb-2 text-[13px] text-neutral-500">Período del retorno</p>
+          <div
+            role="tablist"
+            aria-label="Período de rendimiento"
+            className="no-scrollbar -mx-1 flex max-w-full flex-nowrap gap-1.5 overflow-x-auto px-1 py-1"
+          >
+            {data.periods.map((period) => {
+              const active = period.id === periodId;
+              return (
+                <button
+                  key={period.id}
+                  id={`tab-${period.id}`}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-controls="panel-ranking"
+                  aria-disabled={!period.hasData}
+                  disabled={!period.hasData}
+                  title={
+                    period.hasData
+                      ? `Rendimiento de los últimos ${period.label}`
+                      : `Sin datos para ${period.label}`
+                  }
+                  onClick={() => setPeriodId(period.id)}
+                  className={cn(
+                    "inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950",
+                    active
+                      ? "bg-neutral-950 text-white"
+                      : period.hasData
+                        ? "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
+                        : "cursor-not-allowed bg-neutral-50 text-neutral-400",
+                  )}
+                >
+                  {period.label}
+                  {!period.hasData ? <span className="sr-only"> (sin datos)</span> : null}
+                </button>
+              );
+            })}
+          </div>
+  
+        </div>
+        </div>
+
+        <div className="mt-12 grid grid-cols-1 items-start gap-14 md:grid-cols-2 md:gap-10">
           {/* Mejor rendimiento */}
           <div className="min-w-0">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
@@ -139,51 +186,10 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
             </div>
 
             <div
-              role="tablist"
-              aria-label="Período de rendimiento"
-              className="mt-6 flex flex-wrap gap-2"
-            >
-              {data.periods.map((period) => {
-                const active = period.id === periodId;
-                return (
-                  <button
-                    key={period.id}
-                    id={`tab-${period.id}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    aria-controls="panel-ranking"
-                    aria-disabled={!period.hasData}
-                    disabled={!period.hasData}
-                    title={
-                      period.hasData
-                        ? `Rendimiento de los últimos ${period.label}`
-                        : `Sin datos para ${period.label}`
-                    }
-                    onClick={() => setPeriodId(period.id)}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950",
-                      active
-                        ? "bg-neutral-950 text-white"
-                        : period.hasData
-                          ? "bg-neutral-100 text-neutral-600 hover:bg-neutral-200"
-                          : "cursor-not-allowed bg-neutral-50 text-neutral-400",
-                    )}
-                  >
-                    {period.label}
-                    {!period.hasData ? (
-                      <span className="text-[11px] font-normal">Sin datos</span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div
               id="panel-ranking"
               role="tabpanel"
               aria-labelledby={`tab-${periodId}`}
-              className="mt-4 divide-y divide-neutral-200/70"
+              className="mt-6 divide-y divide-neutral-200/70"
             >
               {rows.length === 0 ? (
                 <p className="py-6 text-[15px] text-neutral-500">
