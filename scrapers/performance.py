@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import sys
 
+import os
 import time
 from typing import Any
 
@@ -124,6 +125,45 @@ def _align_prices(
     return aligned
 
 
+NAME_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resolve_tickers_cache.json")
+MAX_NAME_LOOKUPS = int(os.environ.get("PERFORMANCE_MAX_NAME_LOOKUPS", "60"))
+
+
+def resolve_named_holdings(holdings, resolver=None, cache=None, max_lookups: int = MAX_NAME_LOOKUPS):
+    """Cambia nombres de emisor (13F, con espacios) por su ticker Yahoo.
+
+    Solo en memoria: la base no cambia. Busca primero los de mayor peso y
+    a lo mas `max_lookups` nombres nuevos por portafolio (los del cache no
+    cuentan). Si dos nombres dan el mismo ticker, se suman los pesos.
+    """
+    named = sorted([(s, w) for s, w in holdings if " " in s.strip()], key=lambda x: -x[1])
+    if not named:
+        return holdings
+    if resolver is None or cache is None:
+        import resolve_tickers as rt
+
+        resolver = resolver or rt.resolve_name
+        cache = cache if cache is not None else rt.load_cache(NAME_CACHE_FILE)
+    lookups = 0
+    mapping: dict[str, str] = {}
+    for symbol, _ in named:
+        key = symbol.strip()
+        if key not in cache:
+            if lookups >= max_lookups:
+                continue
+            lookups += 1
+        ticker = resolver(key, cache)
+        if ticker:
+            mapping[symbol] = ticker
+    merged: dict[str, float] = {}
+    for symbol, weight in holdings:
+        target = mapping.get(symbol, symbol)
+        merged[target] = merged.get(target, 0.0) + weight
+    if mapping:
+        print(f"[performance] {len(mapping)}/{len(named)} nombres resueltos a ticker (en memoria)")
+    return list(merged.items())
+
+
 def build_performance_series(
     db, portfolio_id: str, days: int = 365
 ) -> list[dict[str, Any]]:
@@ -139,6 +179,10 @@ def build_performance_series(
     holdings = [(symbol, weight) for symbol, weight in get_portfolio_holdings(db, portfolio_id) if weight > 0]
     # Nombres de emisor sin resolver (13F) no son tickers: Yahoo da 404.
     # Se omiten y se registran; los pesos se renormalizan sobre el resto.
+    # D28: antes de omitirlos, se intenta resolver el nombre a ticker con la
+    # busqueda de Yahoo (solo lectura, mismo criterio que resolve_tickers;
+    # usa su cache en disco si existe). No escribe holdings.
+    holdings = resolve_named_holdings(holdings)
     skipped = [symbol for symbol, _ in holdings if " " in symbol.strip()]
     if skipped:
         print(f"[performance] {portfolio_id}: {len(skipped)} holdings sin ticker omitidos: " + "; ".join(skipped[:20]))

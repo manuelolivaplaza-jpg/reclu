@@ -11,36 +11,13 @@ import type { HeroCard } from "@/lib/hero-portfolios";
  * promete rentabilidad ni invita a copiar carteras ajenas.
  */
 
-function BrandMark() {
-  return (
-    <span className="inline-flex size-11 items-center justify-center rounded-xl bg-neutral-950">
-      <svg
-        viewBox="0 0 24 24"
-        className="size-6 text-white"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        role="img"
-        aria-label="reclu"
-      >
-        <path d="M4 16l5-5 4 4 7-8" />
-        <path d="M15 7h5v5" />
-      </svg>
-    </span>
-  );
-}
-
 export function Hero({ cards }: { cards: HeroCard[] }) {
   return (
     <section className="bg-white pt-16 pb-20 md:pt-24 md:pb-28">
       <div className="container-page">
         <FadeIn>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-            <BrandMark />
-
-            <h1 className="mt-8 text-5xl font-semibold tracking-tight text-neutral-950 md:text-7xl">
+            <h1 className="text-5xl font-semibold tracking-tight text-neutral-950 md:text-7xl">
               Sigue las carteras que mueven el mercado.
             </h1>
 

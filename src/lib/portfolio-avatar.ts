@@ -109,6 +109,9 @@ export function categoryIcon(category: PortfolioCategory): string {
 
 // ---- Fuente del avatar ----
 
+/** Portadas genéricas compartidas que no se muestran como avatar. */
+export const GENERIC_COVERS: ReadonlySet<string> = new Set(["02-toro.png"]);
+
 /** Qué imagen (si hay) usa el avatar. */
 export type AvatarSource =
   | { kind: "portrait"; src: string }
@@ -136,7 +139,9 @@ export function avatarSource(portfolio: AvatarSourceInput): AvatarSource {
     return { kind: "portrait", src: `/portraits/${portrait}` };
   }
   const cover = portfolio?.cover_image;
-  if (typeof cover === "string" && cover.length > 0) {
+  // D28: la ilustración genérica del toro la compartían todos los ARK;
+  // no identifica a nadie. Se usa el avatar de iniciales.
+  if (typeof cover === "string" && cover.length > 0 && !GENERIC_COVERS.has(cover)) {
     return { kind: "cover", src: `/covers/${cover}` };
   }
   return { kind: "initials" };

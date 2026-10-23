@@ -11,6 +11,8 @@ import { FAQ } from "@/components/sections/faq";
 import { Close } from "@/components/sections/close";
 import { getPortfolios } from "@/lib/queries";
 import { buildHeroCards } from "@/lib/hero-portfolios";
+import { buildFeaturedHeroCards, FEATURED_HERO_SLUGS } from "@/lib/hero-featured";
+import { getPerformanceSeriesAdmin } from "@/lib/queries";
 
 import { getPortfolioRankings } from "@/lib/portfolio-rankings";
 
@@ -52,7 +54,14 @@ export default async function HomePage() {
 async function HeroWithPortfolios() {
   await connection();
   const portfolios = await getPortfolios();
-  return <Hero cards={buildHeroCards(portfolios)} />;
+  // D28: Berkshire, Trump dice (centro) e IBIT con su serie real.
+  const featuredIds = portfolios
+    .filter((p) => (FEATURED_HERO_SLUGS as readonly string[]).includes(p.slug))
+    .map((p) => p.id);
+  const series = await getPerformanceSeriesAdmin(featuredIds);
+  const featured = buildFeaturedHeroCards(portfolios, series);
+  const cards = featured.length >= 3 ? featured : buildHeroCards(portfolios);
+  return <Hero cards={cards} />;
 }
 
 /** Esqueleto mientras llegan los portafolios (misma altura que el hero). */
@@ -61,8 +70,7 @@ function HeroFallback() {
     <section className="bg-white pt-16 pb-20 md:pt-24 md:pb-28">
       <div className="container-page">
         <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <div className="size-11 animate-pulse rounded-xl bg-neutral-100" />
-          <div className="mt-8 h-12 w-full max-w-2xl animate-pulse rounded-2xl bg-neutral-100 md:h-16" />
+          <div className="h-12 w-full max-w-2xl animate-pulse rounded-2xl bg-neutral-100 md:h-16" />
           <div className="mt-6 h-6 w-full max-w-xl animate-pulse rounded-full bg-neutral-100" />
         </div>
       </div>

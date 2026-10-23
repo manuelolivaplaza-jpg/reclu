@@ -127,7 +127,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
 
   return (
     <section className="bg-white py-24 font-sans md:py-32">
-      <div className="container-page">
+      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 md:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">
@@ -140,12 +140,12 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
           </p>
         </div>
 
-        <div className="min-w-0 lg:max-w-md">
+        <div className="min-w-0 lg:shrink-0">
           <p className="mb-2 text-[13px] text-neutral-500">Período del retorno</p>
           <div
             role="tablist"
             aria-label="Período de rendimiento"
-            className="no-scrollbar -mx-1 flex max-w-full flex-nowrap gap-1.5 overflow-x-auto px-1 py-1"
+            className="flex max-w-full flex-wrap gap-1.5 py-1"
           >
             {data.periods.map((period) => {
               const active = period.id === periodId;
