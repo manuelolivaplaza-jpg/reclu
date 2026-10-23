@@ -323,6 +323,9 @@ try:
 except Exception:  # noqa: BLE001
     ETF_REAL_SLUGS = frozenset()
 
+# Portafolios por eventos: serie real en event_series.py (nunca se proyectan).
+EVENT_REAL_SLUGS = frozenset({"trump-dice", "musk-dice", "inverse-cramer-real"})
+
 
 def lookback_days(days: int | None = None, since: str | None = None, today=None) -> int:
     """Días de historia a reconstruir. --since (YYYY-MM-DD) manda sobre --days.
@@ -369,6 +372,9 @@ def main(argv: list[str] | None = None) -> None:
         portfolio_id = portfolio["id"]
         slug = portfolio.get("slug") or portfolio_id
         try:
+            if slug in EVENT_REAL_SLUGS:
+                print(f"-- {slug}: serie real por eventos (event_series.py), no se proyecta")
+                continue
             if slug in ETF_REAL_SLUGS:
                 print(f"-- {slug}: ETF con serie real (etf_series.py), no se proyecta")
                 continue
