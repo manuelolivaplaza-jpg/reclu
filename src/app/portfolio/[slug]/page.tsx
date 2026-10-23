@@ -18,6 +18,7 @@ import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { PortraitCredit } from "@/components/portrait-credit";
 import { LagBadge } from "@/components/lag-badge";
 import { PerformancePanel } from "@/components/performance-panel";
+import { PortfolioPerformanceChart } from "@/components/charts/portfolio-performance-chart";
 import { getPortfolioPerformanceData } from "@/lib/performance-queries";
 import { computePerformanceMetrics, fromPctToLevel } from "@/lib/performance";
 import { DemoBadge } from "@/components/demo-badge";
@@ -53,6 +54,19 @@ import { LegalNotice } from "@/components/legal/legal-notice";
 import { SourcePanel } from "@/components/source-panels";
 
 export const instant = false;
+
+/** Como Promise.all, pero una consulta que falla no rompe la pagina: usa el fallback. */
+async function settleAll<T extends unknown[]>(
+  promises: { [K in keyof T]: Promise<T[K]> },
+  fallbacks: unknown[],
+): Promise<T> {
+  const results = await Promise.allSettled(promises);
+  return results.map((r, i) => {
+    if (r.status === "fulfilled") return r.value;
+    console.warn("[reclu] portfolio query failed:", (r.reason as Error)?.message ?? r.reason);
+    return fallbacks[i];
+  }) as unknown as T;
+}
 
 /** Misma regla que queries.ts: sin URL real, el sitio está en modo demo. */
 function isSupabaseLive(): boolean {
@@ -128,7 +142,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   // Form 4: el libro sale de get_portfolio_holdings (muro 012). Si quedara
   // más de un as_of por símbolo, nos quedamos con el más reciente.
   const isInsiders = portfolio.source === "sec_form4";
-  const [holdingsRaw, alerts, following, performance, perfData, insiderFeed, ogeTrades, empresas] = await Promise.all([
+  const [holdingsRaw, alerts, following, performance, perfData, insiderFeed, ogeTrades, empresas] = await settleAll([
     getHoldings(portfolio.id, { role }),
     getAlerts(portfolio.id, 10, { role }),
     isFollowing(portfolio.id),
@@ -140,8 +154,41 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
     isInsiders ? getInsiderTrades() : Promise.resolve(null),
     portfolio.source === "oge_278t" ? getVerifiedOgeTrades() : Promise.resolve([]),
     esAgregado ? getInfoprobidadEmpresas() : Promise.resolve(null),
+  ], [
+    [],
+    [],
+    false,
+    [],
+    {
+      metrics: null,
+      benchmarkSymbol: "^GSPC",
+      benchmarkLabel: "S&P 500",
+      portfolioSeries: [],
+      benchmarkSeries: [],
+      precomputed: null,
+      method: "sin-datos",
+    },
+    null,
+    [],
+    null,
   ]);
-  const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsRaw) : holdingsRaw;
+  // Robustez: datos de staging/ETF pueden venir con nulos o numeric como string.
+  const holdingsSafe = (Array.isArray(holdingsRaw) ? holdingsRaw : [])
+    .filter((h) => h && h.symbol != null)
+    .map((h) => {
+      const w = Number(h.weight);
+      const pw = h.previous_weight == null ? null : Number(h.previous_weight);
+      const rp = h.return_pct == null ? null : Number(h.return_pct);
+      return {
+        ...h,
+        symbol: String(h.symbol),
+        name: h.name ?? "",
+        weight: Number.isFinite(w) ? w : 0,
+        previous_weight: pw !== null && Number.isFinite(pw) ? pw : null,
+        return_pct: rp !== null && Number.isFinite(rp) ? rp : null,
+      };
+    });
+  const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsSafe) : holdingsSafe;
 
   const meta = CATEGORY_META[portfolio.category];
   const isPro = isPaidPlan(profile?.plan);
@@ -153,7 +200,9 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const locked = role === "anon" && !publicDisclosure;
   const hasReturn = portfolio.return_ytd !== null;
   const positive = (portfolio.return_ytd ?? 0) >= 0;
-  const performanceReal = performance;
+  const performanceReal = (Array.isArray(performance) ? performance : []).filter(
+    (p) => p && typeof p.date === "string" && Number.isFinite(Number(p.value)),
+  ).map((p) => ({ ...p, value: Number(p.value) }));
   const demoPoints =
     performanceReal.length === 0 && !isSupabaseLive() && portfolio.return_ytd !== null
       ? demoPerformance(portfolio.slug, portfolio.return_ytd)
@@ -415,6 +464,17 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                 recordedAt={publication?.recordedAt ?? null}
                 disclosureLagDays={publication?.lagDays ?? null}
                 entrySeries={entrySeries}
+              />
+            </div>
+          ) : null}
+
+          {!esAgregado ? (
+            <div className="mb-12">
+              <PortfolioPerformanceChart
+                series={entrySeries}
+                benchmark={perfPanelData.benchmarkSeries}
+                benchmarkLabel={benchmarkLabel}
+                maxFreeDays={isPro ? null : 90}
               />
             </div>
           ) : null}

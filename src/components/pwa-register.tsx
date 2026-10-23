@@ -63,6 +63,9 @@ export function PwaRegister() {
 
   // Ya instalada o sin prompt disponible: no renderizamos nada.
   if (installed) return null;
+  // Desactivado por ahora: tapaba el boton de la IA. Reactivar con
+  // NEXT_PUBLIC_PWA_INSTALL_PROMPT=1 (el service worker sigue registrandose).
+  if (process.env.NEXT_PUBLIC_PWA_INSTALL_PROMPT !== "1") return null;
 
   const buttonClass =
     "fixed right-4 bottom-[calc(env(safe-area-inset-bottom)*2+1.25rem)] z-[60] inline-flex h-11 items-center gap-2 rounded-full bg-ink-900 px-5 text-sm font-medium text-white transition-colors hover:bg-black lg:bottom-6";
