@@ -27,6 +27,8 @@ export interface AreaChartProps {
   height?: number;
   /** Formatea el valor para el tooltip y el aria-label. */
   formatValue?: (value: number) => string;
+  /** Formato serializable (usable desde Server Components). Gana sobre formatValue. */
+  format?: "usd" | "pct" | "number";
   /** Etiqueta accesible: reemplaza el resumen automático. */
   ariaLabel?: string;
   className?: string;
@@ -42,6 +44,12 @@ function parseTime(date: string): number {
   const iso = date.includes("T") ? date : `${date.slice(0, 10)}T00:00:00Z`;
   return Date.parse(iso);
 }
+
+const PRESET_FORMATS: Record<"usd" | "pct" | "number", (value: number) => string> = {
+  usd: (v) => `${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(Number.isFinite(v) ? v : 0)} USD`,
+  pct: (v) => `${v >= 0 ? "+" : ""}${(Number.isFinite(v) ? v : 0).toFixed(1)}%`,
+  number: (v) => new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 }).format(Number.isFinite(v) ? v : 0),
+};
 
 function formatDate(date: string): string {
   const time = parseTime(date);
@@ -75,10 +83,12 @@ export function AreaChart({
   secondaryLabel,
   dark = false,
   height = 180,
-  formatValue = defaultFormat,
+  formatValue: formatValueProp,
+  format,
   ariaLabel,
   className,
 }: AreaChartProps) {
+  const formatValue = format ? PRESET_FORMATS[format] : (formatValueProp ?? defaultFormat);
   const gradId = `area-${useId().replace(/:/g, "")}`;
   const [active, setActive] = useState<number | null>(null);
 
