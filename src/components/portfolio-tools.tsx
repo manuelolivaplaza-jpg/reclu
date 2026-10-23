@@ -42,6 +42,9 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
   );
 
   const topHolding = sorted[0] ?? null;
+  // Con el muro (anónimo/gratis) solo llegan las primeras posiciones: se
+  // avisa qué parte del portafolio suman las visibles.
+  const visibleSum = useMemo(() => holdings.reduce((sum, h) => sum + (h.weight || 0), 0), [holdings]);
 
   const recentMoves = useMemo(
     () =>
@@ -61,6 +64,11 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
         <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
           {holdings.length}
         </p>
+        {holdings.length > 0 && visibleSum < 99 ? (
+          <p className="mt-1 text-[12px] text-ink-500">
+            Visibles: {visibleSum.toFixed(1)}% del portafolio
+          </p>
+        ) : null}
       </div>
 
       <div className="bg-white p-5">

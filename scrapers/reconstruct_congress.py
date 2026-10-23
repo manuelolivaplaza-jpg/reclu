@@ -156,8 +156,17 @@ def main() -> None:
     args = ap.parse_args()
     db = get_db()
     total = 0
+    # Los miembros con PTR de la Cámara (varios años, reconstruct_house_ptr)
+    # no se reescriben con la fuente de 365 días: mezclar las dos bases en la
+    # misma serie daba saltos (pelosi-tracker con 3 puntos).
+    from reconstruct_house_ptr import MEMBER_SLUG
+
+    house_slugs = set(MEMBER_SLUG.values())
     for member, slug in POLITICIANS.items():
         if args.slugs and slug not in args.slugs:
+            continue
+        if slug in house_slugs:
+            print(f"-- {slug}: usa reconstruct_house_ptr (PTR de varios años), se omite")
             continue
         print(f"\n=== {member} ({slug}) ===")
         total += reconstruct_member(db, member, slug)

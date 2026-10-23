@@ -250,18 +250,10 @@ def reconstruct_fund(db, slug: str, cik: int, name: str, quarters: int, cache: d
         return 0
 
     # store real performance points (table: portfolio_performance, cols: portfolio_id, date, value_pct)
-    for day, idx in series:
-        # convert index (base 100) to pct vs first point
-        pct = idx - 100.0
-        db.table("portfolio_performance").upsert(
-            {
-                "portfolio_id": pid,
-                "date": day,
-                "value_pct": pct,
-                "is_estimated": False,
-            },
-            on_conflict="portfolio_id,date",
-        ).execute()
+    from perf_store import save_real_series
+
+    # índice base 100 -> % vs primer punto; sin borrar historia real.
+    save_real_series(db, pid, [(day, idx - 100.0) for day, idx in series])
     print(f"OK {slug}: {len(series)} trimestres reales reconstruidos")
     return len(series)
 
