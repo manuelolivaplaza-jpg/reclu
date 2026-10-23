@@ -181,7 +181,7 @@ export function PortfolioHero({
                     positive={simulation.gainPct >= 0}
                     dark
                     height={140}
-                    formatValue={(value) => formatUsd(value)}
+                    format="usd"
                     ariaLabel={`Evolución de una inversión de ${formatUsd(
                       amount,
                     )}: de ${formatUsd(simulation.points[0].value)} a ${formatUsd(
