@@ -30,8 +30,10 @@ export function formatCompact(value: number): string {
 /**
  * Relative time in Spanish ("hace 3 días", "hace 2 horas").
  */
-export function timeAgo(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
+export function timeAgo(date: Date | string | null | undefined): string {
+  const d = date instanceof Date ? date : new Date(String(date ?? ""));
+  // Fecha nula o invalida: Intl lanzaria RangeError y romperia la pagina.
+  if (!Number.isFinite(d.getTime())) return "";
   const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
   const units: [number, Intl.RelativeTimeFormatUnit][] = [
     [60, "second"],

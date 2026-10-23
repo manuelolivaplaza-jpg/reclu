@@ -59,6 +59,7 @@ function ymdFromPrefix(iso: string): string | null {
  * Sin hora: el día escrito. Con hora: ese instante en America/Santiago.
  */
 export function chileCalendarDay(iso: string): string | null {
+  if (typeof iso !== "string") return null;
   const trimmed = iso.trim();
   if (!hasClockTime(trimmed)) return ymdFromPrefix(trimmed);
   const time = Date.parse(trimmed);
