@@ -13,3 +13,5 @@ next-env.d.ts
 __pycache__/
 public/covers_bn_backup/
 scrapers/tests/fixtures/*.pdf
+
+scrapers/resolve_tickers_cache.json

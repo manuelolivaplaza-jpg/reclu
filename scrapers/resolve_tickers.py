@@ -5,13 +5,22 @@ Rows were saved with the issuer name as the symbol (for example
 ticker. Names that Yahoo does not match clearly are left unchanged.
 
 Usage (from the scrapers directory):
-    python resolve_tickers.py
+    python resolve_tickers.py --dry-run --limit 50     # solo busca, no escribe
+    python resolve_tickers.py                          # resuelve y actualiza
+    python resolve_tickers.py --resume-file f.json     # reanuda (cache en disco)
+
+Busca en lotes (--batch, default 25), con timeout corto y reintentos con
+backoff; guarda el cache en --resume-file tras cada lote para que una
+corrida cortada siga donde quedo. En choques de clave unica NO borra.
 
 Requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (see base.get_db).
 """
 
 from __future__ import annotations
 
+import argparse
+import json
+import os
 import re
 import time
 
@@ -130,16 +139,31 @@ def pick_ticker(name: str, quotes: list[dict]) -> str | None:
     return matches[0][1]
 
 
+SEARCH_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
+SEARCH_ATTEMPTS = 3
+
+
+def _get_with_retry(params: dict, attempts: int = SEARCH_ATTEMPTS, sleep=time.sleep):
+    """GET a la busqueda de Yahoo con reintentos (1/2/4 s) en timeouts, red, 429 y 5xx."""
+    for i in range(attempts):
+        try:
+            resp = httpx.get(SEARCH_URL, params=params, headers={"User-Agent": USER_AGENT},
+                             timeout=SEARCH_TIMEOUT, follow_redirects=True)
+            if resp.status_code == 429 or resp.status_code >= 500:
+                raise httpx.HTTPStatusError(f"HTTP {resp.status_code}", request=resp.request, response=resp)
+            resp.raise_for_status()
+            return resp
+        except (httpx.TimeoutException, httpx.TransportError, httpx.HTTPStatusError) as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if (status is not None and status < 500 and status != 429) or i == attempts - 1:
+                raise
+            sleep(2 ** i)
+    raise RuntimeError("unreachable")
+
+
 def fetch_quotes(name: str) -> list[dict]:
-    """Search Yahoo Finance for an issuer name."""
-    resp = httpx.get(
-        SEARCH_URL,
-        params={"q": name, "quotesCount": QUOTES_COUNT},
-        headers={"User-Agent": USER_AGENT},
-        timeout=30.0,
-        follow_redirects=True,
-    )
-    resp.raise_for_status()
+    """Search Yahoo Finance for an issuer name (timeout corto + reintentos)."""
+    resp = _get_with_retry({"q": name, "quotesCount": QUOTES_COUNT})
     payload = resp.json()
     quotes = payload.get("quotes") if isinstance(payload, dict) else None
     if not isinstance(quotes, list):
@@ -155,8 +179,10 @@ def resolve_name(name: str, cache: dict[str, str | None]) -> str | None:
     ticker: str | None = None
     try:
         ticker = pick_ticker(key, fetch_quotes(key))
-    except Exception as exc:  # noqa: BLE001 — one failed lookup must not stop the run
+    except Exception as exc:  # noqa: BLE001 - no se cachea: se reintenta al reanudar
         print(f"WARNING {name}: {exc}")
+        time.sleep(REQUEST_DELAY_S)
+        return None
     cache[key] = ticker
     time.sleep(REQUEST_DELAY_S)
     return ticker
@@ -246,23 +272,78 @@ def conflicts_summary() -> str:
     return "\n".join(lines)
 
 
-def main() -> None:
+def load_cache(path: str | None) -> dict[str, str | None]:
+    if path and os.path.exists(path):
+        with open(path, encoding="utf-8") as fh:
+            data = json.load(fh)
+        return data if isinstance(data, dict) else {}
+    return {}
+
+
+def save_cache(path: str | None, cache: dict[str, str | None]) -> None:
+    if not path:
+        return
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        json.dump(cache, fh, ensure_ascii=False, indent=0, sort_keys=True)
+    os.replace(tmp, path)
+
+
+def run(db, names: list[str], *, dry_run: bool, limit: int = 0, batch: int = 25,
+        resume_file: str | None = None, resolver=None, applier=None) -> dict[str, int]:
+    """Resuelve nombres en lotes; guarda cache tras cada lote (reanudable)."""
+    resolver = resolver or resolve_name
+    applier = applier or apply_ticker
+    cache = load_cache(resume_file)
+    pending = [n for n in names if n.strip() not in cache]
+    if limit:
+        pending = pending[:limit]
+    print(f"{len(names)} nombres, {len(names) - len([n for n in names if n.strip() not in cache])} ya en cache, "
+          f"{len(pending)} a buscar ahora" + (" (dry-run, no se escribe)" if dry_run else ""))
+    stats = {"resolved": 0, "unmatched": 0, "applied": 0}
+    for i in range(0, len(pending), max(1, batch)):
+        chunk = pending[i:i + batch]
+        for name in chunk:
+            ticker = resolver(name, cache)
+            if not ticker:
+                stats["unmatched"] += 1
+                print(f"WARNING {name}: sin match claro, se deja el nombre")
+                continue
+            stats["resolved"] += 1
+            if dry_run:
+                print(f"DRY-RUN {name} -> {ticker}")
+            elif applier(db, name, ticker):
+                stats["applied"] += 1
+                print(f"OK {name} -> {ticker}")
+        save_cache(resume_file, cache)
+        print(f"... lote {min(i + batch, len(pending))}/{len(pending)}")
+    # Nombres ya resueltos en corridas anteriores que siguen en holdings.
+    if not dry_run:
+        for name in names:
+            ticker = cache.get(name.strip())
+            if ticker and name not in pending and applier(db, name, ticker):
+                stats["applied"] += 1
+                print(f"OK (cache) {name} -> {ticker}")
+    print(f"{stats['resolved']} resueltos, {stats['unmatched']} sin match, {stats['applied']} aplicados")
+    print(conflicts_summary())
+    return stats
+
+
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Resuelve nombres de emisores a tickers Yahoo")
+    parser.add_argument("--dry-run", action="store_true", help="Solo busca en Yahoo; no actualiza holdings")
+    parser.add_argument("--limit", type=int, default=0, help="Maximo de nombres a buscar en esta corrida")
+    parser.add_argument("--batch", type=int, default=25, help="Nombres por lote (cache se guarda tras cada lote)")
+    parser.add_argument("--resume-file", default="resolve_tickers_cache.json",
+                        help="Cache JSON para reanudar ('' para desactivar)")
+    args = parser.parse_args(argv)
+
     from base import get_db
 
-    db = get_db()
+    db = get_db()  # tambien en dry-run: solo lectura de holdings
     names = [symbol for symbol in distinct_symbols(db) if looks_like_name(symbol)]
-    cache: dict[str, str | None] = {}
-    resolved = 0
-    for name in names:
-        ticker = resolve_name(name, cache)
-        if not ticker:
-            print(f"WARNING {name}: sin match claro, se deja el nombre")
-            continue
-        if apply_ticker(db, name, ticker):
-            resolved += 1
-            print(f"OK {name} -> {ticker}")
-    print(f"{resolved}/{len(names)} nombres resueltos")
-    print(conflicts_summary())
+    run(db, names, dry_run=args.dry_run, limit=args.limit, batch=args.batch,
+        resume_file=args.resume_file or None)
 
 
 if __name__ == "__main__":

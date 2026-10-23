@@ -173,6 +173,50 @@ def yahoo_symbol(symbol: str, exchange: str | None = None, currency: str | None 
     return clean
 
 
+# Casos sueltos verificados en Yahoo (2026-10-23). Clave: simbolo en holdings (mayusculas).
+MANUAL_MAP = {
+    "WABTEC": "WAB",
+    "AECOM": "ACM",
+    "ADYEN": "ADYEN.AS",
+    "WATTS": "WTS",
+    "SATELLOGIC": "SATL",
+    "TECK/B": "TECK-B.TO",  # TECK-B no existe en Yahoo; clase B cotiza en Toronto
+}
+_SUFFIXED = (".SN", ".SA", ".MX", ".T", ".HK", ".KS", ".KQ", ".TW", ".TWO", ".SS", ".SZ", ".AS", ".TO")
+
+
+def yahoo_candidates(symbol: str, exchange: str | None = None, currency: str | None = None,
+                     country: str | None = None) -> list[str]:
+    """Simbolos Yahoo a probar en orden (el primero que no de 404 gana).
+
+    - MANUAL_MAP primero (casos sueltos verificados).
+    - Portafolio country='MX': .MX antes que el resto (FUNO11 -> FUNO11.MX, no .SA).
+    - Si el primero da 404, se prueba Chile (.SN, con punto -> guion:
+      SQM.B -> SQM-B.SN) y Mexico (.MX, sin '*').
+    """
+    raw = (symbol or "").strip()
+    manual = MANUAL_MAP.get(raw.upper())
+    if manual:
+        return [manual]
+    primary = yahoo_symbol(raw, exchange, currency)
+    if not primary:
+        return []
+    clean = raw.upper()
+    if primary.startswith("^") or clean.isdigit() or (primary.endswith(_SUFFIXED) and not primary.endswith(".SA")):
+        return [primary]
+    if primary.endswith(".SA"):  # Brasil por patron; FUNO11 y similares son mexicanos
+        return [clean + ".MX", primary] if (country or "").upper() == "MX" else [primary, clean + ".MX"]
+    base = clean.rstrip("*").replace("/", ".")
+    mx = base.replace(".", "") + ".MX"
+    sn = base.replace(".", "-") + ".SN"
+    out = [mx, primary, sn] if (country or "").upper() == "MX" else [primary, sn, mx]
+    seen: list[str] = []
+    for c in out:
+        if c not in seen:
+            seen.append(c)
+    return seen
+
+
 def portfolio_info(db, page: int = 1000) -> dict:
     """{portfolio_id: {"visible": bool, "country": str}} (solo lectura)."""
     out: dict = {}
@@ -193,8 +237,8 @@ def portfolio_info(db, page: int = 1000) -> dict:
 
 
 def symbols_from_portfolio_holdings(db, page: int = 1000, all_snapshots: bool = False,
-                                    portfolios: dict | None = None) -> dict[str, str]:
-    """{simbolo_en_holdings: simbolo_yahoo} de holdings (solo lectura, paginado).
+                                    portfolios: dict | None = None) -> dict[str, list[str]]:
+    """{simbolo_en_holdings: [simbolos_yahoo a probar]} de holdings (solo lectura, paginado).
 
     Por defecto solo el ultimo snapshot (max as_of) de cada portafolio.
     Orden de prioridad (para el tope --max-symbols):
@@ -237,10 +281,10 @@ def symbols_from_portfolio_holdings(db, page: int = 1000, all_snapshots: bool = 
         cur = r.get("currency")
         if info["country"] == "CL" and not r.get("exchange") and (cur in (None, "", "USD")):
             cur = "CLP" if not raw.isdigit() and "." not in raw else cur
-        ysym = yahoo_symbol(raw, r.get("exchange"), cur)
-        if not ysym:
+        cands = yahoo_candidates(raw, r.get("exchange"), cur, info["country"])
+        if not cands:
             continue
-        out.setdefault(raw, ysym)
+        out.setdefault(raw, cands)
         sc = score.setdefault(raw, [0, 0.0, set(), set()])
         w = float(r.get("weight") or 0)
         if info["visible"]:
@@ -270,6 +314,31 @@ def fetch_with_retry(symbol: str, days: int, attempts: int = 3, sleep=time.sleep
                 raise
         sleep(2 ** i)
     return []
+
+
+def fetch_candidates(candidates, days: int, fetch=None):
+    """Prueba candidatos en orden; devuelve (simbolo_usado, filas).
+
+    Pasa al siguiente solo si Yahoo responde 404 o 0 filas; otros errores
+    (red, 5xx) ya se reintentaron en fetch_with_retry y se propagan.
+    """
+    fetch = fetch or fetch_with_retry
+    if isinstance(candidates, str):
+        candidates = [candidates]
+    last: Exception | None = None
+    for cand in candidates:
+        try:
+            rows = fetch(cand, days)
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code != 404:
+                raise
+            last = e
+            continue
+        if rows:
+            return cand, rows
+    if last:
+        raise last
+    return (candidates[0] if candidates else ""), []
 
 
 def fetch_eod(symbol: str, days: int = 365) -> list[tuple[str, float]]:
@@ -307,7 +376,7 @@ def upsert_prices(db, symbol: str, rows: list[tuple[str, float]]) -> None:
 
 
 def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365,
-                aliases: dict[str, str] | None = None, batch: int = 50) -> dict[str, int]:
+                aliases: dict | None = None, batch: int = 50) -> dict[str, int]:
     """Refresh prices for all symbols, tolerating per-symbol failures.
 
     If dry_run is True, only print how many rows would be downloaded per
@@ -318,15 +387,16 @@ def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365,
     for n, symbol in enumerate(symbols, 1):
         if n % batch == 0:
             print(f"... lote {n}/{len(symbols)}")
-        fetch_sym = aliases.get(symbol, symbol)
+        cands = aliases.get(symbol, symbol)
+        fetch_sym = cands if isinstance(cands, str) else "|".join(cands)
         try:
-            rows = fetch_with_retry(fetch_sym, days)
+            fetch_sym, rows = fetch_candidates(cands, days)
             if dry_run:
                 if rows:
                     first_date, first_close = rows[0]
                     last_date, last_close = rows[-1]
                     print(
-                        f"DRY-RUN {symbol}: {len(rows)} rows "
+                        f"DRY-RUN {symbol} [{fetch_sym}]: {len(rows)} rows "
                         f"(first {first_date} @ {first_close}, "
                         f"last {last_date} @ {last_close})"
                     )
@@ -421,7 +491,7 @@ def main() -> None:
         extra = [s for s in mapping if s not in have]
         # Se guarda con el simbolo de holdings (lo que busca compute_returns),
         # pero se baja de Yahoo con el sufijo correcto.
-        aliases = {s: mapping[s] for s in extra if mapping[s] != s}
+        aliases = {s: mapping[s] for s in extra if mapping[s] != [s]}
         symbols = symbols + extra
         print(f"holdings: {len(extra)} symbols added ({len(symbols)} total, {len(aliases)} con sufijo)")
     if args.limit:
