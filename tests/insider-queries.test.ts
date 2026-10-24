@@ -78,7 +78,7 @@ describe("formato y aviso", () => {
   it("formatea montos, fechas y el cargo", () => {
     expect(formatUsd(148101266)).toBe("US$148.101.266");
     expect(formatUsd(null)).toBe("—");
-    expect(formatSignedPct(-1.8)).toBe("-1,80%");
+    expect(formatSignedPct(-1.8)).toBe("−1,80%");
     expect(formatSignedPct(8.11)).toBe("+8,11%");
     expect(formatIsoDate("2026-10-16")).toBe("16 oct 2026");
     expect(ownerRoleLabel({ ownerTitle: null, isDirector: true, isOfficer: false })).toBe("Director");

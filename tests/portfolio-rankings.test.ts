@@ -185,7 +185,7 @@ describe("filterPremium (muro de pago)", () => {
 describe("formatReturnPct", () => {
   it("usa el formato chileno con coma decimal", () => {
     expect(formatReturnPct(12.34)).toBe("+12,3%");
-    expect(formatReturnPct(-4.56)).toBe("-4,6%");
+    expect(formatReturnPct(-4.56)).toBe("−4,6%");
     expect(formatReturnPct(0)).toBe("0,0%");
   });
 
