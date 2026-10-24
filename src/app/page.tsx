@@ -64,16 +64,11 @@ async function HeroWithPortfolios() {
   return <Hero cards={cards} />;
 }
 
-/** Esqueleto mientras llegan los portafolios (misma altura que el hero). */
+/**
+ * D36: mientras llegan los portafolios se muestra el MISMO hero (texto
+ * estático) con tres tarjetas esqueleto que reservan la altura de las reales.
+ * Antes el fallback era más bajo y la home saltaba (CLS 0,63 en móvil).
+ */
 function HeroFallback() {
-  return (
-    <section className="bg-white pt-16 pb-20 md:pt-24 md:pb-28">
-      <div className="container-page">
-        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-          <div className="h-12 w-full max-w-2xl animate-pulse rounded-2xl bg-neutral-100 md:h-16" />
-          <div className="mt-6 h-6 w-full max-w-xl animate-pulse rounded-full bg-neutral-100" />
-        </div>
-      </div>
-    </section>
-  );
+  return <Hero cards={[]} loading />;
 }

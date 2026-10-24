@@ -40,12 +40,19 @@ function Pct({ value, className }: { value: number | null; className?: string })
 
 export default async function TrumpDicePage() {
   await connection();
-  const portfolio = await getPortfolioBySlug("trump-dice");
-  const { mentions, isDemo } = portfolio ? await getMentions(portfolio.id, "trump_mentions") : { mentions: [], isDemo: true };
+  // D36: el S&P 500 no depende del portafolio; las menciones y la serie
+  // dependen solo del id. Se piden en paralelo (antes: 5 awaits en cascada).
+  const [portfolio, spx] = await Promise.all([
+    getPortfolioBySlug("trump-dice"),
+    getBenchmarkSeries("^GSPC", 1000),
+  ]);
+  const [{ mentions, isDemo }, seriesById] = await Promise.all([
+    portfolio ? getMentions(portfolio.id, "trump_mentions") : Promise.resolve({ mentions: [], isDemo: true }),
+    portfolio ? getPerformanceSeriesAdmin([portfolio.id]) : Promise.resolve(new Map()),
+  ]);
+  const series = portfolio ? seriesById.get(portfolio.id) ?? [] : [];
   const closes = await getClosesSince(mentions.map((m) => m.symbol), TRUMP_DICE_START);
-  const series = portfolio ? (await getPerformanceSeriesAdmin([portfolio.id])).get(portfolio.id) ?? [] : [];
   const strategy = totalFromPct(series, TRUMP_DICE_START);
-  const spx = await getBenchmarkSeries("^GSPC", 1000);
   const spxReturn = windowReturn(spx.map((p) => ({ date: p.date, close: p.value })), TRUMP_DICE_START);
   const lastDate = series.at(-1)?.date ?? null;
 

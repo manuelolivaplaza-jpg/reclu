@@ -97,6 +97,70 @@ function Card({ card }: { card: HeroCard }) {
   );
 }
 
+/** Línea esqueleto con la altura exacta del texto que reemplaza. */
+function Bone({ className }: { className: string }) {
+  return (
+    <span aria-hidden className={cn("block select-none rounded-md bg-neutral-100 text-transparent", className)}>
+      &nbsp;
+    </span>
+  );
+}
+
+/**
+ * D36: tarjeta esqueleto con la MISMA estructura que `Card` (paddings,
+ * tamaños de letra, avatar, sparkline y pie), para que el fallback del hero
+ * ocupe la misma altura que las tarjetas reales y no haya salto (CLS).
+ */
+function SkeletonCard({ featured }: { featured: boolean }) {
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "relative flex w-full animate-pulse flex-col rounded-3xl border border-neutral-200/80 bg-white text-left",
+        featured ? "z-10 p-7 md:p-8" : "p-6",
+      )}
+    >
+      <div className="flex items-center gap-4">
+        <span className={cn("block size-16 shrink-0 rounded-full bg-neutral-100", featured ? "" : "scale-[0.875]")} />
+        <div className="min-w-0 flex-1">
+          <Bone className={cn("font-semibold tracking-tight", featured ? "w-3/4 text-xl" : "w-2/3 text-[17px]")} />
+          <Bone className="mt-0.5 w-1/2 text-[14px]" />
+        </div>
+      </div>
+      <div className="mt-7">
+        <Bone className={cn("num w-1/2 font-semibold tracking-tight", featured ? "text-5xl md:text-6xl" : "text-4xl")} />
+        <Bone className="mt-1.5 w-2/3 text-[13px]" />
+        <Bone className="mt-0.5 w-1/2 text-[12px]" />
+      </div>
+      <span className={cn("block w-full rounded-md bg-neutral-100", featured ? "mt-6 h-16" : "mt-5 h-12")} />
+      <div className="mt-6 flex items-center justify-between border-t border-neutral-100 pt-4 text-[13px]">
+        <Bone className="w-1/3" />
+        <Bone className="w-1/4" />
+      </div>
+    </div>
+  );
+}
+
+/** Fallback del hero: tres tarjetas esqueleto en la misma grilla. */
+export function PhoneMockupsSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-label="Cargando portafolios"
+      className="mx-auto mt-16 grid w-full max-w-6xl grid-cols-1 items-center gap-6 md:mt-20 md:grid-cols-3 md:gap-6 lg:gap-8"
+    >
+      {[false, true, false].map((featured, index) => (
+        <div
+          key={index}
+          className={cn("min-w-0", featured ? "order-first md:order-none md:scale-[1.06]" : "md:mt-6")}
+        >
+          <SkeletonCard featured={featured} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** Tres tarjetas; la destacada al centro. Con menos tarjetas se centran. */
 export function PhoneMockups({ cards }: { cards: HeroCard[] }) {
   if (cards.length === 0) return null;
