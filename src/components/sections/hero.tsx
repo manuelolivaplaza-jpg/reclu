@@ -37,6 +37,15 @@ export function Hero({ cards }: { cards: HeroCard[] }) {
             <p className="mt-5 text-[13px] text-neutral-500">
               Gratis en 2 portafolios. Sin tarjeta.
             </p>
+
+            <Link
+              href="/trump-dice"
+              className="mt-8 inline-flex items-center gap-3 rounded-full border border-neutral-200 bg-white py-1.5 pl-1.5 pr-4 text-[14px] text-neutral-700 shadow-sm transition hover:border-neutral-300 hover:text-neutral-950"
+            >
+              <span className="rounded-full bg-neutral-950 px-2.5 py-1 text-[12px] font-medium text-white">Nuevo</span>
+              Trump dice: cada mención y su retorno vs el S&amp;P 500
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
         </FadeIn>
 
