@@ -26,6 +26,7 @@ import time
 
 import httpx
 
+from price_classes import clean_issuer_query
 from holdings_merge import US_CLASS_RE, class_dot_target, plan_merges, render_sql, us_class_hyphen
 
 SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
@@ -182,6 +183,14 @@ def resolve_name(name: str, cache: dict[str, str | None]) -> str | None:
     ticker: str | None = None
     try:
         ticker = pick_ticker(key, fetch_quotes(key))
+        if not ticker:
+            # D35: segundo intento sin sufijos societarios ni de clase
+            # ("ALPHABET INC CL A" -> "ALPHABET"). El match sigue exigiendo
+            # la primera palabra significativa del nombre original.
+            query = clean_issuer_query(key)
+            if query and query != key:
+                time.sleep(REQUEST_DELAY_S)
+                ticker = pick_ticker(key, fetch_quotes(query))
     except Exception as exc:  # noqa: BLE001 - no se cachea: se reintenta al reanudar
         print(f"WARNING {name}: {exc}")
         time.sleep(REQUEST_DELAY_S)

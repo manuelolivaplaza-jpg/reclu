@@ -64,6 +64,8 @@ STAGES: list[tuple[str, str, bool]] = [
     ("etfs", "ETFs: ARK, Global X, iShares, VanEck", False),
     ("prices", "Precios EOD Yahoo Finance", False),
     ("compute_returns", "Rendimientos por holding", False),
+    ("etf_series", "Series reales de ETFs (precio del fondo)", False),
+    ("benchmarks", "Benchmarks ^GSPC e ^IPSA", False),
     ("performance", "Series de rendimiento históricas", False),
     ("trump_dice", "Trump dice: menciones verificadas", False),
     # F10: después de performance y antes de radar_ia.
@@ -75,8 +77,12 @@ STAGES: list[tuple[str, str, bool]] = [
     # D34: series reales por eventos (trump, musk, cramer real y compras) y AFP.
     # Sin esta etapa inverse-cramer-real quedaba sin serie (performance.py la salta).
     ("event_series", "Series reales por eventos (event_series.py)", False),
+    ("afp_carteras", "Carteras de las 7 AFP (Cuadro 14)", False),
     ("afp_series", "Series reales AFP (Cuadro 14 mensual)", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
+    # D35: al final, cuando ya están todos los holdings del día. Solo envía
+    # correos con TRADE_ALERTS_SEND_ENABLED=true (apagado por defecto).
+    ("trade_alerts", "Alertas de compras y ventas (correo apagado por defecto)", False),
 ]
 # STAGE_IDS y CRITICAL se arman después de descubrir scrapers/stages/*.py.
 
@@ -318,6 +324,48 @@ def run_radar_ia(db, dry_run: bool) -> list[dict]:
         return [{"source": "radar_ia", "status": "skipped", "dry_run": True}]
     return [RadarIaAdapter().run(db)]
 
+def run_etf_series(db, dry_run: bool) -> list[dict]:
+    if dry_run:
+        log("[etf_series] DRY-RUN: omitido (escribe series; requiere DB)")
+        return [{"source": "etf_series", "status": "skipped", "dry_run": True}]
+    from etf_series import main as etf_main
+
+    etf_main([])
+    return [{"source": "etf_series", "status": "ok"}]
+
+
+def run_benchmarks(db, dry_run: bool) -> list[dict]:
+    from benchmarks import DEFAULT_BENCHMARKS, DEFAULT_DAYS, refresh_all
+
+    refresh_all(db, list(DEFAULT_BENCHMARKS), days=DEFAULT_DAYS, dry_run=dry_run)
+    return [{"source": "benchmarks", "status": "ok", "dry_run": dry_run}]
+
+
+def run_afp_carteras(db, dry_run: bool) -> list[dict]:
+    from afp_carteras import AFPS, AfpCarterasAdapter
+
+    out = []
+    for afp in sorted(AFPS):
+        if afp == "modelo":
+            continue  # ya la escribe la etapa spensiones
+        try:
+            out.append(AfpCarterasAdapter(afp, dry_run=dry_run).run(db))
+        except Exception as exc:  # noqa: BLE001 - una AFP no corta las demás
+            log(f"[afp_carteras:{afp}] WARNING {exc}")
+            out.append({"source": f"afp_carteras:{afp}", "status": "error", "error": str(exc)})
+    return out
+
+
+def run_trade_alerts(db, dry_run: bool) -> list[dict]:
+    if dry_run:
+        log("[trade_alerts] DRY-RUN: omitido (lee follows de la DB)")
+        return [{"source": "trade_alerts", "status": "skipped", "dry_run": True}]
+    from trade_alerts import main as ta_main
+
+    ta_main([])
+    return [{"source": "trade_alerts", "status": "ok"}]
+
+
 def run_event_series(db, dry_run: bool) -> list[dict]:
     from event_series import main as event_main
 
@@ -350,6 +398,10 @@ RUNNERS = {
     "musk_dice": run_musk_dice,
     "inverse_cramer": run_inverse_cramer,
     "event_series": run_event_series,
+    "etf_series": run_etf_series,
+    "benchmarks": run_benchmarks,
+    "afp_carteras": run_afp_carteras,
+    "trade_alerts": run_trade_alerts,
     "afp_series": run_afp_series,
     "radar_ia": run_radar_ia,
 }

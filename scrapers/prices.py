@@ -107,6 +107,8 @@ def symbols_from_user_holdings(db, limit: int = 500) -> list[str]:
     return symbols
 
 
+from price_classes import EXCHANGE_SUFFIX, classify, is_skip, suffix_for_exchange  # noqa: E402
+
 JAPAN_EXCHANGES = {"TSE", "TYO", "JPX", "JP", "TOKYO"}
 SKIP_SYMBOLS = {"USD-CASH", "CASH"}
 CURRENCIES = {"USD", "EUR", "CLP", "CLF", "BRL", "MXN", "JPY", "GBP", "CHF", "CAD", "AUD",
@@ -148,8 +150,13 @@ def yahoo_symbol(symbol: str, exchange: str | None = None, currency: str | None 
         return clean
     ex = (exchange or "").strip().upper()
     cur = (currency or "").strip().upper()
+    # D35: efectivo, bonos, opciones y derechos no tienen precio de acción.
+    if is_skip(classify(raw, exchange, currency)):
+        return ""
     if ex in CHILE_EXCHANGES or cur == "CLP":
         return clean.replace(".", "-") + CHILE_SUFFIX
+    if ex in EXCHANGE_SUFFIX and ex not in MEXICO_EXCHANGES and not clean.isdigit():
+        return suffix_for_exchange(clean, ex)
     if clean.isdigit():
         if ex in ASIA_SUFFIX:
             suf = ASIA_SUFFIX[ex]
@@ -183,6 +190,24 @@ MANUAL_MAP = {
     "TECK/B": "TECK-B.TO",  # TECK-B no existe en Yahoo; clase B cotiza en Toronto
 }
 _SUFFIXED = (".SN", ".SA", ".MX", ".T", ".HK", ".KS", ".KQ", ".TW", ".TWO", ".SS", ".SZ", ".AS", ".TO")
+
+
+def _load_manual_map_file() -> dict[str, str]:
+    """data/yahoo_manual_map.json: {SIMBOLO_EN_HOLDINGS: TICKER_YAHOO}, verificado a mano
+    (price_coverage.py --probe genera candidatos; se copian aquí tras revisarlos)."""
+    import json as _json
+
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "yahoo_manual_map.json")
+    try:
+        with open(path, encoding="utf-8") as fh:
+            data = _json.load(fh)
+    except (OSError, ValueError):
+        return {}
+    return {str(k).upper(): str(v) for k, v in (data or {}).items() if k and v}
+
+
+for _k, _v in _load_manual_map_file().items():
+    MANUAL_MAP.setdefault(_k, _v)
 
 
 def yahoo_candidates(symbol: str, exchange: str | None = None, currency: str | None = None,
@@ -454,8 +479,8 @@ def main() -> None:
     )
     parser.add_argument("--no-holdings", action="store_true", help="No sumar simbolos de la tabla holdings")
     parser.add_argument("--all-snapshots", action="store_true", help="Usar todos los snapshots de holdings (no solo el ultimo)")
-    parser.add_argument("--max-symbols", type=int, default=int(os.environ.get("PRICES_MAX_SYMBOLS", "600")),
-                        help="Tope de seguridad de simbolos (default 600, env PRICES_MAX_SYMBOLS; 0 = sin tope)")
+    parser.add_argument("--max-symbols", type=int, default=int(os.environ.get("PRICES_MAX_SYMBOLS", "1500")),
+                        help="Tope de seguridad de simbolos (default 1500, env PRICES_MAX_SYMBOLS; 0 = sin tope)")
     parser.add_argument("--limit", type=int, default=0, help="Solo los primeros N simbolos (pruebas)")
     args = parser.parse_args()
 
