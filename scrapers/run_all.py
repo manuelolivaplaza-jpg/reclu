@@ -298,7 +298,10 @@ def run_inverse_cramer(db, dry_run: bool) -> list[dict]:
     adapter = InverseCramerAdapter(dry_run=dry_run)
     summary = adapter.run(db)
     resumen = sync_mentions(db, load_picks(), dry_run=dry_run)
-    return [summary, {"source": "inverse_cramer", "mentions": resumen}]
+    from inverse_cramer_compras import InverseCramerComprasAdapter
+
+    compras = InverseCramerComprasAdapter(dry_run=dry_run).run(db)
+    return [summary, {"source": "inverse_cramer", "mentions": resumen}, compras]
 
 
 def run_radar_ia(db, dry_run: bool) -> list[dict]:
