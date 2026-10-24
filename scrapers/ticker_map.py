@@ -122,8 +122,11 @@ def resolve_cusips(
             continue
         for cusip, answer in zip(batch, answers):
             entries = answer.get("data") if isinstance(answer, dict) else None
-            cache[cusip] = pick_figi_ticker(entries or [])
+            cache[cusip] = us_class_hyphen(pick_figi_ticker(entries or []))
     return cache
+
+
+from holdings_merge import us_class_hyphen  # noqa: E402  BRK.B -> BRK-B
 
 
 class TickerResolver:
@@ -142,9 +145,9 @@ class TickerResolver:
             return issuer.strip().upper()
         ticker = self.cusip_cache.get((cusip or "").strip().upper())
         if ticker:
-            return ticker
+            return us_class_hyphen(ticker)
         ticker = self.curated.get(normalize_issuer(issuer))
         if ticker:
-            return ticker
+            return us_class_hyphen(ticker)
         self.unresolved.append(issuer)
         return None
