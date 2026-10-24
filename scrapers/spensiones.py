@@ -66,9 +66,9 @@ _TAG_RE = re.compile(r"<[^>]+>")
 _FECHA_RE = re.compile(r"Al (\d{2}-\d{2}-\d{4})")
 
 
-def url_cuadro14(fecpro: str) -> str:
+def url_cuadro14(fecpro: str, idu: str = IDU_AFP_MODELO) -> str:
     return (
-        f"{_CUADRO}?fecpro={fecpro}&idu={IDU_AFP_MODELO}&listado={LISTADO_CUADRO_14}"
+        f"{_CUADRO}?fecpro={fecpro}&idu={idu}&listado={LISTADO_CUADRO_14}"
     )
 
 
@@ -318,8 +318,8 @@ def _decode(body: bytes) -> str:
     return body.decode("latin-1", errors="replace")
 
 
-def leer_cuerpo(client: httpx.Client, fecpro: str) -> bytes:
-    url = url_cuadro14(fecpro)
+def leer_cuerpo(client: httpx.Client, fecpro: str, idu: str = IDU_AFP_MODELO) -> bytes:
+    url = url_cuadro14(fecpro, idu)
     try:
         resp = client.get(url, headers={"Referer": url_portal(fecpro)}, timeout=45.0)
     except httpx.HTTPError as exc:
@@ -336,10 +336,15 @@ def buscar_cuadro14(
     client: httpx.Client,
     desde: date,
     max_meses: int = MAX_MESES,
+    idu: str = IDU_AFP_MODELO,
 ) -> dict[str, Any] | None:
     """Modo A: el primer mes publicado que además parsea con filas."""
     for fecpro in iter_periodos(desde, max_meses):
-        cuerpo = leer_cuerpo(client, fecpro)
+        cuerpo = (
+            leer_cuerpo(client, fecpro)
+            if idu == IDU_AFP_MODELO
+            else leer_cuerpo(client, fecpro, idu)
+        )
         if not respuesta_publicada(cuerpo):
             continue
         fecha, filas = parse_cuadro14(_decode(cuerpo))
@@ -349,7 +354,7 @@ def buscar_cuadro14(
         return {
             "fecpro": fecpro,
             "fecha": fecha,
-            "url": url_cuadro14(fecpro),
+            "url": url_cuadro14(fecpro, idu),
             "filas": filas,
         }
     return None

@@ -69,6 +69,36 @@ def _get_client():
         )
 
 
+class SenateBlocked(RuntimeError):
+    """efdsearch respondió 403 (Akamai/IP). No se reintenta ni se evade."""
+
+
+def _check_blocked(resp, step: str) -> None:
+    status = getattr(resp, "status_code", None)
+    if status in (401, 403, 429):
+        raise SenateBlocked(
+            f"Senate eFD bloqueó la sesión en '{step}' (HTTP {status}). "
+            "El sitio rechaza esta IP/huella; no hay datos nuevos en esta corrida. "
+            "Alternativa offline: --html-file con un PTR guardado a mano."
+        )
+
+
+def parse_ptr_html(html: str) -> list[dict[str, str]]:
+    """Parsea un PTR guardado (sin red). Devuelve solo filas de acciones."""
+    adapter = SenateDisclosureAdapter.__new__(SenateDisclosureAdapter)
+    out = []
+    for t in adapter._parse_report_table(html):
+        if t["ticker"].strip() in ("--", ""):
+            continue
+        if t["asset_type"].strip().lower() != "stock":
+            continue
+        t = dict(t)
+        t["tx_date"] = SenateDisclosureAdapter._iso_date(t["tx_date"])
+        t["amount_mid"] = SenateDisclosureAdapter._amount_mid(t["amount"])
+        out.append(t)
+    return out
+
+
 @dataclass
 class SenateTrade:
     """Una transacción parseada de un PTR del Senado."""
@@ -108,6 +138,7 @@ class SenateDisclosureAdapter(SourceAdapter):
     def _accept_agreement(self, client) -> str:
         """Acepta el aviso legal y devuelve el csrftoken de sesión."""
         r = client.get(LANDING)
+        _check_blocked(r, "aviso legal")
         r.raise_for_status()
         m = re.search(r'name="csrfmiddlewaretoken"\s+value="([^"]+)"', r.text)
         if not m:
@@ -123,6 +154,7 @@ class SenateDisclosureAdapter(SourceAdapter):
             },
             headers={"Referer": LANDING},
         )
+        _check_blocked(r2, "aceptar aviso")
         r2.raise_for_status()
         if "agreement_form" in r2.text and "You must accept" in r2.text:
             raise RuntimeError("Senate: el aviso no fue aceptado")
@@ -439,15 +471,34 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Scrape Senate eFD PTRs")
     parser.add_argument("--dry-run", action="store_true", help="Sin escribir en Supabase")
+    parser.add_argument(
+        "--html-file",
+        help="Parsea un PTR guardado (offline, sin red ni escritura) y sale",
+    )
     parser.add_argument("--lookback", type=int, default=45, help="Días hacia atrás")
     args = parser.parse_args()
 
+    if args.html_file:
+        with open(args.html_file, encoding="utf-8") as fh:
+            rows = parse_ptr_html(fh.read())
+        print(json.dumps(rows, indent=2, ensure_ascii=False))
+        print(f"\nFilas de acciones: {len(rows)} (offline, nada escrito)")
+        raise SystemExit(0)
+
     adapter = SenateDisclosureAdapter(lookback_days=args.lookback, dry_run=args.dry_run)
+    try:
+        trades = adapter.fetch_raw() if args.dry_run else None
+    except SenateBlocked as exc:
+        log(f"[senate_disclosure] BLOQUEADO: {exc}")
+        raise SystemExit(2)
     if args.dry_run:
-        trades = adapter.fetch_raw()
         print(json.dumps([t.__dict__ for t in trades[:10]], indent=2, ensure_ascii=False))
         print(f"\nTotal trades: {len(trades)} (dry-run, nada escrito)")
     else:
-        results = adapter.run_per_senator(get_db())
+        try:
+            results = adapter.run_per_senator(get_db())
+        except SenateBlocked as exc:
+            log(f"[senate_disclosure] BLOQUEADO: {exc}")
+            raise SystemExit(2)
         for r in results:
             log(f"[senate_disclosure] {r.get('senator')}: {r}")
