@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { FadeIn } from "@/components/ui/motion";
-import { PhoneMockups } from "./phone-mockups";
+import { PhoneMockups, PhoneMockupsSkeleton } from "./phone-mockups";
 import type { HeroCard } from "@/lib/hero-portfolios";
 
 /**
@@ -11,7 +11,7 @@ import type { HeroCard } from "@/lib/hero-portfolios";
  * promete rentabilidad ni invita a copiar carteras ajenas.
  */
 
-export function Hero({ cards }: { cards: HeroCard[] }) {
+export function Hero({ cards, loading = false }: { cards: HeroCard[]; loading?: boolean }) {
   return (
     <section className="bg-white pt-16 pb-20 md:pt-24 md:pb-28">
       <div className="container-page">
@@ -49,7 +49,7 @@ export function Hero({ cards }: { cards: HeroCard[] }) {
           </div>
         </FadeIn>
 
-        <PhoneMockups cards={cards} />
+        {loading ? <PhoneMockupsSkeleton /> : <PhoneMockups cards={cards} />}
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-[12px] leading-relaxed text-neutral-500">
           Rendimiento pasado no garantiza resultados futuros. Cifras calculadas con

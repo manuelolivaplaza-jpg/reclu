@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createPublicClient } from "@/lib/supabase/public";
+import { cacheLife, cacheTag } from "next/cache";
+import { PERFORMANCE_TAG, PORTFOLIOS_TAG, PUBLIC_DATA_TAG } from "@/lib/cache-tags";
 import type {
   Portfolio,
   Holding,
@@ -45,8 +48,23 @@ export async function getPortfolios(filters?: {
     }
     return list;
   }
+  return getPortfoliosPublic(
+    filters?.category ?? "all",
+    filters?.search ?? "",
+    filters?.country ?? "all",
+  );
+}
 
-  const supabase = await createClient();
+/**
+ * D36: lectura pública cacheada (1 h mínimo, tag "portfolios"). Cliente anon
+ * sin cookies: el catálogo es público (RLS "portfolios public read").
+ */
+async function getPortfoliosPublic(category: string, search: string, country: string): Promise<Portfolio[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PORTFOLIOS_TAG);
+  const filters = { category, search, country };
+  const supabase = createPublicClient();
   let query = supabase
     .from("portfolios")
     .select("*")
@@ -291,31 +309,84 @@ export async function getPerformanceSeriesAdmin(
 ): Promise<Map<string, { date: string; value: number; estimated: boolean }[]>> {
   const out = new Map<string, { date: string; value: number; estimated: boolean }[]>();
   if (portfolioIds.length === 0 || !isSupabaseLive()) return out;
-  const admin = createAdminClient();
-  if (!admin) return out;
-  try {
-    const since = new Date(Date.now() - 800 * 86_400_000).toISOString().slice(0, 10);
-    for (const id of portfolioIds) {
-      const { data, error } = await admin
-        .from("portfolio_performance")
-        .select("date,value_pct,is_estimated")
-        .eq("portfolio_id", id)
-        .gte("date", since)
-        .order("date", { ascending: true })
-        .limit(1000);
-      if (error || !Array.isArray(data)) continue;
-      const points: { date: string; value: number; estimated: boolean }[] = [];
-      for (const row of data as { date?: unknown; value_pct?: unknown; is_estimated?: unknown }[]) {
-        const value = performanceValue(row.value_pct);
-        if (typeof row.date !== "string" || value === null) continue;
-        points.push({ date: row.date, value, estimated: row.is_estimated === true });
-      }
-      out.set(id, points);
-    }
-  } catch (err) {
-    console.warn("[reclu] getPerformanceSeriesAdmin error:", err instanceof Error ? err.message : "unknown");
+  const ids = [...new Set(portfolioIds)].sort();
+  const byId = await getPerformanceSeriesAdminCached(ids);
+  for (const id of portfolioIds) {
+    const points = byId[id];
+    if (points) out.set(id, points);
   }
   return out;
+}
+
+/** Filas por página de PostgREST (max-rows por defecto de Supabase). */
+export const PERFORMANCE_PAGE_SIZE = 1000;
+
+type SeriesRow = { portfolio_id?: unknown; date?: unknown; value_pct?: unknown; is_estimated?: unknown };
+
+/**
+ * Agrupa filas de portfolio_performance por portafolio (orden por fecha).
+ * Pura: cubierta en tests/d36-cache.test.ts.
+ */
+export function groupPerformanceRows(
+  rows: SeriesRow[],
+  ids: string[],
+): Record<string, { date: string; value: number; estimated: boolean }[]> {
+  const out: Record<string, { date: string; value: number; estimated: boolean }[]> = {};
+  for (const id of ids) out[id] = [];
+  for (const row of rows) {
+    if (typeof row.portfolio_id !== "string" || !(row.portfolio_id in out)) continue;
+    const value = performanceValue(row.value_pct);
+    if (typeof row.date !== "string" || value === null) continue;
+    out[row.portfolio_id].push({ date: row.date, value, estimated: row.is_estimated === true });
+  }
+  for (const id of ids) out[id].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return out;
+}
+
+/**
+ * D36: una sola consulta `.in("portfolio_id", ids)` (antes, un await por
+ * portafolio). Se pagina por PERFORMANCE_PAGE_SIZE: la primera página trae
+ * el conteo y el resto se pide en paralelo. Cacheada 1 h (tag "performance").
+ * Si una página falla se devuelve lo que se pudo agrupar (sin inventar).
+ */
+async function getPerformanceSeriesAdminCached(
+  ids: string[],
+): Promise<Record<string, { date: string; value: number; estimated: boolean }[]>> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PERFORMANCE_TAG);
+  const admin = createAdminClient();
+  if (!admin || ids.length === 0) return {};
+  const since = new Date(Date.now() - 800 * 86_400_000).toISOString().slice(0, 10);
+  const page = (from: number, withCount: boolean) =>
+    admin
+      .from("portfolio_performance")
+      .select("portfolio_id,date,value_pct,is_estimated", withCount ? { count: "exact" } : undefined)
+      .in("portfolio_id", ids)
+      .gte("date", since)
+      .order("portfolio_id", { ascending: true })
+      .order("date", { ascending: true })
+      .range(from, from + PERFORMANCE_PAGE_SIZE - 1);
+  try {
+    const first = await page(0, true);
+    if (first.error || !Array.isArray(first.data)) {
+      if (first.error) console.warn("[reclu] getPerformanceSeriesAdmin error:", first.error.message);
+      return groupPerformanceRows([], ids);
+    }
+    const rows: SeriesRow[] = [...(first.data as SeriesRow[])];
+    const total = typeof first.count === "number" ? first.count : rows.length;
+    const offsets: number[] = [];
+    for (let from = PERFORMANCE_PAGE_SIZE; from < total; from += PERFORMANCE_PAGE_SIZE) offsets.push(from);
+    const rest = await Promise.all(offsets.map((from) => page(from, false)));
+    for (const res of rest) {
+      if (res.error || !Array.isArray(res.data)) continue;
+      rows.push(...(res.data as SeriesRow[]));
+    }
+    return groupPerformanceRows(rows, ids);
+  } catch (err) {
+    console.warn("[reclu] getPerformanceSeriesAdmin error:", err instanceof Error ? err.message : "unknown");
+    return groupPerformanceRows([], ids);
+  }
 }
 
 /**
@@ -328,6 +399,20 @@ export async function getPerformanceSeriesAdmin(
  */
 export async function getPortfolioIdsWithSeriesAdmin(): Promise<Set<string> | null> {
   if (!isSupabaseLive()) return null;
+  const ids = await getPortfolioIdsWithSeriesCached();
+  return ids ? new Set(ids) : null;
+}
+
+/** D36: cacheada 1 h (tag "performance"); devuelve un arreglo serializable. */
+async function getPortfolioIdsWithSeriesCached(): Promise<string[] | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PERFORMANCE_TAG);
+  const set = await readPortfolioIdsWithSeries();
+  return set ? [...set] : null;
+}
+
+async function readPortfolioIdsWithSeries(): Promise<Set<string> | null> {
   const admin = createAdminClient();
   if (!admin) return null;
   try {
