@@ -30,6 +30,9 @@ POLITICIANS: dict[str, str] = {
     "April McClain Delaney": "mcclain-delaney-tracker",
     "Jared Moskowitz": "moskowitz-tracker",
     "Cleo Fields": "fields-tracker",
+    # D33. Senador; el bridge lo cubre si declara en la ventana de 60 días.
+    # 2026-10-23: 0 trades suyos en los 500 recientes; sin trades no se escribe nada.
+    "Tommy Tuberville": "tuberville-tracker",
 }
 
 CONGRESS_BUYS_SLUG = "congress-buys"
@@ -115,13 +118,27 @@ def build_congress_buys(trades: list[dict]) -> list[dict]:
 
 
 def main() -> None:
+    import argparse
+
     from base import get_db
+
+    parser = argparse.ArgumentParser(description="Carteras de congresistas (bridge)")
+    parser.add_argument("--dry-run", action="store_true", help="Sin escribir en Supabase")
+    args = parser.parse_args()
 
     trades = fetch_recent_trades(days=60, limit=500)
     if not trades:
         print("no trades from bridge — nothing to do")
         return
     print(f"trades: {len(trades)}")
+
+    if args.dry_run:
+        rows = build_politician_rows(trades)
+        for member, slug in POLITICIANS.items():
+            n = len(rows.get(member, []))
+            print(f"DRY-RUN {member} ({slug}): {n} tickers" + ("" if n else " (sin trades; no se escribe)"))
+        print(f"DRY-RUN Congress Buys: {len(build_congress_buys(trades))} tickers (nada escrito)")
+        return
 
     db = get_db()
     written = 0
