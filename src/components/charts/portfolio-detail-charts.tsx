@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComparisonPoint } from "./comparison";
+import { formatSignedPct } from "@/lib/utils";
 import { Composition, type CompositionSlice } from "./composition";
 import { Heatmap, type HeatmapRow } from "./heatmap";
 import { PortfolioEvolution, type EvolutionPoint } from "./portfolio-evolution";
@@ -54,8 +55,7 @@ function toReturns(series: ComparisonPoint[]): ReturnPoint[] {
 }
 
 function formatPct(value: number): string {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(1)}%`;
+  return formatSignedPct(value, 1);
 }
 
 function formatDate(date: string): string {

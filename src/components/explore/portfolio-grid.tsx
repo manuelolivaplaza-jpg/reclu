@@ -14,11 +14,15 @@ export function PortfolioGrid({
   portfolios,
   followedIds,
   isPro,
+  noSeriesIds = [],
 }: {
   portfolios: Portfolio[];
   followedIds: string[];
   isPro: boolean;
+  /** D29: portafolios sin ningún punto de rendimiento (se muestran en gris). */
+  noSeriesIds?: string[];
 }) {
+  const noSeries = new Set(noSeriesIds);
   const [shown, setShown] = useState(Math.min(PAGE_SIZE, portfolios.length));
   const sentinel = useRef<HTMLDivElement | null>(null);
   const followed = new Set(followedIds);
@@ -44,7 +48,15 @@ export function PortfolioGrid({
     <>
       <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {portfolios.slice(0, shown).map((portfolio) => (
-          <li key={portfolio.id}>
+          <li
+            key={portfolio.id}
+            className={noSeries.has(portfolio.id) ? "relative opacity-60 grayscale transition hover:opacity-100 hover:grayscale-0" : undefined}
+          >
+            {noSeries.has(portfolio.id) ? (
+              <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-full bg-neutral-900/80 px-2 py-0.5 text-[11px] font-medium text-white">
+                Sin serie de rendimiento aún
+              </span>
+            ) : null}
             <PortfolioCard
               portfolio={portfolio}
               isFollowing={followed.has(portfolio.id)}

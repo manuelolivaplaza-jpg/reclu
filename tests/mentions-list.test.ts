@@ -149,22 +149,22 @@ describe("selectVerifiedMentions", () => {
     expect(input.map((item) => item.saidAt)).toEqual(copy);
   });
 
-  it("el respaldo demo son las 15 verificadas, cada una con fuente", () => {
+  it("el respaldo demo son las 12 verificadas desde TRUMP_DICE_START (M04-M15), cada una con fuente", () => {
     const demo = demoTrumpMentions();
-    expect(demo).toHaveLength(15);
-    expect(new Set(demo.map((mention) => mention.externalId)).size).toBe(15);
+    expect(demo).toHaveLength(12);
+    expect(new Set(demo.map((mention) => mention.externalId)).size).toBe(12);
     const shown = selectVerifiedMentions(demo);
-    expect(shown).toHaveLength(15);
+    expect(shown).toHaveLength(12);
     expect(shown.every((mention) => mention.sourceUrl.startsWith("https://"))).toBe(true);
     expect(shown[0]?.externalId).toBe("M15");
-    expect(shown.at(-1)?.externalId).toBe("M01");
+    expect(shown.at(-1)?.externalId).toBe("M04");
     const counts = new Map<string, number>();
     for (const mention of shown) {
       counts.set(mention.symbol, (counts.get(mention.symbol) ?? 0) + 1);
     }
     expect(counts.get("DELL")).toBe(5);
     expect(counts.get("INTC")).toBe(4);
-    expect(counts.get("X")).toBe(1);
+    expect(counts.get("X")).toBeUndefined();
   });
 
   it("el respaldo de Inverse Cramer son 27 citas cortas con fuente, y un pendiente no se muestra", () => {

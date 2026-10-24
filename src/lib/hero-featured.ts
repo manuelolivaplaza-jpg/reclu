@@ -86,6 +86,7 @@ export function buildFeaturedHeroCards(
       spark: cum !== null ? sparkline(series) : [],
       estimated: series.some((pt) => pt.estimated === true),
       featured: slug === FEATURED_CENTER_SLUG,
+      asOf: cum !== null ? [...series].sort((a, b) => a.date.localeCompare(b.date)).at(-1)?.date : undefined,
     });
   }
   return cards;

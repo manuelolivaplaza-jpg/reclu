@@ -6,7 +6,7 @@ import { ArrowRight } from "lucide-react";
 import { FollowButton } from "@/components/follow-button";
 import type { Portfolio } from "@/lib/types";
 import { CATEGORY_META } from "@/lib/types";
-import { formatCompact } from "@/lib/utils";
+import { formatCompact, formatSignedPct } from "@/lib/utils";
 
 interface OnboardingSuggestionsProps {
   /** Portafolios populares sugeridos (máx. 3, ya resueltos en el server). */
@@ -88,7 +88,7 @@ export function OnboardingSuggestions({ suggestions, isPro }: OnboardingSuggesti
               <p className="num mt-3 text-[15px] font-medium">
                 <span className={(portfolio.return_ytd ?? 0) >= 0 ? "text-positive" : "text-negative"}>
                   {(portfolio.return_ytd ?? 0) >= 0 ? "+" : ""}
-                  {portfolio.return_ytd?.toFixed(1)}%
+                  {formatSignedPct(portfolio.return_ytd)}
                 </span>
                 <span className="ml-2 text-[12px] font-normal text-ink-500">YTD</span>
               </p>

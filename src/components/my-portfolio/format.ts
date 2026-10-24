@@ -19,7 +19,7 @@ export function formatMoney(value: number | null, currency: string): string {
 export function formatPercent(value: number | null, signed = false): string {
   if (value === null || !Number.isFinite(value)) return "—";
   const rounded = Math.abs(value).toFixed(1).replace(".", ",");
-  const sign = value < 0 ? "-" : signed && value > 0 ? "+" : "";
+  const sign = value < 0 ? "\u2212" : signed && value > 0 ? "+" : "";
   return `${sign}${rounded}%`;
 }
 
