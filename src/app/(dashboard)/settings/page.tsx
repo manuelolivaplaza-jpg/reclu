@@ -6,6 +6,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
 import { AlertRulesForm } from "@/components/alert-rules-form";
+import { TradeAlertPrefsForm } from "@/components/trade-alert-prefs-form";
+import { mergeTradeAlertPrefs } from "@/lib/trade-alert-prefs";
 import { TelegramConnect } from "@/components/telegram-connect";
 import { ReferralCard } from "@/components/referral-card";
 import { BillingStatus } from "@/components/billing-status";
@@ -68,6 +70,21 @@ export default async function SettingsPage() {
         .limit(1)
         .maybeSingle()
     : Promise.resolve({ data: null });
+  // D31: portafolios seguidos + preferencias de compra/venta (RLS: solo lo propio).
+  const tradePrefsPromise = (async () => {
+    const { data: follows } = await supabase
+      .from("follows")
+      .select("portfolio:portfolios(id, slug, name)")
+      .eq("user_id", profile.id);
+    const followed = ((follows ?? []) as unknown as { portfolio: { id: string; slug: string; name: string } | null }[])
+      .map((f) => f.portfolio)
+      .filter((p): p is { id: string; slug: string; name: string } => !!p);
+    const { data: prefRows, error } = await supabase
+      .from("follow_alert_prefs")
+      .select("portfolio_id, email_buys, email_sells")
+      .eq("user_id", profile.id);
+    return { prefs: mergeTradeAlertPrefs(followed, prefRows ?? []), unavailable: !!error };
+  })();
   const rulesPromise = supabase
     .from("alert_rules")
     .select("id, kind, value, channel, active")
@@ -89,11 +106,12 @@ export default async function SettingsPage() {
         .eq("user_id", profile.id)
         .maybeSingle()
     : Promise.resolve({ data: null, error: null });
-  const [subscriptionResult, rulesResult, referralResult, portfolioResult] = await Promise.all([
+  const [subscriptionResult, rulesResult, referralResult, portfolioResult, tradePrefs] = await Promise.all([
     subscriptionPromise,
     rulesPromise,
     referralCodePromise,
     portfolioSettingsPromise,
+    tradePrefsPromise,
   ]);
   const activeSubscription = (subscriptionResult.data as SubscriptionRow | null) ?? null;
   if (rulesResult.error) {
@@ -312,6 +330,20 @@ export default async function SettingsPage() {
       )}
 
       {referralCode && <ReferralCard code={referralCode} siteUrl={siteUrl} />}
+
+      {/* D31: email de compras y ventas por portafolio seguido. */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Compras y ventas de lo que sigues</CardTitle>
+          <CardDescription>
+            Te avisamos por email cuando un portafolio que sigues agrega una posición nueva (compra)
+            o cierra una (venta), según el último dato publicado de su fuente. Elige qué avisos quieres en cada uno.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <TradeAlertPrefsForm prefs={tradePrefs.prefs} unavailable={tradePrefs.unavailable} />
+        </CardContent>
+      </Card>
 
       {/* Reglas a medida. No esconde datos públicos: solo elige el aviso. */}
       <Card>
