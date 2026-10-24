@@ -12,7 +12,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/dashboard/", "/settings/", "/alerts/", "/compare/", "/api/", "/auth/"],
+        disallow: [
+          "/dashboard/", "/settings/", "/alerts/", "/compare/", "/api/", "/auth/",
+          "/admin/", "/upgrade/", "/mi-portafolio/", "/embed/", "/offline",
+        ],
       },
     ],
     sitemap: absoluteUrl("/sitemap.xml"),

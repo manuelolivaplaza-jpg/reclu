@@ -25,7 +25,7 @@ name: Scrapers
 on:
   schedule:
     # L-V 11:00 UTC (08:00 Chile): corrida completa
-    - cron: '0 11 * * 1-5'
+    - cron: '0 11 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -43,7 +43,8 @@ permissions:
 jobs:
   scrapers:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    # D35: pipeline completo (precios hasta 1500 símbolos + series AFP); ver docs/PIPELINE_DIARIO.md
+    timeout-minutes: 150
 
     # GitHub Actions NO permite usar `secrets.*` dentro de un `if:` (el
     # workflow no valida). La condición se precalcula aquí como env de job
@@ -64,6 +65,18 @@ jobs:
 
       - name: Install dependencies
         run: pip install -r scrapers/requirements.txt
+
+      # D35: caches entre corridas. Las fotos mensuales del Cuadro 14 no
+      # cambian (la primera corrida en frío tarda ~22 min) y el cache de
+      # resolve_tickers evita repetir búsquedas en Yahoo.
+      - name: Cache AFP cuadro 14 y resolve_tickers
+        uses: actions/cache@v4
+        with:
+          path: |
+            scrapers/data/afp_cuadro14
+            scrapers/resolve_tickers_cache.json
+          key: scrapers-data-${{ github.run_id }}
+          restore-keys: scrapers-data-
 
       - name: Run scrapers (full pipeline)
         if: ${{ inputs.dry_run != true }}

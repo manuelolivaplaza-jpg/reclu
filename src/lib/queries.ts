@@ -9,6 +9,7 @@ import type {
   UserHolding,
 } from "@/lib/types";
 import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT } from "@/lib/types";
+import { demoFallbackAllowed } from "@/lib/demo-mode";
 import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts, HIDDEN_DEMO_SLUGS, demoRedirectTarget, isHiddenSlug } from "@/lib/demo-data";
 import {
   HOLDING_LIMITS,
@@ -70,7 +71,10 @@ export async function getPortfolios(filters?: {
     return [];
   }
   // DB real pero vacía (seed no corrido) -> caemos a demo para no ver el sitio vacío.
-  if (!data || data.length === 0) return DEMO_PORTFOLIOS.filter((p) => !isHiddenSlug(p.slug));
+  if (!data || data.length === 0) {
+    // D35: en producción nunca se muestran datos inventados.
+    return demoFallbackAllowed() ? DEMO_PORTFOLIOS.filter((p) => !isHiddenSlug(p.slug)) : [];
+  }
   return data;
 }
 
@@ -234,6 +238,7 @@ export async function getHoldings(
     return [];
   }
   if (!data || data.length === 0) {
+    if (!demoFallbackAllowed()) return [];
     // Buscar el slug real para servir demo si la DB está vacía.
     const { data: pf } = await supabase.from("portfolios").select("slug").eq("id", portfolioId).maybeSingle();
     return pf ? sliceHoldings(demoHoldings(pf.slug), opts?.role) : [];

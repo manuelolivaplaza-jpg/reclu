@@ -65,6 +65,12 @@ function hasMercadoPagoKeys(): boolean {
 
 /** Proveedor configurado — falla si el pedido no tiene claves. */
 export function getPaymentProvider(): PaymentProvider {
+  // D35: interruptor del checkout. CHECKOUT_ENABLED=false lo apaga (planes
+  // visibles, botón deshabilitado, POST /checkout -> 503) sin tocar las
+  // suscripciones existentes (getProviderById no lo mira).
+  if (process.env.CHECKOUT_ENABLED === "false") {
+    throw new PaymentsNotConfiguredError("disabled");
+  }
   const requested = (process.env.PAYMENT_PROVIDER ?? "mock").toLowerCase();
 
   if (requested === "flow") {
