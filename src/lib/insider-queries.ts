@@ -10,6 +10,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { formatSignedPct as formatSignedPctUnified } from "@/lib/utils";
 
 /** Aviso fijo de la señal. No es una estrategia. */
 export const INSIDER_DISCLAIMER =
@@ -176,9 +177,7 @@ export function formatUsd(value: number | null): string {
 
 /** Porcentaje con signo y coma decimal (es-CL), dos decimales. */
 export function formatSignedPct(value: number): string {
-  if (!Number.isFinite(value)) return "—";
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2).replace(".", ",")}%`;
+  return formatSignedPctUnified(value, 2);
 }
 
 /** Fecha ISO → "4 mar 2026". Si no parsea, devuelve el texto original. */

@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin } from "@/lib/queries";
+import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin, getPortfolioIdsWithSeriesAdmin } from "@/lib/queries";
 import { PortfolioGrid } from "@/components/explore/portfolio-grid";
 import { ExploreRankingsSection } from "@/components/explore/explore-rankings-section";
 import { RankingsSkeleton } from "@/components/explore/skeletons";
@@ -26,10 +26,11 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const search = params.q ?? "";
   const symbol = (params.simbolo ?? "").trim().toUpperCase();
 
-  const [listed, follows, profile] = await Promise.all([
+  const [listed, follows, profile, withSeries] = await Promise.all([
     getPortfolios({ category, search }),
     getFollows(),
     getProfile(),
+    getPortfolioIdsWithSeriesAdmin(),
   ]);
 
   const portfolios = symbol
@@ -65,7 +66,12 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               Sin resultados. Prueba con otra búsqueda o vuelve a “Todos”.
             </p>
           ) : (
-            <PortfolioGrid portfolios={portfolios} followedIds={followedIds} isPro={isPro} />
+            <PortfolioGrid
+              portfolios={portfolios}
+              followedIds={followedIds}
+              isPro={isPro}
+              noSeriesIds={withSeries ? portfolios.filter((p) => !withSeries.has(p.id)).map((p) => p.id) : []}
+            />
           )}
         </div>
       </main>

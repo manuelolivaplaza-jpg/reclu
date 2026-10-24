@@ -26,7 +26,7 @@ import { JsonLd } from "@/components/json-ld";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { absoluteUrl } from "@/lib/site";
-import { timeAgo } from "@/lib/utils";
+import { timeAgo, formatSignedPct } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
 import { OgeTradesPanel } from "@/components/oge-trades-panel";
@@ -416,7 +416,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                       }
                     >
                       {seriesYtd >= 0 ? "+" : ""}
-                      {seriesYtd.toFixed(1)}%
+                      {formatSignedPct(seriesYtd)}
                     </span>
                   </div>
                 ) : hasReturn ? (
@@ -429,7 +429,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                       }
                     >
                       {positive ? "+" : ""}
-                      {portfolio.return_ytd?.toFixed(1)}%
+                      {formatSignedPct(portfolio.return_ytd)}
                     </span>
                   </div>
                 ) : null}

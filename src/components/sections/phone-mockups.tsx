@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { cn, formatCompact } from "@/lib/utils";
+import { cn, formatCompact, formatShortDate, formatSignedPct } from "@/lib/utils";
 import type { HeroCard } from "@/lib/hero-portfolios";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 
@@ -11,9 +11,7 @@ import { PortfolioAvatar } from "@/components/portfolio-avatar";
  */
 
 function formatPct(value: number): string {
-  const rounded = Math.round(value * 10) / 10;
-  const text = Math.abs(rounded).toLocaleString("es-CL", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-  return `${rounded > 0 ? "+" : rounded < 0 ? "−" : ""}${text}%`;
+  return formatSignedPct(value, 1);
 }
 
 function Sparkline({ points, positive, className }: { points: number[]; positive: boolean; className?: string }) {
@@ -82,6 +80,9 @@ function Card({ card }: { card: HeroCard }) {
           Rendimiento {card.periodLabel || "YTD"}
           {card.estimated ? " · incluye tramo estimado" : ""}
         </p>
+        {card.asOf ? (
+          <p className="mt-0.5 text-[12px] text-neutral-400">Actualizado el {formatShortDate(card.asOf)}</p>
+        ) : null}
       </div>
 
       {card.spark && card.spark.length > 1 ? (

@@ -41,6 +41,11 @@ export function Hero({ cards }: { cards: HeroCard[] }) {
         </FadeIn>
 
         <PhoneMockups cards={cards} />
+
+        <p className="mx-auto mt-10 max-w-2xl text-center text-[12px] leading-relaxed text-neutral-500">
+          Rendimiento pasado no garantiza resultados futuros. Cifras calculadas con
+          datos públicos; no es asesoría de inversión.
+        </p>
       </div>
     </section>
   );

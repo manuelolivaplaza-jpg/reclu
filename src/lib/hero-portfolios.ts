@@ -28,6 +28,8 @@ export interface HeroCard {
   estimated?: boolean;
   /** D28: tarjeta destacada (centro). */
   featured?: boolean;
+  /** D29: fecha del último dato de la serie (ISO). */
+  asOf?: string;
 }
 
 /**

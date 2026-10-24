@@ -317,6 +317,31 @@ export async function getPerformanceSeriesAdmin(
  * Última fecha con punto estimado (proyección con posiciones actuales) de un
  * portafolio, o null si toda la serie es real. Solo expone una fecha.
  */
+/**
+ * D29: ids de portafolios con al menos un punto en portfolio_performance
+ * (RPC 060, solo ids). null si la RPC no existe o falla: la UI no marca nada.
+ */
+export async function getPortfolioIdsWithSeriesAdmin(): Promise<Set<string> | null> {
+  if (!isSupabaseLive()) return null;
+  const admin = createAdminClient();
+  if (!admin) return null;
+  try {
+    const { data, error } = await admin.rpc("portfolio_ids_with_series");
+    if (error || !Array.isArray(data)) return null;
+    const ids = new Set<string>();
+    for (const row of data as unknown[]) {
+      if (typeof row === "string") ids.add(row);
+      else if (row && typeof row === "object") {
+        const v = Object.values(row as Record<string, unknown>)[0];
+        if (typeof v === "string") ids.add(v);
+      }
+    }
+    return ids;
+  } catch {
+    return null;
+  }
+}
+
 export async function getEstimatedUntil(portfolioId: string): Promise<string | null> {
   if (!isSupabaseLive()) return null;
   const admin = createAdminClient();

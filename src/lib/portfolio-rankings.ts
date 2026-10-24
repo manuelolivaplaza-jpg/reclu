@@ -23,6 +23,7 @@ import { demoPerformance } from "@/lib/demo-data";
 import { roleFor } from "@/lib/access";
 import { fromPctToLevel, parseDate } from "@/lib/performance";
 import { isPaidPlan } from "@/lib/types";
+import { formatSignedPct } from "@/lib/utils";
 
 const DAY_MS = 86_400_000;
 
@@ -127,13 +128,7 @@ export function periodReturn(series: RankingPoint[], days: number): number | nul
  * `null` (sin datos) se muestra como `—`.
  */
 export function formatReturnPct(value: number | null | undefined): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
-  const rounded = Math.round(value * 10) / 10;
-  const text = Math.abs(rounded).toLocaleString("es-CL", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  });
-  return `${rounded > 0 ? "+" : rounded < 0 ? "-" : ""}${text}%`;
+  return formatSignedPct(value, 1);
 }
 
 /**
@@ -210,6 +205,8 @@ export interface RankingsBestRow extends RankingsRow {
 }
 
 export interface RankingsPopularRow extends RankingsRow {
+  /** D29: si el período elegido no tiene datos, el más largo disponible. */
+  longest?: { periodLabel: string; pct: number; label: string; estimated: boolean } | null;
   /** Retorno por período, ya formateado. */
   returns: Record<string, { pct: number | null; label: string; estimated: boolean }>;
 }
@@ -227,6 +224,8 @@ export interface RankingsPayload {
   /** Top 5 por período, indexado por id de período. */
   best: Record<string, RankingsBestRow[]>;
   popular: RankingsPopularRow[];
+  /** D29: fecha (ISO) del último dato de rendimiento entre los portafolios rankeados. */
+  updatedAt?: string | null;
   /** true => los datos vienen del catálogo de ejemplo (sin Supabase). */
   demo: boolean;
 }
@@ -380,8 +379,17 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
         estimated: pct !== null && isEstimated(entry.slug, period.days),
       };
     }
-    return { ...toRow(entry), returns };
+    let longest: RankingsPopularRow["longest"] = null;
+    for (const period of [...RANKING_PERIODS].reverse()) {
+      const r = returns[period.id];
+      if (r && r.pct !== null) {
+        longest = { periodLabel: period.label, pct: r.pct, label: r.label, estimated: r.estimated };
+        break;
+      }
+    }
+    return { ...toRow(entry), returns, longest };
   });
 
-  return { periods, best, popular, demo: !live };
+  const updatedAt = [...lastDate.values()].sort().at(-1) ?? null;
+  return { periods, best, popular, updatedAt, demo: !live };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { formatSignedPct } from "@/lib/utils";
 
 export interface AreaChartPoint {
   /** Etiqueta del eje X (fecha del punto). */
@@ -47,7 +48,7 @@ function parseTime(date: string): number {
 
 const PRESET_FORMATS: Record<"usd" | "pct" | "number", (value: number) => string> = {
   usd: (v) => `${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(Number.isFinite(v) ? v : 0)} USD`,
-  pct: (v) => `${v >= 0 ? "+" : ""}${(Number.isFinite(v) ? v : 0).toFixed(1)}%`,
+  pct: (v) => formatSignedPct(Number.isFinite(v) ? v : 0, 1),
   number: (v) => new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 }).format(Number.isFinite(v) ? v : 0),
 };
 

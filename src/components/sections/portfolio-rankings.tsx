@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatShortDate } from "@/lib/utils";
 import type {
   RankingsBestRow,
   RankingsPayload,
@@ -26,6 +26,8 @@ interface Pill {
   label: string;
   pct: number | null;
   estimated?: boolean;
+  /** D29: explicación (p. ej. período alternativo). */
+  title?: string;
 }
 
 function PortfolioRow({
@@ -66,6 +68,7 @@ function PortfolioRow({
       <div className="min-w-0 flex-1">
         {pill ? (
           <span
+            title={pill.title}
             className={cn(
               "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums",
               negative ? "bg-red-50 text-red-700" : "bg-green-50 text-green-700",
@@ -256,7 +259,9 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
                       pill={
                         value && value.pct !== null
                           ? { label: value.label, pct: value.pct, estimated: value.estimated }
-                          : null
+                          : row.longest
+                            ? { label: `${row.longest.label} · ${row.longest.periodLabel}`, pct: row.longest.pct, estimated: row.longest.estimated, title: `Sin datos para el período elegido; se muestra el más largo disponible (${row.longest.periodLabel})` }
+                            : null
                       }
                     />
                   );
@@ -271,6 +276,10 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
           provienen de fuentes públicas y tienen el atraso propio de cada
           fuente. Reclu entrega información, no asesoría de inversión.
         </p>
+
+        {data.updatedAt ? (
+          <p className="mt-3 text-[13px] text-neutral-500">Actualizado el {formatShortDate(data.updatedAt)}</p>
+        ) : null}
 
         {data.demo ? (
           <p className="mt-4 text-[13px] text-neutral-500">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatSignedPct } from "@/lib/utils";
 import Link from "next/link";
 import { Lock } from "lucide-react";
 
@@ -68,7 +69,7 @@ function smoothPath(pts: { x: number; y: number }[]): string {
 
 function fmtPct(v: number): string {
   if (!Number.isFinite(v)) return "—";
-  return `${v >= 0 ? "+" : ""}${v.toFixed(2)}%`;
+  return formatSignedPct(v, 2);
 }
 
 function fmtDate(t: number): string {

@@ -12,9 +12,34 @@ export function cn(...inputs: ClassValue[]) {
 /**
  * Format a number as Chilean pesos or a compact percentage.
  */
+/** Signo menos tipográfico (U+2212), el único que usa el sitio en cifras. */
+export const MINUS = "\u2212";
+
+/**
+ * Formato único de porcentajes con signo (D29): estilo chileno con coma,
+ * "+" en positivos, "−" (U+2212) en negativos, "0,0%" en cero y "—" sin dato.
+ */
+export function formatSignedPct(value: number | null | undefined, digits = 1): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "\u2014";
+  const factor = 10 ** digits;
+  const rounded = Math.round(value * factor) / factor;
+  const text = Math.abs(rounded).toLocaleString("es-CL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return `${rounded > 0 ? "+" : rounded < 0 ? MINUS : ""}${text}%`;
+}
+
+/** Alias histórico: mismo formato único. */
 export function formatPercent(value: number, digits = 1): string {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(digits)}%`;
+  return formatSignedPct(value, digits);
+}
+
+const MONTHS_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+
+/** "2026-10-22" -> "22 oct 2026" (sin depender de la zona horaria). */
+export function formatShortDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (!m) return iso;
+  return `${Number(m[3])} ${MONTHS_ES[Number(m[2]) - 1] ?? m[2]} ${m[1]}`;
 }
 
 /**
