@@ -27,19 +27,19 @@ describe("formatCompact", () => {
 
 describe("formatPercent", () => {
   it("adds + sign for positive values", () => {
-    expect(formatPercent(12.34)).toBe("+12.3%");
+    expect(formatPercent(12.34)).toBe("+12,3%");
   });
 
   it("keeps - sign for negative values", () => {
-    expect(formatPercent(-5.2)).toBe("-5.2%");
+    expect(formatPercent(-5.2)).toBe("−5,2%");
   });
 
   it("respects digit precision", () => {
-    expect(formatPercent(3.14159, 2)).toBe("+3.14%");
+    expect(formatPercent(3.14159, 2)).toBe("+3,14%");
   });
 
   it("handles zero", () => {
-    expect(formatPercent(0)).toBe("0.0%");
+    expect(formatPercent(0)).toBe("0,0%");
   });
 });
 
