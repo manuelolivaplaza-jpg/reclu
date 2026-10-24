@@ -31,7 +31,8 @@ USER_AGENT = "Mozilla/5.0"
 # More than one quote so a foreign listing can lose to NYSE/NASDAQ.
 QUOTES_COUNT = 10
 REQUEST_DELAY_S = 0.3
-PAGE_SIZE = 1000
+PAGE_SIZE = 200  # paginas chicas: menos ReadTimeout en holdings grandes
+DB_ATTEMPTS = 4  # reintentos de lectura a Supabase (backoff 1/2/4 s)
 
 # NYQ/NMS/NGM/NCM are Yahoo's codes for NYSE and Nasdaq.
 _US_EXCHANGES = {"NYQ", "NMS", "NGM", "NCM", "NYSE", "NASDAQ"}
@@ -188,6 +189,19 @@ def resolve_name(name: str, cache: dict[str, str | None]) -> str | None:
     return ticker
 
 
+def _execute_with_retry(call, attempts: int = DB_ATTEMPTS, sleep=time.sleep):
+    """Ejecuta una consulta a Supabase con reintentos y backoff en timeouts/red."""
+    for i in range(attempts):
+        try:
+            return call()
+        except (httpx.TimeoutException, httpx.TransportError) as exc:
+            if i == attempts - 1:
+                raise
+            print(f"WARNING lectura holdings: {type(exc).__name__}, reintento {i + 1}/{attempts - 1}")
+            sleep(2 ** i)
+    raise RuntimeError("unreachable")
+
+
 def _fetch_paged(db, columns: str, symbol: str | None = None) -> list[dict]:
     """Read holdings in pages. Pass symbol to limit to one stored value."""
     rows: list[dict] = []
@@ -196,7 +210,7 @@ def _fetch_paged(db, columns: str, symbol: str | None = None) -> list[dict]:
         query = db.table("holdings").select(columns).order("id")
         if symbol is not None:
             query = query.eq("symbol", symbol)
-        batch = query.range(start, start + PAGE_SIZE - 1).execute().data or []
+        batch = _execute_with_retry(lambda q=query, a=start: q.range(a, a + PAGE_SIZE - 1).execute()).data or []
         rows.extend(batch)
         if len(batch) < PAGE_SIZE:
             return rows
@@ -289,6 +303,20 @@ def save_cache(path: str | None, cache: dict[str, str | None]) -> None:
     os.replace(tmp, path)
 
 
+APPLY_ERRORS: list[str] = []
+
+
+def _safe_apply(applier, db, name: str, ticker: str) -> bool:
+    """Aplica un nombre; un error de red tras los reintentos no corta la corrida
+    (queda en APPLY_ERRORS y el nombre sigue en cache para la proxima)."""
+    try:
+        return applier(db, name, ticker)
+    except Exception as exc:  # noqa: BLE001
+        APPLY_ERRORS.append(name)
+        print(f"WARNING aplicar {name} -> {ticker}: {type(exc).__name__}: {exc}")
+        return False
+
+
 def run(db, names: list[str], *, dry_run: bool, limit: int = 0, batch: int = 25,
         resume_file: str | None = None, resolver=None, applier=None) -> dict[str, int]:
     """Resuelve nombres en lotes; guarda cache tras cada lote (reanudable)."""
@@ -305,6 +333,7 @@ def run(db, names: list[str], *, dry_run: bool, limit: int = 0, batch: int = 25,
         chunk = pending[i:i + batch]
         for name in chunk:
             ticker = resolver(name, cache)
+            save_cache(resume_file, cache)  # incremental: un corte no pierde lo resuelto
             if not ticker:
                 stats["unmatched"] += 1
                 print(f"WARNING {name}: sin match claro, se deja el nombre")
@@ -312,7 +341,7 @@ def run(db, names: list[str], *, dry_run: bool, limit: int = 0, batch: int = 25,
             stats["resolved"] += 1
             if dry_run:
                 print(f"DRY-RUN {name} -> {ticker}")
-            elif applier(db, name, ticker):
+            elif _safe_apply(applier, db, name, ticker):
                 stats["applied"] += 1
                 print(f"OK {name} -> {ticker}")
         save_cache(resume_file, cache)
@@ -321,10 +350,12 @@ def run(db, names: list[str], *, dry_run: bool, limit: int = 0, batch: int = 25,
     if not dry_run:
         for name in names:
             ticker = cache.get(name.strip())
-            if ticker and name not in pending and applier(db, name, ticker):
+            if ticker and name not in pending and _safe_apply(applier, db, name, ticker):
                 stats["applied"] += 1
                 print(f"OK (cache) {name} -> {ticker}")
     print(f"{stats['resolved']} resueltos, {stats['unmatched']} sin match, {stats['applied']} aplicados")
+    if APPLY_ERRORS:
+        print(f"{len(APPLY_ERRORS)} nombres no se pudieron aplicar (red); re-ejecutar para reintentar")
     print(conflicts_summary())
     return stats
 
