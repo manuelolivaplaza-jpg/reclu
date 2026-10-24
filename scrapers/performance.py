@@ -36,6 +36,7 @@ import os
 import time
 from typing import Any
 
+from holdings_merge import us_class_hyphen
 from prices import fetch_eod
 
 PAGE_SIZE = 1000
@@ -200,7 +201,7 @@ def build_performance_series(
         if index:
             time.sleep(SYMBOL_DELAY_SECONDS)
         try:
-            rows = fetch_eod(symbol, days)
+            rows = fetch_eod(us_class_hyphen(symbol), days)  # BRK.B -> BRK-B
         except Exception as exc:  # noqa: BLE001 — one bad symbol is left out of this series
             print(f"WARNING {symbol}: {exc}")
             continue
@@ -368,7 +369,14 @@ except Exception:  # noqa: BLE001
     ETF_REAL_SLUGS = frozenset()
 
 # Portafolios por eventos: serie real en event_series.py (nunca se proyectan).
-EVENT_REAL_SLUGS = frozenset({"trump-dice", "musk-dice", "inverse-cramer-real"})
+EVENT_REAL_SLUGS = frozenset({"trump-dice", "musk-dice", "inverse-cramer-real", "inverse-cramer-compras"})
+
+# D34: carteras AFP con serie real mensual (afp_series.py); no se proyectan.
+AFP_REAL_SLUGS = frozenset({
+    "afp-consenso-chile", "afp-modelo-acciones-cl", "afp-capital-acciones-cl",
+    "afp-cuprum-acciones-cl", "afp-habitat-acciones-cl", "afp-planvital-acciones-cl",
+    "afp-provida-acciones-cl", "afp-uno-acciones-cl",
+})
 
 
 def lookback_days(days: int | None = None, since: str | None = None, today=None) -> int:
@@ -418,6 +426,9 @@ def main(argv: list[str] | None = None) -> None:
         try:
             if slug in EVENT_REAL_SLUGS:
                 print(f"-- {slug}: serie real por eventos (event_series.py), no se proyecta")
+                continue
+            if slug in AFP_REAL_SLUGS:
+                print(f"-- {slug}: serie real mensual (afp_series.py), no se proyecta")
                 continue
             if slug in ETF_REAL_SLUGS:
                 print(f"-- {slug}: ETF con serie real (etf_series.py), no se proyecta")

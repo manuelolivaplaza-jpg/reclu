@@ -186,6 +186,13 @@ def cramer_events() -> list[dict]:
     return out
 
 
+def cramer_compras_events() -> list[dict]:
+    """Solo el lado largo (D34): misma regla que el portafolio inverse-cramer-compras
+    (entra al cierre del día hábil siguiente, sale a los 30 días hábiles).
+    La serie parte en la fecha real del primer pick, no antes."""
+    return [e for e in cramer_events() if e["side"] == 1]
+
+
 PORTFOLIOS = {
     "trump-dice": (trump_events, "dollar"),
     # "dollar" = US$1.000 por evento y se mantiene (compra y mantención).
@@ -193,6 +200,7 @@ PORTFOLIOS = {
     # volatilidad de GME en 2021 eso daba -1,3% aunque ETSY y GME caen >55%.
     "musk-dice": (musk_events, "dollar"),
     "inverse-cramer-real": (cramer_events, "dollar"),
+    "inverse-cramer-compras": (cramer_compras_events, "dollar"),
 }
 EVENT_SLUGS = frozenset(PORTFOLIOS)
 

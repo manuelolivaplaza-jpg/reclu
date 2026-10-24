@@ -72,6 +72,10 @@ STAGES: list[tuple[str, str, bool]] = [
     ("spensiones", "Carteras AFP (Superintendencia de Pensiones)", False),
     ("musk_dice", "Elon Musk dice: menciones verificadas", False),
     ("inverse_cramer", "Inverse Cramer: lightning round CNBC", False),
+    # D34: series reales por eventos (trump, musk, cramer real y compras) y AFP.
+    # Sin esta etapa inverse-cramer-real quedaba sin serie (performance.py la salta).
+    ("event_series", "Series reales por eventos (event_series.py)", False),
+    ("afp_series", "Series reales AFP (Cuadro 14 mensual)", False),
     ("radar_ia", "Portafolio Radar IA (reglas consenso + momentum)", False),
 ]
 # STAGE_IDS y CRITICAL se arman después de descubrir scrapers/stages/*.py.
@@ -314,6 +318,20 @@ def run_radar_ia(db, dry_run: bool) -> list[dict]:
         return [{"source": "radar_ia", "status": "skipped", "dry_run": True}]
     return [RadarIaAdapter().run(db)]
 
+def run_event_series(db, dry_run: bool) -> list[dict]:
+    from event_series import main as event_main
+
+    event_main(["--dry-run"] if dry_run else [])
+    return [{"source": "event_series", "status": "ok", "dry_run": dry_run}]
+
+
+def run_afp_series(db, dry_run: bool) -> list[dict]:
+    from afp_series import main as afp_main
+
+    afp_main(["--dry-run"] if dry_run else [])
+    return [{"source": "afp_series", "status": "ok", "dry_run": dry_run}]
+
+
 RUNNERS = {
     "house_disclosure": run_house_disclosure,
     "senate_disclosure": run_senate_disclosure,
@@ -331,6 +349,8 @@ RUNNERS = {
     "spensiones": run_spensiones,
     "musk_dice": run_musk_dice,
     "inverse_cramer": run_inverse_cramer,
+    "event_series": run_event_series,
+    "afp_series": run_afp_series,
     "radar_ia": run_radar_ia,
 }
 

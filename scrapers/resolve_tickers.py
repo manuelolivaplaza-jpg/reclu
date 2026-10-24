@@ -26,6 +26,8 @@ import time
 
 import httpx
 
+from holdings_merge import US_CLASS_RE, class_dot_target, plan_merges, render_sql, us_class_hyphen
+
 SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
 USER_AGENT = "Mozilla/5.0"
 # More than one quote so a foreign listing can lose to NYSE/NASDAQ.
@@ -136,8 +138,8 @@ def pick_ticker(name: str, quotes: list[dict]) -> str | None:
         return None
     for quote_type, symbol in matches:
         if quote_type == "EQUITY":
-            return symbol
-    return matches[0][1]
+            return us_class_hyphen(symbol)
+    return us_class_hyphen(matches[0][1])
 
 
 SEARCH_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
@@ -276,6 +278,42 @@ def apply_ticker(db, name: str, ticker: str) -> bool:
     return ok
 
 
+PLAN_COLUMNS = "id, portfolio_id, as_of, weight, symbol, currency, exchange"
+
+
+def build_plan(db, names: list[str], cache: dict[str, str | None], symbols: list[str]) -> dict:
+    """Plan de renombres + fusiones (solo lectura). Incluye clases con punto
+    de EE.UU. (BRK.B -> BRK-B); las filas chilenas (CLP/BCS) no se tocan."""
+    rows: list[dict] = []
+    target_by_symbol: dict[str, str] = {}
+    for name in names:
+        ticker = cache.get(name.strip())
+        if not ticker:
+            continue
+        target_by_symbol[name] = us_class_hyphen(ticker)
+        rows.extend(_fetch_paged(db, PLAN_COLUMNS, symbol=name))
+    for symbol in symbols:
+        if symbol in target_by_symbol or not US_CLASS_RE.match(symbol.strip().upper()):
+            continue
+        rows.extend(r for r in _fetch_paged(db, PLAN_COLUMNS, symbol=symbol) if class_dot_target(r))
+
+    def target_for(row: dict) -> str | None:
+        return target_by_symbol.get(row.get("symbol")) or class_dot_target(row)
+
+    tickers = sorted({t for t in (target_for(r) for r in rows) if t})
+    existing: list[dict] = []
+    for ticker in tickers:
+        existing.extend(_fetch_paged(db, "id, portfolio_id, as_of, weight, symbol", symbol=ticker))
+    return plan_merges(rows, existing, target_for)
+
+
+def print_plan_counts(plan: dict) -> None:
+    c = plan["counts"]
+    print(f"PLAN filas={c['filas']} renombrar={c['renombrar']} fusionar={c['fusionar']} "
+          f"(en fila existente {c['fusionar_en_existente']}, en fila renombrada {c['fusionar_en_renombrada']}) "
+          f"omitidas={c['omitidas']}")
+
+
 def conflicts_summary() -> str:
     """Resumen final de choques (uno por línea)."""
     if not CONFLICTS:
@@ -367,14 +405,27 @@ def main(argv=None) -> None:
     parser.add_argument("--batch", type=int, default=25, help="Nombres por lote (cache se guarda tras cada lote)")
     parser.add_argument("--resume-file", default="resolve_tickers_cache.json",
                         help="Cache JSON para reanudar ('' para desactivar)")
+    parser.add_argument("--plan-sql", default=None,
+                        help="Solo lectura: arma el plan de renombres/fusiones con el cache y lo "
+                             "escribe como SQL revisable en esta ruta (no busca en Yahoo ni escribe en la DB)")
     args = parser.parse_args(argv)
 
     from base import get_db
 
     db = get_db()  # tambien en dry-run: solo lectura de holdings
-    names = [symbol for symbol in distinct_symbols(db) if looks_like_name(symbol)]
+    symbols = distinct_symbols(db)
+    names = [symbol for symbol in symbols if looks_like_name(symbol)]
+    if args.plan_sql:
+        plan = build_plan(db, names, load_cache(args.resume_file or None), symbols)
+        print_plan_counts(plan)
+        with open(args.plan_sql, "w", encoding="utf-8") as fh:
+            fh.write(render_sql(plan))
+        print(f"SQL revisable: {args.plan_sql} (no se aplicó nada)")
+        return
     run(db, names, dry_run=args.dry_run, limit=args.limit, batch=args.batch,
         resume_file=args.resume_file or None)
+    if args.dry_run:
+        print_plan_counts(build_plan(db, names, load_cache(args.resume_file or None), symbols))
 
 
 if __name__ == "__main__":
