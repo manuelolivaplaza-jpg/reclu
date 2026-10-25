@@ -56,10 +56,70 @@ def latest_rows(db) -> list[dict]:
     return [r for r in rows if str(r.get("as_of") or "") == latest.get(r["portfolio_id"])]
 
 
-def symbols_with_prices(db, symbols: list[str]) -> set[str]:
-    have: set[str] = set()
-    for s in symbols:
-        res = db.table("prices").select("symbol").eq("symbol", s).limit(1).execute()
+RETRY_ATTEMPTS = 5
+
+
+def _retry(call, attempts: int = RETRY_ATTEMPTS, sleep=time.sleep):
+    """Ejecuta call() con reintentos y backoff 1/2/4/8 s (ReadTimeout, 5xx, desconexion)."""
+    for i in range(attempts):
+        try:
+            return call()
+        except Exception as exc:  # noqa: BLE001
+            if i == attempts - 1:
+                raise
+            print(f"WARNING reintento {i + 1}/{attempts - 1}: {type(exc).__name__}: {exc}")
+            sleep(2 ** i)
+    raise RuntimeError("unreachable")
+
+
+def distinct_price_symbols(db, page: int = PAGE, sleep=time.sleep) -> set[str]:
+    """Simbolos distintos de prices con la RPC price_symbols (migracion 066), paginada."""
+    out: set[str] = set()
+    offset = 0
+    while True:
+        rows = _retry(lambda: db.rpc("price_symbols", {"p_offset": offset, "p_limit": page}).execute().data or [],
+                      sleep=sleep)
+        out.update(str(r.get("symbol") or "") for r in rows)
+        if len(rows) < page:
+            out.discard("")
+            return out
+        offset += page
+
+
+def recent_price_symbols(db, days: int = 30, page: int = PAGE, sleep=time.sleep) -> set[str]:
+    """Respaldo sin la RPC: una consulta paginada de los ultimos `days` dias."""
+    from datetime import date, timedelta
+
+    since = (date.today() - timedelta(days=days)).isoformat()
+    out: set[str] = set()
+    start = 0
+    while True:
+        rows = _retry(lambda: db.table("prices").select("symbol").gte("date", since)
+                      .order("symbol").order("date").range(start, start + page - 1).execute().data or [],
+                      sleep=sleep)
+        out.update(str(r.get("symbol") or "") for r in rows)
+        if len(rows) < page:
+            out.discard("")
+            return out
+        start += page
+
+
+def symbols_with_prices(db, symbols: list[str], sleep=time.sleep) -> set[str]:
+    """Cuales de `symbols` tienen alguna fila en prices (D38: sin una consulta por simbolo).
+
+    1) RPC price_symbols paginada (migracion 066).
+    2) Si la RPC no existe aun: consulta paginada de los ultimos 30 dias, y
+       solo los que no aparecen ahi (cientos, no miles) se confirman de a uno,
+       con reintentos.
+    """
+    wanted = set(symbols)
+    try:
+        return wanted & distinct_price_symbols(db, sleep=sleep)
+    except Exception as exc:  # noqa: BLE001 - RPC no instalada: respaldo
+        print(f"WARNING RPC price_symbols no disponible ({type(exc).__name__}); uso respaldo paginado")
+    have = wanted & recent_price_symbols(db, sleep=sleep)
+    for s in sorted(wanted - have):
+        res = _retry(lambda: db.table("prices").select("symbol").eq("symbol", s).limit(1).execute(), sleep=sleep)
         if res.data:
             have.add(s)
     return have
