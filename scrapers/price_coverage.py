@@ -102,7 +102,7 @@ def propose(g: dict, name_cache: dict, cusip_cache: dict) -> list[str]:
 
 def probe(missing: dict[str, dict], fetch: Callable[[str], list], name_resolver=None,
           cusip_resolver=None, name_cache: dict | None = None, cusip_cache: dict | None = None,
-          sleep=time.sleep) -> None:
+          sleep=time.sleep, foreign_resolver=None) -> None:
     """Completa estado/arreglo/motivo en cada grupo (red: Yahoo y OpenFIGI)."""
     name_cache = name_cache if name_cache is not None else {}
     cusip_cache = cusip_cache if cusip_cache is not None else {}
@@ -114,9 +114,13 @@ def probe(missing: dict[str, dict], fetch: Callable[[str], list], name_resolver=
             g.update(estado="omitir", arreglo="", motivo=f"no es acción ({g['clase']})")
             continue
         if g["clase"] == "nombre_emisor" and g["symbol"].strip() not in name_cache and name_resolver:
-            q = clean_issuer_query(g["symbol"])
-            name_cache[g["symbol"].strip()] = name_resolver(q)
+            # D37: el resolvedor recibe el nombre completo (limpia y verifica nombre).
+            name_cache[g["symbol"].strip()] = name_resolver(g["symbol"].strip())
         cands = propose(g, name_cache, cusip_cache)
+        if foreign_resolver and g["clase"] in ("ticker", "ticker_raro") and g.get("name"):
+            ft = foreign_resolver(g["symbol"], g["name"])
+            if ft and ft not in cands:
+                cands = cands + [ft]
         if not cands:
             motivo = {
                 "cusip": "OpenFIGI sin ticker de EE.UU.",
@@ -208,16 +212,24 @@ def main(argv: list[str] | None = None) -> None:
         from prices import fetch_with_retry
         from ticker_map import load_cusip_cache, resolve_cusips
 
+        from name_resolution import resolve_foreign_ticker, resolve_issuer
+
         name_cache = rt.load_cache("resolve_tickers_cache.json")
 
-        def by_name(query: str) -> str | None:
+        def by_name(name: str) -> str | None:
             try:
-                return rt.pick_ticker(query, rt.fetch_quotes(query))
+                return resolve_issuer(name, rt.fetch_quotes)[0]
+            except Exception:  # noqa: BLE001
+                return None
+
+        def foreign(symbol: str, name: str) -> str | None:
+            try:
+                return resolve_foreign_ticker(symbol, name, rt.fetch_quotes)[0]
             except Exception:  # noqa: BLE001
                 return None
 
         probe(missing, lambda s: fetch_with_retry(s, 10), by_name, resolve_cusips,
-              name_cache, load_cusip_cache())
+              name_cache, load_cusip_cache(), foreign_resolver=foreign)
     else:
         classify_only(missing)
 

@@ -16,7 +16,7 @@ def test_candidatos():
     assert c("FUNO11", country="MX")[0] == "FUNO11.MX"
     assert "FUNO11.MX" in c("FUNO11")
     assert c("Wabtec") == ["WAB"] and c("AECOM") == ["ACM"] and c("ADYEN") == ["ADYEN.AS"]
-    assert c("WATTS") == ["WTS"] and c("SATELLOGIC") == ["SATL"] and c("TECK/B") == ["TECK-B.TO"]
+    assert c("WATTS") == ["WATTS.SN"] and c("SATELLOGIC") == ["SATL"] and c("TECK/B") == ["TECK-B.TO"]
     assert c("4689") == ["4689.T"] and c("SQM-B.SN") == ["SQM-B.SN"] and c("USD-CASH") == []
     assert c("SAN")[0] == "SAN"
 
