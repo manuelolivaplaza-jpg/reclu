@@ -185,7 +185,7 @@ MANUAL_MAP = {
     "WABTEC": "WAB",
     "AECOM": "ACM",
     "ADYEN": "ADYEN.AS",
-    "WATTS": "WTS",
+    "WATTS": "WATTS.SN",  # D37: WATTS S.A. (Chile, BCS), no Watts Water (WTS)
     "SATELLOGIC": "SATL",
     "TECK/B": "TECK-B.TO",  # TECK-B no existe en Yahoo; clase B cotiza en Toronto
 }
@@ -400,8 +400,69 @@ def upsert_prices(db, symbol: str, rows: list[tuple[str, float]]) -> None:
     db.table("prices").upsert(payload, on_conflict="symbol,date").execute()
 
 
+def recent_price_symbols(db, since: str, page: int = 1000) -> set[str]:
+    """Simbolos con algun precio desde `since` (solo lectura, paginado).
+    Esos solo necesitan unos dias nuevos (modo incremental)."""
+    out: set[str] = set()
+    start = 0
+    while True:
+        rows = (db.table("prices").select("symbol").gte("date", since)
+                .order("symbol").range(start, start + page - 1).execute().data or [])
+        out.update(str(r.get("symbol") or "") for r in rows)
+        if len(rows) < page:
+            out.discard("")
+            return out
+        start += page
+
+
+def _fetch_one(symbol: str, cands, days: int):
+    try:
+        used, rows = fetch_candidates(cands, days)
+        return symbol, used, rows, None
+    except Exception as e:  # noqa: BLE001
+        return symbol, (cands if isinstance(cands, str) else "|".join(cands)), [], e
+
+
 def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365,
-                aliases: dict | None = None, batch: int = 50) -> dict[str, int]:
+                aliases: dict | None = None, batch: int = 50, workers: int = 1,
+                days_for: dict | None = None) -> dict[str, int]:
+    """Igual que antes, pero con `workers` > 1 baja de Yahoo en paralelo
+    (D37: ~5000 simbolos caben en el timeout de 150 min). Las escrituras
+    siguen en el hilo principal, de a una. `days_for` permite rangos
+    cortos por simbolo (incremental)."""
+    if workers and workers > 1:
+        from concurrent.futures import ThreadPoolExecutor
+
+        aliases = aliases or {}
+        days_for = days_for or {}
+        ok = 0
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            futs = [pool.submit(_fetch_one, s, aliases.get(s, s), days_for.get(s, days)) for s in symbols]
+            for n, fut in enumerate(futs, 1):
+                if n % batch == 0:
+                    print(f"... lote {n}/{len(symbols)}")
+                symbol, used, rows, err = fut.result()
+                if err is not None:
+                    print(f"WARNING {symbol} [{used}]: {err}")
+                    continue
+                try:
+                    if dry_run:
+                        print(f"DRY-RUN {symbol} [{used}]: {len(rows)} rows"
+                              + (f" (last {rows[-1][0]} @ {rows[-1][1]})" if rows else ""))
+                    else:
+                        upsert_prices(db, symbol, rows)
+                        print(f"OK {symbol}: {len(rows)} rows")
+                    ok += 1
+                except Exception as e:  # noqa: BLE001
+                    print(f"WARNING {symbol} [{used}]: {e}")
+        print(f"{ok}/{len(symbols)} OK")
+        return {"ok": ok, "total": len(symbols)}
+    return _refresh_serial(db, symbols, dry_run=dry_run, days=days, aliases=aliases, batch=batch,
+                           days_for=days_for)
+
+
+def _refresh_serial(db, symbols: list[str], dry_run: bool = False, days: int = 365,
+                    aliases: dict | None = None, batch: int = 50, days_for: dict | None = None) -> dict[str, int]:
     """Refresh prices for all symbols, tolerating per-symbol failures.
 
     If dry_run is True, only print how many rows would be downloaded per
@@ -415,7 +476,7 @@ def refresh_all(db, symbols: list[str], dry_run: bool = False, days: int = 365,
         cands = aliases.get(symbol, symbol)
         fetch_sym = cands if isinstance(cands, str) else "|".join(cands)
         try:
-            fetch_sym, rows = fetch_candidates(cands, days)
+            fetch_sym, rows = fetch_candidates(cands, (days_for or {}).get(symbol, days))
             if dry_run:
                 if rows:
                     first_date, first_close = rows[0]
@@ -479,8 +540,13 @@ def main() -> None:
     )
     parser.add_argument("--no-holdings", action="store_true", help="No sumar simbolos de la tabla holdings")
     parser.add_argument("--all-snapshots", action="store_true", help="Usar todos los snapshots de holdings (no solo el ultimo)")
-    parser.add_argument("--max-symbols", type=int, default=int(os.environ.get("PRICES_MAX_SYMBOLS", "1500")),
-                        help="Tope de seguridad de simbolos (default 1500, env PRICES_MAX_SYMBOLS; 0 = sin tope)")
+    parser.add_argument("--max-symbols", type=int, default=int(os.environ.get("PRICES_MAX_SYMBOLS", "8000")),
+                        help="Tope de seguridad de simbolos (default 8000, env PRICES_MAX_SYMBOLS; 0 = sin tope). "
+                             "D37: con --workers e incremental ya caben todos los de holdings activos")
+    parser.add_argument("--workers", type=int, default=int(os.environ.get("PRICES_WORKERS", "8")),
+                        help="Descargas en paralelo desde Yahoo (default 8, env PRICES_WORKERS; 1 = serial)")
+    parser.add_argument("--incremental-days", type=int, default=int(os.environ.get("PRICES_INCREMENTAL_DAYS", "10")),
+                        help="Simbolos que ya tienen precio de la ultima semana bajan solo N dias (default 10; 0 = apagado)")
     parser.add_argument("--limit", type=int, default=0, help="Solo los primeros N simbolos (pruebas)")
     args = parser.parse_args()
 
@@ -528,7 +594,21 @@ def main() -> None:
     print(f"ESTIMADO: {len(symbols)} simbolos x ~{estimate_rows(1, args.days)} sesiones = "
           f"~{estimate_rows(len(symbols), args.days):,} filas en prices"
           + (" (dry-run, nada se escribe)" if args.dry_run else ""))
-    refresh_all(db, symbols, dry_run=args.dry_run, days=args.days, aliases=aliases)
+    days_for: dict[str, int] = {}
+    if args.incremental_days and db is not None:
+        from datetime import timedelta
+
+        since = (datetime.now(timezone.utc).date() - timedelta(days=7)).isoformat()
+        try:
+            recent = recent_price_symbols(db, since)
+        except Exception as e:  # noqa: BLE001 - sin lectura: historia completa
+            print(f"WARNING incremental: {e}")
+            recent = set()
+        days_for = {s: args.incremental_days for s in symbols if s in recent}
+        print(f"incremental: {len(days_for)} simbolos con precio reciente bajan {args.incremental_days}d; "
+              f"{len(symbols) - len(days_for)} bajan {args.days}d")
+    refresh_all(db, symbols, dry_run=args.dry_run, days=args.days, aliases=aliases,
+                workers=args.workers, days_for=days_for)
 
 
 if __name__ == "__main__":

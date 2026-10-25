@@ -26,7 +26,8 @@ import time
 
 import httpx
 
-from price_classes import clean_issuer_query
+from price_classes import clean_issuer_query  # noqa: F401 - compat
+from name_resolution import resolve_issuer
 from holdings_merge import US_CLASS_RE, class_dot_target, plan_merges, render_sql, us_class_hyphen
 
 SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
@@ -182,15 +183,17 @@ def resolve_name(name: str, cache: dict[str, str | None]) -> str | None:
         return cache[key]
     ticker: str | None = None
     try:
-        ticker = pick_ticker(key, fetch_quotes(key))
-        if not ticker:
-            # D35: segundo intento sin sufijos societarios ni de clase
-            # ("ALPHABET INC CL A" -> "ALPHABET"). El match sigue exigiendo
-            # la primera palabra significativa del nombre original.
-            query = clean_issuer_query(key)
-            if query and query != key:
-                time.sleep(REQUEST_DELAY_S)
-                ticker = pick_ticker(key, fetch_quotes(query))
+        # D37: name_resolution expande abreviaturas de 13F (NATL, MGMT,
+        # HLDGS...) y exige coincidencia de nombre con lo que devuelve Yahoo
+        # (antes "SEA LTD" -> STX, "PDD HOLDINGS" -> KPDD). Solo EE.UU.
+        def _search(q: str) -> list[dict]:
+            out = fetch_quotes(q)
+            time.sleep(REQUEST_DELAY_S)
+            return out
+
+        found, _score, _how = resolve_issuer(key, _search, allow_foreign=False)
+        if found and _TICKER_RE.fullmatch(found):
+            ticker = us_class_hyphen(found)
     except Exception as exc:  # noqa: BLE001 - no se cachea: se reintenta al reanudar
         print(f"WARNING {name}: {exc}")
         time.sleep(REQUEST_DELAY_S)
@@ -333,11 +336,16 @@ def conflicts_summary() -> str:
     return "\n".join(lines)
 
 
+CACHE_VERSION = "d37"  # cache anterior tenia matches sin verificar nombre (SEA LTD -> STX)
+
+
 def load_cache(path: str | None) -> dict[str, str | None]:
     if path and os.path.exists(path):
         with open(path, encoding="utf-8") as fh:
             data = json.load(fh)
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict) or data.pop("__version__", None) != CACHE_VERSION:
+            return {}
+        return data
     return {}
 
 
@@ -346,7 +354,7 @@ def save_cache(path: str | None, cache: dict[str, str | None]) -> None:
         return
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as fh:
-        json.dump(cache, fh, ensure_ascii=False, indent=0, sort_keys=True)
+        json.dump({**cache, "__version__": CACHE_VERSION}, fh, ensure_ascii=False, indent=0, sort_keys=True)
     os.replace(tmp, path)
 
 

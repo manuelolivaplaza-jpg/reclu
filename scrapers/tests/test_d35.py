@@ -58,7 +58,7 @@ def test_coverage_before_after():
 
     cov.probe(missing, fetch=lambda s: [1] if s == "GOOGL" else [], name_resolver=by_name,
               name_cache={}, cusip_cache={}, sleep=lambda s: None)
-    assert queries == ["ALPHABET"]
+    assert queries == ["ALPHABET INC CL A"]  # D37: nombre completo; name_resolution limpia
     s = cov.summary(missing)
     assert s["antes"] == 4 and s["despues"] == 1
     assert missing["DEADCO"]["estado"] == "sin_resolver"

@@ -17,7 +17,10 @@ from __future__ import annotations
 
 import re
 
-SKIP_CLASSES = frozenset({"efectivo", "bono", "opcion", "derecho"})
+SKIP_CLASSES = frozenset({"efectivo", "bono", "opcion", "derecho", "prediccion"})
+
+# D37: mercados de Polymarket (slug en minusculas con guiones): no son acciones.
+_PREDICTION_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+){2,}$")
 
 _CASH_WORDS = ("CASH", "MONEY MARKET", "MMF", "LIQUIDITY", "SWEEP", "COLLATERAL",
                "MARGIN", "FUTURES", "FX FORWARD", "CURRENCY", "DEPOSIT")
@@ -75,6 +78,8 @@ def classify(symbol: str, exchange: str | None = None, currency: str | None = No
         return "derecho"
     if _CUSIP_RE.match(up) and any(c.isdigit() for c in up[:8]):
         return "cusip"
+    if _PREDICTION_RE.match(raw) or ac in ("prediction", "prediccion", "polymarket"):
+        return "prediccion"
     if " " in raw or raw != up or len(raw) > 12:
         return "nombre_emisor"
     if ex and ex not in US_EXCHANGES and ex not in CHILE_EXCHANGES and "." not in up and ex in EXCHANGE_SUFFIX:
