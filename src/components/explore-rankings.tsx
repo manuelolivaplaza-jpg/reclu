@@ -34,6 +34,7 @@ export function ExploreRankings({
   consensus = [],
   beatMarket = [],
   cardStats = {},
+  alertCounts,
 }: {
   portfolios: Portfolio[];
   alerts: Alert[];
@@ -41,10 +42,16 @@ export function ExploreRankings({
   /** F5: ranking por exceso de retorno vs S&P 500 / IPSA (null si no hay datos). */
   beatMarket?: BeatMarketRow[];
   cardStats?: Record<string, CardStat>;
+  /** D43: conteo ya agregado (cache remoto). Si viene, reemplaza a `alerts`. */
+  alertCounts?: Record<string, number>;
 }) {
   const alertCount = new Map<string, number>();
-  for (const alert of alerts) {
-    alertCount.set(alert.portfolio_id, (alertCount.get(alert.portfolio_id) ?? 0) + 1);
+  if (alertCounts) {
+    for (const [id, n] of Object.entries(alertCounts)) alertCount.set(id, n);
+  } else {
+    for (const alert of alerts) {
+      alertCount.set(alert.portfolio_id, (alertCount.get(alert.portfolio_id) ?? 0) + 1);
+    }
   }
 
   const topFollowed: RankingRow[] = portfolios

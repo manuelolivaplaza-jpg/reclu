@@ -1,12 +1,12 @@
 import { connection } from "next/server";
-import { getAlerts, getHoldingSymbolsAdmin, getPortfolios, getPerformanceSeriesAdmin } from "@/lib/queries";
-import { cardStatsById } from "@/lib/card-series";
+import { timed } from "@/lib/timing";
+import { getAlertCountsForRanking, getExploreCardStats, getHoldingSymbolsAdmin, getPortfolios, getProfile, pickCardStats } from "@/lib/queries";
+import { isPaidPlan } from "@/lib/types";
 import { getBeatTheMarketRanking } from "@/lib/performance-queries";
 import { ExploreRankings } from "@/components/explore-rankings";
 import { consensusFromRows } from "@/lib/explore-paging";
 
 /** getAlerts recorta por defecto a 20. El ranking cuenta publicadas, no solo las últimas. */
-const ALERT_RANKING_LIMIT = 1000;
 
 /**
  * Rankings de /explore. Va dentro de un Suspense: la grilla no espera
@@ -18,16 +18,17 @@ export async function ExploreRankingsSection() {
   // evita que el prerender lance fetch() que luego se aborta
   // ("During prerendering, fetch() rejects when the prerender is complete").
   await connection();
-  const catalog = await getPortfolios();
-  const [alerts, beatMarket, rows, seriesById] = await Promise.all([
-    getAlerts(undefined, ALERT_RANKING_LIMIT),
-    getBeatTheMarketRanking(7, "excess"),
-    getHoldingSymbolsAdmin(catalog.map((portfolio) => portfolio.id)),
-    getPerformanceSeriesAdmin(catalog.map((portfolio) => portfolio.id)),
+  const [catalog, profile] = await Promise.all([timed("rankings.catalog", getPortfolios()), getProfile()]);
+  const paid = isPaidPlan(profile?.plan);
+  const [alertCounts, beatMarket, rows, allStats] = await Promise.all([
+    timed("rankings.alertCounts", getAlertCountsForRanking(paid)),
+    timed("rankings.beatMarket", getBeatTheMarketRanking(7, "excess")),
+    timed("rankings.holdingSymbols", getHoldingSymbolsAdmin(catalog.map((portfolio) => portfolio.id))),
+    timed("rankings.cardStats", getExploreCardStats()),
   ]);
-  const cardStats = cardStatsById(catalog, seriesById);
+  const cardStats = pickCardStats(catalog, allStats);
   const consensus = consensusFromRows(rows);
   return (
-    <ExploreRankings portfolios={catalog} alerts={alerts} consensus={consensus} beatMarket={beatMarket} cardStats={cardStats} />
+    <ExploreRankings portfolios={catalog} alerts={[]} alertCounts={alertCounts} consensus={consensus} beatMarket={beatMarket} cardStats={cardStats} />
   );
 }

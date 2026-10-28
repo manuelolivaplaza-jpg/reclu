@@ -177,14 +177,36 @@ class SourceAdapter(ABC):
                 db.table("holdings").insert(row).execute()
                 created += 1
 
+        removed = self._remove_stale(db, portfolio_id, holdings)
+
         return {
             "source": self.name,
             "portfolio": self.portfolio_slug,
             "holdings": len(holdings),
             "created": created,
             "updated": updated,
+            "removed": removed,
             "status": "ok",
         }
+
+    def _remove_stale(self, db, portfolio_id: str, holdings: list[Holding]) -> int:
+        """D43: borra las filas del MISMO snapshot (portafolio + as_of) que esta
+        corrida ya no trae. Sin esto, dos escrituras el mismo dia se suman
+        (radar-ia 2026-10-22: 15 filas, 200%). Snapshots de otras fechas no
+        se tocan. Un fallo aqui no tumba la corrida."""
+        keep = {(h.symbol, h.as_of.isoformat()) for h in holdings}
+        removed = 0
+        try:
+            for as_of in sorted({h.as_of.isoformat() for h in holdings}):
+                rows = (db.table("holdings").select("id, symbol").eq("portfolio_id", portfolio_id)
+                        .eq("as_of", as_of).execute().data or [])
+                stale = [r["id"] for r in rows if (r.get("symbol"), as_of) not in keep]
+                for i in range(0, len(stale), 200):
+                    db.table("holdings").delete().in_("id", stale[i:i + 200]).execute()
+                removed += len(stale)
+        except Exception as exc:  # noqa: BLE001
+            log(f"[{self.name}] WARNING limpieza de snapshot: {exc}")
+        return removed
 
     def _resolve_portfolio_id(self, db: Client) -> str:
         result = (

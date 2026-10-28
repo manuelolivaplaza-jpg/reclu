@@ -1,6 +1,6 @@
 import { Suspense } from "react";
-import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin, getPortfolioIdsWithSeriesAdmin, getPerformanceSeriesAdmin } from "@/lib/queries";
-import { cardStatsById } from "@/lib/card-series";
+import { timed } from "@/lib/timing";
+import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin, getPortfolioIdsWithSeriesAdmin, getExploreCardStats, pickCardStats } from "@/lib/queries";
 import { PortfolioGrid } from "@/components/explore/portfolio-grid";
 import { ExploreRankingsSection } from "@/components/explore/explore-rankings-section";
 import { RankingsSkeleton } from "@/components/explore/skeletons";
@@ -27,11 +27,12 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
   const search = params.q ?? "";
   const symbol = (params.simbolo ?? "").trim().toUpperCase();
 
-  const [listed, follows, profile, withSeries] = await Promise.all([
-    getPortfolios({ category, search }),
-    getFollows(),
-    getProfile(),
-    getPortfolioIdsWithSeriesAdmin(),
+  const [listed, follows, profile, withSeries, allStats] = await Promise.all([
+    timed("explore.getPortfolios", getPortfolios({ category, search })),
+    timed("explore.getFollows", getFollows()),
+    timed("explore.getProfile", getProfile()),
+    timed("explore.idsWithSeries", getPortfolioIdsWithSeriesAdmin()),
+    timed("explore.cardStats", getExploreCardStats()),
   ]);
 
   const portfolios = symbol
@@ -40,8 +41,8 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
 
   // D40: retorno y sparkline de cada tarjeta desde la serie real (una
   // consulta .in cacheada); sin serie la tarjeta no muestra cifra.
-  const seriesById = await getPerformanceSeriesAdmin(portfolios.map((p) => p.id));
-  const cardStats = cardStatsById(portfolios, seriesById);
+  // D43: tarjetas ya calculadas (cache remoto), sin bajar las series.
+  const cardStats = pickCardStats(portfolios, allStats);
 
   const followedIds = follows.map((f) => f.portfolio_id);
   const isPro = isPaidPlan(profile?.plan);
