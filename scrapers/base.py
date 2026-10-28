@@ -47,6 +47,42 @@ class Holding:
     as_of: date = field(default_factory=date.today)
 
 
+def consolidate_holdings(holdings: list[Holding]) -> list[Holding]:
+    """D39: una fila por (simbolo, as_of) y pesos que no pasan de 100.
+
+    Si un adapter entrega el mismo ticker dos veces en el mismo snapshot
+    (ej. una fila por mencion), se suman los pesos. Si el snapshot suma mas
+    de 100 se escala a 100 (la ultima fila absorbe el redondeo). Un snapshot
+    que suma menos (top-N, caja no informada) no se infla.
+    """
+    by_key: dict[tuple[str, Any], Holding] = {}
+    for h in holdings:
+        sym = (h.symbol or "").strip().upper()
+        if not sym:
+            continue
+        key = (sym, h.as_of)
+        if key in by_key:
+            prev = by_key[key]
+            by_key[key] = Holding(prev.symbol, prev.name, round(prev.weight + h.weight, 6), prev.asset_class,
+                                  prev.exchange, prev.currency, prev.as_of)
+        else:
+            by_key[key] = Holding(sym, h.name, h.weight, h.asset_class, h.exchange, h.currency, h.as_of)
+    out: list[Holding] = []
+    for as_of in sorted({k[1] for k in by_key}, key=str):
+        snap = sorted((h for (s, d), h in by_key.items() if d == as_of), key=lambda h: (-h.weight, h.symbol))
+        total = sum(max(h.weight, 0.0) for h in snap)
+        if total > 100.05:
+            assigned = 0.0
+            for i, h in enumerate(snap):
+                h.weight = round(100.0 - assigned, 2) if i == len(snap) - 1 else round(h.weight / total * 100.0, 2)
+                assigned += h.weight
+        else:
+            for h in snap:
+                h.weight = round(h.weight, 6)
+        out.extend(snap)
+    return out
+
+
 class SourceAdapter(ABC):
     """Base class for all data sources."""
 
@@ -82,7 +118,7 @@ class SourceAdapter(ABC):
         if db is None and not self.dry_run:
             db = get_db()
         raw = self.fetch_raw()
-        holdings = self.normalize(raw)
+        holdings = consolidate_holdings(self.normalize(raw))
 
         if not holdings:
             return {"source": self.name, "holdings": 0, "status": "empty"}
