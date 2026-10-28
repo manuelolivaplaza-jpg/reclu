@@ -20,6 +20,7 @@ import {
   type AccessRole,
 } from "@/lib/access";
 import { isPublicDisclosureSource } from "@/lib/public-disclosure";
+import { groupBySymbol, latestSnapshot } from "@/lib/composition";
 import {
   FREE_BACKTEST_WINDOW_DAYS,
   trimSeriesToWindow,
@@ -240,7 +241,8 @@ export async function getHoldings(
     const { data: rpc, error: rpcError } = await supabase
       .rpc("get_portfolio_holdings", { p_slug: slugRow.data.slug });
     if (!rpcError && Array.isArray(rpc)) {
-      return rpc as Holding[];
+      // D39: sin la migración 067 la RPC trae todos los snapshots mezclados.
+      return currentHoldings(rpc as Holding[]);
     }
     // Si la función no existe, seguimos por el camino legacy de abajo.
   }
@@ -261,8 +263,14 @@ export async function getHoldings(
     const { data: pf } = await supabase.from("portfolios").select("slug").eq("id", portfolioId).maybeSingle();
     return pf ? sliceHoldings(demoHoldings(pf.slug), opts?.role) : [];
   }
-  if (isPublicDisclosureSource(slugRow.data?.source)) return data as Holding[];
-  return sliceHoldings(data, opts?.role);
+  const current = currentHoldings(data as Holding[]);
+  if (isPublicDisclosureSource(slugRow.data?.source)) return current;
+  return sliceHoldings(current, opts?.role);
+}
+
+/** D39: último snapshot (as_of) y una fila por símbolo. */
+function currentHoldings(list: Holding[]): Holding[] {
+  return groupBySymbol(latestSnapshot(list));
 }
 
 /** Recorte en servidor según rol (muro de pago real). */

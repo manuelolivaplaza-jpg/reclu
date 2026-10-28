@@ -25,6 +25,7 @@ import { DemoBadge } from "@/components/demo-badge";
 import { JsonLd } from "@/components/json-ld";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, HOLDING_LIMITS } from "@/lib/access";
+import { buildComposition } from "@/lib/composition";
 import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatSignedPct } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
@@ -229,11 +230,12 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
     performanceReal.length === 0 &&
     demoPoints.length > 0;
   // Pesos actuales: dato real para la composición.
-  const composition = holdings.map((holding) => ({
-    symbol: holding.symbol,
-    name: holding.name,
-    weight: holding.weight,
-  }));
+  // D39: último snapshot, una fila por símbolo y suma 100% si la lista está
+  // completa (un top-N recortado por el muro no se infla).
+  const holdingLimit = HOLDING_LIMITS[role];
+  const composition = buildComposition(holdings, {
+    complete: !Number.isFinite(holdingLimit) || holdings.length < holdingLimit,
+  });
   const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
   // AFP Modelo: la fecha es el as_of más nuevo de los holdings que el
   // muro ya entregó (get_portfolio_holdings). No se lee la tabla directa.
