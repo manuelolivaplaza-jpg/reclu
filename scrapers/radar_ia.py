@@ -71,8 +71,11 @@ def build_radar(
     returns_by_symbol: dict[str, list[float]] = defaultdict(list)
 
     for row in rows:
-        symbol = (row.get("symbol") or "").strip().upper()
-        if not symbol:
+        raw_symbol = (row.get("symbol") or "").strip()
+        symbol = raw_symbol.upper()
+        # D43: filas de 13F sin resolver traen el nombre del emisor como
+        # simbolo ("AMAZON COM INC"); no son tickers para el radar.
+        if not symbol or " " in raw_symbol or len(symbol) > 12:
             continue
         weight = float(row.get("weight") or 0)
         if weight <= 0:

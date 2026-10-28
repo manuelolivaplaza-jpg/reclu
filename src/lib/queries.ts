@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/public";
 import { cacheLife, cacheTag } from "next/cache";
+import { cache as reactCache } from "react";
 import { PERFORMANCE_TAG, PORTFOLIOS_TAG, PUBLIC_DATA_TAG } from "@/lib/cache-tags";
 import type {
   Portfolio,
@@ -20,6 +21,7 @@ import {
   type AccessRole,
 } from "@/lib/access";
 import { isPublicDisclosureSource } from "@/lib/public-disclosure";
+import { cardStatFromSeries, cardStatsById, type CardStat } from "@/lib/card-series";
 import { groupBySymbol, latestSnapshot } from "@/lib/composition";
 import {
   FREE_BACKTEST_WINDOW_DAYS,
@@ -460,6 +462,92 @@ export async function getEstimatedUntil(portfolioId: string): Promise<string | n
   }
 }
 
+/**
+ * D43: retorno + sparkline de TODAS las tarjetas del catalogo, ya calculados
+ * (unos KB). Antes /explore pedia la serie completa (~800 dias x ~120
+ * portafolios, decenas de miles de filas, ~100 paginas) dos veces por
+ * request y la cache en memoria casi nunca acertaba.
+ */
+export async function getExploreCardStats(): Promise<Record<string, CardStat>> {
+  if (!isSupabaseLive()) return {};
+  try {
+    return await getExploreCardStatsCached();
+  } catch (err) {
+    console.warn("[reclu] getExploreCardStats error:", err instanceof Error ? err.message : String(err));
+    return {};
+  }
+}
+
+async function getExploreCardStatsCached(): Promise<Record<string, CardStat>> {
+  "use cache: remote";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PERFORMANCE_TAG, PORTFOLIOS_TAG);
+  const catalog = await getPortfoliosPublic("all", "", "all");
+  const ids = [...new Set(catalog.map((p) => p.id))].sort();
+  const byId = await getPerformanceSeriesAdminCached(ids);
+  const series = new Map(Object.entries(byId));
+  return cardStatsById(catalog, series);
+}
+
+/** Toma las tarjetas pedidas; sin serie => tarjeta sin cifra. */
+export function pickCardStats(
+  portfolios: readonly { id: string; slug: string }[],
+  all: Record<string, CardStat>,
+): Record<string, CardStat> {
+  const out: Record<string, CardStat> = {};
+  for (const p of portfolios) out[p.id] = all[p.id] ?? cardStatFromSeries(p.slug, undefined);
+  return out;
+}
+
+/**
+ * D43: alertas publicadas por portafolio (todas, no solo las ultimas 100 que
+ * devolvia get_alerts), cacheadas en remoto 1 h. Los premium se marcan para
+ * filtrarlos por plan fuera del cache.
+ */
+export async function getAlertCountsForRanking(paid: boolean): Promise<Record<string, number>> {
+  if (!isSupabaseLive()) return {};
+  try {
+    const rows = await getAlertCountsCached();
+    const out: Record<string, number> = {};
+    for (const [id, v] of Object.entries(rows)) if (!v.premium || paid) out[id] = v.count;
+    return out;
+  } catch (err) {
+    console.warn("[reclu] getAlertCountsForRanking error:", err instanceof Error ? err.message : String(err));
+    return {};
+  }
+}
+
+async function getAlertCountsCached(): Promise<Record<string, { count: number; premium: boolean }>> {
+  "use cache: remote";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PORTFOLIOS_TAG);
+  const admin = createAdminClient();
+  if (!admin) return {};
+  const { data: pfs, error } = await admin.from("portfolios").select("id, premium").eq("is_active", true);
+  if (error || !Array.isArray(pfs)) throw new Error(error?.message || "portfolios");
+  const premium = new Map((pfs as { id: string; premium?: boolean }[]).map((p) => [p.id, p.premium === true]));
+  const out: Record<string, { count: number; premium: boolean }> = {};
+  const PAGE = 1000;
+  for (let from = 0; ; from += PAGE) {
+    const { data, error: aErr } = await admin
+      .from("alerts")
+      .select("portfolio_id")
+      .eq("is_published", true)
+      .order("id")
+      .range(from, from + PAGE - 1);
+    if (aErr) throw new Error(aErr.message || "alerts");
+    for (const row of data ?? []) {
+      const id = (row as { portfolio_id?: unknown }).portfolio_id;
+      if (typeof id !== "string" || !premium.has(id)) continue;
+      const cur = out[id] ?? { count: 0, premium: premium.get(id) === true };
+      cur.count += 1;
+      out[id] = cur;
+    }
+    if (!data || data.length < PAGE) break;
+  }
+  return out;
+}
+
 export async function getHoldingSymbolsAdmin(
   portfolioIds: string[],
 ): Promise<{ portfolio_id: string; symbol: string }[]> {
@@ -488,7 +576,10 @@ export async function getHoldingSymbolsAdmin(
  * consenso quedaba truncado. Un error se lanza para no cachear una lista vacia.
  */
 async function getHoldingSymbolsCached(portfolioIds: string[]): Promise<{ portfolio_id: string; symbol: string }[]> {
-  "use cache";
+  // D43: remoto. /explore se renderiza por request (searchParams + cookies) y
+  // en Vercel cada instancia tiene su propia memoria: con "use cache" el
+  // hit rate era bajo y cada request repetia las consultas.
+  "use cache: remote";
   cacheLife("hours");
   cacheTag(PUBLIC_DATA_TAG, PORTFOLIOS_TAG);
   const admin = createAdminClient();
@@ -596,11 +687,17 @@ function applyAlertAccess(list: Alert[], role: AccessRole | undefined): Alert[] 
 }
 
 // ---- Profile ----
-export async function getProfile(): Promise<Profile | null> {
+/** D43: auth.getUser() es una llamada de red; se deduplica por request. */
+const getAuthUser = reactCache(async () => {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  return { supabase, user };
+});
+
+export const getProfile = reactCache(async (): Promise<Profile | null> => {
+  const { supabase, user } = await getAuthUser();
   if (!user) return null;
 
   const { data, error } = await supabase
@@ -610,14 +707,11 @@ export async function getProfile(): Promise<Profile | null> {
     .single();
   if (error) return null;
   return data;
-}
+});
 
 // ---- Follows ----
 export async function getFollows(): Promise<Follow[]> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, user } = await getAuthUser();
   if (!user) return [];
 
   const { data, error } = await supabase

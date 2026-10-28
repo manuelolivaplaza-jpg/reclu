@@ -1,3 +1,4 @@
+-- OBSOLETO (D43): NO USAR. Reemplazado por d43_recalculo_pesos_13f.sql (paso A restaba de mas en snb/norges y el paso C tocaba ech/radar-ia).
 -- ============================================================
 -- D42: recálculo de pesos de holdings que suman > 100% (13F y radar-ia).
 -- NO APLICADO. Modifica y BORRA filas de holdings (archiva antes en

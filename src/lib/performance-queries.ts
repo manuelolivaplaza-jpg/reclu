@@ -417,7 +417,7 @@ export function beatMarketRowsFromMetrics(
 
 /** D42: metricas TOTAL de todos los portafolios activos, cacheadas 1 h. null sin service role. */
 async function beatMarketAllCached(): Promise<(BeatMarketRow & { premium: boolean })[] | null> {
-  "use cache";
+  "use cache: remote"; // D43: compartido entre instancias (ver getHoldingSymbolsCached)
   cacheLife("hours");
   cacheTag(PUBLIC_DATA_TAG, PERFORMANCE_TAG);
   const admin = createAdminClient();
