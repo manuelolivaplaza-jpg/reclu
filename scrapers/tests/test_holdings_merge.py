@@ -49,4 +49,4 @@ def test_sql_is_transactional_and_archives_before_delete():
     sql = hm.render_sql(plan)
     assert sql.index("begin;") < sql.index("insert into public.holdings_merged") < sql.index("delete from") < sql.index("commit;")
     assert "O''NEIL INC" in sql
-    assert "least(100" in sql
+    assert "greatest(weight" in sql and "least(100" not in sql  # D42: no se suman pesos

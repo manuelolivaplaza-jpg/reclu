@@ -12,6 +12,9 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { cacheLife, cacheTag } from "next/cache";
+import { PERFORMANCE_TAG, PUBLIC_DATA_TAG } from "@/lib/cache-tags";
 import { getProfile } from "@/lib/queries";
 import { isPaidPlan } from "@/lib/types";
 import {
@@ -365,15 +368,105 @@ export interface BeatMarketRow {
  * (recorta por plan). Además se filtran los premium para quien no paga, de
  * modo que ni siquiera se consulta su métrica. Devuelve [] si no hay datos.
  */
+export function sortBeatMarket(rows: BeatMarketRow[], sortBy: "excess" | "sharpe"): BeatMarketRow[] {
+  return [...rows].sort((x, y) =>
+    sortBy === "sharpe"
+      ? (y.sharpe ?? -Infinity) - (x.sharpe ?? -Infinity) || y.excess_return_pct - x.excess_return_pct
+      : y.excess_return_pct - x.excess_return_pct || (y.sharpe ?? -Infinity) - (x.sharpe ?? -Infinity),
+  );
+}
+
+type MetricRow = Record<string, unknown>;
+
+/** Ultima metrica TOTAL por portafolio -> fila del ranking (pura, testeable). */
+export function beatMarketRowsFromMetrics(
+  portfolios: { id: string; slug: string; name: string; premium?: boolean | null }[],
+  metrics: MetricRow[],
+): (BeatMarketRow & { premium: boolean })[] {
+  const latest = new Map<string, MetricRow>();
+  for (const m of metrics) {
+    if (m?.period !== "TOTAL" || m?.return_pct == null || m?.benchmark_return_pct == null) continue;
+    const id = String(m.portfolio_id ?? "");
+    const prev = latest.get(id);
+    if (!prev || String(m.as_of ?? "") > String(prev.as_of ?? "")) latest.set(id, m);
+  }
+  const out: (BeatMarketRow & { premium: boolean })[] = [];
+  for (const p of portfolios) {
+    const metric = latest.get(p.id);
+    if (!metric) continue;
+    const ret = Number(metric.return_pct);
+    const bench = Number(metric.benchmark_return_pct);
+    if (!Number.isFinite(ret) || !Number.isFinite(bench)) continue;
+    out.push({
+      portfolio_id: p.id,
+      slug: p.slug,
+      name: p.name,
+      return_pct: ret,
+      benchmark_return_pct: bench,
+      excess_return_pct: Number((ret - bench).toFixed(4)),
+      sharpe: metric.sharpe != null ? Number(metric.sharpe) : null,
+      max_drawdown: metric.max_drawdown != null ? Number(metric.max_drawdown) : null,
+      benchmark_symbol: String(metric.benchmark_symbol ?? ""),
+      data_points: metric.data_points != null ? Number(metric.data_points) : null,
+      as_of: String(metric.as_of ?? ""),
+      premium: p.premium === true,
+    });
+  }
+  return out;
+}
+
+/** D42: metricas TOTAL de todos los portafolios activos, cacheadas 1 h. null sin service role. */
+async function beatMarketAllCached(): Promise<(BeatMarketRow & { premium: boolean })[] | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PERFORMANCE_TAG);
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const { data: pfs, error } = await admin
+    .from("portfolios")
+    .select("id, slug, name, premium")
+    .eq("is_active", true);
+  if (error || !Array.isArray(pfs)) throw new Error(error?.message || "portfolios");
+  const ids = (pfs as { id: string }[]).map((p) => p.id);
+  const metrics: MetricRow[] = [];
+  const PAGE = 1000;
+  for (let i = 0; i < ids.length; i += 200) {
+    for (let from = 0; ; from += PAGE) {
+      const { data, error: mErr } = await admin
+        .from("portfolio_metrics")
+        .select("portfolio_id, period, as_of, return_pct, benchmark_return_pct, sharpe, max_drawdown, benchmark_symbol, data_points")
+        .eq("period", "TOTAL")
+        .in("portfolio_id", ids.slice(i, i + 200))
+        .order("portfolio_id")
+        .order("as_of", { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (mErr) throw new Error(mErr.message || "portfolio_metrics");
+      metrics.push(...((data ?? []) as MetricRow[]));
+      if (!data || data.length < PAGE) break;
+    }
+  }
+  return beatMarketRowsFromMetrics(pfs as { id: string; slug: string; name: string; premium?: boolean }[], metrics);
+}
+
 export async function getBeatTheMarketRanking(
   limit = 5,
   sortBy: "excess" | "sharpe" = "excess",
 ): Promise<BeatMarketRow[]> {
   if (!isSupabaseLive()) return [];
   try {
-    const supabase = await createClient();
     const profile = await getProfile();
     const paid = isPaidPlan(profile?.plan);
+
+    // D42: una consulta cacheada (1 h) para todos los portafolios, en vez de
+    // una RPC por portafolio en cada request (~120 llamadas). El filtro
+    // premium por plan se aplica aqui, fuera del cache.
+    const cached = await beatMarketAllCached().catch(() => null);
+    if (cached) {
+      const visible = cached.filter((r) => !r.premium || paid).map(({ premium: _p, ...row }) => row);
+      return sortBeatMarket(visible, sortBy).slice(0, limit);
+    }
+
+    const supabase = await createClient();
 
     const { data: portfolioRows, error: portfoliosError } = await supabase
       .from("portfolios")
@@ -443,12 +536,7 @@ export async function getBeatTheMarketRanking(
       );
     }
 
-    rows.sort((x, y) =>
-      sortBy === "sharpe"
-        ? (y.sharpe ?? -Infinity) - (x.sharpe ?? -Infinity) || y.excess_return_pct - x.excess_return_pct
-        : y.excess_return_pct - x.excess_return_pct || (y.sharpe ?? -Infinity) - (x.sharpe ?? -Infinity),
-    );
-    return rows.slice(0, limit);
+    return sortBeatMarket(rows, sortBy).slice(0, limit);
   } catch (err) {
     console.warn(
       "[reclu] getBeatTheMarketRanking error:",
