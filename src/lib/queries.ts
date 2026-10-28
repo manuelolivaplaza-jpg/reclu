@@ -473,21 +473,45 @@ export async function getHoldingSymbolsAdmin(
     );
     return lists.flat();
   }
+  try {
+    return await getHoldingSymbolsCached([...new Set(portfolioIds)].sort());
+  } catch (err) {
+    const e = err as { message?: string; code?: string } | undefined;
+    console.warn("[reclu] getHoldingSymbolsAdmin error:", e?.message || e?.code || String(err));
+    return [];
+  }
+}
+
+/**
+ * D42: cacheada 1 h (tag portfolios). Pagina con range(): antes un .in() de
+ * 200 portafolios devolvia como mucho 1000 filas (tope de PostgREST) y el
+ * consenso quedaba truncado. Un error se lanza para no cachear una lista vacia.
+ */
+async function getHoldingSymbolsCached(portfolioIds: string[]): Promise<{ portfolio_id: string; symbol: string }[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PORTFOLIOS_TAG);
+  const admin = createAdminClient();
+  if (!admin) return [];
   const out: { portfolio_id: string; symbol: string }[] = [];
+  const PAGE = 1000;
   for (let i = 0; i < portfolioIds.length; i += 200) {
-    const { data, error } = await admin
-      .from("holdings")
-      .select("portfolio_id, symbol")
-      .in("portfolio_id", portfolioIds.slice(i, i + 200));
-    if (error) {
-      console.warn("[reclu] getHoldingSymbolsAdmin error:", error.code ?? "unknown");
-      continue;
-    }
-    for (const row of data ?? []) {
-      const r = row as { portfolio_id?: unknown; symbol?: unknown };
-      if (typeof r.portfolio_id === "string" && typeof r.symbol === "string") {
-        out.push({ portfolio_id: r.portfolio_id, symbol: r.symbol });
+    const chunk = portfolioIds.slice(i, i + 200);
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await admin
+        .from("holdings")
+        .select("portfolio_id, symbol")
+        .in("portfolio_id", chunk)
+        .order("id")
+        .range(from, from + PAGE - 1);
+      if (error) throw new Error(error.message || error.code || "holdings");
+      for (const row of data ?? []) {
+        const r = row as { portfolio_id?: unknown; symbol?: unknown };
+        if (typeof r.portfolio_id === "string" && typeof r.symbol === "string") {
+          out.push({ portfolio_id: r.portfolio_id, symbol: r.symbol });
+        }
       }
+      if (!data || data.length < PAGE) break;
     }
   }
   return out;

@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { getAlerts, getHoldingSymbolsAdmin, getPortfolios, getPerformanceSeriesAdmin } from "@/lib/queries";
 import { cardStatsById } from "@/lib/card-series";
 import { getBeatTheMarketRanking } from "@/lib/performance-queries";
@@ -13,6 +14,10 @@ const ALERT_RANKING_LIMIT = 1000;
  * era una consulta de holdings por cada portafolio).
  */
 export async function ExploreRankingsSection() {
+  // D42: alertas y ranking dependen del plan (cookies). Marcarla dinamica
+  // evita que el prerender lance fetch() que luego se aborta
+  // ("During prerendering, fetch() rejects when the prerender is complete").
+  await connection();
   const catalog = await getPortfolios();
   const [alerts, beatMarket, rows, seriesById] = await Promise.all([
     getAlerts(undefined, ALERT_RANKING_LIMIT),

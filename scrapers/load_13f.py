@@ -50,6 +50,57 @@ FUND_SLUG = {
 }
 
 
+def build_payload(pid: str, holdings: list[dict], resolve) -> list[dict]:
+    """D42: una fila por (simbolo, as_of). El peso es value/sum(value) del
+    libro completo (lo calcula sec13f); si dos emisores/CUSIP resuelven al
+    mismo ticker se suman (antes el upsert dejaba solo uno, o quedaban el
+    nombre y el ticker como filas separadas y el snapshot sumaba ~200%)."""
+    by: dict[tuple[str, str], dict] = {}
+    for h in holdings:
+        sym = (resolve(h["issuer"], h.get("cusip", "")) or h["issuer"])[:40]
+        key = (sym, str(h["as_of"]))
+        w = float(h.get("weight") or 0)
+        if key in by:
+            by[key]["weight"] = round(by[key]["weight"] + w, 4)
+        else:
+            by[key] = {
+                "portfolio_id": pid,
+                # 13F no trae ticker: se resuelve por CUSIP (OpenFIGI) o mapa
+                # curado. Si no se resuelve, queda el nombre (la etapa
+                # performance lo omite y lo registra; no se inventa).
+                "symbol": sym,
+                "name": h["issuer"],
+                "weight": round(w, 4),
+                "asset_class": "equity",
+                "currency": "USD",
+                "as_of": h["as_of"],
+                "previous_weight": 0.0,
+            }
+    return list(by.values())
+
+
+def stale_ids(existing: list[dict], payload: list[dict]) -> list[str]:
+    """Filas del mismo portafolio y as_of que el nuevo payload ya no trae
+    (ej. la fila con el nombre del emisor de una corrida anterior, cuando
+    ahora el CUSIP resuelve a ticker). Si se dejan, el snapshot suma doble."""
+    keep = {(p["symbol"], str(p["as_of"])[:10]) for p in payload}
+    dates = {str(p["as_of"])[:10] for p in payload}
+    return [str(r["id"]) for r in existing
+            if str(r.get("as_of"))[:10] in dates and (r.get("symbol"), str(r.get("as_of"))[:10]) not in keep]
+
+
+def _existing_rows(db, pid: str, as_of: str, page: int = 1000) -> list[dict]:
+    out: list[dict] = []
+    start = 0
+    while True:
+        rows = (db.table("holdings").select("id, symbol, as_of").eq("portfolio_id", pid).eq("as_of", as_of)
+                .order("id").range(start, start + page - 1).execute().data or [])
+        out.extend(rows)
+        if len(rows) < page:
+            return out
+        start += page
+
+
 def main() -> None:
     db = get_db()
     resolver = TickerResolver()
@@ -70,23 +121,17 @@ def main() -> None:
                 continue
             pid = pf.data["id"]
             resolver.prefetch(holdings)
-            payload = [
-                {
-                    "portfolio_id": pid,
-                    # 13F no trae ticker: se resuelve por CUSIP (OpenFIGI) o mapa
-                    # curado. Si no se resuelve, queda el nombre (la etapa
-                    # performance lo omite y lo registra; no se inventa).
-                    "symbol": (resolver.resolve(h["issuer"], h.get("cusip", "")) or h["issuer"])[:40],
-                    "name": h["issuer"],
-                    "weight": h["weight"],
-                    "asset_class": "equity",
-                    "currency": "USD",
-                    "as_of": h["as_of"],
-                    "previous_weight": 0.0,
-                }
-                for h in holdings
-            ]
+            payload = build_payload(pid, holdings, resolver.resolve)
             db.table("holdings").upsert(payload, on_conflict="portfolio_id,symbol,as_of").execute()
+            # D42: el snapshot queda exactamente igual al 13F (sin filas viejas).
+            existing: list[dict] = []
+            for d in sorted({str(p["as_of"])[:10] for p in payload}):
+                existing.extend(_existing_rows(db, pid, d))
+            stale = stale_ids(existing, payload)
+            for i in range(0, len(stale), 200):
+                db.table("holdings").delete().in_("id", stale[i:i + 200]).execute()
+            if stale:
+                print(f"   {name}: {len(stale)} filas viejas del mismo snapshot eliminadas")
             print(f"OK {name}: {len(holdings)} holdings -> {slug}")
             ok += 1
         except Exception as e:  # noqa: BLE001

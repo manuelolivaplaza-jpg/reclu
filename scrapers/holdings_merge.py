@@ -97,7 +97,7 @@ def render_sql(plan: dict[str, Any]) -> str:
     out = [
         "-- D34 resolve_tickers: plan revisable. NO lo corre ningún script.",
         f"-- renombrar {c['renombrar']} filas (UPDATE symbol), fusionar {c['fusionar']} "
-        f"(UPDATE weight en la fila destino + copia a holdings_merged + DELETE de la fila con nombre).",
+        f"(peso destino = el mayor de los dos + copia a holdings_merged + DELETE de la fila con nombre).",
         "-- Requiere la migración 064 (holdings_merged). Una sola transacción.",
         "begin;",
         "",
@@ -106,14 +106,17 @@ def render_sql(plan: dict[str, Any]) -> str:
     for r in plan["renames"]:
         out.append(f"update public.holdings set symbol = {_q(r['ticker'])} "
                    f"where id = {_q(r['id'])} and symbol = {_q(r['old'])};")
-    out += ["", "-- 2) Fusiones: archivar, sumar peso (tope 100), sacar la fila con nombre"]
+    # D42: NO se suman pesos. La fila con nombre y la del ticker son la MISMA
+    # posicion cargada en dos corridas (antes de y despues de resolver el
+    # CUSIP); sumar duplicaba el peso y los 13F quedaban en ~200%.
+    out += ["", "-- 2) Fusiones: archivar, quedarse con el mayor peso, sacar la fila con nombre"]
     for m in plan["merges"]:
         f, i = _q(m["from_id"]), _q(m["into_id"])
         out.append(f"-- {m['old']} -> {m['ticker']}")
         out.append(f"insert into public.holdings_merged (holding_id, merged_into, ticker, row_data) "
                    f"select h.id, {i}, {_q(m['ticker'])}, to_jsonb(h) from public.holdings h "
                    f"where h.id = {f} and h.symbol = {_q(m['old'])};")
-        out.append(f"update public.holdings set weight = least(100, weight + "
+        out.append(f"update public.holdings set weight = greatest(weight, "
                    f"coalesce((select weight from public.holdings where id = {f} and symbol = {_q(m['old'])}), 0)) "
                    f"where id = {i};")
         out.append(f"delete from public.holdings where id = {f} and symbol = {_q(m['old'])};")
@@ -122,8 +125,7 @@ def render_sql(plan: dict[str, Any]) -> str:
         "commit;",
         "",
         "-- Restaurar una fusión (ejemplo):",
-        "--   update public.holdings h set weight = h.weight - (m.row_data->>'weight')::numeric",
-        "--     from public.holdings_merged m where m.holding_id = '<id>' and h.id = m.merged_into;",
+        "--   (el peso destino no cambia salvo que la fila con nombre pesara mas; ver row_data)",
         "--   insert into public.holdings select (jsonb_populate_record(null::public.holdings, m.row_data)).*",
         "--     from public.holdings_merged m where m.holding_id = '<id>';",
         "",
