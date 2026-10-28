@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PortfolioCard } from "@/components/portfolio-card";
 import type { Portfolio } from "@/lib/types";
+import type { CardStat } from "@/lib/card-series";
 import { PAGE_SIZE, hasMore, nextCount } from "@/lib/explore-paging";
 
 /**
@@ -15,12 +16,15 @@ export function PortfolioGrid({
   followedIds,
   isPro,
   noSeriesIds = [],
+  cardStats = {},
 }: {
   portfolios: Portfolio[];
   followedIds: string[];
   isPro: boolean;
   /** D29: portafolios sin ningún punto de rendimiento (se muestran en gris). */
   noSeriesIds?: string[];
+  /** D40: retorno + sparkline reales por id (sin entrada = sin retorno). */
+  cardStats?: Record<string, CardStat>;
 }) {
   const noSeries = new Set(noSeriesIds);
   const [shown, setShown] = useState(Math.min(PAGE_SIZE, portfolios.length));
@@ -61,6 +65,7 @@ export function PortfolioGrid({
               portfolio={portfolio}
               isFollowing={followed.has(portfolio.id)}
               isPro={isPro}
+              stat={noSeries.has(portfolio.id) ? null : cardStats[portfolio.id] ?? null}
             />
           </li>
         ))}

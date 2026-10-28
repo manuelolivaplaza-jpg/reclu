@@ -1,5 +1,6 @@
 import type { Portfolio } from "@/lib/types";
 import type { HeroCard } from "@/lib/hero-portfolios";
+import { clipSeriesForSlug } from "@/lib/card-series";
 
 /**
  * Tarjetas destacadas del hero (D28): Berkshire a la izquierda, Trump dice
@@ -60,7 +61,8 @@ export function buildFeaturedHeroCards(
   for (const slug of FEATURED_HERO_SLUGS) {
     const p = portfolios.find((item) => item.slug === slug);
     if (!p) continue;
-    const series = seriesById.get(p.id) ?? [];
+    // D40: misma serie y mismo recorte que /trump-dice y el detalle.
+    const series = clipSeriesForSlug(p.slug, seriesById.get(p.id) ?? []);
     const cum = cumulativeFromPct(series);
     let returnPct: number | null = null;
     let periodLabel = "";
@@ -68,8 +70,9 @@ export function buildFeaturedHeroCards(
       returnPct = cum;
       periodLabel = `desde ${monthYear(series[0].date)}`;
     } else if (typeof p.return_ytd === "number") {
+      // D40: sin serie real la cifra es la estática del catálogo: se rotula.
       returnPct = p.return_ytd;
-      periodLabel = "YTD";
+      periodLabel = "YTD (estimado, sin serie real)";
     }
     if (returnPct === null) continue;
     cards.push({

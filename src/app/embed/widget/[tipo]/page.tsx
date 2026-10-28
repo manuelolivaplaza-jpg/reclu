@@ -15,7 +15,7 @@ import {
   type RankingSourceInput,
 } from "@/lib/ranking";
 import { RESEARCH_RESULTS } from "@/lib/research-results";
-import { formatPercent } from "@/lib/utils";
+import { formatPercent, formatPctPlain } from "@/lib/utils";
 import {
   CONSENSO_AS_OF,
   CONSENSO_SEMILLA,
@@ -151,7 +151,7 @@ function WeightRow({
           <span className="text-ink-500"> · {name}</span>
         ) : null}
       </span>
-      <span className="num shrink-0 text-[13px]">{weight.toFixed(1)}%</span>
+      <span className="num shrink-0 text-[13px]">{formatPctPlain(weight, 1)}</span>
     </li>
   );
 }

@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain } from "@/lib/utils";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -146,7 +147,7 @@ export function OverlapPanel({ symbols }: { symbols: string[] }) {
                           {categoryLabel(holder.category)}
                         </span>
                         <span className="ml-1.5 tabular-nums text-ink-500">
-                          {holder.weight.toFixed(1)}%
+                          {formatPctPlain(holder.weight, 1)}
                         </span>
                       </Link>
                     ))}

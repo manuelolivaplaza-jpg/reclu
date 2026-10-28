@@ -15,12 +15,14 @@ describe("hero destacado", () => {
   it("sparkline", () => expect(sparkline([{ date: "a", value: 0 }, { date: "b", value: 100 }], 3)).toEqual([1, 2]));
   it("orden Berkshire, Trump (destacado), IBIT y fallback YTD", () => {
     const ps = [P("3", "ibit", { return_ytd: 5 } as Partial<Portfolio>), P("1", "berkshire-hathaway"), P("2", "trump-dice")];
-    const s = new Map([["2", [{ date: "2025-08-06", value: 0 }, { date: "2026-10-22", value: 254.3 }]], ["1", [{ date: "2024-09-01", value: 0 }, { date: "2026-10-22", value: 20 }]]]);
+    const s = new Map([["2", [{ date: "2025-03-01", value: -40 }, { date: "2025-08-07", value: 0 }, { date: "2026-10-22", value: 254.3 }]], ["1", [{ date: "2024-09-01", value: 0 }, { date: "2026-10-22", value: 20 }]]]);
     const cards = buildFeaturedHeroCards(ps, s);
     expect(cards.map((c) => c.slug)).toEqual(["berkshire-hathaway", "trump-dice", "ibit"]);
     expect(cards[1].featured).toBe(true);
     expect(cards[1].periodLabel).toBe("desde ago 2025");
-    expect(cards[2].periodLabel).toBe("YTD");
+    expect(cards[2].periodLabel).toBe("YTD (estimado, sin serie real)");
+    // D40: Trump dice se recorta al 07-08-2025 (no usa el punto de marzo).
+    expect(cards[1].returnPct).toBe(254.3);
   });
   it("sin serie ni YTD no inventa", () => {
     expect(buildFeaturedHeroCards([P("1", "berkshire-hathaway")], new Map())).toEqual([]);

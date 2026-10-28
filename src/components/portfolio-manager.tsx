@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain } from "@/lib/utils";
 
 import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -80,7 +81,7 @@ function crossForPair(
 }
 
 function formatWeight(w: number): string {
-  return `${w.toFixed(1)}%`;
+  return `${formatPctPlain(w, 1)}`;
 }
 
 /**
@@ -471,7 +472,7 @@ function CrossPanel({
             <div className="bg-white p-6">
               <p className="text-[13px] font-normal text-ink-500">Solapamiento</p>
               <p className="num mt-1 text-[clamp(2.25rem,4vw,3rem)] leading-none text-ink-900">
-                {cross.overlapPct.toFixed(1)}%
+                {formatPctPlain(cross.overlapPct, 1)}
               </p>
               <p className="mt-2 text-[13px] text-ink-500">
                 {cross.shared.length} activo{cross.shared.length !== 1 ? "s" : ""} en común
@@ -496,9 +497,9 @@ function CrossPanel({
               {portfolioA.returnYtd !== null && portfolioB.returnYtd !== null && (
                 <p className="mt-2 text-[13px] text-ink-500">
                   {portfolioA.name}: {portfolioA.returnYtd > 0 ? "+" : ""}
-                  {portfolioA.returnYtd.toFixed(1)}% · {portfolioB.name}:{" "}
+                  {formatPctPlain(portfolioA.returnYtd, 1)} · {portfolioB.name}:{" "}
                   {portfolioB.returnYtd > 0 ? "+" : ""}
-                  {portfolioB.returnYtd.toFixed(1)}%
+                  {formatPctPlain(portfolioB.returnYtd, 1)}
                 </p>
               )}
             </div>

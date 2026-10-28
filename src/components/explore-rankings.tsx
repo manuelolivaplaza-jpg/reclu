@@ -3,6 +3,7 @@ import type { Alert, Portfolio } from "@/lib/types";
 import { cn, formatPercent } from "@/lib/utils";
 import type { BeatMarketRow } from "@/lib/performance-queries";
 import { BeatMarketRanking } from "@/components/beat-market-ranking";
+import type { CardStat } from "@/lib/card-series";
 
 const ROW_LIMIT = 5;
 const RADAR_LIMIT = 7;
@@ -24,19 +25,22 @@ export interface ConsensusTicker {
 /**
  * Tres rankings tipográficos del catálogo + Radar de Consenso.
  * El conteo de alertas se arma en memoria agrupando por portfolio_id.
- * return_ytd nulo no entra en Mejor retorno.
+ * D40: Mejor retorno sale de la serie real (cardStats), no del return_ytd
+ * estático; sin serie o con tramo estimado no entra. Más alertas oculta 0.
  */
 export function ExploreRankings({
   portfolios,
   alerts,
   consensus = [],
   beatMarket = [],
+  cardStats = {},
 }: {
   portfolios: Portfolio[];
   alerts: Alert[];
   consensus?: ConsensusTicker[];
   /** F5: ranking por exceso de retorno vs S&P 500 / IPSA (null si no hay datos). */
   beatMarket?: BeatMarketRow[];
+  cardStats?: Record<string, CardStat>;
 }) {
   const alertCount = new Map<string, number>();
   for (const alert of alerts) {
@@ -54,15 +58,18 @@ export function ExploreRankings({
     }));
 
   const bestReturn: RankingRow[] = portfolios
-    .filter((portfolio): portfolio is Portfolio & { return_ytd: number } => portfolio.return_ytd !== null)
-    .toSorted((a, b) => b.return_ytd - a.return_ytd)
+    .map((portfolio) => ({ portfolio, stat: cardStats[portfolio.id] }))
+    .filter((row): row is { portfolio: Portfolio; stat: CardStat & { pct: number } } =>
+      !!row.stat && row.stat.pct !== null && !row.stat.estimated,
+    )
+    .toSorted((a, b) => b.stat.pct - a.stat.pct)
     .slice(0, ROW_LIMIT)
-    .map((portfolio) => ({
+    .map(({ portfolio, stat }) => ({
       id: portfolio.id,
       slug: portfolio.slug,
       name: portfolio.name,
-      metric: formatPercent(portfolio.return_ytd),
-      tone: portfolio.return_ytd > 0 ? "positive" : portfolio.return_ytd < 0 ? "negative" : undefined,
+      metric: formatPercent(stat.pct),
+      tone: stat.pct > 0 ? "positive" : stat.pct < 0 ? "negative" : undefined,
     }));
 
   const mostAlerts: RankingRow[] = portfolios
@@ -70,6 +77,7 @@ export function ExploreRankings({
       portfolio,
       count: alertCount.get(portfolio.id) ?? 0,
     }))
+    .filter(({ count }) => count > 0)
     .toSorted((a, b) => b.count - a.count)
     .slice(0, ROW_LIMIT)
     .map(({ portfolio, count }) => ({
@@ -95,7 +103,7 @@ export function ExploreRankings({
       <div className="mt-8 grid grid-cols-1 gap-12 lg:grid-cols-3 lg:gap-10">
         <RankingTable title="Top seguidos" rows={topFollowed} />
         <RankingTable title="Mejor retorno" rows={bestReturn} />
-        <RankingTable title="Más alertas" rows={mostAlerts} />
+        {mostAlerts.length > 0 ? <RankingTable title="Más alertas" rows={mostAlerts} /> : null}
       </div>
 
       {beatMarket.length > 0 && <BeatMarketRanking rows={beatMarket} />}

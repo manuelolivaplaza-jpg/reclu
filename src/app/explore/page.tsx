@@ -1,5 +1,6 @@
 import { Suspense } from "react";
-import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin, getPortfolioIdsWithSeriesAdmin } from "@/lib/queries";
+import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin, getPortfolioIdsWithSeriesAdmin, getPerformanceSeriesAdmin } from "@/lib/queries";
+import { cardStatsById } from "@/lib/card-series";
 import { PortfolioGrid } from "@/components/explore/portfolio-grid";
 import { ExploreRankingsSection } from "@/components/explore/explore-rankings-section";
 import { RankingsSkeleton } from "@/components/explore/skeletons";
@@ -37,6 +38,11 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
     ? await filterByHoldingSymbol(listed, symbol)
     : listed;
 
+  // D40: retorno y sparkline de cada tarjeta desde la serie real (una
+  // consulta .in cacheada); sin serie la tarjeta no muestra cifra.
+  const seriesById = await getPerformanceSeriesAdmin(portfolios.map((p) => p.id));
+  const cardStats = cardStatsById(portfolios, seriesById);
+
   const followedIds = follows.map((f) => f.portfolio_id);
   const isPro = isPaidPlan(profile?.plan);
 
@@ -70,6 +76,7 @@ export default async function ExplorePage({ searchParams }: ExplorePageProps) {
               portfolios={portfolios}
               followedIds={followedIds}
               isPro={isPro}
+              cardStats={cardStats}
               noSeriesIds={withSeries ? portfolios.filter((p) => !withSeries.has(p.id)).map((p) => p.id) : []}
             />
           )}

@@ -716,3 +716,44 @@ export async function getUserHoldings(): Promise<UserHolding[]> {
   }
   return data ?? [];
 }
+
+/**
+ * D40: nombre real por símbolo, tomado de otras filas de `holdings` que sí
+ * lo traen (13F, ETF). Solo lectura con cliente de servicio, cacheada 1 h.
+ * Símbolos sin ningún nombre conocido no aparecen (no se inventa).
+ */
+export async function getSymbolNamesAdmin(symbols: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(symbols.map((s) => String(s ?? "").trim().toUpperCase()))].filter((s) => s && s.length <= 12).sort();
+  if (unique.length === 0 || !isSupabaseLive()) return new Map();
+  const rows = await getSymbolNamesCached(unique);
+  return new Map(rows);
+}
+
+async function getSymbolNamesCached(symbols: string[]): Promise<[string, string][]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PORTFOLIOS_TAG);
+  const admin = createAdminClient();
+  if (!admin) return [];
+  try {
+    const { data, error } = await admin
+      .from("holdings")
+      .select("symbol,name")
+      .in("symbol", symbols)
+      .not("name", "is", null)
+      .limit(2000);
+    if (error || !Array.isArray(data)) return [];
+    const out = new Map<string, string>();
+    for (const row of data as { symbol?: unknown; name?: unknown }[]) {
+      const sym = typeof row.symbol === "string" ? row.symbol.trim().toUpperCase() : "";
+      const name = typeof row.name === "string" ? row.name.replace(/^\s*corto\s*:\s*/i, "").trim() : "";
+      if (!sym || !name || name.toUpperCase() === sym) continue;
+      const prev = out.get(sym);
+      // Prefiere el nombre más largo (suele ser el oficial del 13F/ETF).
+      if (!prev || name.length > prev.length) out.set(sym, name);
+    }
+    return [...out];
+  } catch {
+    return [];
+  }
+}

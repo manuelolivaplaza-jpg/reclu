@@ -353,7 +353,9 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
       ...entry,
       returnPct: map.get(entry.slug) ?? null,
     }));
-    const top = topByReturn(withReturn, 5);
+    // D40: "Mejor rendimiento" solo compite con series reales; un período que
+    // toca puntos estimados no entra al ranking (sigue visible en Populares).
+    const top = topByReturn(withReturn.filter((entry) => !isEstimated(entry.slug, period.days)), 5);
     best[period.id] = top.map((entry) => ({
       ...toRow(entry),
       returnPct: entry.returnPct,
