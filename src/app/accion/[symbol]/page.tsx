@@ -13,7 +13,7 @@ import { getPortfolios, getHoldings } from "@/lib/queries";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CATEGORY_META } from "@/lib/types";
-import { timeAgo, formatCompact } from "@/lib/utils";
+import { timeAgo, formatCompact, formatPctPlain } from "@/lib/utils";
 
 interface AccionPageProps {
   params: Promise<{ symbol: string }>;
@@ -104,11 +104,11 @@ export default async function AccionPage({ params }: AccionPageProps) {
                 </div>
                 <div className="bg-white px-4 py-4 sm:px-6">
                   <dt className="text-[11px] tracking-[0.08em] text-ink-500 uppercase">Peso medio</dt>
-                  <dd className="num mt-1 text-2xl font-medium text-ink-900">{avgWeight.toFixed(1)}%</dd>
+                  <dd className="num mt-1 text-2xl font-medium text-ink-900">{formatPctPlain(avgWeight, 1)}</dd>
                 </div>
                 <div className="bg-white px-4 py-4 sm:px-6">
                   <dt className="text-[11px] tracking-[0.08em] text-ink-500 uppercase">Máximo</dt>
-                  <dd className="num mt-1 text-2xl font-medium text-ink-900">{maxWeight.toFixed(1)}%</dd>
+                  <dd className="num mt-1 text-2xl font-medium text-ink-900">{formatPctPlain(maxWeight, 1)}</dd>
                 </div>
               </dl>
             )}
@@ -250,7 +250,7 @@ function HolderRow({ holder }: { holder: TickerHolder }) {
         </div>
       </td>
       <td className="px-4 py-3.5 text-right font-medium tabular-nums text-ink-900">
-        {holder.weight.toFixed(1)}%
+        {formatPctPlain(holder.weight, 1)}
       </td>
       <td className="px-4 py-3.5 text-right tabular-nums">
         {delta !== null && delta !== 0 ? (
@@ -269,7 +269,7 @@ function HolderRow({ holder }: { holder: TickerHolder }) {
         {holder.returnPct !== null ? (
           <span className={holder.returnPct >= 0 ? "text-positive" : "text-negative"}>
             {holder.returnPct >= 0 ? "+" : ""}
-            {holder.returnPct.toFixed(1)}%
+            {formatPctPlain(holder.returnPct, 1)}
           </span>
         ) : (
           <span className="text-ink-400">—</span>

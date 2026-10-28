@@ -17,6 +17,7 @@ describe("portafolios ocultos (demo)", () => {
       "trump-truth-signals": "trump-dice",
       "afp-consenso-chile": "afp-modelo-acciones-cl",
       "inverse-cramer": "inverse-cramer-real",
+      "afp-multifondos": "afp-consenso-chile",
     });
   });
 

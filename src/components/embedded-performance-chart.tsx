@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain } from "@/lib/utils";
 
 import { useMemo } from "react";
 import type { PerformanceMetrics, SeriesPoint } from "@/lib/performance";
@@ -110,7 +111,7 @@ export function EmbeddedPerformanceChart({
             }
           >
             {total > 0 ? "+" : ""}
-            {total.toFixed(1)}%
+            {formatPctPlain(total, 1)}
           </p>
         ) : null}
       </div>

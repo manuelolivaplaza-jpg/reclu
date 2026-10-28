@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain, formatDecimal, formatSignedPct } from "@/lib/utils";
 
 import { useEffect, useId, useMemo, useRef, useState, type PointerEvent } from "react";
 import Link from "next/link";
@@ -58,8 +59,9 @@ function formatDate(date: string): string {
 
 function fmt(value: number | null | undefined, digits = 1, suffix = "%"): string | null {
   if (value === null || value === undefined || !Number.isFinite(value)) return null;
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(digits)}${suffix}`;
+  // D40: coma es-CL y signo menos tipográfico, como el resto del sitio.
+  if (suffix === "%") return formatSignedPct(value, digits);
+  return `${value > 0 ? "+" : ""}${formatDecimal(value, digits)}${suffix}`;
 }
 
 /** Curva comparativa portafolio (negro) vs benchmark (gris punteado). */
@@ -286,11 +288,11 @@ function BenchmarkChart({
               >
                 <p className="text-[11px] text-ink-500">{formatDate(tip.date)}</p>
                 <p className="num text-[13px] text-ink-900">
-                  Portafolio {tip.value.toFixed(1)}
+                  Portafolio {formatDecimal(tip.value, 1)}
                 </p>
                 {tipBench !== undefined ? (
                   <p className="num text-[13px] text-ink-500">
-                    {benchmarkLabel} {tipBench.toFixed(1)}
+                    {benchmarkLabel} {formatDecimal(tipBench, 1)}
                   </p>
                 ) : null}
               </div>
@@ -430,10 +432,10 @@ export function PerformancePanel({
       <dl className="mt-8 grid grid-cols-2 gap-px border border-ink-200 bg-ink-200 sm:grid-cols-3 lg:grid-cols-6">
         <MetricCell label="Retorno" value={fmt(total)} tone={total !== null ? (total > 0 ? "positive" : "negative") : undefined} />
         <MetricCell label={`vs ${benchmarkLabel}`} value={fmt(excess, 1, " pp")} tone={excess !== null ? (excess > 0 ? "positive" : excess < 0 ? "negative" : undefined) : undefined} />
-        <MetricCell label="Sharpe" value={sharpe !== null ? sharpe.toFixed(2) : null} tone={sharpe !== null ? (sharpe > 0 ? "positive" : "negative") : undefined} />
-        <MetricCell label="Máx. caída" value={drawdown !== null ? `-${drawdown.toFixed(1)}%` : null} tone="negative" />
+        <MetricCell label="Sharpe" value={sharpe !== null ? formatDecimal(sharpe, 2) : null} tone={sharpe !== null ? (sharpe > 0 ? "positive" : "negative") : undefined} />
+        <MetricCell label="Máx. caída" value={drawdown !== null ? formatPctPlain(-Math.abs(drawdown), 1) : null} tone="negative" />
         <MetricCell label="Volatilidad" value={fmt(volatility, 1, "%")} />
-        <MetricCell label="Le gana al índice" value={winRate !== null ? `${winRate.toFixed(0)}% de los días` : null} />
+        <MetricCell label="Le gana al índice" value={winRate !== null ? `${formatPctPlain(winRate, 0)} de los días` : null} />
       </dl>
 
       {publicationBlock}

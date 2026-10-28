@@ -72,6 +72,13 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  // D40: slugs inactivos -> 308 real (antes solo meta refresh en el stream).
+  async redirects() {
+    return [
+      { source: "/portfolio/inverse-cramer", destination: "/portfolio/inverse-cramer-real", permanent: true },
+      { source: "/portfolio/afp-multifondos", destination: "/portfolio/afp-consenso-chile", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

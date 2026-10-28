@@ -87,7 +87,6 @@ export function OnboardingSuggestions({ suggestions, isPro }: OnboardingSuggesti
             {portfolio.return_ytd !== null && (
               <p className="num mt-3 text-[15px] font-medium">
                 <span className={(portfolio.return_ytd ?? 0) >= 0 ? "text-positive" : "text-negative"}>
-                  {(portfolio.return_ytd ?? 0) >= 0 ? "+" : ""}
                   {formatSignedPct(portfolio.return_ytd)}
                 </span>
                 <span className="ml-2 text-[12px] font-normal text-ink-500">YTD</span>

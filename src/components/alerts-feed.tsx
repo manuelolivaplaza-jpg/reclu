@@ -7,7 +7,7 @@ import type { Alert, AlertType, PortfolioCategory } from "@/lib/types";
 import { LagBadge } from "@/components/lag-badge";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { lagDays, publishedAtFromPayload } from "@/lib/disclosure-lag";
-import { cn, timeAgo } from "@/lib/utils";
+import { cn, timeAgo, formatPctPlain } from "@/lib/utils";
 
 export interface EnrichedAlert extends Omit<Alert, "portfolio"> {
   portfolio: {
@@ -431,7 +431,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                       )}
                       {prevWeight !== null && newWeight !== null && (
                         <span className="font-normal text-ink-500 tabular-nums">
-                          ({prevWeight.toFixed(1)}% → {newWeight.toFixed(1)}%)
+                          ({formatPctPlain(prevWeight, 1)} → {formatPctPlain(newWeight, 1)})
                         </span>
                       )}
                     </Link>

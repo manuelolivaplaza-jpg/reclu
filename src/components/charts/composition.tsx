@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain } from "@/lib/utils";
 
 import { useState } from "react";
 
@@ -19,7 +20,7 @@ const PALETTE = ["#6366f1", "#22c55e", "#f59e0b", "#0ea5e9", "#ec4899", "#14b8a6
 const OTHERS = "#d4d4d4";
 
 function formatWeight(weight: number): string {
-  return `${(Number.isFinite(weight) ? weight : 0).toFixed(1)}%`;
+  return formatPctPlain(Number.isFinite(weight) ? weight : 0, 1);
 }
 
 /** Barra apilada redondeada + leyenda siempre visible. */

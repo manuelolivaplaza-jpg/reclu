@@ -2,8 +2,8 @@ import Link from "next/link";
 import { FollowButton } from "@/components/follow-button";
 import { Sparkline } from "@/components/sparkline";
 import { CATEGORY_META, type Portfolio } from "@/lib/types";
-import { formatCompact } from "@/lib/utils";
-import { sparklineData } from "@/components/sections/portfolio-data";
+import { formatCompact, formatSignedPct } from "@/lib/utils";
+import type { CardStat } from "@/lib/card-series";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { cn } from "@/lib/utils";
 import { portraitCreditText } from "@/components/portrait-credit";
@@ -12,6 +12,11 @@ interface PortfolioCardProps {
   portfolio: Portfolio;
   isFollowing?: boolean;
   isPro?: boolean;
+  /**
+   * D40: retorno y sparkline de la serie real. Sin `stat` (o pct null) la
+   * tarjeta no muestra retorno: nunca el return_ytd estático del catálogo.
+   */
+  stat?: CardStat | null;
 }
 
 /**
@@ -23,10 +28,12 @@ export function PortfolioCard({
   portfolio,
   isFollowing = false,
   isPro = false,
+  stat = null,
 }: PortfolioCardProps) {
   const meta = CATEGORY_META[portfolio.category];
-  const hasReturn = portfolio.return_ytd !== null;
-  const positive = (portfolio.return_ytd ?? 0) >= 0;
+  const pct = stat?.pct ?? null;
+  const hasReturn = pct !== null;
+  const positive = (pct ?? 0) >= 0;
 
   return (
     <div className="flex flex-col overflow-hidden border border-ink-200">
@@ -67,22 +74,26 @@ export function PortfolioCard({
         <p className="mt-1 text-[13px] text-ink-500">{portfolio.manager}</p>
       )}
 
-      {/* Retorno + sparkline */}
+      {/* Retorno + sparkline (serie real) */}
       {hasReturn && (
         <div className="mt-5 flex items-end justify-between gap-4">
-          <span
-            className={cn(
-              "num text-[2rem] leading-none",
-              positive ? "text-positive" : "text-negative",
-            )}
-          >
-            {positive ? "+" : ""}
-            {portfolio.return_ytd?.toFixed(1)}%
-          </span>
-          <Sparkline
-            data={sparklineData(portfolio.return_ytd ?? 0)}
-            className="h-9 w-24"
-          />
+          <div className="min-w-0">
+            <span
+              className={cn(
+                "num block text-[2rem] leading-none",
+                positive ? "text-positive" : "text-negative",
+              )}
+            >
+              {formatSignedPct(pct)}
+            </span>
+            <span className="mt-1 block text-[12px] text-ink-500">
+              {stat?.label}
+              {stat?.estimated ? " · estimado" : ""}
+            </span>
+          </div>
+          {stat && stat.spark.length >= 2 ? (
+            <Sparkline data={stat.spark} className="h-9 w-24" />
+          ) : null}
         </div>
       )}
 

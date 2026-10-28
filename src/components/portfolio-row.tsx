@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Sparkline } from "@/components/sparkline";
-import { sparklineData, type ShowcasePortfolio } from "@/components/sections/portfolio-data";
-import { cn } from "@/lib/utils";
+import type { ShowcasePortfolio } from "@/components/sections/portfolio-data";
+import { cn, formatSignedPct } from "@/lib/utils";
 
 /**
  * Fila tipográfica de portafolio — el bloque visual central de la home.
@@ -17,6 +17,8 @@ export function PortfolioRow({
   isLast?: boolean;
 }) {
   const positive = portfolio.returnPct >= 0;
+  // D40: solo serie real; sin serie no se dibuja (antes: curva inventada).
+  const spark = portfolio.spark ?? [];
 
   return (
     <Link
@@ -41,23 +43,21 @@ export function PortfolioRow({
 
       {/* Sparkline */}
       <div className="hidden md:block">
-        <Sparkline data={sparklineData(portfolio.returnPct)} className="h-10 w-full" />
+        {spark.length >= 2 ? <Sparkline data={spark} className="h-10 w-full" /> : null}
       </div>
 
       {/* Retorno */}
       <div className="flex items-baseline justify-between md:justify-end">
-        <Sparkline
-          data={sparklineData(portfolio.returnPct)}
-          className="h-9 w-full md:hidden"
-        />
+        {spark.length >= 2 ? (
+          <Sparkline data={spark} className="h-9 w-full md:hidden" />
+        ) : null}
         <span
           className={cn(
             "num text-[clamp(2rem,4vw,3.25rem)] leading-none",
             positive ? "text-positive" : "text-negative",
           )}
         >
-          {positive ? "+" : ""}
-          {portfolio.returnPct.toFixed(1)}%
+          {formatSignedPct(portfolio.returnPct)}
         </span>
       </div>
     </Link>

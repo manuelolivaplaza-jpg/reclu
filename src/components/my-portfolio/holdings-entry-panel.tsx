@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain } from "@/lib/utils";
 
 /**
  * holdings-entry-panel.tsx — carga de cartera por cantidad de acciones, monto
@@ -397,7 +398,7 @@ export function HoldingsEntryPanel({
                       />
                     </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums text-ink-900">
-                      {weight === undefined ? "—" : `${weight.toFixed(2)}%`}
+                      {weight === undefined ? "—" : `${formatPctPlain(weight, 2)}`}
                     </td>
                     <td className="py-2.5 text-right">
                       <button

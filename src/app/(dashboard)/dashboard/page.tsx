@@ -1,7 +1,8 @@
 import { connection } from "next/server";
 import Link from "next/link";
 import { BellRing, Plus, ArrowRight } from "lucide-react";
-import { getAlerts, getFollows, getPortfolios, getProfile } from "@/lib/queries";
+import { getAlerts, getFollows, getPortfolios, getProfile, getPerformanceSeriesAdmin } from "@/lib/queries";
+import { cardStatsById } from "@/lib/card-series";
 import { createClient } from "@/lib/supabase/server";
 import { PortfolioCard } from "@/components/portfolio-card";
 import { OnboardingSuggestions } from "@/components/onboarding-suggestions";
@@ -39,6 +40,9 @@ export default async function DashboardPage() {
   const suggestions = allPortfolios
     .filter((p) => !followedIds.has(p.id))
     .slice(0, 3);
+  // D40: retorno y sparkline reales para las tarjetas (sin serie, sin cifra).
+  const cardPortfolios = [...followed, ...suggestions];
+  const cardStats = cardStatsById(cardPortfolios, await getPerformanceSeriesAdmin(cardPortfolios.map((p) => p.id)));
 
   const isPro = isPaidPlan(profile?.plan);
   const isElite = profile?.plan === "elite";
@@ -196,7 +200,7 @@ export default async function DashboardPage() {
         {followed.length > 0 ? (
           <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {followed.map((portfolio) => (
-              <PortfolioCard key={portfolio.id} portfolio={portfolio} isFollowing isPro={isPro} />
+              <PortfolioCard key={portfolio.id} portfolio={portfolio} isFollowing isPro={isPro} stat={cardStats[portfolio.id]} />
             ))}
           </div>
         ) : (
@@ -220,7 +224,7 @@ export default async function DashboardPage() {
           <h2 className="text-[15px] font-medium text-ink-900">Sugerencias para ti</h2>
           <div className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {suggestions.map((portfolio) => (
-              <PortfolioCard key={portfolio.id} portfolio={portfolio} isPro={isPro} />
+              <PortfolioCard key={portfolio.id} portfolio={portfolio} isPro={isPro} stat={cardStats[portfolio.id]} />
             ))}
           </div>
         </section>

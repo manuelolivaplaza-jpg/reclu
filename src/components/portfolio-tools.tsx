@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain } from "@/lib/utils";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -66,7 +67,7 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
         </p>
         {holdings.length > 0 && visibleSum < 99 ? (
           <p className="mt-1 text-[12px] text-ink-500">
-            Visibles: {visibleSum.toFixed(1)}% del portafolio
+            Visibles: {formatPctPlain(visibleSum, 1)} del portafolio
           </p>
         ) : null}
       </div>
@@ -74,7 +75,7 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
       <div className="bg-white p-5">
         <p className="text-[13px] text-ink-500">Concentración Top 3</p>
         <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
-          {holdings.length > 0 ? `${top3Weight.toFixed(1)}%` : "—"}
+          {holdings.length > 0 ? `${formatPctPlain(top3Weight, 1)}` : "—"}
         </p>
       </div>
 
@@ -85,7 +86,7 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
             <>
               <span>{topHolding.symbol}</span>{" "}
               <span className="text-[15px] font-normal text-ink-500">
-                {topHolding.weight.toFixed(1)}%
+                {formatPctPlain(topHolding.weight, 1)}
               </span>
             </>
           ) : (

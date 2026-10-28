@@ -1,4 +1,5 @@
 "use client";
+import { formatPctPlain } from "@/lib/utils";
 
 import { useMemo, useState } from "react";
 import { DEFAULT_ALIGNMENT_ALERT_THRESHOLD } from "@/lib/alignment";
@@ -101,7 +102,7 @@ export function AlignmentPanel({
                 <li key={row.symbol} className="flex items-baseline justify-between border-t border-ink-100 py-2 text-[13px]">
                   <span className="num font-medium text-ink-900">{row.symbol}</span>
                   <span className="num text-ink-500">
-                    {row.targetWeight.toFixed(1)}% del objetivo
+                    {formatPctPlain(row.targetWeight, 1)} del objetivo
                   </span>
                 </li>
               ))}
@@ -127,7 +128,7 @@ export function AlignmentPanel({
                   <span className="num text-ink-500">
                     {row.delta < 0
                       ? `${Math.abs(row.delta).toFixed(1)} pp sobre el objetivo`
-                      : `fuera del objetivo (${row.userWeight.toFixed(1)}%)`}
+                      : `fuera del objetivo (${formatPctPlain(row.userWeight, 1)})`}
                   </span>
                 </li>
               ))}
@@ -160,8 +161,8 @@ export function AlignmentPanel({
               {alignment.weightDiffs.slice(0, 10).map((row) => (
                 <tr key={row.symbol} className="border-b border-ink-100">
                   <td className="py-2 font-medium text-ink-900">{row.symbol}</td>
-                  <td className="num py-2 text-right text-ink-600">{row.targetWeight.toFixed(1)}%</td>
-                  <td className="num py-2 text-right text-ink-600">{row.userWeight.toFixed(1)}%</td>
+                  <td className="num py-2 text-right text-ink-600">{formatPctPlain(row.targetWeight, 1)}</td>
+                  <td className="num py-2 text-right text-ink-600">{formatPctPlain(row.userWeight, 1)}</td>
                   <td
                     className={
                       "num py-2 text-right " +

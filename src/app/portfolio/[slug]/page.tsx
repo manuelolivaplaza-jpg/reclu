@@ -2,7 +2,7 @@ import { notFound, permanentRedirect } from "next/navigation";
 import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { getPortfolioBySlug, getPortfolioRedirect, getHoldings, getAlerts, getProfile, isFollowing, getPerformance, getEstimatedUntil } from "@/lib/queries";
+import { getPortfolioBySlug, getPortfolioRedirect, getHoldings, getAlerts, getProfile, isFollowing, getPerformance, getEstimatedUntil, getPerformanceSeriesAdmin, getSymbolNamesAdmin } from "@/lib/queries";
 import { getMentions, MUSK_INSIDER_NOTICE } from "@/lib/mentions-queries";
 import { getInsiderTrades, holdingsAtLatestAsOf } from "@/lib/insider-queries";
 import { InsiderTradesList } from "@/components/insider-trades-list";
@@ -14,6 +14,8 @@ import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
 import { PortfolioHero } from "@/components/portfolio-hero";
+import { SERIES_START_BY_SLUG, clipSeriesForSlug } from "@/lib/card-series";
+import { displayHoldings, displaySymbol, sourceLabel } from "@/lib/holding-display";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { PortraitCredit } from "@/components/portrait-credit";
 import { LagBadge } from "@/components/lag-badge";
@@ -27,7 +29,7 @@ import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, HOLDING_LIMITS } from "@/lib/access";
 import { buildComposition } from "@/lib/composition";
 import { absoluteUrl } from "@/lib/site";
-import { timeAgo, formatSignedPct } from "@/lib/utils";
+import { timeAgo, formatSignedPct, formatPctPlain } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
 import { OgeTradesPanel } from "@/components/oge-trades-panel";
@@ -189,7 +191,17 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
         return_pct: rp !== null && Number.isFinite(rp) ? rp : null,
       };
     });
-  const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsSafe) : holdingsSafe;
+  // D40: nombres reales (Title Case, sin sufijos), lado Corto/Largo
+  // consistente y símbolos de Polymarket truncados solo al mostrar.
+  const missingNames = holdingsSafe
+    .filter((h) => !h.name || h.name.replace(/^\s*corto\s*:\s*/i, "").trim().toUpperCase() === h.symbol.toUpperCase())
+    .map((h) => h.symbol);
+  const symbolNames = missingNames.length > 0 ? await getSymbolNamesAdmin(missingNames) : new Map<string, string>();
+  const holdingsNamed = displayHoldings(holdingsSafe, symbolNames).map((h) => ({
+    ...h,
+    name: h.side ? `${h.side}${h.name ? ` · ${h.name}` : ""}` : h.name,
+  }));
+  const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsNamed) : holdingsNamed;
 
   const meta = CATEGORY_META[portfolio.category];
   const isPro = isPaidPlan(profile?.plan);
@@ -235,7 +247,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   const holdingLimit = HOLDING_LIMITS[role];
   const composition = buildComposition(holdings, {
     complete: !Number.isFinite(holdingLimit) || holdings.length < holdingLimit,
-  });
+  }).map((slice) => ({ ...slice, symbol: displaySymbol(slice.symbol) }));
   const showComposition = composition.some((slice) => Number.isFinite(slice.weight) && slice.weight > 0);
   // AFP Modelo: la fecha es el as_of más nuevo de los holdings que el
   // muro ya entregó (get_portfolio_holdings). No se lee la tabla directa.
@@ -259,7 +271,14 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
   // Serie del hero: la MISMA que ya usa la página y que el servidor recortó
   // según el plan (queries.ts / getPerformance). Nunca se lee la tabla
   // directo: si el muro no deja pasar la serie, el hero no muestra % ni tarjeta.
-  const heroSource = performanceReal.length > 0 ? performanceReal : demoPoints;
+  // D40: portafolios con inicio oficial (Trump dice, desde 07-08-2025) usan
+  // la serie completa recortada a ese inicio: misma cifra que home y /trump-dice.
+  const officialStart = SERIES_START_BY_SLUG[portfolio.slug];
+  const officialSeries = officialStart
+    ? clipSeriesForSlug(portfolio.slug, (await getPerformanceSeriesAdmin([portfolio.id])).get(portfolio.id) ?? [])
+    : [];
+  const heroSource =
+    officialSeries.length >= 2 ? officialSeries : performanceReal.length > 0 ? performanceReal : demoPoints;
   const heroSeries = heroSource.map((point) => ({
     date: point.date,
     value_pct: point.value,
@@ -393,7 +412,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                       Fuente: Superintendencia de Pensiones
                     </a>
                   ) : (
-                    <span>Fuente: {portfolio.source === "sec_form4" ? "SEC Form 4" : portfolio.source}</span>
+                    <span>Fuente: {sourceLabel(portfolio.source)}</span>
                   )}
                 </div>
                 {esAfpModelo ? (
@@ -417,20 +436,18 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                         (seriesYtd >= 0 ? "text-positive" : "text-negative")
                       }
                     >
-                      {seriesYtd >= 0 ? "+" : ""}
                       {formatSignedPct(seriesYtd)}
                     </span>
                   </div>
-                ) : hasReturn ? (
+                ) : hasReturn && holdings.length > 0 ? (
                   <div className="mb-5">
-                    <p className="label-line">Retorno YTD (posiciones actuales)</p>
+                    <p className="label-line">Retorno YTD estimado (posiciones actuales)</p>
                     <span
                       className={
                         "num mt-1 block text-[1.75rem] leading-none tracking-[-0.02em] " +
                         (positive ? "text-positive" : "text-negative")
                       }
                     >
-                      {positive ? "+" : ""}
                       {formatSignedPct(portfolio.return_ytd)}
                     </span>
                   </div>
@@ -569,7 +586,7 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                                   href={`/accion/${encodeURIComponent(h.symbol.toLowerCase())}`}
                                   className="font-medium text-ink-900 underline-offset-4 hover:underline"
                                 >
-                                  {h.symbol}
+                                  {h.displaySymbol}
                                 </Link>
                                 {!esAgregado && h.return_pct !== null && (
                                   <span
@@ -580,14 +597,14 @@ export default async function PortfolioDetailPage({ params }: PortfolioPageProps
                                     title="Retorno desde declaración"
                                   >
                                     {h.return_pct >= 0 ? "+" : ""}
-                                    {h.return_pct.toFixed(1)}%
+                                    {formatPctPlain(h.return_pct, 1)}
                                   </span>
                                 )}
                               </div>
                               <div className="text-[13px] text-ink-500">{h.name}</div>
                             </td>
                             <td className="py-3.5 text-right font-medium tabular-nums text-ink-900">
-                              {h.weight.toFixed(1)}%
+                              {formatPctPlain(h.weight, 1)}
                             </td>
                             <td className="py-3.5 text-right tabular-nums">
                               {delta !== null && delta !== 0 ? (

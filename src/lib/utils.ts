@@ -27,6 +27,21 @@ export function formatSignedPct(value: number | null | undefined, digits = 1): s
   return `${rounded > 0 ? "+" : rounded < 0 ? MINUS : ""}${text}%`;
 }
 
+/** D40: porcentaje sin signo forzado, con coma es-CL ("46,4%", "−2,0%"). */
+export function formatPctPlain(value: number | null | undefined, digits = 1): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "\u2014";
+  const factor = 10 ** digits;
+  const rounded = Math.round(value * factor) / factor;
+  const text = Math.abs(rounded).toLocaleString("es-CL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return `${rounded < 0 ? MINUS : ""}${text}%`;
+}
+
+/** D40: número decimal es-CL sin unidad ("1,24"). */
+export function formatDecimal(value: number, digits = 1): string {
+  const text = Math.abs(value).toLocaleString("es-CL", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return `${value < 0 ? MINUS : ""}${text}`;
+}
+
 /** Alias histórico: mismo formato único. */
 export function formatPercent(value: number, digits = 1): string {
   return formatSignedPct(value, digits);

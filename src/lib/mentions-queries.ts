@@ -171,7 +171,7 @@ export function selectVerifiedMentions(rows: readonly MentionRow[]): PublicMenti
  * Manu, 2026-10-23: M04-M15). M01 TSLA, M02 SPY y M03 X siguen en la base
  * pero no se muestran.
  */
-export const TRUMP_DICE_START = "2025-08-06";
+export const TRUMP_DICE_START = "2025-08-07";
 
 export function fromTrumpStart<T extends { entryDate: string }>(rows: readonly T[]): T[] {
   return rows.filter((row) => row.entryDate.slice(0, 10) >= TRUMP_DICE_START);

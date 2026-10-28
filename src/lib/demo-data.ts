@@ -447,6 +447,8 @@ export const HIDDEN_DEMO_SLUGS: Record<string, string | null> = {
   "trump-truth-signals": "trump-dice",
   "afp-consenso-chile": "afp-modelo-acciones-cl",
   "inverse-cramer": "inverse-cramer-real",
+  // D40: multifondos quedó inactivo; su reemplazo real es el consenso AFP.
+  "afp-multifondos": "afp-consenso-chile",
 };
 
 /** True si el slug corresponde a un portafolio oculto (cifras inventadas). */
