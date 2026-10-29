@@ -2,12 +2,35 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { Chip } from "@/components/app";
 
 export const metadata: Metadata = {
   title: "Metodología",
   description:
     "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, el ranking honesto, el muro de 90 días, los datos públicos de funcionarios y la anonimización de personas naturales.",
 };
+
+const SECTIONS = [
+  { id: "datos", label: "Datos de partida" },
+  { id: "retornos", label: "Retornos" },
+  { id: "riesgo", label: "Riesgo" },
+  { id: "benchmarks", label: "Benchmarks" },
+  { id: "politicos", label: "Por qué los políticos son estimaciones" },
+  { id: "limites", label: "Límites y sesgos" },
+  { id: "ranking", label: "Ranking" },
+  { id: "muro", label: "Muro de pago" },
+  { id: "funcionarios", label: "Funcionarios públicos" },
+  { id: "anonimizacion", label: "Anonimización" },
+  { id: "trump-dice", label: "Trump dice" },
+  { id: "musk-dice", label: "Elon Musk dice" },
+];
+
+const PILLARS = [
+  { value: "Cierre", title: "Precios de cierre diarios" },
+  { value: "S&P · IPSA", title: "Benchmark por país" },
+  { value: "90 días", title: "Historial gratis" },
+  { value: "0", title: "Números inventados" },
+];
 
 /**
  * Página de metodología — transparencia total del cálculo.
@@ -17,37 +40,61 @@ export default function MetodologiaPage() {
   return (
     <>
       <SiteHeader />
-      <main id="main">
-        <div className="container-page max-w-3xl py-16 md:py-20">
-          <p className="label-line">Transparencia</p>
-          <h1 className="type-section mt-3 text-ink-900">Metodología.</h1>
-          <p className="type-body mt-5">
-            Todo número de rendimiento que publiquemos se calcula con las reglas de
-            esta página, sobre fuentes públicas y precios de cierre. Si un dato no
-            alcanza para calcular algo, mostramos “sin datos suficientes” — nunca
-            inventamos un número.
-          </p>
+      <main id="main" className="bg-app-canvas">
+        <div className="mx-auto w-full max-w-[1120px] px-4 pb-20 pt-6 sm:px-6 md:px-10 md:pt-12">
+          <section className="app-card p-5 sm:p-7">
+            <div className="flex flex-wrap gap-2">
+              <Chip tone="info">Transparencia</Chip>
+              <Chip>Reproducible</Chip>
+            </div>
+            <h1 className="mt-3 text-app-display font-semibold tracking-tight text-ink-900">Metodología</h1>
+            <p className="mt-2 max-w-2xl text-app-body text-ink-600">
+              Todo número de rendimiento que publiquemos se calcula con las reglas de esta página, sobre fuentes públicas y precios de cierre.
+              Si un dato no alcanza para calcular algo, mostramos “sin datos suficientes” — nunca inventamos un número.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {PILLARS.map((p) => (
+                <div key={p.title} className="rounded-2xl bg-ink-100/60 p-3 sm:p-4">
+                  <p className="text-[20px] font-semibold tracking-tight text-ink-900 tabular-nums">{p.value}</p>
+                  <p className="mt-0.5 text-app-caption text-ink-500">{p.title}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
-          <nav className="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
-            <a href="#datos" className="underline underline-offset-4">Datos de partida</a>
-            <a href="#retornos" className="underline underline-offset-4">Retornos</a>
-            <a href="#riesgo" className="underline underline-offset-4">Riesgo</a>
-            <a href="#benchmarks" className="underline underline-offset-4">Benchmarks</a>
-            <a href="#politicos" className="underline underline-offset-4">Por qué los políticos son estimaciones</a>
-            <a href="#limites" className="underline underline-offset-4">Límites y sesgos</a>
-            <a href="#ranking" className="underline underline-offset-4">Ranking</a>
-            <a href="#muro" className="underline underline-offset-4">Muro de pago</a>
-            <a href="#funcionarios" className="underline underline-offset-4">Funcionarios públicos</a>
-            <a href="#anonimizacion" className="underline underline-offset-4">Anonimización</a>
-            <a href="#trump-dice" className="underline underline-offset-4">Trump dice</a>
-            <a href="#musk-dice" className="underline underline-offset-4">Elon Musk dice</a>
+          <nav aria-label="Secciones" className="sticky top-14 z-10 -mx-4 mt-4 overflow-x-auto bg-app-canvas/90 px-4 py-2 backdrop-blur lg:hidden">
+            <div className="flex w-max gap-2">
+              {SECTIONS.map((s, i) => (
+                <a key={s.id} href={`#${s.id}`} className="inline-flex h-8 items-center rounded-full border border-app-border bg-app-card px-3 text-[13px] font-medium text-ink-700">
+                  {i + 1}. {s.label}
+                </a>
+              ))}
+            </div>
           </nav>
 
-          <section id="datos" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              1. Datos de partida
+          <div className="mt-4 grid gap-4 lg:grid-cols-[240px_1fr]">
+            <aside className="hidden lg:block">
+              <nav aria-label="Índice" className="app-card sticky top-20 p-3">
+                <p className="px-2 pb-2 text-app-caption font-medium text-ink-500">En esta página</p>
+                <ol className="flex flex-col">
+                  {SECTIONS.map((s, i) => (
+                    <li key={s.id}>
+                      <a href={`#${s.id}`} className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[13px] text-ink-700 hover:bg-ink-100">
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-md bg-ink-100 text-[11px] font-semibold tabular-nums">{i + 1}</span>
+                        {s.label}
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              </nav>
+            </aside>
+            <div className="flex min-w-0 flex-col gap-4">
+          <section id="datos" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">1</span>
+              Datos de partida
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 Cada portafolio se reconstruye como una cesta ponderada: los pesos
                 publicados de sus activos (declaraciones PTR de la Cámara de
@@ -57,7 +104,7 @@ export default function MetodologiaPage() {
               </p>
               <p>
                 El valor de la cesta del día <em>d</em> es la suma de{" "}
-                <span className="num">peso<sub>i</sub> × precio<sub>i,d</sub></span>{" "}
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">peso<sub>i</sub> × precio<sub>i,d</sub></span>{" "}
                 sobre los activos con precio conocido. Los activos sin precio quedan
                 fuera de la cesta de ese día y sus pesos se renormalizan; el
                 porcentaje cubierto siempre se puede consultar en el detalle de cada
@@ -71,14 +118,15 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="retornos" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              2. Retornos
+          <section id="retornos" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">2</span>
+              Retornos
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 <strong className="font-medium text-ink-900">Retorno acumulado</strong>:{" "}
-                <span className="num">(valor final / valor inicial − 1) × 100</span>{" "}
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">(valor final / valor inicial − 1) × 100</span>{" "}
                 de la serie base 100, entre el primer y el último día disponible.
               </p>
               <p>
@@ -92,7 +140,7 @@ export default function MetodologiaPage() {
               <p>
                 <strong className="font-medium text-ink-900">CAGR</strong> (retorno
                 anualizado):{" "}
-                <span className="num">
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">
                   (valor final / valor inicial)<sup>1/años</sup> − 1
                 </span>
                 , con años = días calendario / 365,25. Solo se calcula con al menos
@@ -101,21 +149,22 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="riesgo" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              3. Riesgo: volatilidad, Sharpe y máxima caída
+          <section id="riesgo" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">3</span>
+              Riesgo: volatilidad, Sharpe y máxima caída
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 <strong className="font-medium text-ink-900">Volatilidad anualizada</strong>:{" "}
                 desviación estándar muestral (n−1) de los retornos diarios de la
                 cesta, multiplicada por{" "}
-                <span className="num">√252</span> (días de bolsa). Se exigen al menos
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">√252</span> (días de bolsa). Se exigen al menos
                 10 retornos diarios.
               </p>
               <p>
                 <strong className="font-medium text-ink-900">Sharpe</strong>:{" "}
-                <span className="num">(CAGR − tasa libre de riesgo) / volatilidad anualizada</span>.
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">(CAGR − tasa libre de riesgo) / volatilidad anualizada</span>.
                 Usamos 4% anual como tasa libre de riesgo por defecto. El Sharpe exige
                 al menos 30 retornos diarios y CAGR disponible; con menos historia
                 queda en “—”.{" "}
@@ -127,17 +176,18 @@ export default function MetodologiaPage() {
               <p>
                 <strong className="font-medium text-ink-900">Máxima caída (max drawdown)</strong>:{" "}
                 la mayor pérdida porcentual desde un máximo anterior de la serie,{" "}
-                <span className="num">máx(1 − valor / máximo histórico previo)</span>.
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">máx(1 − valor / máximo histórico previo)</span>.
                 Mide el peor momento posible de haber comprado y vendido.
               </p>
             </div>
           </section>
 
-          <section id="benchmarks" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              4. Comparación contra el mercado
+          <section id="benchmarks" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">4</span>
+              Comparación contra el mercado
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 Cada portafolio se compara con su benchmark natural:{" "}
                 <strong className="font-medium text-ink-900">S&P 500 (^GSPC)</strong>{" "}
@@ -175,11 +225,12 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="politicos" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              5. Por qué los políticos son estimaciones
+          <section id="politicos" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">5</span>
+              Por qué los políticos son estimaciones
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 Las declaraciones de transacciones financieras (PTR) de EE.UU. se
                 publican con rangos (por ejemplo “US$15.001 – US$50.000”), describen
@@ -199,9 +250,10 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="limites" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              6. Límites y sesgos conocidos
+          <section id="limites" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">6</span>
+              Límites y sesgos conocidos
             </h2>
             <ul className="mt-5 list-disc space-y-2.5 pl-6 text-[15px] leading-relaxed text-ink-600">
               <li>
@@ -237,11 +289,12 @@ export default function MetodologiaPage() {
             </ul>
           </section>
 
-          <section id="ranking" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              7. Ranking honesto
+          <section id="ranking" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">7</span>
+              Ranking honesto
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 El <Link href="/ranking" className="underline underline-offset-4">
                   ranking
@@ -265,11 +318,12 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="muro" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              8. Muro de pago: 90 días de historial gratis
+          <section id="muro" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">8</span>
+              Muro de pago: 90 días de historial gratis
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 La cuenta Gratis permite seguir dos portafolios y recibir
                 alertas diarias. En los portafolios que no son premium, la serie
@@ -294,16 +348,17 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="funcionarios" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              9. Datos públicos de funcionarios, fuera del muro
+          <section id="funcionarios" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">9</span>
+              Datos públicos de funcionarios, fuera del muro
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 Las declaraciones financieras de funcionarios de EE.UU. —PTR de
                 la Cámara, PTR del Senado y formularios OGE 278-T— son públicas
                 por mandato legal. La{" "}
-                <span className="num">5 U.S.C. § 13107</span> exige que los
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">5 U.S.C. § 13107</span> exige que los
                 informes de divulgación financiera estén disponibles para
                 consulta pública. Por eso esas series se entregan completas,
                 gratis y sin muro, también para visitantes anónimos.
@@ -322,11 +377,12 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="anonimizacion" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              10. Anonimización de personas naturales
+          <section id="anonimizacion" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">10</span>
+              Anonimización de personas naturales
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 En el registro de 12 mayores accionistas de la CMF, las personas
                 naturales aparecen como{" "}
@@ -347,11 +403,12 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="trump-dice" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              11. Trump dice
+          <section id="trump-dice" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">11</span>
+              Trump dice
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 <strong className="font-medium text-ink-900">Trump dice</strong> es un
                 portafolio simulado. Cada vez que Donald Trump, en un dicho público
@@ -390,11 +447,12 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section id="musk-dice" className="mt-14">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              11. Elon Musk dice
+          <section id="musk-dice" className="app-card scroll-mt-28 p-5 sm:p-7">
+            <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">12</span>
+              Elon Musk dice
             </h2>
-            <div className="mt-5 space-y-4 text-[15px] leading-relaxed text-ink-600">
+            <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 <strong className="font-medium text-ink-900">Elon Musk dice</strong> no
                 es una cartera de señales. En el archivo de posts de @elonmusk solo hay
@@ -428,7 +486,7 @@ export default function MetodologiaPage() {
             </div>
           </section>
 
-          <section className="mt-16 border-t border-ink-200 pt-8">
+          <section className="rounded-2xl border border-app-border px-5 py-4">
             <h2 className="text-[15px] font-medium text-ink-900">Aviso legal</h2>
             <p className="mt-3 text-xs leading-relaxed text-ink-500">
               Toda la información de reclu.cl proviene de fuentes públicas y tiene
@@ -438,6 +496,8 @@ export default function MetodologiaPage() {
               no garantizan resultados futuros.
             </p>
           </section>
+            </div>
+          </div>
         </div>
       </main>
       <SiteFooter />

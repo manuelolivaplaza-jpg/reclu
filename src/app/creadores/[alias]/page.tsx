@@ -11,6 +11,7 @@ import {
   creatorPortfolioSchema,
 } from "@/lib/community";
 import { createClient } from "@/lib/supabase/server";
+import { Avatar, Chip, StatCard } from "@/components/app";
 
 // Lee la bandera COMMUNITY_ENABLED, el alias y Supabase por request.
 export const instant = false;
@@ -201,157 +202,135 @@ export default async function CreatorPage({ params }: CreatorPageProps) {
     notFound();
   }
 
+  const holdingsCount = portfolios.reduce((s, p) => s + p.holdings.length, 0);
+  const lastDate = portfolios[0] ? formatDate(portfolios[0].createdAt) : null;
+
   return (
     <>
       <SiteHeader />
-      <main id="main" className="flex-1">
-        <div className="container-page py-16 md:py-20">
-          <Link
-            href="/creadores"
-            className="text-xs uppercase tracking-[0.12em] text-ink-500 transition-opacity hover:opacity-60"
-          >
+      <main id="main" className="flex-1 bg-app-canvas">
+        <div className="mx-auto w-full max-w-[1120px] px-4 pb-20 pt-6 sm:px-6 md:px-10 md:pt-10">
+          <Link href="/creadores" className="inline-flex h-8 items-center rounded-full bg-app-card px-3 text-[13px] font-medium text-ink-700 shadow-sm hover:bg-ink-100">
             ← Creadores
           </Link>
 
           {loadError && (
-            <>
-              <h1 className="type-section mt-8 text-ink-900">
-                Perfil no disponible.
-              </h1>
-              <p
-                role="alert"
-                className="mt-8 max-w-3xl border border-ink-200 p-4 text-sm text-ink-900"
-              >
+            <section className="app-card mt-4 p-5 sm:p-7">
+              <h1 className="text-app-display font-semibold tracking-tight text-ink-900">Perfil no disponible</h1>
+              <p role="alert" className="mt-3 text-app-body text-ink-600">
                 {loadError}
               </p>
-              <div className="mt-12 max-w-3xl">
-                <LegalNotice kind="fintec" />
-              </div>
-            </>
+            </section>
           )}
 
           {profile && (
             <>
-              <p className="mt-8 text-xs uppercase tracking-[0.12em] text-ink-500">
-                Creador
-              </p>
-              <h1 className="type-section mt-3 break-words text-ink-900">
-                {profile.alias}
-              </h1>
-
-              {profile.bio && (
-                <p className="type-body mt-6 max-w-2xl">{profile.bio}</p>
-              )}
-
-              <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] uppercase tracking-[0.08em] text-ink-500">
-                <span>Perfil verificado por moderación</span>
-                {profile.declaraNoAsesoria && (
-                  <span>Declara que su contenido no es asesoría</span>
-                )}
-              </div>
+              <section className="app-card mt-4 p-5 sm:p-7">
+                <div className="flex items-center gap-4">
+                  <Avatar name={profile.alias} className="size-16 rounded-3xl text-[20px]" />
+                  <div className="min-w-0">
+                    <p className="text-app-caption font-medium text-ink-500">Creador</p>
+                    <h1 className="break-words font-mono text-app-display font-semibold tracking-tight text-ink-900">{profile.alias}</h1>
+                  </div>
+                </div>
+                {profile.bio && <p className="mt-4 max-w-2xl text-app-body text-ink-600">{profile.bio}</p>}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Chip tone="buy">✓ Verificado por moderación</Chip>
+                  {profile.declaraNoAsesoria && <Chip>Declara que no es asesoría</Chip>}
+                  {profile.conflictoInteres && <Chip tone="sell">Conflicto de interés</Chip>}
+                </div>
+                <div className="mt-5 grid grid-cols-3 gap-3">
+                  <StatCard label="Carteras" value={String(portfolios.length)} />
+                  <StatCard label="Posiciones" value={String(holdingsCount)} />
+                  <StatCard label="Última" value={lastDate} />
+                </div>
+              </section>
 
               {profile.conflictoInteres && (
-                <div className="mt-8 max-w-3xl border border-ink-200 px-4 py-3 text-[12px] leading-relaxed text-ink-500">
-                  <strong className="font-medium text-ink-900">
-                    Conflicto de interés declarado.
-                  </strong>{" "}
-                  {profile.conflictoInteres}
+                <div className="mt-4 rounded-2xl border border-negative/30 bg-negative/5 px-4 py-3 text-[13px] leading-relaxed text-ink-700">
+                  <strong className="font-semibold text-ink-900">Conflicto de interés declarado.</strong> {profile.conflictoInteres}
                 </div>
               )}
 
-              <div className="mt-8 max-w-3xl border border-ink-900 px-4 py-3 text-[12px] leading-relaxed text-ink-900">
-                <strong className="font-medium">
-                  Contenido de terceros, no asesoría.
-                </strong>{" "}
-                Las carteras las publica cada creador y reflejan su opinión, no
-                una recomendación de reclu.cl. No ejecutamos órdenes ni damos
-                asesoría de inversión personalizada. Los pesos son los que
-                declara el creador y no los verificamos posición por posición.
+              <div className="mt-4 rounded-2xl border border-ink-900/80 bg-app-card px-4 py-3 text-[13px] leading-relaxed text-ink-900">
+                <strong className="font-semibold">Contenido de terceros, no asesoría.</strong> Las carteras las publica cada creador y reflejan su
+                opinión, no una recomendación de reclu.cl. No ejecutamos órdenes ni damos asesoría de inversión personalizada. Los pesos son los
+                que declara el creador y no los verificamos posición por posición.
               </div>
 
               {!loadError && portfolios.length === 0 && (
-                <p className="mt-12 max-w-2xl text-[15px] text-ink-500">
-                  Este perfil todavía no tiene carteras aprobadas.
-                </p>
+                <div className="app-card mt-4 p-8 text-center">
+                  <p className="text-app-title font-semibold text-ink-900">Sin carteras aprobadas</p>
+                  <p className="mt-1 text-app-caption text-ink-500">Este perfil todavía no tiene carteras aprobadas.</p>
+                </div>
               )}
 
               {portfolios.length > 0 && (
-                <section className="mt-12" aria-labelledby="carteras">
-                  <h2
-                    id="carteras"
-                    className="text-xs uppercase tracking-[0.12em] text-ink-500"
-                  >
+                <section className="mt-6" aria-labelledby="carteras">
+                  <h2 id="carteras" className="mb-3 text-app-title font-semibold text-ink-900">
                     Carteras publicadas
                   </h2>
-                  <ul className="mt-4 border-b border-ink-200">
+                  <ul className="grid gap-4 lg:grid-cols-2">
                     {portfolios.map((portfolio) => {
                       const date = formatDate(portfolio.createdAt);
                       const total = totalWeight(portfolio.holdings);
+                      const sorted = [...portfolio.holdings].sort((a, b) => b.weight - a.weight);
+                      const max = Math.max(1, ...sorted.map((h) => h.weight));
                       return (
-                        <li
-                          key={portfolio.id}
-                          className="border-t border-ink-200 py-8"
-                        >
-                          <div className="grid gap-2 md:grid-cols-[1fr_auto] md:items-baseline md:gap-8">
-                            <h3 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-                              {portfolio.titulo}
-                            </h3>
-                            {date && (
-                              <span className="text-[12px] uppercase tracking-[0.08em] text-ink-500">
-                                {date}
-                              </span>
-                            )}
+                        <li key={portfolio.id} className="app-card p-4 sm:p-5">
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="text-[18px] font-semibold tracking-tight text-ink-900">{portfolio.titulo}</h3>
+                            {date && <Chip className="shrink-0">{date}</Chip>}
                           </div>
-
                           {portfolio.descripcion && (
-                            <p className="mt-3 max-w-2xl text-[14px] leading-relaxed text-ink-500">
-                              {portfolio.descripcion}
-                            </p>
+                            <p className="mt-2 text-[14px] leading-relaxed text-ink-600">{portfolio.descripcion}</p>
                           )}
-
-                          <div className="mt-6 max-w-2xl">
-                            <div className="grid grid-cols-[1fr_auto] gap-4 border-b border-ink-200 pb-2 text-[11px] uppercase tracking-[0.08em] text-ink-500">
-                              <span>Posición</span>
-                              <span>Peso declarado</span>
-                            </div>
-                            <ul>
-                              {portfolio.holdings.map((holding, index) => (
-                                <li
-                                  key={`${portfolio.id}-${holding.symbol}-${index}`}
-                                  className="grid grid-cols-[1fr_auto] items-baseline gap-4 border-b border-ink-200 py-2"
-                                >
-                                  <span className="min-w-0 text-[14px] text-ink-900">
-                                    <span className="font-mono text-[13px]">
-                                      {holding.symbol}
-                                    </span>
-                                    {holding.name ? (
-                                      <span className="ml-2 text-ink-500">
-                                        {holding.name}
-                                      </span>
-                                    ) : null}
-                                  </span>
-                                  <span className="num text-[14px] text-ink-900">
-                                    {formatWeight(holding.weight)}
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                            <p className="num mt-3 text-right text-[12px] text-ink-500">
-                              Total declarado: {formatWeight(total)}
-                            </p>
+                          {/* Barra de composición */}
+                          <div className="mt-4 flex h-2.5 overflow-hidden rounded-full bg-ink-100" aria-hidden>
+                            {sorted.map((h, i) => (
+                              <span
+                                key={`${h.symbol}-${i}`}
+                                className="h-full border-r border-app-card bg-ink-900 last:border-r-0"
+                                style={{ width: `${(h.weight / Math.max(total, 100)) * 100}%`, opacity: 1 - Math.min(i, 8) * 0.1 }}
+                              />
+                            ))}
                           </div>
+                          <ul className="mt-4 flex flex-col gap-2.5">
+                            {sorted.map((holding, index) => (
+                              <li key={`${portfolio.id}-${holding.symbol}-${index}`} className="flex items-center gap-3">
+                                <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ink-100 font-mono text-[11px] font-bold text-ink-900">
+                                  {holding.symbol.slice(0, 4)}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="truncate text-[14px] text-ink-900">
+                                    <span className="font-mono font-semibold">{holding.symbol}</span>
+                                    {holding.name ? <span className="ml-2 text-ink-500">{holding.name}</span> : null}
+                                  </p>
+                                  <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-ink-100">
+                                    <span className="block h-full rounded-full bg-ink-900" style={{ width: `${(holding.weight / max) * 100}%` }} />
+                                  </span>
+                                </div>
+                                <span className="w-16 shrink-0 text-right text-[14px] font-semibold tabular-nums text-ink-900">
+                                  {formatWeight(holding.weight)}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="mt-4 border-t border-app-border pt-3 text-right text-app-caption tabular-nums text-ink-500">
+                            Total declarado: {formatWeight(total)}
+                          </p>
                         </li>
                       );
                     })}
                   </ul>
                 </section>
               )}
-
-              <div className="mt-12 max-w-3xl">
-                <LegalNotice kind="fintec" />
-              </div>
             </>
           )}
+
+          <div className="mt-8 max-w-3xl">
+            <LegalNotice kind="fintec" />
+          </div>
         </div>
       </main>
       <SiteFooter />
