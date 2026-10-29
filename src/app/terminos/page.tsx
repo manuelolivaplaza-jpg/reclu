@@ -77,7 +77,7 @@ export default function TerminosPage() {
             <section id="s5">
               <h2 className="text-lg font-semibold text-ink-900">5. Planes y pagos</h2>
               <p className="mt-2 leading-relaxed">
-                El plan gratuito permite seguir hasta 2 portafolios. El plan Pro se factura
+                El plan gratuito solo incluye las carteras recomendadas de corredoras. El plan Pro se factura
                 mensualmente y puede cancelarse en cualquier momento; la cancelación efectúa
                 al final del período pagado. No se realizan reembolsos por períodos parciales.
               </p>

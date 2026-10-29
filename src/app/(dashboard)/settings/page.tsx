@@ -179,7 +179,7 @@ export default async function SettingsPage() {
               ? "Portafolios ilimitados, Fondos 13F institucionales, Radar de Consenso, asistente ilimitado y exportación CSV."
               : profile.plan === "pro"
                 ? "Hasta 15 portafolios, resúmenes AI completos y alertas en tiempo real."
-                : "El plan gratuito permite seguir hasta 2 portafolios."}
+                : "El plan gratuito solo incluye las carteras recomendadas de corredoras."}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -189,7 +189,7 @@ export default async function SettingsPage() {
               {[
                 {
                   name: "Gratis — $0",
-                  desc: "2 portafolios · alertas diarias · 2 consultas de prueba al asistente",
+                  desc: "Carteras de corredoras · alertas diarias · 2 consultas de prueba al asistente",
                   current: profile.plan === "free",
                 },
                 {

@@ -111,7 +111,7 @@ export function OnboardingSuggestions({ suggestions, isPro }: OnboardingSuggesti
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-ink-200 pt-5">
         <p className="text-[13px] text-ink-500">
-          Plan gratuito: 2 portafolios con alertas diarias.
+          Plan gratuito: carteras recomendadas de corredoras.
         </p>
         <Link
           href="/explore"

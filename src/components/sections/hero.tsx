@@ -35,7 +35,7 @@ export function Hero({ cards, loading = false }: { cards: HeroCard[]; loading?: 
             </Link>
 
             <p className="mt-5 text-[13px] text-neutral-500">
-              Gratis en 2 portafolios. Sin tarjeta.
+              Gratis con carteras de corredoras. Sin tarjeta.
             </p>
 
             <Link

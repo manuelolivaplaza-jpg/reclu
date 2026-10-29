@@ -144,7 +144,7 @@ export const PLANS: Record<Plan, PlanConfig> = {
       autoAlertsMaxPerDay: 0,
       portfolioExportCsv: false,
       features: [
-        "Seguir hasta 2 portafolios públicos",
+        "Solo incluye las carteras recomendadas de corredoras",
         "Alertas por email con resumen diario",
         "Resumen semanal «Lo que movieron los grandes»",
         "Explorador público y retorno YTD",
