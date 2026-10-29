@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { isLogoImage } from "@/components/portrait-credit";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -62,7 +63,13 @@ function PortfolioRow({
       <PortfolioAvatar
         portfolio={{ slug, name, category: category ?? "thematic", cover_image: coverImage, portrait_image: portraitImage ?? null }}
         size={64}
-        title={portraitImage ? "Foto: retrato oficial, dominio público" : undefined}
+        title={
+          portraitImage
+            ? isLogoImage(portraitImage)
+              ? "Logo: marca de su titular, uso referencial"
+              : "Foto: retrato oficial, dominio público"
+            : undefined
+        }
       />
 
       <div className="min-w-0 flex-1">
