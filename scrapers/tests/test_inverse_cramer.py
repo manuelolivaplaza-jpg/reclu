@@ -183,9 +183,9 @@ def test_venta_de_cramer_es_compra_de_reclu():
     assert alert["title"] == "Inverse Cramer: compra RKLB"
 
 
-def test_json_curado_tiene_27_articulos_completos():
+def test_json_curado_tiene_38_picks_completos():
     picks = load_picks()
-    assert len(picks) == 27
+    assert len(picks) == 38
     assert all(pick["status"] == "verificada" for pick in picks)
-    assert sum(1 for pick in picks if pick["sentido"] == "compra") == 17
-    assert sum(1 for pick in picks if pick["sentido"] == "venta") == 10
+    assert sum(1 for pick in picks if pick["sentido"] == "compra") == 22
+    assert sum(1 for pick in picks if pick["sentido"] == "venta") == 16

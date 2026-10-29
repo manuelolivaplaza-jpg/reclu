@@ -28,6 +28,17 @@
     {"fecha": "2026-10-13", "ticker": "MTZ", "sentido": "compra", "cita": "buy MasTec", "url": "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html"},
     {"fecha": "2026-10-13", "ticker": "STWD", "sentido": "venta", "cita": "don't want to own", "url": "https://www.cnbc.com/2026/10/13/cramers-lightning-round-hold-on-to-element-solutions.html"},
     {"fecha": "2026-10-15", "ticker": "RDDT", "sentido": "compra", "cita": "buy", "url": "https://www.cnbc.com/2026/10/15/cramers-lightning-round-buy-reddit.html"},
-    {"fecha": "2026-10-15", "ticker": "RKLB", "sentido": "venta", "cita": "sell, sell, sell", "url": "https://www.cnbc.com/2026/10/15/cramers-lightning-round-buy-reddit.html"}
+    {"fecha": "2026-10-15", "ticker": "RKLB", "sentido": "venta", "cita": "sell, sell, sell", "url": "https://www.cnbc.com/2026/10/15/cramers-lightning-round-buy-reddit.html"},
+    {"fecha": "2026-10-19", "ticker": "APP", "sentido": "venta", "cita": "I'm just going to have to say no", "url": "https://www.cnbc.com/2026/10/19/cramers-lightning-round-do-not-own-mfa-financial.html"},
+    {"fecha": "2026-10-19", "ticker": "VALE", "sentido": "compra", "cita": "I like it. I think that's a good idea", "url": "https://www.cnbc.com/2026/10/19/cramers-lightning-round-do-not-own-mfa-financial.html"},
+    {"fecha": "2026-10-19", "ticker": "MFA", "sentido": "venta", "cita": "do not own that stock", "url": "https://www.cnbc.com/2026/10/19/cramers-lightning-round-do-not-own-mfa-financial.html"},
+    {"fecha": "2026-10-19", "ticker": "KTOS", "sentido": "venta", "cita": "I don't want to touch the defense stocks", "url": "https://www.cnbc.com/2026/10/19/cramers-lightning-round-do-not-own-mfa-financial.html"},
+    {"fecha": "2026-10-26", "ticker": "CELH", "sentido": "venta", "cita": "Celsius is a second rate Monster", "url": "https://www.cnbc.com/2026/10/26/cramers-lightning-round-celsius-is-a-second-rate-monster.html"},
+    {"fecha": "2026-10-26", "ticker": "USAR", "sentido": "venta", "cita": "I don't want you to touch that thing", "url": "https://www.cnbc.com/2026/10/26/cramers-lightning-round-celsius-is-a-second-rate-monster.html"},
+    {"fecha": "2026-10-26", "ticker": "GBCI", "sentido": "compra", "cita": "I like it", "url": "https://www.cnbc.com/2026/10/26/cramers-lightning-round-celsius-is-a-second-rate-monster.html"},
+    {"fecha": "2026-10-26", "ticker": "IBRX", "sentido": "compra", "cita": "I don't mind you taking position in that", "url": "https://www.cnbc.com/2026/10/26/cramers-lightning-round-celsius-is-a-second-rate-monster.html"},
+    {"fecha": "2026-10-27", "ticker": "RVMD", "sentido": "compra", "cita": "I think you have to let it run", "url": "https://www.cnbc.com/2026/10/27/cramers-lightning-round-penguin-solutions-sells-at-a-low-multiple.html"},
+    {"fecha": "2026-10-28", "ticker": "SE", "sentido": "venta", "cita": "a Singapore company I've been very negative on", "url": "https://www.cnbc.com/2026/10/28/cramers-lightning-round-broadcom-has-been-one-of-the-greatest-performers-of-all-time.html"},
+    {"fecha": "2026-10-28", "ticker": "VICR", "sentido": "compra", "cita": "Yes it is [still a winner]", "url": "https://www.cnbc.com/2026/10/28/cramers-lightning-round-broadcom-has-been-one-of-the-greatest-performers-of-all-time.html"}
   ]
 }
