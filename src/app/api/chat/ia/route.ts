@@ -27,7 +27,6 @@ import { TOOL_DEFINITIONS, executeTool, type HoldingsProposal, type PortfolioCar
 import { chatIaConfig, orComplete, orStream, textAsSse, type OrMessage } from "@/lib/chat-ia/openrouter-tools";
 import { ensureConversation, insertMessage } from "@/lib/chat-ia/conversations";
 
-export const runtime = "nodejs";
 const MAX_TOOL_ROUNDS = 3;
 const noStore = { "Cache-Control": "no-store" };
 
