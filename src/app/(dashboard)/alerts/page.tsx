@@ -4,6 +4,7 @@ import { getAlerts, getFollows, getPortfolios, getProfile } from "@/lib/queries"
 import { isPaidPlan, type Alert, type PortfolioCategory } from "@/lib/types";
 import { roleFor } from "@/lib/access";
 import { AlertsFeed, type EnrichedAlert } from "@/components/alerts-feed";
+import { AlertsSkeleton } from "./alerts-skeleton";
 
 export const metadata = { title: "Alertas" };
 // Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
@@ -11,28 +12,18 @@ export const instant = false;
 
 export default function AlertsPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
-          Historial de alertas
+    <div className="flex min-w-0 flex-col gap-5">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] text-ink-900 sm:text-[32px]">
+          Alertas
         </h1>
-        <p className="mt-1.5 text-[15px] text-ink-500">
-          Operaciones declaradas, menciones públicas, rebalanceos y filings 13F con resumen AI.
+        <p className="text-[14px] text-ink-500 sm:text-[15px]">
+          Compras, ventas, menciones y filings 13F de los portafolios que sigues.
         </p>
-      </div>
+      </header>
       <Suspense fallback={<AlertsSkeleton />}>
         <AlertsContent />
       </Suspense>
-    </div>
-  );
-}
-
-function AlertsSkeleton() {
-  return (
-    <div className="flex flex-col gap-4">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="h-28 animate-pulse bg-ink-100" />
-      ))}
     </div>
   );
 }
@@ -81,6 +72,8 @@ async function AlertsContent() {
         name: match?.name ?? joined?.name ?? "Portafolio",
         category: match?.category ?? joined?.category ?? "thematic",
         manager: match?.manager ?? joined?.manager ?? null,
+        cover_image: match?.cover_image ?? null,
+        portrait_image: match?.portrait_image ?? null,
       },
     };
   });
