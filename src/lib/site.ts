@@ -9,7 +9,18 @@
  * En local, un env var vacío cae a `http://localhost:3000`.
  */
 
+import { brandUrl } from "@/lib/brand";
+
 const DEFAULT_LOCAL_URL = "http://localhost:3000";
+
+/**
+ * Fraccion: en producción sin NEXT_PUBLIC_SITE_URL se usa el dominio de
+ * marca (NEXT_PUBLIC_BRAND_DOMAIN, por defecto fraccion.si).
+ */
+function defaultUrl(): string {
+  const isProd = process.env.VERCEL_ENV === "production" || process.env.PAYMENT_MODE === "production";
+  return isProd ? brandUrl() : DEFAULT_LOCAL_URL;
+}
 
 /** Normaliza: agrega https:// si falta, quita slash final. */
 function normalizeUrl(raw: string): string {
@@ -22,7 +33,7 @@ function normalizeUrl(raw: string): string {
 /** URL base pública del sitio, sin slash final. */
 export function siteUrl(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  return normalizeUrl(raw || DEFAULT_LOCAL_URL);
+  return normalizeUrl(raw.trim() || defaultUrl());
 }
 
 /** URL absoluta para una ruta interna (p. ej. `absoluteUrl("/explore")`). */

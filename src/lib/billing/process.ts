@@ -236,3 +236,19 @@ async function applySubscriptionState(
 
   return { planUpdated, status: `${state.status} (${reason})`, userId: sub.user_id, plan };
 }
+
+/**
+ * Sincroniza una suscripción consultando su estado al proveedor (vuelta del
+ * checkout). Usa la misma lógica que el webhook; no registra evento porque
+ * syncSubscription y profiles.plan son idempotentes por estado.
+ * Devuelve null si el proveedor no reconoce el id.
+ */
+export async function syncProviderSubscription(
+  provider: PaymentProvider,
+  providerSubscriptionId: string,
+): Promise<{ state: SubscriptionState["status"]; result: ProcessResult } | null> {
+  const state = await provider.getSubscriptionState(providerSubscriptionId);
+  if (!state) return null;
+  const result = await applySubscriptionState(provider, providerSubscriptionId, state);
+  return { state: state.status, result };
+}
