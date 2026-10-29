@@ -1,15 +1,16 @@
 import { Suspense } from "react";
 import { timed } from "@/lib/timing";
-import { getPortfolios, getFollows, getProfile, getHoldingSymbolsAdmin, getPortfolioIdsWithSeriesAdmin, getExploreCardStats, pickCardStats } from "@/lib/queries";
+import { getFollows, getProfile } from "@/lib/queries";
 import { PortfolioGrid } from "@/components/explore/portfolio-grid";
 import { ExploreRankingsSection } from "@/components/explore/explore-rankings-section";
 import { RankingsSkeleton } from "@/components/explore/skeletons";
-import { portfolioIdsWithSymbol } from "@/lib/explore-paging";
+import { exploreCardsPage, INITIAL_CARDS, listExplorePortfolios } from "@/lib/explore-cards";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { CATEGORY_META, isPaidPlan, type Portfolio, type PortfolioCategory } from "@/lib/types";
+import { CATEGORY_META, isPaidPlan, type PortfolioCategory } from "@/lib/types";
 import { ExploreToolbar } from "@/components/explore/explore-toolbar";
 import { ExploreHeroSection, ExploreHeroSkeleton } from "@/components/explore/explore-hero-section";
+
 
 
 export interface ExploreSearchParams {
@@ -28,24 +29,16 @@ export async function ExploreView({ params, inApp = false }: { params: ExploreSe
   const search = params.q ?? "";
   const symbol = (params.simbolo ?? "").trim().toUpperCase();
 
-  const [listed, follows, profile, withSeries, allStats] = await Promise.all([
-    timed("explore.getPortfolios", getPortfolios({ category, search })),
+  const [portfolios, follows, profile] = await Promise.all([
+    listExplorePortfolios({ category, search, symbol }),
     timed("explore.getFollows", getFollows()),
     timed("explore.getProfile", getProfile()),
-    timed("explore.idsWithSeries", getPortfolioIdsWithSeriesAdmin()),
-    timed("explore.cardStats", getExploreCardStats()),
   ]);
 
-  const portfolios = symbol
-    ? await filterByHoldingSymbol(listed, symbol)
-    : listed;
-
-  // D40: retorno y sparkline de cada tarjeta desde la serie real (una
-  // consulta .in cacheada); sin serie la tarjeta no muestra cifra.
-  // D43: tarjetas ya calculadas (cache remoto), sin bajar las series.
-  const cardStats = pickCardStats(portfolios, allStats);
-
-  const followedIds = follows.map((f) => f.portfolio_id);
+  // d62 (P2): el HTML trae solo las primeras INITIAL_CARDS tarjetas con los
+  // campos que se dibujan (sparklines <= 60 pts, 2 decimales); el resto se
+  // pide a /api/explore/cards al hacer scroll o "Cargar más".
+  const first = await exploreCardsPage(portfolios, 0, INITIAL_CARDS, follows.map((f) => f.portfolio_id));
   const isPro = isPaidPlan(profile?.plan);
 
 
@@ -85,11 +78,9 @@ export async function ExploreView({ params, inApp = false }: { params: ExploreSe
           </div>
         ) : (
           <PortfolioGrid
-            portfolios={portfolios}
-            followedIds={followedIds}
+            initial={first}
             isPro={isPro}
-            cardStats={cardStats}
-            noSeriesIds={withSeries ? portfolios.filter((p) => !withSeries.has(p.id)).map((p) => p.id) : []}
+            query={{ categoria: category === "all" ? "" : category, q: search, simbolo: symbol }}
           />
         )}
       </section>
@@ -115,10 +106,3 @@ export async function ExploreView({ params, inApp = false }: { params: ExploreSe
   );
 }
 
-
-/** Portafolios cuyo listado de holdings incluye el símbolo (ya en mayúsculas). Una sola consulta. */
-async function filterByHoldingSymbol(portfolios: Portfolio[], symbol: string): Promise<Portfolio[]> {
-  const rows = await getHoldingSymbolsAdmin(portfolios.map((portfolio) => portfolio.id));
-  const ids = portfolioIdsWithSymbol(rows, symbol);
-  return portfolios.filter((portfolio) => ids.has(portfolio.id));
-}

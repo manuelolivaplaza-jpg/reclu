@@ -51,9 +51,11 @@ export async function ExploreHeroSection() {
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6">
-      <ExploreHeroCarousel slides={slides} isPro={isPro} />
+      <div className="min-h-[520px] min-w-0 lg:min-h-[400px]">
+        <ExploreHeroCarousel slides={slides} isPro={isPro} />
+      </div>
 
-      <aside className="app-card rounded-2xl p-4 sm:p-5" aria-labelledby="tendencias-heading">
+      <aside className="app-card min-h-[380px] rounded-2xl p-4 sm:p-5 lg:min-h-[400px]" aria-labelledby="tendencias-heading">
         <div className="flex items-center justify-between">
           <h2 id="tendencias-heading" className="text-[15px] font-semibold text-ink-900">
             Mejor rendimiento
@@ -101,12 +103,12 @@ export async function ExploreHeroSection() {
   );
 }
 
-/** Esqueleto del panel principal (misma altura para no mover el layout). */
+/** Esqueleto del panel principal: mismas alturas mínimas que el panel real (d62, CLS <= 0,1). */
 export function ExploreHeroSkeleton() {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6" aria-hidden="true">
       <div className="app-card h-[520px] animate-pulse rounded-2xl bg-ink-50 max-sm:-mx-4 max-sm:rounded-none lg:h-[400px]" />
-      <div className="app-card hidden h-[400px] animate-pulse rounded-2xl bg-ink-50 lg:block" />
+      <div className="app-card h-[380px] animate-pulse rounded-2xl bg-ink-50 lg:h-[400px]" />
     </div>
   );
 }
