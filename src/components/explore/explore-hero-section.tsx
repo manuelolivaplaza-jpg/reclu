@@ -39,7 +39,7 @@ export async function ExploreHeroSection() {
   ]);
 
   const slides = top.map((p, i) =>
-    buildSlide(p, seriesById.get(p.id), holdingsList[i], { isFollowing: followed.has(p.id), isPro }),
+    buildSlide(p, seriesById.get(p.id), holdingsList[i], { isFollowing: followed.has(p.id), isPro, role }),
   );
 
   const stats = pickCardStats(catalog, allStats);

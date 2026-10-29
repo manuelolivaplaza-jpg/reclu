@@ -9,6 +9,7 @@ import { CATEGORY_META } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ExploreHeroChart } from "@/components/explore/explore-hero-chart";
 import type { FeaturedSlide } from "@/components/explore/explore-featured";
+import { LockedHoldings } from "@/components/locked-holdings";
 
 function fmtPct(v: number | null): string {
   if (v === null || !Number.isFinite(v)) return "—";
@@ -112,7 +113,12 @@ export function ExploreHeroCarousel({ slides, isPro }: { slides: FeaturedSlide[]
                     ))}
                   </dl>
 
-                  {s.top.length > 0 ? (
+                  {s.holdingsLocked ? (
+                    <div>
+                      <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-ink-500">Principales posiciones</p>
+                      <LockedHoldings compact />
+                    </div>
+                  ) : s.top.length > 0 ? (
                     <div>
                       <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-ink-500">Principales posiciones</p>
                       <ul className="flex flex-col gap-2.5">

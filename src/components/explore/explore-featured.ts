@@ -1,5 +1,6 @@
 import { clipSeriesForSlug } from "@/lib/card-series";
 import type { Holding, Portfolio } from "@/lib/types";
+import { holdingLimitFor, type AccessRole } from "@/lib/access";
 
 /** Datos planos (serializables) de una diapositiva del carrusel de Explorar. */
 export interface FeaturedSlide {
@@ -18,6 +19,8 @@ export interface FeaturedSlide {
   chart: { date: string; pct: number }[];
   estimated: boolean;
   top: { symbol: string; name: string; weight: number }[];
+  /** D55: posiciones bloqueadas para el plan (se muestra el bloque difuminado). */
+  holdingsLocked: boolean;
 }
 
 type Pt = { date: string; value: number; estimated?: boolean };
@@ -61,7 +64,7 @@ export function buildSlide(
   p: Portfolio,
   series: Pt[] | undefined,
   holdings: Holding[],
-  opts: { isFollowing: boolean; isPro: boolean },
+  opts: { isFollowing: boolean; isPro: boolean; role: AccessRole },
 ): FeaturedSlide {
   const pts = clipSeriesForSlug(p.slug, (series ?? []).filter((x) => Number.isFinite(x.value)));
   const windowDays = opts.isPro ? 366 : 90;
@@ -101,5 +104,6 @@ export function buildSlide(
     chart,
     estimated: visible.some((x) => x.estimated === true),
     top,
+    holdingsLocked: holdingLimitFor(opts.role, p) === 0 || (p.premium && !opts.isPro),
   };
 }

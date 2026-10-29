@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { holdingLimitFor } from "@/lib/access";
 import { ArrowRight, BellPlus, Compass } from "lucide-react";
 import { getAlerts, getFollows, getHoldings, getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
 import { clipSeriesForSlug } from "@/lib/card-series";
@@ -76,6 +77,7 @@ export async function ResumenView() {
       asOf: pts.length ? pts[pts.length - 1].date.split("-").reverse().join("-") : null,
       estimated: raw.some((r) => r.estimated),
       top,
+      holdingsLocked: holdingLimitFor(role, p) === 0 || (p.premium && !isPro),
     };
   });
 

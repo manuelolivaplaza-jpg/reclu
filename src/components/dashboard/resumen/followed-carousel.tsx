@@ -1,5 +1,6 @@
 "use client";
 
+import { LockedHoldings } from "@/components/locked-holdings";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -19,6 +20,8 @@ export interface CarouselSlide {
   asOf: string | null;
   estimated: boolean;
   top: { symbol: string; name: string; weight: number }[];
+  /** D55: posiciones bloqueadas para el plan. */
+  holdingsLocked?: boolean;
 }
 
 const KEYS: PeriodKey[] = ["1D", "1S", "1M", "YTD", "1A"];
@@ -96,7 +99,9 @@ export function FollowedCarousel({ slides }: { slides: CarouselSlide[] }) {
               <PerformanceChart points={s.points} className="h-[200px] sm:h-[260px]" />
               <div>
                 <p className="mb-2 text-app-caption font-medium text-ink-500">Principales posiciones</p>
-                {s.top.length > 0 ? (
+                {s.holdingsLocked ? (
+                  <LockedHoldings compact />
+                ) : s.top.length > 0 ? (
                   <ul className="flex flex-col gap-2">
                     {s.top.map((h) => (
                       <li key={h.symbol} className="flex items-center gap-2.5">

@@ -12,6 +12,8 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { holdingLimitFor, roleFor } from "@/lib/access";
+import type { Plan } from "@/lib/types";
 
 export const PERIODS = ["1M", "3M", "YTD", "1A", "TOTAL"] as const;
 export type Period = (typeof PERIODS)[number];
@@ -342,10 +344,16 @@ export async function executeTool(
         .maybeSingle();
       if (error || !data) return { forModel: { error: "Portafolio no encontrado." } };
       const p = data as PortfolioRow;
+      // D55: posiciones según holdingLimitFor (solo pago, salvo corredoras broker_cl).
+      const { data: prof } = await db.from("profiles").select("plan").eq("id", userId).maybeSingle();
+      const role = roleFor({ plan: ((prof as { plan?: Plan } | null)?.plan ?? "free") as Plan });
+      const limit = Math.min(10, holdingLimitFor(role, p));
       const [card, metrics, holdings] = await Promise.all([
         cardFor(db, p),
         metricsFor(db, p.id),
-        db.from("holdings").select("symbol, name, weight").eq("portfolio_id", p.id).order("weight", { ascending: false }).limit(10),
+        limit > 0
+          ? db.from("holdings").select("symbol, name, weight").eq("portfolio_id", p.id).order("weight", { ascending: false }).limit(limit)
+          : Promise.resolve({ data: [], error: null }),
       ]);
       return {
         forModel: {
@@ -361,6 +369,7 @@ export async function executeTool(
             max_drawdown: m.max_drawdown,
           })),
           top_holdings: holdings.error ? [] : holdings.data,
+          ...(limit === 0 ? { holdings_note: "Las posiciones de este portafolio son solo para suscriptores (plan Pro o Elite)." } : {}),
         },
         cards: [card],
       };

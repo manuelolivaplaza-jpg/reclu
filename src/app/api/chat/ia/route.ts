@@ -1,7 +1,7 @@
 /**
  * POST /api/chat/ia — chat IA del panel (D52).
  *
- * Orden de barreras: IA configurada -> sesión -> zod -> ráfaga por usuario ->
+ * Orden de barreras: sesión (401) -> IA configurada (503) -> zod -> ráfaga por usuario ->
  * cupo por plan (check_chat_quota, mismo que /api/chat) -> herramientas con
  * allowlist bajo la sesión/RLS -> filtro de recomendaciones -> SSE.
  *
@@ -35,6 +35,14 @@ function sse(obj: unknown): string {
 }
 
 export async function POST(request: Request) {
+  // Primero la sesión (401) y después la configuración de IA (503): sin
+  // sesión no se revela el estado de la configuración.
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return Response.json({ error: "Inicia sesión para usar el chat." }, { status: 401, headers: noStore });
+
   const cfg = chatIaConfig();
   if (!cfg.enabled) {
     return Response.json(
@@ -42,12 +50,6 @@ export async function POST(request: Request) {
       { status: 503, headers: noStore },
     );
   }
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return Response.json({ error: "Inicia sesión para usar el chat." }, { status: 401, headers: noStore });
 
   const raw = await request.text();
   if (raw.length > 64_000) return Response.json({ error: "Mensaje demasiado largo." }, { status: 413, headers: noStore });
