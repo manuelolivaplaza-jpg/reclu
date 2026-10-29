@@ -2,8 +2,7 @@ import { JsonLd } from "@/components/json-ld";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { DeferredAiChatWidget } from "@/components/deferred-widgets";
+import { DeferredAiChatWidget, DeferredSpeedInsights } from "@/components/deferred-widgets";
 import { PwaRegister } from "@/components/pwa-register";
 import { siteUrl } from "@/lib/site";
 import { plausibleDomain } from "@/lib/analytics";
@@ -91,7 +90,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <JsonLd data={organizationSchema()} />
         <JsonLd data={websiteSchema()} />
         <DeferredAiChatWidget />
-        <SpeedInsights />
+        {/* d65: medición real solo en producción y fuera del JS inicial. */}
+        {process.env.VERCEL_ENV === "production" ? <DeferredSpeedInsights /> : null}
         <PwaRegister />
       </body>
     </html>

@@ -72,8 +72,10 @@ describe("metadata por página", () => {
     expect(src("src/app/accion/[symbol]/page.tsx")).toMatch(/who === 0 && !overview\.displayName\)\) notFound\(\)/);
     expect(src("src/app/creadores/[alias]/page.tsx")).not.toContain("Creador no encontrado");
   });
-  it("hero: solo el hero real lleva h1", () => {
-    expect(src("src/components/sections/hero.tsx")).toContain('const Title = loading ? "p" : "h1"');
+  it("hero: un solo h1, estático (d65: el fallback ya no duplica el titular)", () => {
+    const hero = src("src/components/sections/hero.tsx");
+    expect(hero.match(/<h1\b/g)?.length).toBe(1);
+    expect(hero).not.toContain("ui/motion");
   });
 });
 
@@ -95,4 +97,4 @@ describe("JSON-LD", () => {
     expect(src("src/app/ranking/page.tsx")).toContain("itemListSchema(");
     expect(src("src/components/sections/faq.tsx")).toContain("faqSchema(FAQ_ITEMS)");
   });
-});
+});

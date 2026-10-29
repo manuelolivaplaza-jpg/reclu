@@ -1,4 +1,4 @@
-import { FadeIn, StaggerList, StaggerItem } from "@/components/ui/motion";
+import { FadeIn, StaggerList, StaggerItem } from "@/components/ui/reveal";
 
 const STEPS = [
   {

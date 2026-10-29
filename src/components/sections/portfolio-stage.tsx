@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { FadeIn, StaggerList } from "@/components/ui/motion";
+import { FadeIn, StaggerList } from "@/components/ui/reveal";
 import { ShowcaseList } from "./showcase-list";
 import { STAGE_PORTFOLIOS } from "./portfolio-data";
 

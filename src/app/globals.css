@@ -329,3 +329,25 @@ details[open] > summary ~ * {
     transform: none;
   }
 }
+
+/* d65: revelado sin JS (components/ui/reveal.tsx). Lo visible al cargar ya
+   está en el rango final de la línea de tiempo: se pinta sin esperar nada. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

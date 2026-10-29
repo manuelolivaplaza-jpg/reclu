@@ -1,5 +1,5 @@
 import { ButtonLink } from "@/components/ui/button";
-import { FadeIn } from "@/components/ui/motion";
+import { FadeIn } from "@/components/ui/reveal";
 
 /**
  * Close — cierre en blanco, sin caja ni degradado. H2 grande y un botón.

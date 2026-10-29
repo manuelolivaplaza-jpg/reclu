@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Check, Lock, Minus, Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
-import { FadeIn } from "@/components/ui/motion";
+import { FadeIn } from "@/components/ui/reveal";
 import { track } from "@/lib/analytics";
 import { PLANS, followLimitLabel, formatClp } from "@/lib/plans";
 
