@@ -318,18 +318,83 @@ def _decode(body: bytes) -> str:
     return body.decode("latin-1", errors="replace")
 
 
-def leer_cuerpo(client: httpx.Client, fecpro: str, idu: str = IDU_AFP_MODELO) -> bytes:
-    url = url_cuadro14(fecpro, idu)
+# Nombre de cada AFP tal como aparece en el portal (enlaces del cuadro 14).
+NOMBRE_PORTAL_POR_IDU: dict[str, str] = {
+    "42": "CAPITAL",
+    "35": "CUPRUM",
+    "27": "HABITAT",
+    "50": "MODELO",
+    "37": "PLANVITAL",
+    "29": "PROVIDA",
+    "51": "UNO",
+}
+
+_SECCION_14_RE = re.compile(r"14\.\s*Diversificaci", re.I)
+_SECCION_SIG_RE = re.compile(r"\b15\.\s*Diversificaci", re.I)
+
+
+def enlace_v2_cuadro14(portal_html: str, idu: str = IDU_AFP_MODELO) -> str | None:
+    """href del enlace 'Html' del cuadro 14 de una AFP en el portal del mes.
+
+    Desde 2026 el portal publica los cuadros con un `param` opaco
+    (genera_desagregada_xsl_v2.0.php?param=...) generado por el propio sitio.
+    No se descifra ni se fabrica: se lee el enlace publico tal como lo publica
+    el portal. None si la seccion 14 o la AFP no aparecen.
+    """
+    nombre = NOMBRE_PORTAL_POR_IDU.get(str(idu))
+    if not nombre or not portal_html:
+        return None
+    m = _SECCION_14_RE.search(portal_html)
+    if not m:
+        return None
+    fin = _SECCION_SIG_RE.search(portal_html, m.end())
+    seccion = portal_html[m.end(): fin.start() if fin else len(portal_html)]
+    patron = re.compile(
+        r"<td[^>]*>\s*" + re.escape(nombre) + r"\s*</td>\s*<td[^>]*>\s*"
+        r"<a[^>]*title=['\"]Html['\"][^>]*href=['\"]([^'\"]+)['\"]",
+        re.I,
+    )
+    hallado = patron.search(seccion)
+    return html_lib.unescape(hallado.group(1)) if hallado else None
+
+
+def _get(client: httpx.Client, url: str, referer: str, etiqueta: str) -> bytes:
     try:
-        resp = client.get(url, headers={"Referer": url_portal(fecpro)}, timeout=45.0)
+        resp = client.get(url, headers={"Referer": referer}, timeout=45.0)
     except httpx.HTTPError as exc:
-        log(f"[spensiones] {fecpro}: {exc}")
+        log(f"[spensiones] {etiqueta}: {exc}")
         return b""
     if resp.status_code != 200:
-        log(f"[spensiones] {fecpro}: HTTP {resp.status_code} ({len(resp.content)} bytes)")
+        log(f"[spensiones] {etiqueta}: HTTP {resp.status_code} ({len(resp.content)} bytes)")
         return b""
-    log(f"[spensiones] {fecpro}: {len(resp.content)} bytes")
     return resp.content
+
+
+def leer_cuerpo(client: httpx.Client, fecpro: str, idu: str = IDU_AFP_MODELO) -> bytes:
+    """Cuadro 14 de un mes y una AFP.
+
+    1) Endpoint antiguo (fecpro/idu en claro): sirve hasta mayo de 2026.
+    2) Si no trae el cuadro, el enlace v2 publicado en el portal del mes.
+    Si ninguno trae datos, el mes no esta publicado (se devuelve lo ultimo leido).
+    """
+    portal = url_portal(fecpro)
+    cuerpo = _get(client, url_cuadro14(fecpro, idu), portal, f"{fecpro}/{idu} antiguo")
+    if respuesta_publicada(cuerpo):
+        log(f"[spensiones] {fecpro}/{idu}: {len(cuerpo)} bytes (endpoint antiguo)")
+        return cuerpo
+    pagina = _get(client, portal, portal, f"{fecpro} portal")
+    href = enlace_v2_cuadro14(_decode(pagina), idu) if pagina else None
+    if not href:
+        log(f"[spensiones] {fecpro}/{idu}: el portal no trae enlace del cuadro 14")
+        return cuerpo
+    v2 = _get(client, urljoin(portal, href), portal, f"{fecpro}/{idu} v2")
+    if respuesta_publicada(v2):
+        log(f"[spensiones] {fecpro}/{idu}: {len(v2)} bytes (enlace v2 del portal)")
+        return v2
+    log(
+        f"[spensiones] {fecpro}/{idu}: no publicado (antiguo {len(cuerpo)} B, v2 {len(v2)} B)"
+    )
+    return v2 or cuerpo
 
 
 def buscar_cuadro14(
