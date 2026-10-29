@@ -133,7 +133,7 @@ export default async function TrumpDicePage() {
     <>
       <SiteHeader />
       <main id="main" className="bg-app-canvas">
-        <div className="mx-auto w-full max-w-[1120px] px-4 pb-20 pt-6 sm:px-6 md:px-10 md:pt-12">
+        <div className="mx-auto w-full max-w-[1360px] px-4 pb-20 pt-6 sm:px-6 md:px-10 md:pt-12">
           {/* Héroe: tarjeta grande con gráfico propio */}
           <section className="app-card overflow-hidden p-0">
             <div className="flex flex-col gap-5 p-5 sm:p-7">

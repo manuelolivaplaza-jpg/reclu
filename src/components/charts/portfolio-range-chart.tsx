@@ -10,9 +10,11 @@ export interface RangeSeriesPoint {
   value_pct: number;
 }
 
-type RangeKey = "1M" | "3M" | "1A" | "MAX";
+type RangeKey = "1D" | "1S" | "1M" | "3M" | "1A" | "MAX";
 
 const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
+  { key: "1D", label: "1D", days: 1 },
+  { key: "1S", label: "1S", days: 7 },
   { key: "1M", label: "1M", days: 31 },
   { key: "3M", label: "3M", days: 92 },
   { key: "1A", label: "1A", days: 366 },
@@ -20,6 +22,8 @@ const RANGES: { key: RangeKey; label: string; days: number | null }[] = [
 ];
 
 const RANGE_TEXT: Record<RangeKey, string> = {
+  "1D": "del último día",
+  "1S": "de la última semana",
   "1M": "último mes",
   "3M": "últimos 3 meses",
   "1A": "último año",
@@ -68,12 +72,15 @@ export function PortfolioRangeChart({
     const out = {} as Record<RangeKey, RangeSeriesPoint[]>;
     for (const r of RANGES) {
       const from = r.days === null ? -Infinity : last - r.days * 86_400_000;
-      out[r.key] = sorted.filter((p) => p.t >= from).map(({ date, value_pct }) => ({ date, value_pct }));
+      // d68: incluye el punto previo a la ventana como base (1D = vs cierre anterior).
+      const i = sorted.findIndex((p) => p.t >= from);
+      const start = i <= 0 ? 0 : i - 1;
+      out[r.key] = sorted.slice(start).map(({ date, value_pct }) => ({ date, value_pct }));
     }
     return out;
   }, [sorted]);
 
-  const [range, setRange] = useState<RangeKey>("MAX");
+  const [range, setRange] = useState<RangeKey>(() => (slices["1A"].length >= 2 ? "1A" : "MAX"));
   const current = slices[range];
   const sim = current.length >= 2 ? simulateInvestment(current, amount) : null;
   const positive = (sim?.gainPct ?? 0) >= 0;
@@ -135,7 +142,7 @@ export function PortfolioRangeChart({
           <AreaChart
             points={sim.points.map((p) => ({ x: p.date, y: p.value }))}
             positive={positive}
-            height={220}
+            height={300}
             format="usd"
             ariaLabel={`Evolución de ${fmtUsd(amount)} en el ${RANGE_TEXT[range]}: termina en ${fmtUsd(sim.finalValue)}.`}
           />

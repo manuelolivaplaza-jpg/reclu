@@ -57,7 +57,7 @@ function PerkIcon({ name }: { name: (typeof PERKS)[number]["icon"] }) {
 export function AuthShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="pub-canvas flex min-h-[100dvh] flex-col">
-      <div className="mx-auto grid w-full max-w-[1120px] flex-1 gap-6 px-4 py-5 md:px-8 md:py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
+      <div className="mx-auto grid w-full max-w-[1360px] flex-1 gap-6 px-4 py-5 md:px-8 md:py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-10">
         <main className="flex flex-col">
           <div className="flex items-center justify-between">
             <Link href="/" aria-label="Ir al inicio">

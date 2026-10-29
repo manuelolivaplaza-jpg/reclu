@@ -2,6 +2,11 @@ import { clipSeriesForSlug } from "@/lib/card-series";
 import type { Holding, Portfolio } from "@/lib/types";
 import { holdingLimitFor, type AccessRole } from "@/lib/access";
 
+import { HERO_PERIODS, type HeroPeriod } from "@/components/explore/explore-periods";
+export { HERO_PERIODS, type HeroPeriod };
+
+export type ChartPoint = { date: string; pct: number };
+
 /** Datos planos (serializables) de una diapositiva del carrusel de Explorar. */
 export interface FeaturedSlide {
   id: string;
@@ -14,12 +19,15 @@ export interface FeaturedSlide {
   followers: number;
   isFollowing: boolean;
   /** Retornos reales por período; null = sin dato ("—"). */
-  returns: { d1: number | null; w1: number | null; m1: number | null; y1: number | null };
-  /** Serie para el gráfico: retorno acumulado rebasado al primer punto visible. */
-  chart: { date: string; pct: number }[];
+  returns: Record<HeroPeriod, number | null>;
+  /** d68: serie por período (rebasada al primer punto). Ausente = sin datos o bloqueado. */
+  charts: Partial<Record<HeroPeriod, ChartPoint[]>>;
+  /** Períodos cerrados por el muro de pago (Free ve hasta 3M). */
+  lockedPeriods: HeroPeriod[];
+  /** Período inicial: 1A si existe, si no el más largo disponible. */
+  defaultPeriod: HeroPeriod;
   estimated: boolean;
   top: { symbol: string; name: string; weight: number }[];
-  /** D55: posiciones bloqueadas para el plan (se muestra el bloque difuminado). */
   holdingsLocked: boolean;
 }
 
@@ -27,9 +35,12 @@ type Pt = { date: string; value: number; estimated?: boolean };
 
 const DAY = 86_400_000;
 const t = (d: string) => Date.parse(`${d.slice(0, 10)}T00:00:00Z`);
+const PERIOD_DAYS: Record<HeroPeriod, number> = { d1: 1, w1: 7, m1: 30, m3: 91, y1: 365, max: Infinity };
+/** Muro: Free ve como máximo los últimos 90 días de gráfico. */
+const FREE_WINDOW_DAYS = 91;
 
 /** Retorno entre el último punto y el último punto con fecha <= fin − días. */
-function periodReturn(pts: Pt[], days: number, maxGapDays: number): number | null {
+export function periodReturn(pts: Pt[], days: number, maxGapDays: number): number | null {
   if (pts.length < 2) return null;
   const last = pts[pts.length - 1];
   const target = t(last.date) - days * DAY;
@@ -41,9 +52,13 @@ function periodReturn(pts: Pt[], days: number, maxGapDays: number): number | nul
     }
   }
   if (!base || target - t(base.date) > maxGapDays * DAY) return null;
-  const a = 1 + base.value / 100;
-  if (a <= 0) return null;
-  const r = ((1 + last.value / 100) / a - 1) * 100;
+  return between(base, last);
+}
+
+function between(a: Pt, b: Pt): number | null {
+  const x = 1 + a.value / 100;
+  if (x <= 0) return null;
+  const r = ((1 + b.value / 100) / x - 1) * 100;
   return Number.isFinite(r) ? r : null;
 }
 
@@ -55,10 +70,33 @@ function downsample<T>(arr: T[], n: number): T[] {
   return out;
 }
 
+/** Serie del período rebasada a 0% en su primer punto (null si < 2 puntos). */
+export function periodChart(pts: Pt[], period: HeroPeriod): ChartPoint[] | null {
+  if (pts.length < 2) return null;
+  const lastT = t(pts[pts.length - 1].date);
+  const days = PERIOD_DAYS[period];
+  let visible: Pt[];
+  if (!Number.isFinite(days)) visible = pts;
+  else {
+    const from = lastT - days * DAY;
+    const firstIn = pts.findIndex((x) => t(x.date) >= from);
+    // Incluye el punto anterior a la ventana como base (así 1D compara con el cierre previo).
+    const start = firstIn <= 0 ? 0 : firstIn - 1;
+    visible = pts.slice(start);
+  }
+  if (visible.length < 2) return null;
+  const base = 1 + visible[0].value / 100;
+  if (base <= 0) return null;
+  return downsample(visible, 160).map((x) => ({
+    date: x.date.slice(0, 10),
+    pct: Math.round(((1 + x.value / 100) / base - 1) * 10000) / 100,
+  }));
+}
+
 /**
  * Arma una diapositiva solo con datos reales. El gráfico respeta el muro:
- * Free ve los últimos 90 días, de pago el último año. Nunca se envía la serie
- * completa al navegador.
+ * Free ve hasta 3M; 1A y Máx quedan para planes pagados. Nunca se envía la
+ * serie completa a quien no tiene acceso.
  */
 export function buildSlide(
   p: Portfolio,
@@ -67,17 +105,18 @@ export function buildSlide(
   opts: { isFollowing: boolean; isPro: boolean; role: AccessRole },
 ): FeaturedSlide {
   const pts = clipSeriesForSlug(p.slug, (series ?? []).filter((x) => Number.isFinite(x.value)));
-  const windowDays = opts.isPro ? 366 : 90;
-  const lastT = pts.length ? t(pts[pts.length - 1].date) : 0;
-  const visible = pts.filter((x) => t(x.date) >= lastT - windowDays * DAY);
-  const base = visible.length ? 1 + visible[0].value / 100 : 1;
-  const chart =
-    visible.length >= 2 && base > 0
-      ? downsample(visible, 160).map((x) => ({
-          date: x.date.slice(0, 10),
-          pct: Math.round(((1 + x.value / 100) / base - 1) * 10000) / 100,
-        }))
-      : [];
+  const charts: Partial<Record<HeroPeriod, ChartPoint[]>> = {};
+  const lockedPeriods: HeroPeriod[] = [];
+  for (const { key } of HERO_PERIODS) {
+    if (!opts.isPro && PERIOD_DAYS[key] > FREE_WINDOW_DAYS) {
+      lockedPeriods.push(key);
+      continue;
+    }
+    const c = periodChart(pts, key);
+    if (c) charts[key] = c;
+  }
+  const order: HeroPeriod[] = ["y1", "max", "m3", "m1", "w1", "d1"];
+  const defaultPeriod = order.find((k) => charts[k]) ?? "y1";
 
   const top = holdings
     .filter((h) => h.asset_class !== "cash" && Number.isFinite(Number(h.weight)))
@@ -99,11 +138,18 @@ export function buildSlide(
       d1: periodReturn(pts, 1, 5),
       w1: periodReturn(pts, 7, 7),
       m1: periodReturn(pts, 30, 10),
+      m3: periodReturn(pts, 91, 15),
       y1: periodReturn(pts, 365, 20),
+      max: pts.length >= 2 ? between(pts[0], pts[pts.length - 1]) : null,
     },
-    chart,
-    estimated: visible.some((x) => x.estimated === true),
+    charts,
+    lockedPeriods,
+    defaultPeriod,
+    estimated: pts.some((x) => x.estimated === true),
     top,
     holdingsLocked: holdingLimitFor(opts.role, p) === 0 || (p.premium && !opts.isPro),
   };
 }
+
+/** La diapositiva tiene al menos un gráfico real. */
+export const slideHasSeries = (s: FeaturedSlide) => Object.keys(s.charts).length > 0;

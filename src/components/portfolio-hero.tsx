@@ -91,10 +91,10 @@ export function PortfolioHero({
         <div className="grid gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-12">
           {/* Izquierda: identidad, seguidores y CTA */}
           <div className="min-w-0">
-            <div className="flex items-center gap-4">
-              {avatar ? <div className="shrink-0">{avatar}</div> : null}
-              <div className="min-w-0">
-                <h1 className="font-sans text-[clamp(1.75rem,4.4vw,2.75rem)] font-semibold leading-[1.02] tracking-tight text-ink-900">
+            <div className="flex min-w-0 flex-col items-start gap-4">
+              {avatar ? <div className="min-w-0 max-w-full">{avatar}</div> : null}
+              <div className="w-full min-w-0">
+                <h1 className="break-words font-sans text-[clamp(1.75rem,4.4vw,2.75rem)] font-semibold leading-[1.02] tracking-tight text-ink-900">
                   {name}
                 </h1>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-ink-500">

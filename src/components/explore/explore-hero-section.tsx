@@ -1,11 +1,11 @@
 import { connection } from "next/server";
 import { timed } from "@/lib/timing";
-import { getExploreCardStats, getFollows, getHoldings, getPerformanceSeriesAdmin, getPortfolios, getProfile, pickCardStats } from "@/lib/queries";
+import { getExploreCardStats, getFollows, getPerformanceSeriesAdmin, getPortfolios, getProfile, pickCardStats } from "@/lib/queries";
 import { roleFor } from "@/lib/access";
 import { isPaidPlan, type Holding } from "@/lib/types";
 import { AppLink as Link } from "@/components/app/app-link";
 import { ExploreHeroCarousel } from "@/components/explore/explore-hero-carousel";
-import { buildSlide } from "@/components/explore/explore-featured";
+import { buildSlide, slideHasSeries } from "@/components/explore/explore-featured";
 import { cn, formatSignedPct } from "@/lib/utils";
 
 const SLIDES = 6;
@@ -28,19 +28,21 @@ export async function ExploreHeroSection() {
   const role = roleFor(profile);
   const followed = new Set(follows.map((f) => f.portfolio_id));
 
-  const top = catalog.toSorted((a, b) => b.followers - a.followers).slice(0, SLIDES);
+  const top = catalog.toSorted((a, b) => b.followers - a.followers).slice(0, SLIDES * 3);
   const [seriesById, holdingsList] = await Promise.all([
     timed("hero.series", getPerformanceSeriesAdmin(top.map((p) => p.id))),
-    Promise.all(
-      top.map((p) =>
-        p.premium && !isPro ? Promise.resolve([] as Holding[]) : getHoldings(p.id, { role }).catch(() => [] as Holding[]),
-      ),
-    ),
+    // d68: el carrusel ya no muestra posiciones; no se piden holdings.
+    Promise.resolve(top.map(() => [] as Holding[])),
   ]);
 
-  const slides = top.map((p, i) =>
+  // d68: varios de los más seguidos (13F: Berkshire, Renaissance, Scion,
+  // Bridgewater, Duquesne) no tienen filas en portfolio_performance; antes
+  // salían con "Sin serie". El carrusel prioriza los más seguidos CON serie real.
+  const built = top.map((p, i) =>
     buildSlide(p, seriesById.get(p.id), holdingsList[i], { isFollowing: followed.has(p.id), isPro, role }),
   );
+  const withSeries = built.filter(slideHasSeries);
+  const slides = (withSeries.length > 0 ? withSeries : built).slice(0, SLIDES);
 
   const stats = pickCardStats(catalog, allStats);
   const trends = catalog
