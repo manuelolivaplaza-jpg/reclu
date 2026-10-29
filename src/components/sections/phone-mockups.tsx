@@ -33,17 +33,43 @@ function Sparkline({ points, positive, className }: { points: number[]; positive
   );
 }
 
+/*
+ * D59: medidas fijas. Las tarjetas laterales (Berkshire, iShares) comparten
+ * EXACTAMENTE la misma caja: alto fijo, mismo padding, avatar, tipografia y
+ * sparkline de alto fijo. Las lineas opcionales siempre reservan su espacio
+ * y los textos se truncan, asi el contenido no cambia el tamano.
+ * La destacada (Trump dice) es mas ancha, mas alta y con cifra/grafico mayores.
+ */
+const SIZE = {
+  featured: {
+    box: "h-[25rem] p-7 md:h-[29rem] md:p-8",
+    avatar: 64, avatarBox: 64, avatarScale: "",
+    name: "text-xl md:text-2xl",
+    num: "text-5xl md:text-6xl",
+    spark: "h-20 md:h-24",
+  },
+  side: {
+    box: "h-[21rem] p-6",
+    avatar: 64, avatarBox: 56, avatarScale: "scale-[0.875]",
+    name: "text-[17px]",
+    num: "text-4xl",
+    spark: "h-14",
+  },
+} as const;
+
 function Card({ card }: { card: HeroCard }) {
   const positive = card.returnPct >= 0;
   const featured = card.featured === true;
+  const s = featured ? SIZE.featured : SIZE.side;
   return (
     <Link
       href={card.isExample ? "/explore" : `/portfolio/${card.slug}`}
       className={cn(
-        "group relative flex w-full flex-col rounded-3xl border border-neutral-200/80 bg-white text-left transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_60px_-20px_rgba(15,23,42,0.30)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950",
+        "group relative flex w-full flex-col overflow-visible rounded-3xl border border-neutral-200/80 bg-white text-left transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_60px_-20px_rgba(15,23,42,0.30)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950",
+        s.box,
         featured
-          ? "z-10 p-7 shadow-[0_40px_80px_-24px_rgba(15,23,42,0.35)] md:p-8"
-          : "p-6 shadow-[0_20px_50px_-24px_rgba(15,23,42,0.22)]",
+          ? "z-10 shadow-[0_40px_80px_-24px_rgba(15,23,42,0.35)]"
+          : "shadow-[0_20px_50px_-24px_rgba(15,23,42,0.22)]",
       )}
     >
       {featured ? (
@@ -51,13 +77,15 @@ function Card({ card }: { card: HeroCard }) {
           Destacado
         </span>
       ) : null}
-      <div className="flex items-center gap-4">
-        <PortfolioAvatar portfolio={card} size={64} className={featured ? "" : "scale-[0.875]"} />
+      <div className="flex shrink-0 items-center gap-4">
+        <span className="flex shrink-0 items-center justify-center" style={{ width: s.avatarBox, height: s.avatarBox }}>
+          <PortfolioAvatar portfolio={card} size={s.avatar} className={cn("shrink-0", s.avatarScale)} />
+        </span>
         <div className="min-w-0 flex-1">
-          <p className={cn("truncate font-semibold tracking-tight text-neutral-950", featured ? "text-xl" : "text-[17px]")}>
+          <p className={cn("truncate font-semibold leading-tight tracking-tight text-neutral-950", s.name)} title={card.name}>
             {card.name}
           </p>
-          {card.manager ? <p className="mt-0.5 truncate text-[14px] text-neutral-500">{card.manager}</p> : null}
+          <p className="mt-0.5 h-5 truncate text-[14px] leading-5 text-neutral-500">{card.manager ?? "\u00a0"}</p>
         </div>
         {card.isExample ? (
           <span className="shrink-0 rounded-full border border-neutral-200/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
@@ -66,38 +94,36 @@ function Card({ card }: { card: HeroCard }) {
         ) : null}
       </div>
 
-      <div className="mt-7">
-        <p
-          className={cn(
-            "num font-semibold tracking-tight",
-            featured ? "text-5xl md:text-6xl" : "text-4xl",
-            positive ? "text-green-700" : "text-red-600",
-          )}
-        >
+      <div className="mt-6 shrink-0">
+        <p className={cn("num truncate font-semibold leading-none tracking-tight", s.num, positive ? "text-green-700" : "text-red-600")}>
           {formatPct(card.returnPct)}
         </p>
-        <p className="mt-1.5 text-[13px] text-neutral-500">
+        <p className="mt-2 h-5 truncate text-[13px] leading-5 text-neutral-500">
           Rendimiento {card.periodLabel || "YTD"}
-          {card.estimated ? " · incluye tramo estimado" : ""}
+          {card.estimated ? " \u00b7 incluye tramo estimado" : ""}
         </p>
-        {card.asOf ? (
-          <p className="mt-0.5 text-[12px] text-neutral-400">Actualizado el {formatShortDate(card.asOf)}</p>
+        <p className="h-4 truncate text-[12px] leading-4 text-neutral-400">
+          {card.asOf ? `Actualizado el ${formatShortDate(card.asOf)}` : "\u00a0"}
+        </p>
+      </div>
+
+      <div className={cn("mt-auto w-full shrink-0 pt-4", s.spark)}>
+        {card.spark && card.spark.length > 1 ? (
+          <Sparkline points={card.spark} positive={positive} className="h-full" />
         ) : null}
       </div>
 
-      {card.spark && card.spark.length > 1 ? (
-        <Sparkline points={card.spark} positive={positive} className={featured ? "mt-6 h-16" : "mt-5"} />
-      ) : null}
-
-      <div className="mt-6 flex items-center justify-between border-t border-neutral-100 pt-4 text-[13px] text-neutral-500">
-        {card.followers !== null ? <span>{formatCompact(card.followers)} seguidores</span> : <span />}
-        <span className="font-medium text-neutral-950 transition-transform group-hover:translate-x-0.5">Ver portafolio →</span>
+      <div className="mt-4 flex shrink-0 items-center justify-between border-t border-neutral-100 pt-4 text-[13px] text-neutral-500">
+        <span className="truncate">{card.followers !== null ? `${formatCompact(card.followers)} seguidores` : "\u00a0"}</span>
+        <span className="shrink-0 font-medium text-neutral-950 transition-transform group-hover:translate-x-0.5">
+          Ver portafolio {"\u2192"}
+        </span>
       </div>
     </Link>
   );
 }
 
-/** Línea esqueleto con la altura exacta del texto que reemplaza. */
+/** Linea esqueleto con la altura exacta del texto que reemplaza. */
 function Bone({ className }: { className: string }) {
   return (
     <span aria-hidden className={cn("block select-none rounded-md bg-neutral-100 text-transparent", className)}>
@@ -106,34 +132,30 @@ function Bone({ className }: { className: string }) {
   );
 }
 
-/**
- * D36: tarjeta esqueleto con la MISMA estructura que `Card` (paddings,
- * tamaños de letra, avatar, sparkline y pie), para que el fallback del hero
- * ocupe la misma altura que las tarjetas reales y no haya salto (CLS).
- */
+/** D36/D59: esqueleto con las MISMAS medidas fijas que `Card` (sin CLS). */
 function SkeletonCard({ featured }: { featured: boolean }) {
+  const s = featured ? SIZE.featured : SIZE.side;
   return (
     <div
       aria-hidden
-      className={cn(
-        "relative flex w-full animate-pulse flex-col rounded-3xl border border-neutral-200/80 bg-white text-left",
-        featured ? "z-10 p-7 md:p-8" : "p-6",
-      )}
+      className={cn("relative flex w-full animate-pulse flex-col rounded-3xl border border-neutral-200/80 bg-white text-left", s.box, featured && "z-10")}
     >
-      <div className="flex items-center gap-4">
-        <span className={cn("block size-16 shrink-0 rounded-full bg-neutral-100", featured ? "" : "scale-[0.875]")} />
+      <div className="flex shrink-0 items-center gap-4">
+        <span className="block shrink-0 rounded-full bg-neutral-100" style={{ width: s.avatarBox, height: s.avatarBox }} />
         <div className="min-w-0 flex-1">
-          <Bone className={cn("font-semibold tracking-tight", featured ? "w-3/4 text-xl" : "w-2/3 text-[17px]")} />
-          <Bone className="mt-0.5 w-1/2 text-[14px]" />
+          <Bone className={cn("w-3/4 leading-tight", s.name)} />
+          <Bone className="mt-0.5 h-5 w-1/2 text-[14px] leading-5" />
         </div>
       </div>
-      <div className="mt-7">
-        <Bone className={cn("num w-1/2 font-semibold tracking-tight", featured ? "text-5xl md:text-6xl" : "text-4xl")} />
-        <Bone className="mt-1.5 w-2/3 text-[13px]" />
-        <Bone className="mt-0.5 w-1/2 text-[12px]" />
+      <div className="mt-6 shrink-0">
+        <Bone className={cn("num w-1/2 leading-none", s.num)} />
+        <Bone className="mt-2 h-5 w-2/3 text-[13px] leading-5" />
+        <Bone className="h-4 w-1/2 text-[12px] leading-4" />
       </div>
-      <span className={cn("block w-full rounded-md bg-neutral-100", featured ? "mt-6 h-16" : "mt-5 h-12")} />
-      <div className="mt-6 flex items-center justify-between border-t border-neutral-100 pt-4 text-[13px]">
+      <div className={cn("mt-auto w-full shrink-0 pt-4", s.spark)}>
+        <span className="block h-full w-full rounded-md bg-neutral-100" />
+      </div>
+      <div className="mt-4 flex shrink-0 items-center justify-between border-t border-neutral-100 pt-4 text-[13px]">
         <Bone className="w-1/3" />
         <Bone className="w-1/4" />
       </div>
@@ -141,19 +163,22 @@ function SkeletonCard({ featured }: { featured: boolean }) {
   );
 }
 
+/*
+ * Grilla: escritorio con columnas fijas [lateral | destacada mas ancha | lateral]
+ * (laterales identicas). Movil: destacada primero a todo el ancho y las dos
+ * laterales debajo, iguales entre si (2 columnas desde sm, apiladas en xs).
+ */
+const GRID =
+  "mx-auto mt-16 grid w-full max-w-6xl grid-cols-1 items-center gap-5 sm:grid-cols-2 md:mt-20 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)_minmax(0,1fr)] md:gap-6 lg:gap-8";
+const FEATURED_CELL = "min-w-0 order-first sm:col-span-2 md:order-none md:col-span-1";
+const SIDE_CELL = "min-w-0";
+
 /** Fallback del hero: tres tarjetas esqueleto en la misma grilla. */
 export function PhoneMockupsSkeleton() {
   return (
-    <div
-      role="status"
-      aria-label="Cargando portafolios"
-      className="mx-auto mt-16 grid w-full max-w-6xl grid-cols-1 items-center gap-6 md:mt-20 md:grid-cols-3 md:gap-6 lg:gap-8"
-    >
+    <div role="status" aria-label="Cargando portafolios" className={GRID}>
       {[false, true, false].map((featured, index) => (
-        <div
-          key={index}
-          className={cn("min-w-0", featured ? "order-first md:order-none md:scale-[1.06]" : "md:mt-6")}
-        >
+        <div key={index} className={featured ? FEATURED_CELL : SIDE_CELL}>
           <SkeletonCard featured={featured} />
         </div>
       ))}
@@ -161,22 +186,14 @@ export function PhoneMockupsSkeleton() {
   );
 }
 
-/** Tres tarjetas; la destacada al centro. Con menos tarjetas se centran. */
+/** Tres tarjetas; la destacada al centro. */
 export function PhoneMockups({ cards }: { cards: HeroCard[] }) {
   if (cards.length === 0) return null;
   const list = cards.slice(0, 3);
-  const center = list.findIndex((c) => c.featured);
-  // Móvil: destacada primero. Escritorio: orden original (izq, centro, der).
   return (
-    <div className="mx-auto mt-16 grid w-full max-w-6xl grid-cols-1 items-center gap-6 md:mt-20 md:grid-cols-3 md:gap-6 lg:gap-8">
-      {list.map((card, index) => (
-        <div
-          key={card.slug}
-          className={cn(
-            "min-w-0",
-            index === center ? "order-first md:order-none md:scale-[1.06]" : "md:mt-6",
-          )}
-        >
+    <div className={GRID}>
+      {list.map((card) => (
+        <div key={card.slug} className={card.featured ? FEATURED_CELL : SIDE_CELL}>
           <Card card={card} />
         </div>
       ))}
