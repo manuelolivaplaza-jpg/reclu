@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { PortfolioCard } from "@/components/portfolio-card";
+import { ExploreCard } from "@/components/explore/explore-card";
 import type { Portfolio } from "@/lib/types";
 import type { CardStat } from "@/lib/card-series";
 import { PAGE_SIZE, hasMore, nextCount } from "@/lib/explore-paging";
@@ -50,28 +50,21 @@ export function PortfolioGrid({
 
   return (
     <>
-      <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
         {portfolios.slice(0, shown).map((portfolio) => (
-          <li
-            key={portfolio.id}
-            className={noSeries.has(portfolio.id) ? "relative opacity-60 grayscale transition hover:opacity-100 hover:grayscale-0" : undefined}
-          >
-            {noSeries.has(portfolio.id) ? (
-              <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-full bg-neutral-900/80 px-2 py-0.5 text-[11px] font-medium text-white">
-                Sin serie de rendimiento aún
-              </span>
-            ) : null}
-            <PortfolioCard
+          <li key={portfolio.id}>
+            <ExploreCard
               portfolio={portfolio}
               isFollowing={followed.has(portfolio.id)}
               isPro={isPro}
               stat={noSeries.has(portfolio.id) ? null : cardStats[portfolio.id] ?? null}
+              noSeries={noSeries.has(portfolio.id)}
             />
           </li>
         ))}
       </ul>
-      <div className="mt-10 flex flex-col items-center gap-3">
-        <p aria-live="polite" className="text-sm text-neutral-500">
+      <div className="mt-8 flex flex-col items-center gap-3">
+        <p aria-live="polite" className="text-[13px] text-ink-500">
           Mostrando {shown} de {total}
         </p>
         {more ? (
@@ -80,7 +73,7 @@ export function PortfolioGrid({
             <button
               type="button"
               onClick={() => setShown((current) => nextCount(total, current))}
-              className="rounded-full bg-neutral-950 px-5 py-2.5 text-sm font-medium text-white hover:bg-neutral-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-950 focus-visible:ring-offset-2"
+              className="rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2"
             >
               Cargar más
             </button>
