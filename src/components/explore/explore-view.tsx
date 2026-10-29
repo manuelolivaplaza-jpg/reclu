@@ -24,7 +24,16 @@ export interface ExploreSearchParams {
  * d47: contenido de Explorar, compartido por /explore (público, SEO) y
  * /app/explorar (dentro del dashboard, sin SiteHeader ni SiteFooter).
  */
-export async function ExploreView({ params, inApp = false }: { params: ExploreSearchParams; inApp?: boolean }) {
+export async function ExploreView({
+  params,
+  inApp = false,
+  chrome = !inApp,
+}: {
+  params: ExploreSearchParams;
+  inApp?: boolean;
+  /** d65: false cuando la página ya pinta header/footer en su shell estático. */
+  chrome?: boolean;
+}) {
   const category = params.categoria ?? "all";
   const search = params.q ?? "";
   const symbol = (params.simbolo ?? "").trim().toUpperCase();
@@ -54,7 +63,7 @@ export async function ExploreView({ params, inApp = false }: { params: ExploreSe
   // filtros discretos; todo lo demás en tarjetas. Sin título gigante.
   const content = (
     <div className="flex flex-col gap-6 sm:gap-8">
-      <h1 className="sr-only">Explorar portafolios</h1>
+      {chrome ? <h1 className="sr-only">Explorar portafolios</h1> : null}
 
       {!filtering ? (
         <Suspense fallback={<ExploreHeroSkeleton />}>
@@ -93,7 +102,7 @@ export async function ExploreView({ params, inApp = false }: { params: ExploreSe
     </div>
   );
 
-  if (inApp) return content;
+  if (!chrome) return content;
 
   return (
     <>

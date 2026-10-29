@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { FadeIn } from "@/components/ui/motion";
-import { PhoneMockups, PhoneMockupsSkeleton } from "./phone-mockups";
-import type { HeroCard } from "@/lib/hero-portfolios";
+import { FadeIn } from "@/components/ui/reveal";
+import type { ReactNode } from "react";
 
 /**
  * Hero — titular enorme y centrado, con los mockups de teléfono debajo.
@@ -11,17 +10,20 @@ import type { HeroCard } from "@/lib/hero-portfolios";
  * promete rentabilidad ni invita a copiar carteras ajenas.
  */
 
-export function Hero({ cards, loading = false }: { cards: HeroCard[]; loading?: boolean }) {
-  // D60: el fallback de Suspense queda en el HTML junto al hero real; solo uno lleva h1.
-  const Title = loading ? "p" : "h1";
+/**
+ * d65: el texto del hero es estático y va en el shell prerenderizado (es el
+ * LCP en móvil). Solo las tarjetas dependen de datos: llegan por `mockups`
+ * dentro de un Suspense, sin bloquear el titular.
+ */
+export function Hero({ mockups }: { mockups: ReactNode }) {
   return (
     <section className="bg-white pt-16 pb-20 md:pt-24 md:pb-28">
       <div className="container-page">
         <FadeIn>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-            <Title className="text-5xl font-semibold tracking-tight text-neutral-950 md:text-7xl">
+            <h1 className="text-5xl font-semibold tracking-tight text-neutral-950 md:text-7xl">
               Sigue las carteras que mueven el mercado.
-            </Title>
+            </h1>
 
             <p className="mt-6 max-w-xl text-lg text-neutral-500">
               Políticos de EE.UU., corredoras chilenas y fondos. Una alerta en
@@ -51,7 +53,7 @@ export function Hero({ cards, loading = false }: { cards: HeroCard[]; loading?: 
           </div>
         </FadeIn>
 
-        {loading ? <PhoneMockupsSkeleton /> : <PhoneMockups cards={cards} />}
+        {mockups}
 
         <p className="mx-auto mt-10 max-w-2xl text-center text-[12px] leading-relaxed text-neutral-500">
           Rendimiento pasado no garantiza resultados futuros. Cifras calculadas con

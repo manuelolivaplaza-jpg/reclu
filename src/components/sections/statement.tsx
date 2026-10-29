@@ -1,4 +1,4 @@
-import { FadeIn } from "@/components/ui/motion";
+import { FadeIn } from "@/components/ui/reveal";
 
 /**
  * Statement — banda a sangre completa en negro con una sola frase blanca.

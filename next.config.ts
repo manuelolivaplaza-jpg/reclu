@@ -101,20 +101,19 @@ const nextConfig: NextConfig = {
       },
       // D60: solo el host de NEXT_PUBLIC_SITE_URL se indexa. Cualquier
       // *.vercel.app (staging, reclu-prod, previews) u otro host: noindex.
-      {
-        source: "/:path*",
-        has: [{ type: "host", value: "(?<vhost>.*\\.vercel\\.app)" }],
-        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-      },
-      ...(SITE_HOST
-        ? [
-            {
-              source: "/:path*",
-              missing: [{ type: "host" as const, value: SITE_HOST.replace(/\./g, "\\.") }],
-              headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
-            },
-          ]
-        : []),
+      // d65: UNA sola regla. Antes, con SITE_HOST definido, un *.vercel.app
+      // cumplía las dos y la cabecera X-Robots-Tag salía duplicada.
+      SITE_HOST
+        ? {
+            source: "/:path*",
+            missing: [{ type: "host" as const, value: SITE_HOST.replace(/\./g, "\\.") }],
+            headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+          }
+        : {
+            source: "/:path*",
+            has: [{ type: "host" as const, value: "(?<vhost>.*\\.vercel\\.app)" }],
+            headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+          },
     ];
   },
   turbopack: {

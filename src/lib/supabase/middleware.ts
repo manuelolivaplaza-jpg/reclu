@@ -28,6 +28,18 @@ function withReferralCookie(request: NextRequest, response: NextResponse): NextR
   return response;
 }
 
+/** Rutas que requieren sesión real (redirect a /login si no hay usuario). */
+function isProtectedPath(path: string): boolean {
+  return (
+    path.startsWith("/dashboard") ||
+    path.startsWith("/alerts") ||
+    path.startsWith("/settings") ||
+    path.startsWith("/compare") ||
+    path.startsWith("/app/") ||
+    path.startsWith("/admin")
+  );
+}
+
 /**
  * Refreshes the Supabase auth session on every request and guards
  * /dashboard, /alerts, /settings, /compare y /admin (redirect a /login si no
@@ -36,6 +48,20 @@ function withReferralCookie(request: NextRequest, response: NextResponse): NextR
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
+
+  // d65: sin cookies de Supabase no hay sesión que validar ni refrescar.
+  // Se evita crear el cliente y llamar a getUser() en cada visita anónima.
+  const hasAuthCookie = request.cookies.getAll().some((c) => c.name.startsWith("sb-"));
+  if (!hasAuthCookie) {
+    const path = request.nextUrl.pathname;
+    if (isProtectedPath(path)) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.searchParams.set("next", path);
+      return withReferralCookie(request, NextResponse.redirect(url));
+    }
+    return withReferralCookie(request, supabaseResponse);
+  }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://placeholder.supabase.co";
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder-anon-key";
@@ -67,13 +93,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname;
   // /portfolio/[slug] es PÚBLICO (con censura para anónimos, ver el componente
   // PaywallGate). Solo estas rutas requieren sesión real.
-  const isProtected =
-    path.startsWith("/dashboard") ||
-    path.startsWith("/alerts") ||
-    path.startsWith("/settings") ||
-    path.startsWith("/compare") ||
-    path.startsWith("/app/") ||
-    path.startsWith("/admin");
+  const isProtected = isProtectedPath(path);
   const isAuthPage = path === "/login" || path === "/signup";
 
   if (!user && isProtected) {
