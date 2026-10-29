@@ -18,17 +18,27 @@
  * y están cubiertas en `tests/portfolio-rankings.test.ts`.
  */
 
-import { getPerformance, getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
+import { getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
+import { cacheLife, cacheTag } from "next/cache";
+import { PERFORMANCE_TAG, PORTFOLIOS_TAG, PUBLIC_DATA_TAG } from "@/lib/cache-tags";
+import { clipSeriesForSlug } from "@/lib/card-series";
 import { demoPerformance } from "@/lib/demo-data";
-import { roleFor } from "@/lib/access";
 import { fromPctToLevel, parseDate } from "@/lib/performance";
 import { isPaidPlan } from "@/lib/types";
 import { formatSignedPct } from "@/lib/utils";
 
 const DAY_MS = 86_400_000;
 
-/** Cuántos portafolios se cargan series para armar el ranking de rendimiento. */
-export const RANKING_CANDIDATES = 30;
+/**
+ * D67: el ranking de rendimiento compite con TODOS los portafolios activos
+ * visibles (antes solo los 30 con mas seguidores: Trump dice, con 0
+ * seguidores, quedaba fuera). Se mantiene como limite de seguridad.
+ */
+export const RANKING_CANDIDATES = 500;
+
+/** D67: maximo por familia/gestora y por categoria en "Mejor rendimiento". */
+export const MAX_PER_FAMILY = 1;
+export const MAX_PER_CATEGORY = 2;
 
 /** Puntos de serie pedidos por portafolio (cubre 2 años calendario). */
 const MAX_SERIES_POINTS = 800;
@@ -158,6 +168,60 @@ export function topByFollowers(entries: RankingEntry[], limit = 5): RankingEntry
 }
 
 /**
+ * D67: familia/gestora de un portafolio, para no llenar el top con la misma
+ * casa (p. ej. varios ETFs de ARK). Pura.
+ */
+export function familyOf(entry: { slug: string; name: string; manager: string | null }): string {
+  const name = entry.name.trim().toLowerCase();
+  const manager = (entry.manager ?? "").trim().toLowerCase();
+  if (/^ark\b/.test(name) || /^ark\b/.test(manager) || manager.includes("cathie wood")) return "ark";
+  if (/^afp\b/.test(name) || manager.startsWith("afp")) return "afp";
+  if (name.startsWith("renta 4") || manager.startsWith("renta 4")) return "renta4";
+  if (name.startsWith("consenso")) return "consenso";
+  if (name.startsWith("trump") || manager.includes("trump")) return "trump";
+  return manager || entry.slug;
+}
+
+/**
+ * D67: top N por retorno con diversidad: max. `perFamily` por familia y
+ * `perCategory` por categoria. Si no alcanza, se relaja solo la categoria
+ * (la familia nunca supera su limite). El #1 siempre es el mejor real.
+ */
+export function topByReturnDiverse(
+  entries: RankingEntry[],
+  limit = 5,
+  perFamily = MAX_PER_FAMILY,
+  perCategory = MAX_PER_CATEGORY,
+): RankingEntry[] {
+  const ordered = topByReturn(entries, Number.MAX_SAFE_INTEGER);
+  const pick = (catLimit: number, seed: RankingEntry[]): RankingEntry[] => {
+    const out = [...seed];
+    const fam = new Map<string, number>();
+    const cat = new Map<string, number>();
+    const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
+    for (const e of out) {
+      bump(fam, familyOf(e));
+      bump(cat, e.category ?? "");
+    }
+    for (const e of ordered) {
+      if (out.length >= limit) break;
+      if (out.includes(e)) continue;
+      const f = familyOf(e);
+      const c = e.category ?? "";
+      if ((fam.get(f) ?? 0) >= perFamily) continue;
+      if ((cat.get(c) ?? 0) >= catLimit) continue;
+      out.push(e);
+      bump(fam, f);
+      bump(cat, c);
+    }
+    return out;
+  };
+  const strict = pick(perCategory, []);
+  const filled = strict.length < limit ? pick(Number.MAX_SAFE_INTEGER, strict) : strict;
+  return filled.sort((a, b) => (b.returnPct as number) - (a.returnPct as number));
+}
+
+/**
  * Filtro premium: los portafolios premium solo se.rankean para quien tiene
  * plan de pago. Para el resto quedan fuera por completo (muro de pago 048).
  */
@@ -270,8 +334,17 @@ function toRow(entry: {
  */
 export async function getPortfolioRankings(): Promise<RankingsPayload> {
   const profile = await getProfile();
-  const paid = isPaidPlan(profile?.plan);
-  const role = roleFor(profile);
+  return getPortfolioRankingsCached(isPaidPlan(profile?.plan));
+}
+
+/**
+ * D67: el calculo se cachea (1 h, tags publicos) por plan pagado/no pagado.
+ * Solo usa lecturas cache-safe (catalogo publico + serie admin agregada).
+ */
+async function getPortfolioRankingsCached(paid: boolean): Promise<RankingsPayload> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PORTFOLIOS_TAG, PERFORMANCE_TAG);
   const live = isSupabaseLive();
 
   const portfolios = await getPortfolios();
@@ -290,7 +363,7 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
   const estimatedUntil = new Map<string, string>();
   const lastDate = new Map<string, string>();
   for (const portfolio of candidates) {
-    const pts = adminSeries.get(portfolio.id) ?? [];
+    const pts = clipSeriesForSlug(portfolio.slug, adminSeries.get(portfolio.id) ?? []);
     const est = pts.filter((p) => p.estimated);
     if (est.length) estimatedUntil.set(portfolio.slug, est[est.length - 1].date);
     if (pts.length) lastDate.set(portfolio.slug, pts[pts.length - 1].date);
@@ -303,26 +376,17 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
     return until >= cutoff;
   };
 
-  const seriesList = await Promise.all(
-    candidates.map(async (portfolio) => {
-      const full = adminSeries.get(portfolio.id);
-      if (full && full.length > 0) return fromPctToLevel(full.map(({ date, value }) => ({ date, value })));
-      const real = live
-        ? await getPerformance(portfolio.id, MAX_SERIES_POINTS, {
-            role,
-            source: portfolio.source,
-          })
-        : [];
-      if (real.length > 0) return fromPctToLevel(real);
-      // Modo demo: serie ilustrativa determinista (el sitio lo rotula).
-      if (!live && portfolio.return_ytd !== null) {
-        return fromPctToLevel(
-          demoPerformance(portfolio.slug, portfolio.return_ytd, DEMO_SERIES_POINTS),
-        );
-      }
-      return [];
-    }),
-  );
+  // D67: serie recortada al inicio oficial (Trump dice desde su 1a mencion),
+  // igual que el detalle y las tarjetas.
+  const seriesList = candidates.map((portfolio) => {
+    const full = clipSeriesForSlug(portfolio.slug, adminSeries.get(portfolio.id) ?? []);
+    if (full.length > 0) return fromPctToLevel(full.map(({ date, value }) => ({ date, value })));
+    // Modo demo: serie ilustrativa determinista (el sitio lo rotula).
+    if (!live && portfolio.return_ytd !== null) {
+      return fromPctToLevel(demoPerformance(portfolio.slug, portfolio.return_ytd, DEMO_SERIES_POINTS));
+    }
+    return [];
+  });
 
   const entries: RankingEntry[] = candidates.map((portfolio) => ({
     slug: portfolio.slug,
@@ -355,7 +419,7 @@ export async function getPortfolioRankings(): Promise<RankingsPayload> {
     }));
     // D40: "Mejor rendimiento" solo compite con series reales; un período que
     // toca puntos estimados no entra al ranking (sigue visible en Populares).
-    const top = topByReturn(withReturn.filter((entry) => !isEstimated(entry.slug, period.days)), 5);
+    const top = topByReturnDiverse(withReturn.filter((entry) => !isEstimated(entry.slug, period.days)), 5);
     best[period.id] = top.map((entry) => ({
       ...toRow(entry),
       returnPct: entry.returnPct,
