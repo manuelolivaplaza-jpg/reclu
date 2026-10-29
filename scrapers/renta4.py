@@ -65,6 +65,46 @@ class Renta4Adapter(SourceAdapter):
 
     # ---------- Step 1: find the current weekly PDF ----------
 
+    # D74: la seccion se aisla entre su encabezado numerado ("03. Cartera
+    # Moderada" / "04. Cartera Moderada Ampliada") y se toma SOLO la primera
+    # tabla de filas TICKER PESO%. Antes se cortaba desde la primera mencion
+    # (el indice de la portada) hasta el final del PDF, asi que ambas carteras
+    # leian la tabla de la Moderada + los extras de la Ampliada: holdings
+    # identicos en renta4-moderada y renta4-moderada-ampliada.
+    ROW_RE = re.compile(r"^([A-Z][A-Z0-9\-]{2,14})\s+(\d{1,2}[.,]\d{1,2})\s*%")
+    SKIP = ("TOTAL", "PORTAFOLIO", "PORTFOLIO", "IPSA", "INDEX")
+
+    @classmethod
+    def parse_section(cls, raw: str, portfolio: str) -> list[tuple[str, float]]:
+        if not raw:
+            return []
+        lines = [line.strip() for line in raw.splitlines()]
+        if portfolio == "moderada-ampliada":
+            header = re.compile(r"^\d{1,2}\.\s*Cartera\s+Moderada\s+Ampliada\b", re.IGNORECASE)
+        else:
+            header = re.compile(r"^\d{1,2}\.\s*Cartera\s+Moderada\s*$", re.IGNORECASE)
+        starts = [i for i, line in enumerate(lines) if header.match(line)]
+        if not starts:
+            log(f"[renta4] seccion {portfolio} no encontrada; no se adivina")
+            return []
+        out: list[tuple[str, float]] = []
+        seen: set[str] = set()
+        started = False
+        for line in lines[starts[0]:]:
+            m = cls.ROW_RE.match(line)
+            if not m or m.group(1) in cls.SKIP:
+                if started:
+                    break
+                continue
+            started = True
+            ticker = m.group(1)
+            weight = float(m.group(2).replace(",", "."))
+            if ticker in seen or not (0 < weight <= 100):
+                continue
+            seen.add(ticker)
+            out.append((ticker, weight))
+        return out
+
     def _find_pdf_url(self) -> str | None:
         """Crawl the hub page -> latest article -> DAM PDF link."""
         try:
@@ -83,11 +123,7 @@ class Renta4Adapter(SourceAdapter):
 
         # Otherwise follow the newest article link (href puede ser absoluto
         # o relativo — verificado en vivo: hoy vienen absolutos)
-        article = re.search(
-            r'href="((?:https?://www\.renta4\.cl)?/analisis-actualidad/recomendaciones-y-oportunidades/'
-            r'carteras-recomendadas/\d{4}/\d+/[^"]*?)"',
-            html,
-        )
+        article = self.newest_article(html)
         if not article:
             # Fallback: any carteras article link
             article = re.search(r'href="([^"]*carteras-recomendadas/[^"]*)"', html)
@@ -117,6 +153,19 @@ class Renta4Adapter(SourceAdapter):
             f"informes-semanales/{today.year}/"
             f"Carteras-Recomendadas-Renta-4-Chile-{month}-{today.year}.pdf"
         )
+
+    @staticmethod
+    def newest_article(html: str):
+        """D74: el articulo mas reciente por fecha del link (no el primero del HTML)."""
+        links = re.findall(
+            r'href="((?:https?://www\.renta4\.cl)?/analisis-actualidad/recomendaciones-y-oportunidades/'
+            r'carteras-recomendadas/(\d{4})/(\d+)/(\d{2})-[^"]*?)"',
+            html,
+        )
+        if not links:
+            return None
+        href = max(links, key=lambda x: (int(x[1]), int(x[2]), int(x[3])))[0]
+        return re.match(r"(.*)", href)
 
     @staticmethod
     def _abs(href: str) -> str:
@@ -163,41 +212,8 @@ class Renta4Adapter(SourceAdapter):
         if not raw:
             return []
 
-        text = raw
-
-        # Try to isolate the relevant section
-        if self.portfolio == "moderada-ampliada":
-            marker = re.search(r"Moderada\s+Ampliada", text, re.IGNORECASE)
-            if marker:
-                text = text[marker.start():]
-        else:
-            marker = re.search(r"Cartera\s+Moderada(?!\s+Ampliada)", text, re.IGNORECASE)
-            if marker:
-                text = text[marker.start():]
-
         holdings: list[Holding] = []
-        seen: set[str] = set()
-
-        # The PDF's holdings table lists rows as:  TICKER  WEIGHT%  price...
-        # Weight uses a comma decimal (e.g. "7,5%"). Match a ticker at the
-        # start of a line followed by a weight percentage.
-        row_re = re.compile(r"^([A-Z][A-Z0-9\-]{2,14})\s+(\d{1,2}[.,]\d{1,2})\s*%")
-
-        for line in text.splitlines():
-            line = line.strip()
-            m = row_re.match(line)
-            if not m:
-                continue
-            ticker = m.group(1)
-            # Skip aggregate/summary rows
-            if ticker in ("TOTAL", "PORTAFOLIO", "PORTFOLIO", "IPSA", "INDEX"):
-                continue
-            if ticker in seen:
-                continue
-            weight = float(m.group(2).replace(",", "."))
-            if not (0 < weight <= 100):
-                continue
-            seen.add(ticker)
+        for ticker, weight in self.parse_section(raw, self.portfolio):
             holdings.append(
                 Holding(
                     symbol=ticker,

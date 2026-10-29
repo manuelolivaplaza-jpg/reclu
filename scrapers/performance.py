@@ -57,13 +57,7 @@ def _paged(build_query) -> list[dict[str, Any]]:
         start += PAGE_SIZE
 
 
-def get_portfolio_holdings(db, portfolio_id: str, *, equal_if_missing: bool = False) -> list[tuple[str, float]]:
-    """Current (symbol, weight) pairs for a portfolio.
-
-    Holdings can repeat across as_of dates. The latest as_of wins per symbol.
-    Only the current `weight` column is used.
-    """
-
+def _holding_rows(db, portfolio_id: str) -> list[dict[str, Any]]:
     def query():
         return (
             db.table("holdings")
@@ -73,26 +67,53 @@ def get_portfolio_holdings(db, portfolio_id: str, *, equal_if_missing: bool = Fa
             .order("symbol")
         )
 
+    return _paged(query)
+
+
+def _snapshot_from_rows(rows: list[dict[str, Any]], equal_if_missing: bool) -> list[tuple[str, float]]:
     latest: dict[str, float | None] = {}
-    for row in _paged(query):
+    for row in rows:
         symbol = str(row.get("symbol") or "").strip()
         if not symbol:
             continue
         # D70: el ticker Yahoo depende de la bolsa/moneda (SQM-B -> SQM-B.SN).
-        # Antes se pedia el nemotecnico chileno como si fuera de EE.UU.: casi
-        # todos fallaban y solo sobrevivian los que chocan con un ticker US,
-        # por eso varias carteras CL quedaban con la MISMA serie.
         yahoo = yahoo_symbol(symbol, row.get("exchange"), row.get("currency")) if " " not in symbol else ""
         key = yahoo or symbol
-        if key in latest:
-            continue
         weight = row.get("weight")
-        latest[key] = None if weight is None else float(weight)
+        weight = None if weight is None else float(weight)
+        if key in latest and latest[key] is not None and weight is not None:
+            latest[key] += weight  # mismo emisor dos veces en la foto
+            continue
+        latest.setdefault(key, weight)
     if equal_if_missing and latest and all(w is None for w in latest.values()):
-        # D70: carteras sin pesos publicados (OGE en tramos, listas de
-        # corredoras): pesos iguales. La serie queda is_estimated = true.
+        # D70: carteras sin pesos publicados: pesos iguales (is_estimated).
         return [(symbol, 1.0) for symbol in sorted(latest)]
     return [(symbol, float(latest[symbol])) for symbol in sorted(latest) if latest[symbol] is not None]
+
+
+def get_holdings_snapshots(
+    db, portfolio_id: str, *, equal_if_missing: bool = False
+) -> list[tuple[str, list[tuple[str, float]]]]:
+    """D74: una foto por as_of [(as_of, [(simbolo, peso)])], de la mas antigua a la mas nueva."""
+    by_date: dict[str, list[dict[str, Any]]] = {}
+    for row in _holding_rows(db, portfolio_id):
+        by_date.setdefault(str(row.get("as_of") or "")[:10], []).append(row)
+    out = []
+    for as_of in sorted(by_date):
+        snap = _snapshot_from_rows(by_date[as_of], equal_if_missing)
+        if snap:
+            out.append((as_of, snap))
+    return out
+
+
+def get_portfolio_holdings(db, portfolio_id: str, *, equal_if_missing: bool = False) -> list[tuple[str, float]]:
+    """Current (symbol, weight) pairs: SOLO la foto mas reciente (as_of maximo).
+
+    D74: antes se unian todas las fotos (la ultima ganaba por simbolo), asi que
+    posiciones vendidas hace trimestres seguian en la cartera con su peso viejo.
+    """
+    snaps = get_holdings_snapshots(db, portfolio_id, equal_if_missing=equal_if_missing)
+    return snaps[-1][1] if snaps else []
 
 
 def _align_prices(
@@ -175,79 +196,69 @@ def resolve_named_holdings(holdings, resolver=None, cache=None, max_lookups: int
     return list(merged.items())
 
 
-def build_performance_series(
-    db, portfolio_id: str, days: int = 365
-) -> list[dict[str, Any]]:
-    """Cumulative return points {date, value_pct} for one portfolio.
-
-    A symbol that fails or returns no prices is excluded. Weights are
-    renormalized over the symbols that have prices so they sum to 1.
-    Returns an empty list when the portfolio has no positive-weight holdings
-    or when no holding has prices. Nothing is invented.
-    Only the top MAX_HOLDINGS by weight are used; those weights are
-    renormalized to sum to 1 before fetching prices.
-    """
-    holdings = [
-        (symbol, weight)
-        for symbol, weight in get_portfolio_holdings(db, portfolio_id, equal_if_missing=True)
-        if weight > 0
-    ]
-    # Nombres de emisor sin resolver (13F) no son tickers: Yahoo da 404.
-    # Se omiten y se registran; los pesos se renormalizan sobre el resto.
-    # D28: antes de omitirlos, se intenta resolver el nombre a ticker con la
-    # busqueda de Yahoo (solo lectura, mismo criterio que resolve_tickers;
-    # usa su cache en disco si existe). No escribe holdings.
+def _prepare_weights(holdings: list[tuple[str, float]]) -> dict[str, float]:
+    holdings = [(symbol, weight) for symbol, weight in holdings if weight > 0]
+    # Nombres de emisor sin resolver (13F) no son tickers: se intenta resolver
+    # (D28, solo en memoria) y los que quedan se omiten.
     holdings = resolve_named_holdings(holdings)
     skipped = [symbol for symbol, _ in holdings if " " in symbol.strip()]
     if skipped:
-        print(f"[performance] {portfolio_id}: {len(skipped)} holdings sin ticker omitidos: " + "; ".join(skipped[:20]))
+        print(f"[performance] {len(skipped)} holdings sin ticker omitidos: " + "; ".join(skipped[:20]))
         holdings = [(symbol, weight) for symbol, weight in holdings if symbol not in skipped]
     holdings.sort(key=lambda item: item[1], reverse=True)
     holdings = holdings[:MAX_HOLDINGS]
-    total_weight = sum(weight for _, weight in holdings)
-    if total_weight <= 0:
+    total = sum(weight for _, weight in holdings)
+    if total <= 0:
+        return {}
+    return {symbol: weight / total for symbol, weight in holdings}
+
+
+def _window_snapshots(snapshots, start: str):
+    """Fotos del periodo + la ultima vigente antes del inicio de la ventana."""
+    before = [s for s in snapshots if s[0] <= start]
+    after = [s for s in snapshots if s[0] > start]
+    return (before[-1:] if before else []) + after
+
+
+def build_performance_series(
+    db, portfolio_id: str, days: int = 365, fetch=None
+) -> list[dict[str, Any]]:
+    """Cumulative return points {date, value_pct} for one portfolio.
+
+    D74: la serie encadena las fotos de cartera (as_of) con chain.chain_series:
+    retorno por precio relativo (no se suman precios en distintas monedas),
+    forward-fill en feriados y NAV continuo en cada rebalanceo. Un simbolo sin
+    precios queda fuera y los pesos se renormalizan. Nada se inventa.
+    """
+    from datetime import date as _date, timedelta
+
+    from chain import chain_series, to_pct
+
+    default_fetch = fetch is None
+    fetch = fetch or (lambda symbol: fetch_eod(us_class_hyphen(symbol), days))  # BRK.B -> BRK-B
+    start = (_date.today() - timedelta(days=days)).isoformat()
+    snapshots = get_holdings_snapshots(db, portfolio_id, equal_if_missing=True)
+    snapshots = _window_snapshots(snapshots, start)
+    weighted = [(as_of, _prepare_weights(h)) for as_of, h in snapshots]
+    weighted = [(as_of, w) for as_of, w in weighted if w]
+    if not weighted:
         return []
-    raw_weights = {symbol: weight / total_weight for symbol, weight in holdings}
 
-    series_by_symbol: dict[str, list[tuple[str, float]]] = {}
-
-    for index, symbol in enumerate(raw_weights):
-        if index:
+    prices: dict[str, list[tuple[str, float]]] = {}
+    symbols = sorted({s for _, w in weighted for s in w})
+    for index, symbol in enumerate(symbols):
+        if index and default_fetch:
             time.sleep(SYMBOL_DELAY_SECONDS)
         try:
-            rows = fetch_eod(us_class_hyphen(symbol), days)  # BRK.B -> BRK-B
-        except Exception as exc:  # noqa: BLE001 — one bad symbol is left out of this series
+            rows = fetch(symbol)
+        except Exception as exc:  # noqa: BLE001 - un simbolo malo queda fuera
             print(f"WARNING {symbol}: {exc}")
             continue
         if not rows:
             print(f"WARNING {symbol}: no prices")
             continue
-        series_by_symbol[symbol] = rows
-
-    if not series_by_symbol:
-        return []
-
-    priced_weight = sum(raw_weights[symbol] for symbol in series_by_symbol)
-    if priced_weight <= 0:
-        return []
-    weights = {symbol: raw_weights[symbol] / priced_weight for symbol in series_by_symbol}
-
-    aligned = _align_prices(series_by_symbol)
-    if not aligned:
-        return []
-
-    values = [
-        (day, sum(weights[symbol] * prices[symbol] for symbol in weights))
-        for day, prices in aligned
-    ]
-    base = values[0][1]
-    if base == 0:
-        return []
-
-    return [
-        {"date": day, "value_pct": round((value / base - 1.0) * 100.0, 4)}
-        for day, value in values
-    ]
+        prices[symbol] = rows
+    return to_pct(chain_series(weighted, prices))
 
 
 def _is_missing_table(exc: Exception) -> bool:
@@ -371,6 +382,45 @@ def save_snapshots(db, portfolio_id: str, series: list[dict[str, Any]]) -> bool:
     return True
 
 
+def stale_estimated_dates(
+    series: list[dict[str, Any]], est_rows: list[dict[str, Any]]
+) -> list[str]:
+    """D74: fechas estimadas viejas dentro del tramo recien escrito que la
+    corrida nueva ya no trae (feriados de la cartera vieja, otra base, etc.).
+
+    Esas filas quedaban entre puntos nuevos y daban saltos de un dia (bice
+    2026-09-18 y 2026-10-12: feriados CL que solo existian en la serie vieja
+    con tickers de EE.UU.). Nunca toca filas reales.
+    """
+    if not series:
+        return []
+    written = {str(p["date"])[:10] for p in series}
+    lo, hi = min(written), max(written)
+    return sorted(
+        {
+            str(r["date"])[:10]
+            for r in est_rows
+            if r.get("is_estimated") is not False
+            and lo <= str(r["date"])[:10] <= hi
+            and str(r["date"])[:10] not in written
+        }
+    )
+
+
+def prune_stale_estimated(db, portfolio_id: str, series, est_rows) -> int:
+    dates = stale_estimated_dates(series, est_rows)
+    for i in range(0, len(dates), 200):
+        (
+            db.table("portfolio_performance")
+            .delete()
+            .eq("portfolio_id", portfolio_id)
+            .eq("is_estimated", True)
+            .in_("date", dates[i : i + 200])
+            .execute()
+        )
+    return len(dates)
+
+
 def _active_portfolios(db) -> list[dict[str, Any]]:
     def query():
         return (
@@ -467,6 +517,10 @@ def main(argv: list[str] | None = None) -> None:
                     for p in stitch_estimated(series, real_rows, est_rows)
                 ]
             saved = save_snapshots(db, portfolio_id, series)
+            if saved and existing is not None:
+                pruned = prune_stale_estimated(db, portfolio_id, series, existing[1])
+                if pruned:
+                    print(f"-- {slug}: {pruned} filas estimadas viejas borradas")
             if not saved:
                 print(f"WARNING {slug}: series built ({len(series)} points) but not saved")
                 continue
