@@ -201,7 +201,7 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
 
   if (all.length === 0) {
     return (
-      <p className="border border-ink-200 px-3 py-10 text-[13px] text-ink-500">
+      <p className="rounded-[12px] border border-dashed border-[#e6e6e6] px-3 py-10 text-center text-[13px] text-ink-500">
         Sin serie para comparar.
       </p>
     );
@@ -226,9 +226,9 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
   }
 
   return (
-    <figure className="w-full">
-      <ul className="mb-4 flex flex-wrap gap-x-6 gap-y-2 text-[13px]">
-        <li className="flex items-center gap-2 text-ink-900">
+    <figure className="w-full min-w-0">
+      <ul className="mb-3 flex flex-wrap gap-2 text-[13px]">
+        <li className="flex items-center gap-2 rounded-full bg-ink-100 px-3 py-1 text-ink-900">
           <span className="inline-block h-0.5 w-6 bg-ink-900" aria-hidden="true" />
           <span>Portafolio</span>
           {portEnd !== null ? (
@@ -237,7 +237,7 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
             </span>
           ) : null}
         </li>
-        <li className="flex items-center gap-2 text-ink-500">
+        <li className="flex items-center gap-2 rounded-full bg-ink-100 px-3 py-1 text-ink-500">
           <svg width="24" height="8" aria-hidden="true" className="shrink-0">
             <line
               x1="0"
@@ -258,8 +258,8 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
         </li>
       </ul>
 
-      <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-3">
-        <div className="relative h-44 sm:h-64" aria-hidden="true">
+      <div className="grid grid-cols-[3rem_minmax(0,1fr)] gap-x-2 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:gap-x-3">
+        <div className="relative h-52 sm:h-64" aria-hidden="true">
           {yMarks.map((mark, index) => (
             <span
               key={index}
@@ -271,7 +271,7 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
           ))}
         </div>
         <div
-          className="relative h-44 sm:h-64"
+          className="relative h-52 touch-pan-y sm:h-64"
           onPointerMove={selectAt}
           onPointerDown={selectAt}
           onPointerLeave={() => setHoverX(null)}
@@ -343,7 +343,7 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
                 style={{ left: `${hoverPct}%` }}
               />
               <div
-                className="pointer-events-none absolute z-10 border border-ink-200 bg-white px-2.5 py-1.5"
+                className="pointer-events-none absolute z-10 rounded-[8px] border border-[#e6e6e6] bg-white px-2.5 py-1.5 shadow-[0_4px_12px_rgb(0_0_0/0.08)]"
                 style={{
                   left: `${hoverPct}%`,
                   top: 8,

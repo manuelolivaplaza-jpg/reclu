@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { AppLink as Link } from "@/components/app/app-link";
 import { ArrowUpRight, BellRing, Search, X } from "lucide-react";
 import type { Alert, AlertType, PortfolioCategory } from "@/lib/types";
+import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { LagBadge } from "@/components/lag-badge";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { lagDays, publishedAtFromPayload } from "@/lib/disclosure-lag";
@@ -16,6 +17,8 @@ export interface EnrichedAlert extends Omit<Alert, "portfolio"> {
     name: string;
     category: PortfolioCategory;
     manager: string | null;
+    cover_image?: string | null;
+    portrait_image?: string | null;
   };
 }
 
@@ -227,95 +230,73 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
     setTypeFilter("all");
   }
 
+  const groups = useMemo(() => groupByDay(filteredAlerts), [filteredAlerts]);
+
+  const VIEWS: { value: ViewTab; label: string }[] = [
+    { value: "global", label: "Global" },
+    { value: "following", label: `Siguiendo (${followedCount})` },
+    { value: "leaders", label: "Líderes" },
+  ];
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* 1. Tabs de vista principal */}
-      <div className="-mx-5 overflow-x-auto no-scrollbar border-b border-ink-200 px-5 md:mx-0 md:px-0">
-        <div
-          className="flex w-max min-w-full items-center gap-x-8"
-          role="tablist"
-          aria-label="Vista de alertas"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "global"}
-            onClick={() => setView("global")}
-            className={cn(
-              "-mb-px shrink-0 whitespace-nowrap border-b-2 py-3 text-[14px] transition-colors",
-              view === "global"
-                ? "border-ink-900 font-medium text-ink-900"
-                : "border-transparent text-ink-500 hover:text-ink-900",
-            )}
-          >
-            Feed global
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "following"}
-            onClick={() => setView("following")}
-            className={cn(
-              "-mb-px shrink-0 whitespace-nowrap border-b-2 py-3 text-[14px] tabular-nums transition-colors",
-              view === "following"
-                ? "border-ink-900 font-medium text-ink-900"
-                : "border-transparent text-ink-500 hover:text-ink-900",
-            )}
-          >
-            {`Mis portafolios (${followedCount})`}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={view === "leaders"}
-            onClick={() => setView("leaders")}
-            className={cn(
-              "-mb-px shrink-0 whitespace-nowrap border-b-2 py-3 text-[14px] transition-colors",
-              view === "leaders"
-                ? "border-ink-900 font-medium text-ink-900"
-                : "border-transparent text-ink-500 hover:text-ink-900",
-            )}
-          >
-            Menciones & Líderes
-          </button>
-        </div>
+    <div className="flex min-w-0 flex-col gap-5">
+      {/* 1. Segmented control de vista */}
+      <div
+        className="grid w-full grid-cols-3 rounded-[10px] bg-ink-100 p-1 sm:w-auto sm:max-w-md"
+        role="tablist"
+        aria-label="Vista de alertas"
+      >
+        {VIEWS.map((item) => {
+          const active = view === item.value;
+          return (
+            <button
+              key={item.value}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setView(item.value)}
+              className={cn(
+                "h-9 min-w-0 truncate rounded-[8px] px-2 text-[13px] tabular-nums transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900",
+                active
+                  ? "bg-white font-medium text-ink-900 shadow-[0_1px_2px_rgb(0_0_0/0.08)]"
+                  : "text-ink-500 hover:text-ink-900",
+              )}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* 2. Buscador en tiempo real + píldoras de tipo */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="relative min-w-0 flex-1">
-            <Search
-              className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-500"
-              strokeWidth={1.5}
-            />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Filtra por ticker (NVDA, TSLA, SQM-B), político o fondo…"
-              aria-label="Filtra por ticker, político o fondo"
-              className="h-11 w-full rounded-none border border-ink-200 bg-white pr-4 pl-10 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
-            />
-          </div>
+      {/* 2. Buscador + chips de tipo */}
+      <div className="flex min-w-0 flex-col gap-3">
+        <div className="relative min-w-0">
+          <Search
+            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-ink-500"
+            strokeWidth={1.75}
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Ticker, político o fondo"
+            aria-label="Filtra por ticker, político o fondo"
+            className="h-11 w-full rounded-[10px] border border-[#e6e6e6] bg-white pr-11 pl-10 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
+          />
           {hasActiveFilters && (
             <button
               type="button"
               onClick={clearFilters}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 border border-ink-200 bg-white px-4 text-[14px] text-ink-900 transition-colors hover:border-ink-900 sm:w-auto"
+              aria-label="Limpiar filtros"
+              className="absolute top-1/2 right-2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-ink-900"
             >
-              <X className="size-4" strokeWidth={1.5} />
-              Limpiar
+              <X className="size-4" strokeWidth={1.75} />
             </button>
           )}
         </div>
 
-        <div className="-mx-5 overflow-x-auto no-scrollbar px-5 md:mx-0 md:px-0">
-          <div
-            className="flex w-max items-center gap-2"
-            role="group"
-            aria-label="Filtrar por tipo de alerta"
-          >
+        <div className="-mx-4 overflow-x-auto no-scrollbar px-4 sm:mx-0 sm:px-0">
+          <div className="flex w-max items-center gap-2" role="group" aria-label="Filtrar por tipo de alerta">
             {TYPE_FILTERS.map((item) => {
               const active = typeFilter === item.value;
               return (
@@ -325,10 +306,10 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                   aria-pressed={active}
                   onClick={() => setTypeFilter(item.value)}
                   className={cn(
-                    "shrink-0 border px-3 py-1.5 text-[13px] transition-colors",
+                    "h-8 shrink-0 rounded-full border px-3.5 text-[13px] transition-colors",
                     active
                       ? "border-ink-900 bg-ink-900 font-medium text-white"
-                      : "border-ink-200 bg-white text-ink-600 hover:border-ink-900 hover:text-ink-900",
+                      : "border-[#e6e6e6] bg-white text-ink-600 hover:border-ink-900 hover:text-ink-900",
                   )}
                 >
                   {item.label}
@@ -337,235 +318,60 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
             })}
           </div>
         </div>
+        <p className="text-[12px] tabular-nums text-ink-500">
+          {filteredAlerts.length} {filteredAlerts.length === 1 ? "alerta" : "alertas"}
+        </p>
       </div>
 
-      {/* 3. Lista de alertas */}
-      {filteredAlerts.length > 0 ? (
-        <div className="flex flex-col">
-          {filteredAlerts.map((alert) => {
-            const isHighlighted = alert.type === "mention" || alert.severity === "high";
-            const payload = alert.payload ?? {};
-            const rawSymbol =
-              typeof alert.payload?.symbol === "string" && alert.payload.symbol.trim().length > 0
-                ? alert.payload.symbol.trim().toUpperCase()
-                : null;
-            const prevWeight =
-              typeof alert.payload?.previous_weight === "number"
-                ? alert.payload.previous_weight
-                : null;
-            const newWeight =
-              typeof alert.payload?.new_weight === "number" ? alert.payload.new_weight : null;
-            const deltaWeight =
-              prevWeight !== null && newWeight !== null ? newWeight - prevWeight : null;
-            const explain = explanations[alert.id];
-            const explainLabel =
-              explain?.status === "loading"
-                ? "Explicando…"
-                : explain?.status === "error"
-                  ? "Reintentar"
-                  : explain?.status === "done" && explain.open
-                    ? "Ocultar"
-                    : explain?.status === "done"
-                      ? "Ver explicación"
-                      : "Explicar";
-
-            return (
-              <article key={alert.id} className="border-t border-ink-200 py-6 last:border-b">
-                {/* Meta superior */}
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[13px] text-ink-500">
-                  <span
-                    className={cn(
-                      "px-2 py-0.5 text-[11px] font-medium",
-                      isHighlighted
-                        ? "border border-ink-900 text-ink-900"
-                        : "border border-ink-200 text-ink-600",
-                    )}
-                  >
-                    {TYPE_LABEL[alert.type] ?? "Alerta"}
-                  </span>
-
-                  <Link
-                    href={`/portfolio/${alert.portfolio.slug}`}
-                    className="font-medium text-ink-900 underline-offset-4 hover:underline"
-                  >
-                    {alert.portfolio.name}
-                  </Link>
-
-                  {alert.portfolio.manager &&
-                    alert.portfolio.manager !== alert.portfolio.name && (
-                      <span>· {alert.portfolio.manager}</span>
-                    )}
-
-                  <span className="tabular-nums">· {timeAgo(alert.created_at)}</span>
-
-                  <LagBadge
-                    publishedAt={publishedAtFromPayload(payload)}
-                    recordedAt={alert.created_at}
-                    lagDays={lagDays(payload)}
-                    leadingDot
+      {/* 3. Feed agrupado por día */}
+      {groups.length > 0 ? (
+        <div className="flex flex-col gap-6">
+          {groups.map((group) => (
+            <section key={group.key} aria-label={group.label} className="flex flex-col gap-2">
+              <h2 className="sticky top-0 z-[1] -mx-1 bg-[#f6f6f6]/90 px-1 py-1.5 text-[12px] font-medium tracking-wide text-ink-500 uppercase backdrop-blur">
+                {group.label}
+              </h2>
+              <div className="overflow-hidden rounded-[12px] border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
+                {group.items.map((alert) => (
+                  <AlertRow
+                    key={alert.id}
+                    alert={alert}
+                    isPro={isPro}
+                    explain={explanations[alert.id]}
+                    onExplain={() => handleExplain(alert)}
                   />
-                </div>
-
-                {/* Chip de ticker + delta de peso si existe */}
-                {rawSymbol && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Link
-                      href={`/accion/${encodeURIComponent(rawSymbol.toLowerCase())}`}
-                      className="inline-flex items-center gap-2 border border-ink-200 px-2.5 py-0.5 text-[12px] font-medium tabular-nums text-ink-900 transition-colors hover:border-ink-900"
-                    >
-                      <span>${rawSymbol}</span>
-                      {deltaWeight !== null && (
-                        <span
-                          className={cn(
-                            "tabular-nums",
-                            deltaWeight > 0
-                              ? "text-positive"
-                              : deltaWeight < 0
-                                ? "text-negative"
-                                : "text-ink-500",
-                          )}
-                        >
-                          {deltaWeight > 0 ? "+" : ""}
-                          {deltaWeight.toFixed(1)}pp
-                        </span>
-                      )}
-                      {prevWeight !== null && newWeight !== null && (
-                        <span className="font-normal text-ink-500 tabular-nums">
-                          ({formatPctPlain(prevWeight, 1)} → {formatPctPlain(newWeight, 1)})
-                        </span>
-                      )}
-                    </Link>
-                  </div>
-                )}
-
-                {/* Título */}
-                <h3 className="mt-2.5 text-[17px] font-medium tracking-[-0.02em] text-ink-900">
-                  {alert.title}
-                </h3>
-
-                {/* Resumen AI */}
-                {alert.summary ? (
-                  <div className="mt-3 border-l-2 border-ink-900 pl-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-[13px] text-ink-500">Resumen AI</p>
-                      {!isPro && (
-                        <Link
-                          href="/upgrade?plan=pro"
-                          className="text-[12px] text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
-                        >
-                          Activar alertas en tiempo real en Pro →
-                        </Link>
-                      )}
-                    </div>
-                    <p className="mt-1 text-[15px] leading-relaxed text-ink-900">
-                      {alert.summary}
-                    </p>
-                  </div>
-                ) : !isPro ? (
-                  <div className="mt-3 border-l-2 border-ink-900 pl-4">
-                    <p className="text-[13px] text-ink-500">
-                      El resumen AI de esta alerta está disponible en el{" "}
-                      <Link
-                        href="/upgrade?plan=pro"
-                        className="font-medium text-ink-900 underline-offset-4 hover:underline"
-                      >
-                        plan Pro
-                      </Link>
-                      .
-                    </p>
-                  </div>
-                ) : null}
-
-                {/* Acciones: portafolio + explicación con IA */}
-                <div className="mt-3 flex flex-wrap items-center gap-4">
-                  <Link
-                    href={`/portfolio/${alert.portfolio.slug}`}
-                    className="inline-flex items-center gap-1 text-[13px] text-ink-500 hover:text-ink-900"
-                  >
-                    Ver portafolio
-                    <ArrowUpRight className="size-3.5" strokeWidth={1.5} />
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => handleExplain(alert)}
-                    disabled={explain?.status === "loading"}
-                    aria-expanded={explain?.status === "done" ? explain.open : undefined}
-                    className="inline-flex items-center border border-ink-200 px-3 py-1.5 text-[13px] text-ink-900 transition-colors hover:border-ink-900 disabled:cursor-wait disabled:text-ink-500"
-                  >
-                    {explainLabel}
-                  </button>
-                </div>
-
-                {explain?.status === "error" && (
-                  <p className="mt-2 text-[13px] leading-relaxed text-ink-600">
-                    {explain.error}
-                  </p>
-                )}
-
-                {explain?.status === "done" && explain.open && (
-                  <div className="mt-3 border border-ink-200 p-4">
-                    <p className="text-[13px] text-ink-500">Explicación simple · IA</p>
-                    <p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed text-ink-900">
-                      {explain.text}
-                    </p>
-                    {explain.sources.length > 0 && (
-                      <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
-                        Fuente:{" "}
-                        {explain.sources.map((source, index) => (
-                          <span key={`${source.label}-${index}`}>
-                            {index > 0 ? " · " : null}
-                            {source.href ? (
-                              <a
-                                href={source.href}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-ink-900 underline underline-offset-4"
-                              >
-                                {source.label}
-                              </a>
-                            ) : (
-                              source.label
-                            )}
-                          </span>
-                        ))}
-                        .
-                      </p>
-                    )}
-                    <div className="mt-3">
-                      <LegalNotice kind="fintec" />
-                    </div>
-                  </div>
-                )}
-              </article>
-            );
-          })}
+                ))}
+              </div>
+            </section>
+          ))}
         </div>
       ) : (
-        <div className="border border-ink-200 p-12 text-center">
-          <BellRing className="mx-auto size-7 text-ink-500" strokeWidth={1.5} />
+        <div className="rounded-[12px] border border-[#e6e6e6] bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
+          <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-ink-100">
+            <BellRing className="size-5 text-ink-600" strokeWidth={1.75} />
+          </span>
           {view === "following" && followedCount === 0 ? (
             <>
               <p className="mt-4 text-[17px] font-medium tracking-[-0.02em] text-ink-900">
                 Aún no sigues portafolios
               </p>
-              <p className="mx-auto mt-2 max-w-md text-[15px] text-ink-500">
-                Sigue hasta 2 portafolios gratis para filtrar aquí sus movimientos o explora el
-                feed global en tiempo real.
+              <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-ink-500">
+                Sigue portafolios para ver aquí solo sus movimientos, o revisa el feed global.
               </p>
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-4">
+              <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Link
+                  href="/explore"
+                  className="inline-flex h-10 items-center rounded-full bg-ink-900 px-5 text-[14px] font-medium text-white hover:bg-black"
+                >
+                  Explorar portafolios
+                </Link>
                 <button
                   type="button"
                   onClick={() => setView("global")}
-                  className="rounded-full bg-ink-900 px-5 py-2.5 text-[14px] font-medium text-white transition-colors hover:bg-black"
+                  className="inline-flex h-10 items-center rounded-full border border-[#e6e6e6] px-5 text-[14px] text-ink-900 hover:border-ink-900"
                 >
                   Ver feed global
                 </button>
-                <Link
-                  href="/explore"
-                  className="text-[14px] text-ink-900 underline-offset-4 hover:underline"
-                >
-                  Explorar portafolios →
-                </Link>
               </div>
             </>
           ) : (
@@ -573,16 +379,16 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
               <p className="mt-4 text-[17px] font-medium tracking-[-0.02em] text-ink-900">
                 Sin alertas para este filtro
               </p>
-              <p className="mx-auto mt-2 max-w-md text-[15px] text-ink-500">
-                Prueba con otro ticker, cambia de pestaña o limpia los filtros activos.
+              <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-ink-500">
+                Prueba con otro ticker, cambia de vista o limpia los filtros.
               </p>
               {hasActiveFilters && (
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="mt-4 inline-block text-[14px] font-medium text-ink-900 underline-offset-4 hover:underline"
+                  className="mt-5 inline-flex h-10 items-center rounded-full bg-ink-900 px-5 text-[14px] font-medium text-white hover:bg-black"
                 >
-                  Limpiar filtros →
+                  Limpiar filtros
                 </button>
               )}
             </>
@@ -590,5 +396,257 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
         </div>
       )}
     </div>
+  );
+}
+
+/* ---------- Agrupación por día ---------- */
+
+interface DayGroup {
+  key: string;
+  label: string;
+  items: EnrichedAlert[];
+}
+
+const DAY_KEY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Santiago",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const DAY_LABEL = new Intl.DateTimeFormat("es-CL", {
+  timeZone: "America/Santiago",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+function dayKey(date: Date): string {
+  return DAY_KEY.format(date);
+}
+
+function groupByDay(list: EnrichedAlert[]): DayGroup[] {
+  const now = new Date();
+  const today = dayKey(now);
+  const yesterday = dayKey(new Date(now.getTime() - 86_400_000));
+  const map = new Map<string, DayGroup>();
+  for (const alert of list) {
+    const d = new Date(alert.created_at);
+    const valid = Number.isFinite(d.getTime());
+    const key = valid ? dayKey(d) : "sin-fecha";
+    let group = map.get(key);
+    if (!group) {
+      const label = !valid
+        ? "Sin fecha"
+        : key === today
+          ? "Hoy"
+          : key === yesterday
+            ? "Ayer"
+            : DAY_LABEL.format(d);
+      group = { key, label, items: [] };
+      map.set(key, group);
+    }
+    group.items.push(alert);
+  }
+  return [...map.values()];
+}
+
+/* ---------- Fila de alerta ---------- */
+
+const CHIP_CLASS: Partial<Record<AlertType, string>> = {
+  new_trade: "bg-ink-900 text-white",
+  sold_trade: "border border-ink-900 bg-white text-ink-900",
+  mention: "bg-ink-100 text-ink-900",
+};
+
+function AlertRow({
+  alert,
+  isPro,
+  explain,
+  onExplain,
+}: {
+  alert: EnrichedAlert;
+  isPro: boolean;
+  explain: ExplainState | undefined;
+  onExplain: () => void;
+}) {
+  const payload = alert.payload ?? {};
+  const rawSymbol =
+    typeof alert.payload?.symbol === "string" && alert.payload.symbol.trim().length > 0
+      ? alert.payload.symbol.trim().toUpperCase()
+      : null;
+  const prevWeight =
+    typeof alert.payload?.previous_weight === "number" ? alert.payload.previous_weight : null;
+  const newWeight = typeof alert.payload?.new_weight === "number" ? alert.payload.new_weight : null;
+  const deltaWeight = prevWeight !== null && newWeight !== null ? newWeight - prevWeight : null;
+  const explainLabel =
+    explain?.status === "loading"
+      ? "Explicando…"
+      : explain?.status === "error"
+        ? "Reintentar"
+        : explain?.status === "done" && explain.open
+          ? "Ocultar"
+          : explain?.status === "done"
+            ? "Ver explicación"
+            : "Explicar con IA";
+  const time = (() => {
+    const d = new Date(alert.created_at);
+    return Number.isFinite(d.getTime())
+      ? new Intl.DateTimeFormat("es-CL", {
+          timeZone: "America/Santiago",
+          hour: "2-digit",
+          minute: "2-digit",
+        }).format(d)
+      : "";
+  })();
+
+  return (
+    <article className="flex min-w-0 gap-3 border-t border-[#e6e6e6] p-4 first:border-t-0 sm:gap-4 sm:p-5">
+      <Link
+        href={`/portfolio/${alert.portfolio.slug}`}
+        className="shrink-0"
+        aria-label={alert.portfolio.name}
+      >
+        <PortfolioAvatar
+          portfolio={{
+            slug: alert.portfolio.slug,
+            name: alert.portfolio.name,
+            category: alert.portfolio.category,
+            cover_image: alert.portfolio.cover_image ?? null,
+            portrait_image: alert.portfolio.portrait_image ?? null,
+          }}
+          size={40}
+        />
+      </Link>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <Link
+              href={`/portfolio/${alert.portfolio.slug}`}
+              className="block truncate text-[14px] font-medium text-ink-900 hover:underline underline-offset-4"
+            >
+              {alert.portfolio.name}
+            </Link>
+            <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 text-[12px] text-ink-500">
+              {alert.portfolio.manager && alert.portfolio.manager !== alert.portfolio.name && (
+                <span className="truncate">{alert.portfolio.manager} ·</span>
+              )}
+              <span className="tabular-nums" title={timeAgo(alert.created_at)}>
+                {time}
+              </span>
+              <LagBadge
+                publishedAt={publishedAtFromPayload(payload)}
+                recordedAt={alert.created_at}
+                lagDays={lagDays(payload)}
+                leadingDot
+              />
+            </p>
+          </div>
+          <span
+            className={cn(
+              "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
+              CHIP_CLASS[alert.type] ?? "border border-[#e6e6e6] text-ink-600",
+            )}
+          >
+            {TYPE_LABEL[alert.type] ?? "Alerta"}
+          </span>
+        </div>
+
+        <h3 className="mt-2 text-[15px] leading-snug font-medium tracking-[-0.01em] text-ink-900 [overflow-wrap:anywhere]">
+          {alert.title}
+        </h3>
+
+        {rawSymbol && (
+          <Link
+            href={`/accion/${encodeURIComponent(rawSymbol.toLowerCase())}`}
+            className="mt-2 inline-flex max-w-full items-center gap-2 rounded-[8px] bg-ink-100 px-2.5 py-1 text-[12px] font-medium tabular-nums text-ink-900 hover:bg-ink-200"
+          >
+            <span>{rawSymbol}</span>
+            {deltaWeight !== null && (
+              <span
+                className={cn(
+                  "tabular-nums",
+                  deltaWeight > 0 ? "text-positive" : deltaWeight < 0 ? "text-negative" : "text-ink-500",
+                )}
+              >
+                {deltaWeight > 0 ? "+" : ""}
+                {deltaWeight.toFixed(1)}pp
+              </span>
+            )}
+            {prevWeight !== null && newWeight !== null && (
+              <span className="truncate font-normal text-ink-500">
+                {formatPctPlain(prevWeight, 1)} → {formatPctPlain(newWeight, 1)}
+              </span>
+            )}
+          </Link>
+        )}
+
+        {alert.summary ? (
+          <div className="mt-3 rounded-[8px] bg-[#f6f6f6] p-3">
+            <p className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">Resumen IA</p>
+            <p className="mt-1 text-[14px] leading-relaxed text-ink-900">{alert.summary}</p>
+          </div>
+        ) : !isPro ? (
+          <p className="mt-3 text-[13px] text-ink-500">
+            Resumen IA disponible en{" "}
+            <Link href="/upgrade?plan=pro" className="font-medium text-ink-900 underline underline-offset-4">
+              Pro
+            </Link>
+            .
+          </p>
+        ) : null}
+
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={onExplain}
+            disabled={explain?.status === "loading"}
+            aria-expanded={explain?.status === "done" ? explain.open : undefined}
+            className="inline-flex h-8 items-center rounded-full border border-[#e6e6e6] px-3 text-[13px] text-ink-900 transition-colors hover:border-ink-900 disabled:cursor-wait disabled:text-ink-500"
+          >
+            {explainLabel}
+          </button>
+          <Link
+            href={`/portfolio/${alert.portfolio.slug}`}
+            className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] text-ink-500 hover:bg-ink-100 hover:text-ink-900"
+          >
+            Ver portafolio
+            <ArrowUpRight className="size-3.5" strokeWidth={1.75} />
+          </Link>
+        </div>
+
+        {explain?.status === "error" && (
+          <p className="mt-2 text-[13px] leading-relaxed text-ink-600">{explain.error}</p>
+        )}
+
+        {explain?.status === "done" && explain.open && (
+          <div className="mt-3 rounded-[8px] border border-[#e6e6e6] p-3">
+            <p className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">Explicación simple · IA</p>
+            <p className="mt-1.5 whitespace-pre-line text-[14px] leading-relaxed text-ink-900">{explain.text}</p>
+            {explain.sources.length > 0 && (
+              <p className="mt-2 text-[12px] leading-relaxed text-ink-500 [overflow-wrap:anywhere]">
+                Fuente:{" "}
+                {explain.sources.map((source, index) => (
+                  <span key={`${source.label}-${index}`}>
+                    {index > 0 ? " · " : null}
+                    {source.href ? (
+                      <a href={source.href} target="_blank" rel="noopener noreferrer" className="text-ink-900 underline underline-offset-4">
+                        {source.label}
+                      </a>
+                    ) : (
+                      source.label
+                    )}
+                  </span>
+                ))}
+                .
+              </p>
+            )}
+            <div className="mt-3">
+              <LegalNotice kind="fintec" />
+            </div>
+          </div>
+        )}
+      </div>
+    </article>
   );
 }

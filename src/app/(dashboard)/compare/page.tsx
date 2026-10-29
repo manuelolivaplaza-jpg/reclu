@@ -15,7 +15,7 @@ import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
 import { isPortfolioImageImportEnabled } from "@/lib/portfolio-flags";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Mi cartera" };
+export const metadata = { title: "Comparar" };
 // Auth-gated route — never prerendered.
 export const instant = false;
 
@@ -90,7 +90,15 @@ export default async function ComparePage() {
   });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-w-0 flex-col gap-5">
+      <header className="flex flex-col gap-1">
+        <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] text-ink-900 sm:text-[32px]">
+          Comparar
+        </h1>
+        <p className="text-[14px] text-ink-500 sm:text-[15px]">
+          Cruza tu cartera con los portafolios de Reclu y mira cuánto se parecen.
+        </p>
+      </header>
       {profile && !hasConsent && (
         <PortfolioConsent
           consentAt={consent?.consent_at ?? null}
@@ -98,6 +106,7 @@ export default async function ComparePage() {
           model={aiModel}
         />
       )}
+      <section className="min-w-0 rounded-[12px] border border-[#e6e6e6] bg-white p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04)] sm:p-6">
       <PortfolioManager
         initialHoldings={userHoldings}
         catalog={compare.portfolios}
@@ -106,7 +115,10 @@ export default async function ComparePage() {
         planName={planName}
         imageImportEnabled={imageImportEnabled}
       />
-      <AlignmentPanel catalog={compare.portfolios} />
+      </section>
+      <section className="min-w-0 rounded-[12px] border border-[#e6e6e6] bg-white p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04)] sm:p-6">
+        <AlignmentPanel catalog={compare.portfolios} />
+      </section>
     </div>
   );
 }
