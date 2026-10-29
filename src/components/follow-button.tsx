@@ -100,7 +100,7 @@ export function FollowButton({
         ) : requiresPro ? (
           <>
             <Plus className="size-4" />
-            Pro
+            Seguir
           </>
         ) : (
           <>

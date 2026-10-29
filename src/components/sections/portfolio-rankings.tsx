@@ -138,7 +138,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
 
   return (
     <section className="bg-white py-24 font-sans md:py-32">
-      <div className="mx-auto w-full max-w-[1200px] px-4 sm:px-6 md:px-8">
+      <div className="mx-auto w-full max-w-[1360px] px-4 sm:px-6 md:px-8">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <h2 className="text-3xl font-semibold tracking-tight text-neutral-950 sm:text-4xl">

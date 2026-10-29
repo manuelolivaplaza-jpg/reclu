@@ -81,7 +81,7 @@ export function ExploreHeroChart({
   if (!geo) {
     return (
       <div className={cn("flex items-center justify-center rounded-xl bg-ink-50 text-[13px] text-ink-500", className)} style={{ height }}>
-        Sin serie de rendimiento aún
+        Sin datos de rendimiento para este período
       </div>
     );
   }

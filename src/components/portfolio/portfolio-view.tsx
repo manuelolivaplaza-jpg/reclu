@@ -11,7 +11,6 @@ import { demoPerformance } from "@/lib/demo-data";
 import { SiteHeader } from "@/components/site-header";
 import { PortfolioSectionTabs } from "@/components/portfolio-section-tabs";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
-import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
 import { PaywallGate } from "@/components/paywall-gate";
 import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
@@ -191,8 +190,6 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
     performanceReal.length === 0 && !isSupabaseLive() && portfolio.return_ytd !== null
       ? demoPerformance(portfolio.slug, portfolio.return_ytd)
       : [];
-  const showEvolution = performanceReal.length > 0 || demoPoints.length > 0;
-  const evolution = performanceReal.length > 0 ? performanceReal : demoPoints;
   // F5: rendimiento vs benchmark. En modo demo (sin Supabase) la serie es
   // ilustrativa: se calcula sobre demoPoints y se rotula "datos de ejemplo".
   const perfSourceSeries =
@@ -465,15 +462,9 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             />
           ) : null}
 
-                    {esAgregado ? null : <PortfolioMetricsStrip holdings={holdings} />}
+                    {esAgregado || holdingsLocked || holdings.length === 0 ? null : <PortfolioMetricsStrip holdings={holdings} />}
 
-          {showEvolution && !esAgregado ? (
-            <div className="mb-12">
-              <ChartSection title="Evolución">
-                <PortfolioEvolution data={evolution} />
-              </ChartSection>
-            </div>
-          ) : null}
+          {/* d68: el gráfico principal es el del hero (selector 1D–Máx); se quitó la "Evolución" duplicada. */}
 
           {!esAgregado ? (
             <div className="mb-12">
