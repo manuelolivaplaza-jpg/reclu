@@ -1,5 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { timingSafeEqual } from "@/lib/safe-compare";
+import { ALL_PUBLIC_TAGS } from "@/lib/cache-tags";
 
 // Duración máxima de la función (en vercel.json los crons no admiten maxDuration).
 export const maxDuration = 300;
@@ -89,6 +91,17 @@ async function runPipeline(): Promise<NextResponse> {
   }
 
   const ok = results.detect_status === 200 && results.send_status === 200;
+
+  // D61: el pipeline publica alertas nuevas -> invalida la caché pública
+  // (portafolios, series, conteos). Solo tags públicos: nada por usuario.
+  if (results.detect_status === 200) {
+    try {
+      for (const tag of ALL_PUBLIC_TAGS) revalidateTag(tag, "max");
+      results.revalidated = ALL_PUBLIC_TAGS;
+    } catch (err) {
+      results.revalidated = { error: err instanceof Error ? err.message : "failed" };
+    }
+  }
   return NextResponse.json(
     {
       ok,
