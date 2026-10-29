@@ -265,8 +265,7 @@ export async function portfolioSystemContext(supabase: SupabaseClient, slug: str
     if (!direct.error && Array.isArray(direct.data)) rows = direct.data;
   }
 
-  // D55: posiciones solo para planes pagados, salvo corredoras (broker_cl) y
-  // declaraciones oficiales. Se verifica aquí por si la 069 no está aplicada.
+  // D55: posiciones solo para planes pagados, salvo corredoras (broker_cl). Se verifica aquí por si la 070 no está aplicada.
   if (!holdingsOpenToAll(portfolio as { category?: string; source?: string })) {
     const { data: auth } = await supabase.auth.getUser();
     let paid = false;

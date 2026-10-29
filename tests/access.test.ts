@@ -107,11 +107,12 @@ describe("sliceForRole", () => {
 });
 
 describe("D55: posiciones y seguir", () => {
-  it("broker_cl y declaraciones oficiales abiertas; el resto solo pago", async () => {
+  it("solo broker_cl abierta; declaraciones oficiales y el resto solo pago", async () => {
     const { holdingLimitFor, holdingsOpenToAll, canFollow } = await import("@/lib/access");
     expect(holdingsOpenToAll({ category: "broker_cl", source: "renta4" })).toBe(true);
     expect(holdingsOpenToAll({ category: "hedge_fund", source: "sec_13f" })).toBe(false);
-    expect(holdingsOpenToAll({ category: "political_us", source: "house_ptr" })).toBe(true);
+    expect(holdingsOpenToAll({ category: "political_us", source: "house_ptr" })).toBe(false);
+    expect(holdingLimitFor("free", { category: "public_disclosure", source: "oge_278t" })).toBe(0);
     expect(holdingLimitFor("free", { category: "broker_cl" })).toBe(Infinity);
     expect(holdingLimitFor("anon", { category: "hedge_fund" })).toBe(0);
     expect(holdingLimitFor("paid", { category: "hedge_fund" })).toBe(Infinity);

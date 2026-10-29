@@ -13,8 +13,8 @@
  *
  * D55 (decisión de Manu): las posiciones son solo para planes pagados.
  * anon y free ven 0, salvo en las carteras recomendadas de corredoras
- * (category 'broker_cl') y las declaraciones oficiales de EE.UU., que
- * cualquiera ve completas. Misma regla en la migración 069.
+ * (category 'broker_cl'), que cualquiera ve completas. Las declaraciones
+ * oficiales de EE.UU. (PTR, OGE 278-T) también son solo de pago. Misma regla en la migración 070.
  */
 
 import type { Holding, Alert, Plan } from "@/lib/types";
@@ -37,14 +37,11 @@ export function isRecommendedBrokerPortfolio(p: { category?: string | null } | n
   return p?.category === RECOMMENDED_BROKER_CATEGORY;
 }
 
-/** Fuentes oficiales EE.UU. (mismo listado que public-disclosure.ts, sin importar para evitar ciclos). */
-const OPEN_SOURCES = new Set(["oge_278t", "house_ptr", "senate_ptr"]);
-
 /** ¿Las posiciones de este portafolio están abiertas sin plan de pago? */
 export function holdingsOpenToAll(
   p: { category?: string | null; source?: string | null } | null | undefined,
 ): boolean {
-  return isRecommendedBrokerPortfolio(p) || (!!p?.source && OPEN_SOURCES.has(p.source));
+  return isRecommendedBrokerPortfolio(p);
 }
 
 /** Límite de posiciones del rol para un portafolio concreto (Infinity = todas). */

@@ -23,7 +23,6 @@ import {
   ALERT_LIMITS,
   type AccessRole,
 } from "@/lib/access";
-import { isPublicDisclosureSource } from "@/lib/public-disclosure";
 import { cardStatFromSeries, cardStatsById, type CardStat } from "@/lib/card-series";
 import { groupBySymbol, latestSnapshot } from "@/lib/composition";
 import {
@@ -243,14 +242,14 @@ export async function getHoldings(
     .select("slug, source, category")
     .eq("id", portfolioId)
     .maybeSingle();
-  // D55: corredoras (broker_cl) y declaraciones oficiales, abiertas a todos.
+  // D55: solo las corredoras (broker_cl) quedan abiertas a todos.
   const openToAll = holdingsOpenToAll(slugRow.data);
   if (slugRow.data?.slug) {
     const { data: rpc, error: rpcError } = await supabase
       .rpc("get_portfolio_holdings", { p_slug: slugRow.data.slug });
     if (!rpcError && Array.isArray(rpc)) {
       // D39: sin la migración 067 la RPC trae todos los snapshots mezclados.
-      // D55: se recorta también aquí por si la migración 069 aún no está aplicada.
+      // D55: se recorta también aquí por si la migración 070 aún no está aplicada.
       const list = currentHoldings(rpc as Holding[]);
       return openToAll ? list : sliceHoldings(list, opts?.role);
     }
@@ -274,7 +273,7 @@ export async function getHoldings(
     return pf ? sliceHoldings(demoHoldings(pf.slug), opts?.role) : [];
   }
   const current = currentHoldings(data as Holding[]);
-  if (openToAll || isPublicDisclosureSource(slugRow.data?.source)) return current;
+  if (openToAll) return current;
   return sliceHoldings(current, opts?.role);
 }
 
@@ -775,7 +774,7 @@ export async function followPortfolio(portfolioId: string): Promise<{
     .single();
   const plan = profile?.plan ?? "free";
 
-  // D55: seguir es solo para planes pagados (también lo exige el trigger de la 069).
+  // D55: seguir es solo para planes pagados (también lo exige el trigger de la 070).
   if (!canFollow(roleFor({ plan }))) {
     return { ok: false, reason: "plan_required" };
   }

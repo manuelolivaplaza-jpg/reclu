@@ -3,11 +3,12 @@
 --      Los follows que ya existen NO se borran: el trigger solo mira INSERT.
 --   2. Las posiciones (holdings) son solo para planes pagados, EXCEPTO las
 --      carteras recomendadas de corredoras (category = 'broker_cl': Renta 4,
---      LarrainVial, BTG, BICE, MBI, consenso corredoras_cl) y las
---      declaraciones oficiales de EE.UU. (oge_278t, house_ptr, senate_ptr),
---      que ya eran públicas por ley (ver src/lib/public-disclosure.ts).
+--      LarrainVial, BTG, BICE, MBI, consenso corredoras_cl). Las
+--      declaraciones oficiales de EE.UU. (oge_278t, house_ptr, senate_ptr)
+--      dejan de estar abiertas: también son solo de pago (decisión de Manu).
 --   3. El rendimiento (get_portfolio_performance) NO cambia.
--- Solo redefine funciones; no toca datos. NO APLICADA: la aplica Andamio
+-- Solo redefine funciones; no toca datos. Va como 070 porque la 069 es
+-- 069_chat_conversaciones (d52). NO APLICADA: la aplica Andamio
 -- con el sí de Manu, junto con el deploy del código d55.
 
 -- 1. Límite de posiciones: anon y free pasan a 0 (antes 5 y 10).
@@ -22,7 +23,7 @@ as $$
 $$;
 
 -- 2. get_portfolio_holdings: misma firma y mismo último snapshot que la 067;
---    sin límite para corredoras (broker_cl) y declaraciones oficiales.
+--    sin límite solo para corredoras (broker_cl).
 create or replace function public.get_portfolio_holdings(p_slug text)
 returns setof public.holdings
 language sql stable
@@ -48,7 +49,6 @@ as $$
       when exists (
         select 1 from pf
         where pf.category = 'broker_cl'
-           or pf.source in ('oge_278t', 'house_ptr', 'senate_ptr')
       ) then null
       else public.holdings_limit_for_plan(public.current_user_plan())
     end
@@ -133,8 +133,7 @@ as $$
   where upper(btrim(r.symbol)) = upper(btrim(p_symbol))
     and p.is_active = true
     and (
-      p.source in ('oge_278t', 'house_ptr', 'senate_ptr')
-      or p.category::text = 'broker_cl'
+      p.category::text = 'broker_cl'
       or public.holdings_limit_for_plan(public.current_user_plan()) is null
       or r.rank_in_day <= public.holdings_limit_for_plan(public.current_user_plan())
     )
