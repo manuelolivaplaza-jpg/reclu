@@ -20,8 +20,8 @@ Una etapa que falla no corta las demás; solo las críticas cambian el código d
 ## Dónde correrlo: GitHub Actions (recomendado)
 
 - `.github/workflows/scrapers.yml`: todos los días a las 11:00 UTC (08:00 Chile en verano, 07:00 en invierno), `timeout-minutes: 150`, cache de `scrapers/data/afp_cuadro14` y del cache de resolve_tickers.
-- Vercel Cron **no sirve** para los scrapers: son Python, tardan 30–90 min y las funciones de Vercel cortan a los 60–300 s. Vercel Cron queda solo para `/api/run-pipeline` (vercel.json, 13:00 UTC).
-- Ojo: hoy `/api/run-pipeline` corre dos veces al día (al final del workflow y por Vercel Cron a las 13:00 UTC). Si detect-changes no es idempotente, sacar el cron de `vercel.json` (decisión de Manu).
+- Vercel Cron **no sirve** para los scrapers: son Python, tardan 30–90 min y las funciones de Vercel cortan a los 60–300 s. D44: ya no hay Vercel Cron; `/api/run-pipeline` lo dispara solo el workflow (paso con `!cancelled()`, corre aunque fallen los scrapers).
+- D44: se quitó el cron duplicado de `vercel.json`; `/api/run-pipeline` corre una vez al día, al final del workflow.
 - Secrets del repo (Settings → Secrets → Actions): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `APP_URL`.
 - Senado (efdsearch) responde 403 desde Chile y desde el box; desde runners de GitHub (EE.UU.) puede funcionar. Si falla, la etapa termina con "BLOQUEADO" y no corta la corrida.
 

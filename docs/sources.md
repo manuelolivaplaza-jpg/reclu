@@ -55,8 +55,7 @@ Estado verificado en vivo entre el **2026-10-18** y el **2026-10-20**
     ↓ holdings upsert con previous_weight (detección de cambios)
     ↓ curl GET /api/run-pipeline con CRON_SECRET
     ↓
-Vercel Cron (diario 13:00 UTC) también llama GET /api/run-pipeline con
-    Authorization: Bearer ${CRON_SECRET}
+(D44: sin Vercel Cron; el workflow es el único disparo, con !cancelled())
     ↓
 /api/run-pipeline → Edge detect-changes: delta ≥0.5pp → alerts
     (is_published=false) → resúmenes OpenRouter → is_published=true
@@ -374,5 +373,5 @@ python run_all.py --list
   L-V 11:00 UTC, con `workflow_dispatch` manual, cache de pip, artifact
   con el log y el disparo final de `/api/run-pipeline`. Secrets:
   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `APP_URL`, `CRON_SECRET`.
-- **Vercel Cron**: `vercel.json` → GET `/api/run-pipeline` diario 13:00
-  UTC (solo detección + alertas + emails; los scrapers corren en Actions).
+- **Vercel Cron**: eliminado en D44 (era un duplicado del último paso del
+  workflow).
