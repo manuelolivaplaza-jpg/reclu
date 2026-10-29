@@ -105,8 +105,11 @@ jobs:
       - name: Trigger alert pipeline (/api/run-pipeline)
         # Después de que los scrapers escribieron holdings con
         # previous_weight, el endpoint corre detect-changes (alertas + AI)
-        # y send-alerts (emails). Solo si APP_URL está configurado.
-        if: ${{ inputs.dry_run != true && env.HAS_APP_URL == 'true' }}
+        # y send-alerts (emails). D44: unico disparo diario (se quito el cron
+        # duplicado de vercel.json, 13:00 UTC). !cancelled(): corre aunque
+        # falle la etapa de scrapers, como hacia el cron de respaldo.
+        # Solo si APP_URL está configurado.
+        if: ${{ !cancelled() && inputs.dry_run != true && env.HAS_APP_URL == 'true' }}
         env:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}

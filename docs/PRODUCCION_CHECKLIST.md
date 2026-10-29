@@ -59,7 +59,7 @@ Scrapers (opcionales): `PRICES_MAX_SYMBOLS` (default 1500), `TRADE_ALERTS_SEND_E
 
 ## 5. Programación
 19. Activar el workflow `Scrapers` (diario 11:00 UTC) y correrlo una vez con `workflow_dispatch` en dry-run. Ver `docs/PIPELINE_DIARIO.md`.
-20. Decidir si se deja el cron de `vercel.json` (13:00 UTC) además del llamado al final del workflow (hoy `/api/run-pipeline` corre dos veces). **[SÍ DE MANU]**
+20. ~~Cron duplicado de `vercel.json`~~ Hecho en D44: se quitó; `/api/run-pipeline` lo llama solo el workflow.
 21. Edge functions `detect-changes` y `send-alerts`: desplegar; `send-alerts` no envía sin `RESEND_API_KEY` (correo fuera de alcance).
 
 ## 6. Tamaño de Supabase
