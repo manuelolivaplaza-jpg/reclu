@@ -1,6 +1,6 @@
 export function RankingsSkeleton() {
   return (
-    <div aria-hidden="true" className="mt-12 grid gap-6 md:grid-cols-3">
+    <div aria-hidden="true" className="grid min-h-[640px] gap-6 md:grid-cols-3">
       {Array.from({ length: 3 }, (_, i) => (
         <div key={i} className="h-64 animate-pulse rounded-2xl bg-neutral-100 motion-reduce:animate-none" />
       ))}

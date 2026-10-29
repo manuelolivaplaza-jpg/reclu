@@ -1,81 +1,116 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ExploreCard } from "@/components/explore/explore-card";
-import type { Portfolio } from "@/lib/types";
-import type { CardStat } from "@/lib/card-series";
-import { PAGE_SIZE, hasMore, nextCount } from "@/lib/explore-paging";
+import type { ExploreCardPortfolio, SlimCardStat } from "@/lib/explore-slim";
+
+/** Página de tarjetas (misma forma que devuelve /api/explore/cards). */
+export interface PortfolioGridPage {
+  items: ExploreCardPortfolio[];
+  stats: Record<string, SlimCardStat>;
+  noSeriesIds: string[];
+  followedIds: string[];
+  total: number;
+}
 
 /**
- * Grilla con carga progresiva: el HTML del servidor trae los primeros
- * PAGE_SIZE; el resto se agrega con "Cargar más" o automáticamente al
- * acercarse al final (IntersectionObserver).
+ * Grilla con carga progresiva (d62, P2): el HTML trae solo la primera
+ * página; las siguientes se piden a /api/explore/cards con "Cargar más" o
+ * automáticamente al acercarse al final (IntersectionObserver).
  */
 export function PortfolioGrid({
-  portfolios,
-  followedIds,
+  initial,
   isPro,
-  noSeriesIds = [],
-  cardStats = {},
+  query,
 }: {
-  portfolios: Portfolio[];
-  followedIds: string[];
+  initial: PortfolioGridPage;
   isPro: boolean;
-  /** D29: portafolios sin ningún punto de rendimiento (se muestran en gris). */
-  noSeriesIds?: string[];
-  /** D40: retorno + sparkline reales por id (sin entrada = sin retorno). */
-  cardStats?: Record<string, CardStat>;
+  query: { categoria: string; q: string; simbolo: string };
 }) {
-  const noSeries = new Set(noSeriesIds);
-  const [shown, setShown] = useState(Math.min(PAGE_SIZE, portfolios.length));
+  const [items, setItems] = useState(initial.items);
+  const [stats, setStats] = useState(initial.stats);
+  const [noSeries, setNoSeries] = useState(() => new Set(initial.noSeriesIds));
+  const [followed, setFollowed] = useState(() => new Set(initial.followedIds));
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
   const sentinel = useRef<HTMLDivElement | null>(null);
-  const followed = new Set(followedIds);
-  const total = portfolios.length;
-  const more = hasMore(total, shown);
+  const busy = useRef(false);
+  const total = initial.total;
+  const shown = items.length;
+  const more = shown < total;
+
+  const loadMore = useCallback(async () => {
+    if (busy.current || !more) return;
+    busy.current = true;
+    setLoading(true);
+    setError(false);
+    try {
+      const params = new URLSearchParams({ offset: String(shown) });
+      if (query.categoria) params.set("categoria", query.categoria);
+      if (query.q) params.set("q", query.q);
+      if (query.simbolo) params.set("simbolo", query.simbolo);
+      const res = await fetch(`/api/explore/cards?${params}`, { credentials: "same-origin" });
+      if (!res.ok) throw new Error(String(res.status));
+      const page = (await res.json()) as PortfolioGridPage;
+      setItems((cur) => {
+        const seen = new Set(cur.map((p) => p.id));
+        return [...cur, ...page.items.filter((p) => !seen.has(p.id))];
+      });
+      setStats((cur) => ({ ...cur, ...page.stats }));
+      setNoSeries((cur) => new Set([...cur, ...page.noSeriesIds]));
+      setFollowed((cur) => new Set([...cur, ...page.followedIds]));
+      if (page.items.length === 0) throw new Error("empty");
+    } catch {
+      setError(true);
+    } finally {
+      busy.current = false;
+      setLoading(false);
+    }
+  }, [more, shown, query.categoria, query.q, query.simbolo]);
 
   useEffect(() => {
     const node = sentinel.current;
-    if (!node || !more || typeof IntersectionObserver === "undefined") return;
+    if (!node || !more || error || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          setShown((current) => nextCount(total, current));
-        }
+        if (entries.some((entry) => entry.isIntersecting)) void loadMore();
       },
       { rootMargin: "600px 0px" },
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [more, total]);
+  }, [more, error, loadMore]);
 
   return (
     <>
       <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
-        {portfolios.slice(0, shown).map((portfolio) => (
-          <li key={portfolio.id}>
+        {items.map((portfolio) => (
+          <li key={portfolio.id} className="[contain-intrinsic-size:auto_212px] [content-visibility:auto]">
             <ExploreCard
               portfolio={portfolio}
               isFollowing={followed.has(portfolio.id)}
               isPro={isPro}
-              stat={noSeries.has(portfolio.id) ? null : cardStats[portfolio.id] ?? null}
+              stat={noSeries.has(portfolio.id) ? null : stats[portfolio.id] ?? null}
               noSeries={noSeries.has(portfolio.id)}
             />
           </li>
         ))}
       </ul>
-      <div className="mt-8 flex flex-col items-center gap-3">
+      <div className="mt-8 flex min-h-[76px] flex-col items-center gap-3">
         <p aria-live="polite" className="text-[13px] text-ink-500">
           Mostrando {shown} de {total}
+          {error ? " · no se pudieron cargar más" : ""}
         </p>
         {more ? (
           <>
             <div ref={sentinel} aria-hidden="true" className="h-px w-full" />
             <button
               type="button"
-              onClick={() => setShown((current) => nextCount(total, current))}
-              className="rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2"
+              onClick={() => void loadMore()}
+              disabled={loading}
+              className="rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-ink-800 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2"
             >
-              Cargar más
+              {loading ? "Cargando…" : error ? "Reintentar" : "Cargar más"}
             </button>
           </>
         ) : null}

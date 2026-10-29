@@ -3,8 +3,8 @@
 import { AppLink as Link } from "@/components/app/app-link";
 import { FollowButton } from "@/components/follow-button";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
-import { CATEGORY_META, type Portfolio } from "@/lib/types";
-import type { CardStat } from "@/lib/card-series";
+import { CATEGORY_META } from "@/lib/types";
+import type { ExploreCardPortfolio, SlimCardStat } from "@/lib/explore-slim";
 import { cn, formatCompact, formatSignedPct } from "@/lib/utils";
 
 /** Sparkline de área propia (SVG), verde o rojo según el retorno. */
@@ -18,7 +18,7 @@ function AreaSpark({ data, up }: { data: number[]; up: boolean }) {
   const pts = data.map((v, i) => [(i / (data.length - 1)) * W, H - 3 - ((v - min) / r) * (H - 6)] as const);
   const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(1)},${y.toFixed(1)}`).join("");
   const color = up ? "var(--color-positive, #16a34a)" : "var(--color-negative, #dc2626)";
-  const id = `s${Math.round(data[0] * 1e6)}${data.length}${up ? "u" : "d"}`;
+  const id = `s${Math.round(data[data.length - 1] * 100)}_${data.length}${up ? "u" : "d"}`;
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="h-14 w-full" aria-hidden="true">
       <defs>
@@ -45,10 +45,10 @@ export function ExploreCard({
   stat,
   noSeries = false,
 }: {
-  portfolio: Portfolio;
+  portfolio: ExploreCardPortfolio;
   isFollowing: boolean;
   isPro: boolean;
-  stat: CardStat | null;
+  stat: SlimCardStat | null;
   noSeries?: boolean;
 }) {
   const pct = stat?.pct ?? null;
