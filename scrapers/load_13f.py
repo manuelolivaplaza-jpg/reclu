@@ -89,11 +89,48 @@ def stale_ids(existing: list[dict], payload: list[dict]) -> list[str]:
             if str(r.get("as_of"))[:10] in dates and (r.get("symbol"), str(r.get("as_of"))[:10]) not in keep]
 
 
+def _is_name_symbol(symbol: str) -> bool:
+    s = (symbol or "").strip()
+    return " " in s or s != s.upper() or len(s) > 12
+
+
+def adopt_known_tickers(existing: list[dict], payload: list[dict]) -> int:
+    """D45b: si esta corrida no resolvio un emisor (queda el nombre como
+    simbolo) pero el snapshot ya tiene una fila con ticker para ese mismo
+    nombre (p. ej. renombrada por resolve_tickers), se reutiliza el ticker.
+    Antes quedaban las dos filas (nombre + ticker) y el snapshot contaba doble,
+    o stale_ids borraba la buena. Si el ticker ya esta en el payload, se suma."""
+    known: dict[tuple[str, str], str] = {}
+    for r in existing:
+        sym = r.get("symbol") or ""
+        if sym and not _is_name_symbol(sym) and r.get("name"):
+            known.setdefault((str(r["name"]).strip().upper(), str(r.get("as_of"))[:10]), sym)
+    by_key = {(p["symbol"], str(p["as_of"])[:10]): p for p in payload}
+    adopted = 0
+    for p in list(payload):
+        if not _is_name_symbol(p["symbol"]):
+            continue
+        d = str(p["as_of"])[:10]
+        ticker = known.get((str(p["name"]).strip().upper(), d))
+        if not ticker:
+            continue
+        adopted += 1
+        target = by_key.get((ticker, d))
+        if target is not None and target is not p:
+            target["weight"] = round(target["weight"] + p["weight"], 4)
+            payload.remove(p)
+        else:
+            del by_key[(p["symbol"], d)]
+            p["symbol"] = ticker
+            by_key[(ticker, d)] = p
+    return adopted
+
+
 def _existing_rows(db, pid: str, as_of: str, page: int = 1000) -> list[dict]:
     out: list[dict] = []
     start = 0
     while True:
-        rows = (db.table("holdings").select("id, symbol, as_of").eq("portfolio_id", pid).eq("as_of", as_of)
+        rows = (db.table("holdings").select("id, symbol, name, as_of").eq("portfolio_id", pid).eq("as_of", as_of)
                 .order("id").range(start, start + page - 1).execute().data or [])
         out.extend(rows)
         if len(rows) < page:
@@ -122,11 +159,14 @@ def main() -> None:
             pid = pf.data["id"]
             resolver.prefetch(holdings)
             payload = build_payload(pid, holdings, resolver.resolve)
-            db.table("holdings").upsert(payload, on_conflict="portfolio_id,symbol,as_of").execute()
-            # D42: el snapshot queda exactamente igual al 13F (sin filas viejas).
             existing: list[dict] = []
             for d in sorted({str(p["as_of"])[:10] for p in payload}):
                 existing.extend(_existing_rows(db, pid, d))
+            adopted = adopt_known_tickers(existing, payload)
+            if adopted:
+                print(f"   {name}: {adopted} emisores sin resolver usan el ticker ya guardado")
+            db.table("holdings").upsert(payload, on_conflict="portfolio_id,symbol,as_of").execute()
+            # D42: el snapshot queda exactamente igual al 13F (sin filas viejas).
             stale = stale_ids(existing, payload)
             for i in range(0, len(stale), 200):
                 db.table("holdings").delete().in_("id", stale[i:i + 200]).execute()
