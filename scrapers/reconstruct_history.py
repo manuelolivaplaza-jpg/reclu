@@ -163,51 +163,45 @@ def _resolve_symbol(label: str, cls: str, cache: dict) -> str | None:
     return symbol
 
 
-def _chain_series(quarters: list[tuple[str, list[tuple[str, float]]]]) -> list[tuple[str, float]]:
-    """Build a real performance series by chaining quarterly returns.
+def _chain_series(
+    quarters: list[tuple[str, list[tuple[str, float]]]], fetch=None, days: int = 520
+) -> list[tuple[str, float]]:
+    """Serie DIARIA real encadenando las fotos 13F (D74).
 
-    quarters: [(quarter_end_date, [(symbol, weight_pct)])] oldest->newest.
-    For each quarter we fetch the price at its start (prev quarter end) and
-    end, compute the weighted return, and compound them into an index.
-    Returns [(date, index_value)] where index starts at 100.
+    Antes: un punto por fecha de presentacion y el retorno de cada trimestre
+    usaba las posiciones de la presentacion SIGUIENTE (mirar al futuro). Entre
+    puntos quedaban 3 meses vacios y, al empalmar con la proyeccion diaria,
+    aparecian saltos de un dia en las fechas de presentacion (duquesne 08-14
+    +18 %, mubadala -22 %, tci +16 %) y al dia habil siguiente (08-17).
+    Ahora cada foto rige desde su fecha de presentacion (lo que un seguidor
+    podia copiar), con precio relativo, forward-fill y NAV continuo
+    (chain.chain_series). Devuelve [(fecha, indice base 100)].
     """
-    if len(quarters) < 2:
-        return []
-    index = 100.0
-    series: list[tuple[str, float]] = [(quarters[0][0], index)]
-    for i in range(1, len(quarters)):
-        q_end, holdings = quarters[i]
-        q_start = quarters[i - 1][0]
-        rets: list[tuple[float, float]] = []  # (weight_frac, symbol_return)
-        total_w = 0.0
-        for symbol, weight in holdings:
-            if symbol is None:
-                continue
-            try:
-                rows = fetch_eod(symbol, 400)
-            except Exception:
-                continue
-            if not rows:
-                continue
-            price_map = {d: c for d, c in rows}
-            # price nearest to q_start and q_end
-            def nearest(target: str):
-                keys = [k for k in price_map if k <= target]
-                return price_map[max(keys)] if keys else None
+    from chain import chain_series
 
-            p0 = nearest(q_start)
-            p1 = nearest(q_end)
-            if not p0 or not p1 or p0 <= 0:
-                continue
-            w = weight / 100.0
-            rets.append((w, p1 / p0 - 1.0))
-            total_w += w
-        if total_w <= 0:
+    if not quarters:
+        return []
+    fetch = fetch or (lambda symbol: fetch_eod(symbol, days))
+    snaps = []
+    for q_date, holdings in quarters:
+        w: dict[str, float] = {}
+        for symbol, weight in holdings:
+            if symbol and weight and weight > 0:
+                w[symbol] = w.get(symbol, 0.0) + float(weight)
+        if w:
+            snaps.append((q_date, w))
+    if not snaps:
+        return []
+    prices: dict[str, list[tuple[str, float]]] = {}
+    for symbol in sorted({s for _, w in snaps for s in w}):
+        try:
+            rows = fetch(symbol)
+        except Exception:  # noqa: BLE001
             continue
-        weighted_ret = sum(w * r for w, r in rets) / total_w
-        index *= 1.0 + weighted_ret
-        series.append((q_end, round(index, 4)))
-    return series
+        if rows:
+            prices[symbol] = rows
+    levels = chain_series(snaps, prices, start=snaps[0][0])
+    return [(day, round(100.0 * level, 4)) for day, level in levels]
 
 
 def reconstruct_fund(db, slug: str, cik: int, name: str, quarters: int, cache: dict) -> int:
@@ -241,7 +235,7 @@ def reconstruct_fund(db, slug: str, cik: int, name: str, quarters: int, cache: d
         time.sleep(QUARTER_DELAY_SECONDS)
 
     quarter_holdings.sort(key=lambda x: x[0])  # oldest first
-    if len(quarter_holdings) < 2:
+    if not quarter_holdings:
         return 0
 
     series = _chain_series(quarter_holdings)
