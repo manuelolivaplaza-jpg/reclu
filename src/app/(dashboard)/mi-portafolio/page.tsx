@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { aiEnabled } from "@/lib/ai-flags";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/queries";
@@ -283,6 +284,7 @@ export default async function MyPortfolioPage() {
           planName={planName}
           delayHours={limits.newsDelayHours}
           hasPositions={feedHasPositions}
+          aiEnabled={aiEnabled()}
         />
       )}
 

@@ -26,8 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: base, lastModified: now, changeFrequency: "weekly", priority: 1.0 },
     { url: absoluteUrl("/explore"), lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: absoluteUrl("/ranking"), lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: absoluteUrl("/login"), lastModified: now, changeFrequency: "monthly", priority: 0.4 },
-    { url: absoluteUrl("/signup"), lastModified: now, changeFrequency: "monthly", priority: 0.7 },
+    // /login y /signup no se listan: robots los bloquea y no aportan a SEO.
+    { url: absoluteUrl("/planes"), lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: absoluteUrl("/terminos"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: absoluteUrl("/privacidad"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },
     { url: absoluteUrl("/disclaimer"), lastModified: now, changeFrequency: "yearly", priority: 0.2 },

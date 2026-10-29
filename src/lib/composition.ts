@@ -74,7 +74,8 @@ export function buildComposition<T extends SnapshotRow & { name?: string | null 
   const grouped = groupBySymbol(latestSnapshot(holdings));
   return normalizeWeights(grouped, opts).map((h) => ({
     symbol: h.symbol,
-    name: (h.name ?? h.symbol) as string,
+    // Sin nombre real queda vacío (la UI muestra solo el ticker, no "BE BE").
+    name: h.name && String(h.name).trim().toUpperCase() !== String(h.symbol).trim().toUpperCase() ? String(h.name) : "",
     weight: h.weight,
   }));
 }

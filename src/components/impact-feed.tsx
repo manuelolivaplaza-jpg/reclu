@@ -36,6 +36,8 @@ export interface ImpactFeedProps {
   delayHours: number;
   /** False cuando la cartera aún no tiene posiciones valorizables. */
   hasPositions?: boolean;
+  /** False sin clave de OpenRouter: se oculta "Pregunta a la IA". */
+  aiEnabled?: boolean;
 }
 
 /**
@@ -51,6 +53,7 @@ export function ImpactFeed({
   planName,
   delayHours,
   hasPositions = true,
+  aiEnabled = true,
 }: ImpactFeedProps) {
   const [panel, setPanel] = useState<{
     entry: ImpactFeedEntry;
@@ -138,13 +141,15 @@ export function ImpactFeed({
                 <time dateTime={entry.publishedAt}>
                   {formatNewsDate(entry.publishedAt)}
                 </time>
-                <button
-                  type="button"
-                  onClick={() => openPanel(entry)}
-                  className="text-[13px] text-ink-900 underline underline-offset-4 hover:opacity-60"
-                >
-                  Pregunta a la IA
-                </button>
+                {aiEnabled ? (
+                  <button
+                    type="button"
+                    onClick={() => openPanel(entry)}
+                    className="text-[13px] text-ink-900 underline underline-offset-4 hover:opacity-60"
+                  >
+                    Pregunta a la IA
+                  </button>
+                ) : null}
               </div>
             </li>
           ))}

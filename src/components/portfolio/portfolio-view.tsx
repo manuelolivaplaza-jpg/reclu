@@ -58,6 +58,8 @@ import {
 } from "@/lib/afp-fuente";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { SourcePanel } from "@/components/source-panels";
+import { aiEnabled } from "@/lib/ai-flags";
+import { groupBySymbol, latestSnapshot } from "@/lib/composition";
 
 
 /** Como Promise.all, pero una consulta que falla no rompe la pagina: usa el fallback. */
@@ -173,6 +175,9 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
   }));
   const holdings = isInsiders ? holdingsAtLatestAsOf(holdingsNamed) : holdingsNamed;
 
+  // Tabla de posiciones: último snapshot y una fila por símbolo (sin "INTC INTC").
+  const holdingsTable = groupBySymbol(latestSnapshot(holdings));
+  const aiOn = aiEnabled();
   const meta = CATEGORY_META[portfolio.category];
   const isPro = isPaidPlan(profile?.plan);
   const isElite = isElitePlan(profile?.plan);
@@ -544,7 +549,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
               ) : null}
 
               <PaywallGate locked={holdingsLocked} mode={role === "anon" ? "signup" : "upgrade"} label="las posiciones" className="mt-4">
-                {holdings.length > 0 ? (
+                {holdingsTable.length > 0 ? (
                   <table className="w-full text-[15px]">
                     <thead>
                       <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
@@ -554,7 +559,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                       </tr>
                     </thead>
                     <tbody>
-                      {holdings.map((h) => {
+                      {holdingsTable.map((h) => {
                         const delta =
                           h.previous_weight !== null ? h.weight - h.previous_weight : null;
                         return (
@@ -580,7 +585,9 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[13px] text-ink-500">{h.name}</div>
+                              {h.name && h.name.trim().toUpperCase() !== h.symbol.toUpperCase() ? (
+                                <div className="text-[13px] text-ink-500">{h.name}</div>
+                              ) : null}
                             </td>
                             <td className="py-3.5 text-right font-medium tabular-nums text-ink-900">
                               {formatPctPlain(h.weight, 1)}
@@ -634,7 +641,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                             <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-ink-500">
                               {alert.summary}
                             </p>
-                          ) : !isPro ? (
+                          ) : !isPro && aiOn ? (
                             <p className="mt-1.5 text-[13px] text-ink-500">
                               Resumen AI disponible en Pro
                             </p>
@@ -661,12 +668,15 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
           </div>
 
           {/* Simulador + exportación CSV (Elite) */}
-          {hasReturn && portfolio.return_ytd !== null ? (
+          {/* Simulador: retorno YTD de la serie real; return_ytd solo si hay posiciones que lo respalden. */}
+          {seriesYtd !== null || (hasReturn && portfolio.return_ytd !== null && holdingsTable.length > 0) ? (
             <PortfolioTools
               slug={portfolio.slug}
               portfolioName={portfolio.name}
-              returnYtd={portfolio.return_ytd}
-              holdings={holdings}
+              returnYtd={seriesYtd ?? portfolio.return_ytd ?? 0}
+              returnLabel={seriesYtd !== null ? "YTD de la serie" : "YTD estimado"}
+              holdings={holdingsTable}
+              holdingsLocked={holdingsLocked}
               authenticated={!!profile}
               isElite={isElite}
             />

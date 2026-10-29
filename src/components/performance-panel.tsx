@@ -429,14 +429,27 @@ export function PerformancePanel({
         </div>
       ) : null}
 
-      <dl className="mt-8 grid grid-cols-2 gap-px border border-ink-200 bg-ink-200 sm:grid-cols-3 lg:grid-cols-6">
-        <MetricCell label="Retorno" value={fmt(total)} tone={total !== null ? (total > 0 ? "positive" : "negative") : undefined} />
-        <MetricCell label={`vs ${benchmarkLabel}`} value={fmt(excess, 1, " pp")} tone={excess !== null ? (excess > 0 ? "positive" : excess < 0 ? "negative" : undefined) : undefined} />
-        <MetricCell label="Sharpe" value={sharpe !== null ? formatDecimal(sharpe, 2) : null} tone={sharpe !== null ? (sharpe > 0 ? "positive" : "negative") : undefined} />
-        <MetricCell label="Máx. caída" value={drawdown !== null ? formatPctPlain(-Math.abs(drawdown), 1) : null} tone="negative" />
-        <MetricCell label="Volatilidad" value={fmt(volatility, 1, "%")} />
-        <MetricCell label="Le gana al índice" value={winRate !== null ? `${formatPctPlain(winRate, 0)} de los días` : null} />
-      </dl>
+      {/* Solo métricas con dato: sin "—" ni ceros que contradigan el gráfico. */}
+      {(() => {
+        const cells: { label: string; value: string | null; tone?: "positive" | "negative" }[] = [
+          { label: "Retorno", value: fmt(total), tone: total !== null ? (total > 0 ? "positive" : total < 0 ? "negative" : undefined) : undefined },
+          { label: `vs ${benchmarkLabel}`, value: fmt(excess, 1, " pp"), tone: excess !== null ? (excess > 0 ? "positive" : excess < 0 ? "negative" : undefined) : undefined },
+          { label: "Sharpe", value: sharpe !== null && Number.isFinite(sharpe) ? formatDecimal(sharpe, 2) : null, tone: sharpe !== null ? (sharpe > 0 ? "positive" : sharpe < 0 ? "negative" : undefined) : undefined },
+          { label: "Máx. caída", value: drawdown !== null && Number.isFinite(drawdown) && drawdown !== 0 ? formatPctPlain(-Math.abs(drawdown), 1) : null, tone: "negative" },
+          { label: "Volatilidad", value: volatility !== null && volatility !== 0 ? fmt(volatility, 1, "%") : null },
+          { label: "Le gana al índice", value: winRate !== null && Number.isFinite(winRate) ? `${formatPctPlain(winRate, 0)} de los días` : null },
+        ];
+        const visible = cells.filter((c) => c.value !== null);
+        if (visible.length === 0) return null;
+        const lg = ["", "lg:grid-cols-1", "lg:grid-cols-2", "lg:grid-cols-3", "lg:grid-cols-4", "lg:grid-cols-5", "lg:grid-cols-6"][visible.length];
+        return (
+          <dl className={`mt-8 grid grid-cols-2 gap-px border border-ink-200 bg-ink-200 sm:grid-cols-3 ${lg}`}>
+            {visible.map((c) => (
+              <MetricCell key={c.label} label={c.label} value={c.value} tone={c.tone} />
+            ))}
+          </dl>
+        );
+      })()}
 
       {publicationBlock}
 
@@ -491,9 +504,11 @@ function PublicationEntry({
             lagDays={lagDays}
           />
         </div>
-        <p className={`num text-[17px] leading-none tracking-[-0.02em] ${tone}`}>
-          {fmt(sincePublication) ?? <span className="text-ink-400">—</span>}
-        </p>
+        {sincePublication !== null ? (
+          <p className={`num text-[17px] leading-none tracking-[-0.02em] ${tone}`}>
+            {fmt(sincePublication)}
+          </p>
+        ) : null}
       </div>
       {sincePublication === null ? (
         <p className="border-t border-ink-200 px-4 py-3 text-[12px] leading-relaxed text-ink-500">

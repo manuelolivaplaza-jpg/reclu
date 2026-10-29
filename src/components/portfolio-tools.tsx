@@ -18,7 +18,11 @@ interface PortfolioToolsProps {
   slug: string;
   portfolioName: string;
   returnYtd: number;
+  /** De dónde sale el retorno ("YTD de la serie" o "YTD estimado"). */
+  returnLabel?: string;
   holdings: Holding[];
+  /** Posiciones bajo muro de pago: el servidor no las envía. */
+  holdingsLocked?: boolean;
   authenticated: boolean;
   isElite: boolean;
 }
@@ -55,10 +59,16 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
     [holdings],
   );
 
+  // Sin dato no hay celda: nada de "—" ni "0 movimientos" contradictorios.
+  if (holdings.length === 0) return null;
+  const showMoves = recentMoves > 0;
   return (
     <div
       aria-label="Métricas de cartera"
-      className="mb-10 grid grid-cols-2 gap-px border border-ink-200 bg-ink-200 sm:grid-cols-4"
+      className={
+        "mb-10 grid grid-cols-2 gap-px border border-ink-200 bg-ink-200 " +
+        (showMoves ? "sm:grid-cols-4" : "sm:grid-cols-3")
+      }
     >
       <div className="bg-white p-5">
         <p className="text-[13px] text-ink-500">Activos en cartera</p>
@@ -75,7 +85,7 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
       <div className="bg-white p-5">
         <p className="text-[13px] text-ink-500">Concentración Top 3</p>
         <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
-          {holdings.length > 0 ? `${formatPctPlain(top3Weight, 1)}` : "—"}
+          {formatPctPlain(top3Weight, 1)}
         </p>
       </div>
 
@@ -95,15 +105,17 @@ export function PortfolioMetricsStrip({ holdings }: { holdings: Holding[] }) {
         </p>
       </div>
 
+      {showMoves ? (
       <div className="bg-white p-5">
         <p className="text-[13px] text-ink-500">Rotación reciente</p>
         <p className="num mt-1.5 text-2xl font-medium tracking-tight text-ink-900">
           {recentMoves}{" "}
           <span className="text-[15px] font-normal text-ink-500">
-            movimientos
+            {recentMoves === 1 ? "movimiento" : "movimientos"}
           </span>
         </p>
       </div>
+      ) : null}
     </div>
   );
 }
@@ -117,10 +129,13 @@ export function PortfolioTools({
   slug,
   portfolioName,
   returnYtd,
+  returnLabel = "YTD",
   holdings,
+  holdingsLocked = false,
   authenticated,
   isElite,
 }: PortfolioToolsProps) {
+  const hasHoldings = holdings.length > 0;
   const [capital, setCapital] = useState<number>(1_000_000);
   const [showReplicate, setShowReplicate] = useState(false);
   const router = useRouter();
@@ -138,7 +153,7 @@ export function PortfolioTools({
       return;
     }
     if (!isElite) {
-      router.push("/#precios");
+      router.push("/planes");
       return;
     }
 
@@ -212,12 +227,12 @@ export function PortfolioTools({
             >
               {positive ? "+" : "−"}${formatClp(Math.abs(profit))}
             </span>
-            <span className="text-ink-500"> con el retorno YTD de {portfolioName}.</span>
+            <span className="text-ink-500"> con el retorno {returnLabel} de {portfolioName}.</span>
           </p>
         </div>
 
         <p className="mt-4 max-w-md text-[13px] leading-relaxed text-ink-500">
-          Cálculo ilustrativo sobre retorno YTD reportado sin descontar comisiones.
+          Cálculo ilustrativo sobre el retorno {returnLabel} sin descontar comisiones.
           No constituye proyección ni asesoría.
         </p>
       </section>
@@ -228,9 +243,13 @@ export function PortfolioTools({
           Exportar composición
         </h2>
         <p className="mt-3 text-[15px] leading-relaxed text-ink-500">
-          Descarga los {holdings.length} activos del portafolio con sus pesos,
-          deltas y monedas en un archivo CSV real.
+          {hasHoldings
+            ? `Descarga los ${holdings.length} activos del portafolio con sus pesos, deltas y monedas en un archivo CSV real.`
+            : holdingsLocked
+              ? "Las posiciones de este portafolio están disponibles con un plan pagado."
+              : "La composición aún no está publicada. La exportación se habilita cuando la fuente la entregue."}
         </p>
+        {hasHoldings || holdingsLocked ? (
         <button
           type="button"
           onClick={handleExport}
@@ -239,6 +258,7 @@ export function PortfolioTools({
           <Download className="size-4" strokeWidth={1.8} />
           Exportar CSV ↓
         </button>
+        ) : null}
         {!authenticated && (
           <p className="mt-3 text-[13px] text-ink-500">
             Requiere cuenta gratuita. Te llevaremos a crear una.
@@ -251,7 +271,8 @@ export function PortfolioTools({
         )}
       </section>
 
-      {/* Lista de compras ("Copiar en mi corredora") */}
+      {/* Lista de compras ("Copiar en mi corredora"): solo con posiciones reales. */}
+      {hasHoldings ? (
       <div className="lg:col-span-2">
         <button
           type="button"
@@ -263,9 +284,10 @@ export function PortfolioTools({
           Copiar en mi corredora
         </button>
       </div>
+      ) : null}
     </div>
 
-    {showReplicate ? (
+    {showReplicate && hasHoldings ? (
       <ReplicateList
         slug={slug}
         portfolioName={portfolioName}
