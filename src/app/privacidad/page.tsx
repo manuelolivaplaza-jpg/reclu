@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
@@ -5,10 +6,10 @@ import { SiteFooter } from "@/components/site-footer";
 import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
 import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
-export const metadata = {
+export const metadata = withSeo("/privacidad", {
   title: "Política de privacidad",
   description: "Cómo reclu.cl maneja tus datos",
-};
+});
 
 export default function PrivacidadPage() {
   return (

@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { getPortfolioBySlug } from "@/lib/queries";
 import { INFOPROBIDAD_SLUG } from "@/lib/infoprobidad";
 import { absoluteUrl } from "@/lib/site";
@@ -12,12 +13,12 @@ interface PortfolioPageProps {
 export async function generateMetadata({ params }: PortfolioPageProps) {
   const { slug } = await params;
   const portfolio = await getPortfolioBySlug(slug);
-  if (!portfolio) return { title: "Portafolio no encontrado" };
+  if (!portfolio) notFound();
   const year = new Date().getFullYear();
   const esInfo = portfolio.slug === INFOPROBIDAD_SLUG;
   const title = esInfo
-    ? `Empresas declaradas por autoridades — ${year} | Reclu`
-    : `Qué compró ${portfolio.name} — cartera ${year} | Reclu`;
+    ? `Empresas declaradas por autoridades — ${year}`
+    : `Qué compró ${portfolio.name} — cartera ${year}`;
   const description = esInfo
     ? portfolio.description
     : `Composición, pesos y movimientos de ${portfolio.name}. ${portfolio.description}`;
@@ -26,6 +27,7 @@ export async function generateMetadata({ params }: PortfolioPageProps) {
     description,
     alternates: {
       canonical: `/portfolio/${portfolio.slug}`,
+      languages: { "es-CL": `/portfolio/${portfolio.slug}`, "x-default": `/portfolio/${portfolio.slug}` },
     },
     openGraph: {
       title,

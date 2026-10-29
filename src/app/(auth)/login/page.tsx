@@ -1,10 +1,11 @@
+import { withSeo } from "@/lib/seo";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/auth-form";
 
-export const metadata = {
+export const metadata = withSeo("/login", {
   title: "Entrar",
   description: "Accede a tu dashboard de reclu.cl",
-};
+});
 
 export default function LoginPage() {
   return (

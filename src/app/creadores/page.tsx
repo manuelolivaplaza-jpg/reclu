@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -8,11 +9,11 @@ import { LegalNotice } from "@/components/legal/legal-notice";
 import { communityEnabled } from "@/lib/community";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/creadores", {
   title: "Creadores",
   description:
     "Carteras publicadas por creadores de la comunidad de reclu.cl. Contenido informativo de terceros, no asesoría de inversión.",
-};
+});
 
 // Lee la bandera COMMUNITY_ENABLED y Supabase por request; nunca se prerenderiza.
 export const instant = false;

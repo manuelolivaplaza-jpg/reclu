@@ -1,12 +1,13 @@
+import { withSeo } from "@/lib/seo";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
-export const metadata = {
+export const metadata = withSeo("/terminos", {
   title: "Términos y condiciones",
   description: "Términos de uso de reclu.cl",
-};
+});
 
 export default function TerminosPage() {
   return (

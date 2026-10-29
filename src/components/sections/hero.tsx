@@ -12,14 +12,16 @@ import type { HeroCard } from "@/lib/hero-portfolios";
  */
 
 export function Hero({ cards, loading = false }: { cards: HeroCard[]; loading?: boolean }) {
+  // D60: el fallback de Suspense queda en el HTML junto al hero real; solo uno lleva h1.
+  const Title = loading ? "p" : "h1";
   return (
     <section className="bg-white pt-16 pb-20 md:pt-24 md:pb-28">
       <div className="container-page">
         <FadeIn>
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
-            <h1 className="text-5xl font-semibold tracking-tight text-neutral-950 md:text-7xl">
+            <Title className="text-5xl font-semibold tracking-tight text-neutral-950 md:text-7xl">
               Sigue las carteras que mueven el mercado.
-            </h1>
+            </Title>
 
             <p className="mt-6 max-w-xl text-lg text-neutral-500">
               Políticos de EE.UU., corredoras chilenas y fondos. Una alerta en

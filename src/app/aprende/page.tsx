@@ -1,14 +1,15 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AVISO_APRENDE, FICHAS_APRENDE } from "@/content/aprende";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/aprende", {
   title: "Aprende",
   description:
     "Fichas cortas sobre 13F, Form 4, PTR y la STOCK Act, OGE 278-T, hechos esenciales, AFP, InfoProbidad, sesgos, la Ley Fintec y la DJ 1929.",
-};
+});
 
 export default function AprendePage() {
   return (

@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/json-ld";
+import { itemListSchema, withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
@@ -22,11 +24,11 @@ import {
 import { RESEARCH_RESULTS } from "@/lib/research-results";
 import { cn, formatPercent } from "@/lib/utils";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/ranking", {
   title: "Ranking honesto — todas las fuentes contra el mercado",
   description:
     "Cada portafolio y estudio de reclu.cl contra el benchmark de su país: S&P 500 (SPY) en Estados Unidos e IPSA (ECH en CLP) en Chile. Incluye las fuentes que pierden, con fecha de corte y metodología.",
-};
+});
 
 // Lee cookies de auth (getPortfolios) por request; nunca se prerenderiza.
 export const instant = false;
@@ -96,6 +98,7 @@ export default async function RankingPage() {
     <>
       <SiteHeader />
       <main id="main">
+        <JsonLd data={itemListSchema("Ranking honesto de reclu.cl", rows.filter((r) => r.rank !== null).map((r) => ({ name: r.name })))} />
         <div className="container-page py-16 md:py-20">
           <p className="label-line">Ranking honesto</p>
           <h1 className="type-section mt-3 text-ink-900">

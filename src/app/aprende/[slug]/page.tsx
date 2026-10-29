@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -24,13 +25,12 @@ export async function generateMetadata({
   const { slug } = await params;
   const ficha = fichaPorSlug(slug);
   if (!ficha) {
-    return { title: "Ficha no encontrada" };
+    notFound();
   }
-  return {
+  return withSeo(`/aprende/${ficha.slug}`, {
     title: `${ficha.titulo} — Aprende`,
     description: ficha.resumen,
-    alternates: { canonical: `/aprende/${ficha.slug}` },
-  };
+  });
 }
 
 export default async function AprendeFichaPage({ params }: AprendeFichaProps) {

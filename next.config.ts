@@ -8,6 +8,16 @@ import type { NextConfig } from "next";
  */
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN ?? "";
 
+/** Host canónico (D60): solo este host puede indexarse. */
+const SITE_HOST = (() => {
+  try {
+    const raw = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+    return raw ? new URL(/^https?:\/\//i.test(raw) ? raw : `https://${raw}`).host : "";
+  } catch {
+    return "";
+  }
+})();
+
 const ContentSecurityPolicy = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'" +
@@ -89,6 +99,22 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      // D60: solo el host de NEXT_PUBLIC_SITE_URL se indexa. Cualquier
+      // *.vercel.app (staging, reclu-prod, previews) u otro host: noindex.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "(?<vhost>.*\\.vercel\\.app)" }],
+        headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+      },
+      ...(SITE_HOST
+        ? [
+            {
+              source: "/:path*",
+              missing: [{ type: "host" as const, value: SITE_HOST.replace(/\./g, "\\.") }],
+              headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+            },
+          ]
+        : []),
     ];
   },
   turbopack: {

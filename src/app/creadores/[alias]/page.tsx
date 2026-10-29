@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -131,14 +132,13 @@ export async function generateMetadata({
   const { alias } = await params;
 
   if (!communityEnabled() || !CREATOR_ALIAS_PATTERN.test(alias)) {
-    return { title: "Creador no encontrado", robots: { index: false } };
+    notFound();
   }
 
-  return {
+  return withSeo(`/creadores/${alias}`, {
     title: `Creador ${alias}`,
     description: `Carteras publicadas por ${alias} en la comunidad de reclu.cl. Contenido de terceros, no asesoría de inversión.`,
-    alternates: { canonical: `/creadores/${alias}` },
-  };
+  });
 }
 
 export default async function CreatorPage({ params }: CreatorPageProps) {

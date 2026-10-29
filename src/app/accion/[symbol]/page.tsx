@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
@@ -49,12 +50,12 @@ export async function generateMetadata({ params }: AccionPageProps): Promise<Met
   const overview = await getTickerOverview(symbol);
   const name = overview.displayName ?? symbol;
   const who = overview.consensus.portfolioCount;
-  const title = `¿Quién tiene ${symbol}? Políticos y fondos que la compran | Reclu`;
-  return {
+  if (!symbol || (who === 0 && !overview.displayName)) notFound();
+  const title = `¿Quién tiene ${symbol}? Políticos y fondos que la compran`;
+  return withSeo(`/accion/${symbol.toLowerCase()}`, {
     title: who > 0 ? title : `${symbol} — Ticker en reclu.cl`,
     description: `Consulta quiénes tienen ${name} (${symbol}): ${who} ${who === 1 ? "cartera" : "carteras"} entre políticos de EE.UU., corredoras chilenas y fondos 13F, con peso, antigüedad y últimos movimientos.`,
-    alternates: { canonical: `/accion/${symbol.toLowerCase()}` },
-  };
+  });
 }
 
 export default async function AccionPage({ params }: AccionPageProps) {
@@ -65,6 +66,7 @@ export default async function AccionPage({ params }: AccionPageProps) {
   if (!symbol) notFound();
 
   const overview = await getTickerOverview(symbol);
+  if (overview.consensus.portfolioCount === 0 && !overview.displayName) notFound();
   const { holders, avgWeight, maxWeight } = overview.consensus;
   const displayName = overview.displayName ?? symbol;
   const related = (await getRelatedSymbols(symbol)).slice(0, 6);
@@ -294,7 +296,7 @@ function tickerJsonLd(symbol: string, name: string, holders: TickerHolder[]) {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `¿Quién tiene ${symbol}? Políticos y fondos que la compran | Reclu`,
+    name: `¿Quién tiene ${symbol}? Políticos y fondos que la compran`,
     description: `Carteras de reclu.cl que incluyen ${name} (${symbol}), con peso, antigüedad y movimientos recientes.`,
     url: `https://reclu.cl/accion/${symbol.toLowerCase()}`,
     about: { "@type": "Corporation", name, tickerSymbol: symbol },

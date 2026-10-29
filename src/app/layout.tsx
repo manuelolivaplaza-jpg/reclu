@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/json-ld";
+import { organizationSchema, websiteSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { AiChatWidget } from "@/components/ai-chat-widget";
@@ -44,14 +46,10 @@ export const metadata: Metadata = {
     ],
     apple: "/icon.svg",
   },
-  alternates: {
-    canonical: "/",
-  },
   openGraph: {
     title: "reclu.cl — Seguimiento de portafolios y alertas inteligentes",
     description:
       "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
-    url: SITE,
     siteName: "reclu.cl",
     locale: "es_CL",
     type: "website",
@@ -66,7 +64,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="es" className={`${inter.variable} h-full antialiased`}>
+    <html lang="es-CL" className={`${inter.variable} h-full antialiased`}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         <meta name="theme-color" content="#ffffff" />
@@ -89,6 +87,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             src="https://plausible.io/js/script.tagged-events.js"
           />
         )}
+        <JsonLd data={organizationSchema()} />
+        <JsonLd data={websiteSchema()} />
         <AiChatWidget />
         <PwaRegister />
       </body>
