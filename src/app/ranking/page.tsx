@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import Link from "next/link";
-import { Lock } from "lucide-react";
+import { ArrowUpRight, FlaskConical, Lock, Trophy } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LegalNotice } from "@/components/legal/legal-notice";
+import { PortfolioAvatar } from "@/components/portfolio-avatar";
+import { Chip, StatCard } from "@/components/app";
 import { getPortfolios, getProfile } from "@/lib/queries";
-import { isPaidPlan } from "@/lib/types";
+import { isPaidPlan, type Portfolio } from "@/lib/types";
 import {
   benchmarkSymbolForCountry,
   getBeatTheMarketRanking,
@@ -36,10 +38,21 @@ function formatExcess(value: number | null): string {
   return formatPercent(value, 2).replace("%", " pp");
 }
 
+function formatPct(value: number | null): string {
+  return value === null ? "—" : formatPercent(value, 2);
+}
+
 function formatAsOf(value: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim());
   if (!match) return "sin fecha";
   return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
+function toneClass(value: number | null): string {
+  if (value === null) return "text-ink-500";
+  if (value > 0) return "text-positive";
+  if (value < 0) return "text-negative";
+  return "text-ink-700";
 }
 
 export default async function RankingPage() {
@@ -53,6 +66,9 @@ export default async function RankingPage() {
   const paid = isPaidPlan(profile?.plan);
 
   const metricsByPortfolio = new Map(metrics.map((row) => [row.portfolio_id, row]));
+  const portfolioById = new Map<string, Portfolio>(
+    portfolios.map((portfolio) => [`portfolio-${portfolio.id}`, portfolio]),
+  );
 
   const portfolioSources: RankingSourceInput[] = portfolios.map((portfolio) => {
     // Muro 048: las métricas de un portafolio premium solo las ve quien paga.
@@ -91,298 +107,235 @@ export default async function RankingPage() {
     .map((row) => row.asOf)
     .filter((value) => value.length > 0)
     .sort();
+  const lastCut = cutDates.length > 0 ? formatAsOf(cutDates[cutDates.length - 1]) : null;
+  const ranked = rows
+    .filter((row) => row.excessReturnPct !== null)
+    .sort((a, b) => (b.excessReturnPct ?? 0) - (a.excessReturnPct ?? 0));
+  const podium = winners.slice(0, 3);
+  const winRate = withData > 0 ? (winners.length / withData) * 100 : null;
+  const best = ranked[0] ?? null;
 
   return (
     <>
       <SiteHeader />
-      <main id="main">
-        <div className="container-page py-16 md:py-20">
-          <p className="label-line">Ranking honesto</p>
-          <h1 className="type-section mt-3 text-ink-900">
-            Todas las fuentes contra el mercado.
-          </h1>
-          <p className="type-body mt-5 max-w-2xl">
-            Cada portafolio y cada estudio se mide contra el benchmark de su país.
-            Ordenamos por exceso de retorno. También publicamos las que pierden:
-            esconderlas sería elegir el resultado después de conocerlo.
-          </p>
+      <main id="main" className="bg-app-canvas">
+        <div className="container-page py-8 sm:py-12 md:py-16">
+          {/* Hero */}
+          <header className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <Chip tone="info">
+                <Trophy aria-hidden className="mr-1 size-3.5" />
+                Ranking honesto
+              </Chip>
+              {lastCut ? <Chip>Corte {lastCut}</Chip> : null}
+            </div>
+            <h1 className="mt-4 text-app-display font-semibold tracking-tight text-ink-900">
+              Todas las fuentes contra el mercado
+            </h1>
+            <p className="mt-3 text-app-body text-ink-600">
+              Cada portafolio y cada estudio se mide contra el benchmark de su país y se
+              ordena por exceso de retorno. También publicamos las que pierden.
+            </p>
+          </header>
 
-          <div className="mt-10 flex flex-wrap items-baseline gap-x-8 gap-y-3 border-y border-ink-200 py-5">
-            <p className="text-[15px] text-ink-900">
-              <span className="num text-[30px] leading-none">{winners.length}</span>{" "}
-              <span className="text-ink-500">de {withData} le ganan a su benchmark.</span>
-            </p>
-            <p className="text-[15px] text-ink-900">
-              <span className="num text-[30px] leading-none">{losers.length}</span>{" "}
-              <span className="text-ink-500">pierden.</span>
-            </p>
-            {locked.length > 0 && (
-              <p className="text-[13px] text-ink-500">
-                {locked.length} con métricas en Pro.
-              </p>
-            )}
-            {missing.length > 0 && (
-              <p className="text-[13px] text-ink-500">
-                {missing.length} sin datos suficientes.
-              </p>
-            )}
-            {cutDates.length > 0 && (
-              <p className="ml-auto text-[13px] text-ink-500">
-                Último corte: {formatAsOf(cutDates[cutDates.length - 1])}
-              </p>
-            )}
+          {/* KPIs */}
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:mt-8 lg:grid-cols-4">
+            <StatCard
+              label="Le ganan al mercado"
+              value={withData > 0 ? `${winners.length} de ${withData}` : null}
+              hint={winRate !== null ? `${winRate.toFixed(0)}% de las fuentes con datos` : undefined}
+            />
+            <StatCard label="Pierden contra su benchmark" value={withData > 0 ? String(losers.length) : null} hint={ties.length > 0 ? `${ties.length} empatan` : undefined} />
+            <StatCard
+              label="Mejor exceso"
+              value={best ? formatExcess(best.excessReturnPct) : null}
+              hint={best ? best.name : undefined}
+            />
+            <StatCard
+              label="Sin cifras"
+              value={String(noData.length)}
+              hint={`${locked.length} en Pro · ${missing.length} sin datos`}
+            />
           </div>
 
-          <section className="mt-14" aria-labelledby="ganan-heading">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
-              <h2
-                id="ganan-heading"
-                className="text-[22px] font-medium tracking-[-0.03em] text-ink-900"
-              >
-                Le ganan a su benchmark
+          {/* Podio */}
+          {podium.length > 0 && (
+            <section aria-labelledby="podio-heading" className="mt-8">
+              <h2 id="podio-heading" className="text-app-title font-semibold text-ink-900">
+                Podio
               </h2>
-              <Link
-                href="/metodologia"
-                className="text-[13px] text-ink-500 underline underline-offset-4 hover:text-ink-900"
-              >
-                Metodología
+              <ol className="-mx-4 mt-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0">
+                {podium.map((row, index) => (
+                  <li key={row.id} className="w-[78%] shrink-0 snap-start sm:w-auto">
+                    <PodiumCard row={row} place={index + 1} portfolio={portfolioById.get(row.id)} />
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
+
+          {/* Gráfico de exceso */}
+          {ranked.length > 0 && (
+            <section aria-labelledby="grafico-heading" className="app-card mt-8 rounded-2xl p-4 sm:p-6">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 id="grafico-heading" className="text-app-title font-semibold text-ink-900">
+                  Exceso de retorno vs benchmark
+                </h2>
+                <p className="text-app-caption text-ink-500">Puntos porcentuales · {ranked.length} fuentes</p>
+              </div>
+              <ExcessChart rows={ranked} />
+            </section>
+          )}
+
+          <RankingGroup
+            id="ganan"
+            title="Le ganan a su benchmark"
+            tone="buy"
+            rows={winners}
+            portfolioById={portfolioById}
+            action={
+              <Link href="/metodologia" className="text-app-caption font-medium text-ink-500 hover:text-ink-900">
+                Cómo medimos →
               </Link>
+            }
+          />
+          <RankingGroup id="pierden" title="Pierden contra su benchmark" tone="sell" rows={losers} portfolioById={portfolioById} />
+          <RankingGroup id="empatan" title="Empatan con su benchmark" tone="neutral" rows={ties} portfolioById={portfolioById} />
+
+          {(locked.length > 0 || missing.length > 0) && (
+            <div className="mt-10 grid gap-4 lg:grid-cols-2">
+              {locked.length > 0 && (
+                <section aria-labelledby="pro-heading" className="app-card rounded-2xl p-4 sm:p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 id="pro-heading" className="flex items-center gap-2 text-app-title font-semibold text-ink-900">
+                      <Lock aria-hidden className="size-4" />
+                      Métricas en Pro
+                    </h2>
+                    <Link href="/upgrade" className="text-app-caption font-medium text-ink-900 hover:underline">
+                      Ver planes
+                    </Link>
+                  </div>
+                  <ul className="mt-3 divide-y divide-app-border">
+                    {locked.map((row) => (
+                      <SimpleRow key={row.id} row={row} portfolio={portfolioById.get(row.id)} trailing={<Lock aria-hidden className="size-4 text-ink-400" />} />
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {missing.length > 0 && (
+                <section aria-labelledby="sin-datos-heading" className="app-card rounded-2xl p-4 sm:p-5">
+                  <h2 id="sin-datos-heading" className="text-app-title font-semibold text-ink-900">
+                    Sin datos suficientes
+                  </h2>
+                  <p className="mt-1 text-app-caption text-ink-500">Sin número, porque un cero sería un dato falso.</p>
+                  <ul className="mt-3 divide-y divide-app-border">
+                    {missing.map((row) => (
+                      <SimpleRow key={row.id} row={row} portfolio={portfolioById.get(row.id)} trailing={<span className="text-app-caption text-ink-400">—</span>} />
+                    ))}
+                  </ul>
+                </section>
+              )}
             </div>
-            {winners.length === 0 ? (
-              <p className="mt-5 border-t border-ink-200 py-4 text-[15px] text-ink-500">
-                Ninguna fuente supera a su benchmark con los datos disponibles.
-              </p>
-            ) : (
-              <RankingTable rows={winners} />
-            )}
-          </section>
-
-          <section className="mt-14" aria-labelledby="pierden-heading">
-            <h2
-              id="pierden-heading"
-              className="text-[22px] font-medium tracking-[-0.03em] text-ink-900"
-            >
-              Pierden contra su benchmark
-            </h2>
-            <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
-              Estas fuentes también se publican. El exceso negativo está calculado
-              con las mismas reglas que el positivo.
-            </p>
-            {losers.length === 0 ? (
-              <p className="mt-5 border-t border-ink-200 py-4 text-[15px] text-ink-500">
-                No hay fuentes con exceso negativo en el corte actual.
-              </p>
-            ) : (
-              <RankingTable rows={losers} />
-            )}
-          </section>
-
-          {ties.length > 0 && (
-            <section className="mt-14" aria-labelledby="empatan-heading">
-              <h2
-                id="empatan-heading"
-                className="text-[22px] font-medium tracking-[-0.03em] text-ink-900"
-              >
-                Empatan con su benchmark
-              </h2>
-              <RankingTable rows={ties} />
-            </section>
           )}
 
-          {locked.length > 0 && (
-            <section className="mt-14" aria-labelledby="pro-heading">
-              <h2
-                id="pro-heading"
-                className="text-[15px] font-medium text-ink-900"
-              >
-                Métricas disponibles en Pro
-              </h2>
-              <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
-                Estos portafolios participan del ranking, pero sus cifras y su
-                serie están detrás del muro. No publicamos números premium sin
-                plan de pago.
-              </p>
-              <ul className="mt-4 border-t border-ink-200">
-                {locked.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-200 py-3"
-                  >
-                    <span className="inline-flex items-center gap-2 text-[15px] text-ink-900">
-                      <Lock className="size-3.5 text-ink-500" strokeWidth={1.5} />
-                      {row.href ? (
-                        <Link
-                          href={row.href}
-                          className="underline-offset-4 hover:underline"
-                        >
-                          {row.name}
-                        </Link>
-                      ) : (
-                        row.name
-                      )}
-                      <span className="border border-ink-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-500">
-                        Pro
-                      </span>
-                    </span>
-                    <span className="text-[12px] text-ink-500">
-                      {row.benchmarkLabel} · cifras en Pro
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {missing.length > 0 && (
-            <section className="mt-14" aria-labelledby="sindatos-heading">
-              <h2
-                id="sindatos-heading"
-                className="text-[15px] font-medium text-ink-900"
-              >
-                Sin datos suficientes
-              </h2>
-              <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
-                No inventamos un cero. Estos portafolios aparecen cuando el scraper
-                tenga serie y benchmark comparables.
-              </p>
-              <ul className="mt-4 border-t border-ink-200">
-                {missing.map((row) => (
-                  <li
-                    key={row.id}
-                    className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-200 py-3"
-                  >
-                    <span className="text-[15px] text-ink-900">
-                      {row.href ? (
-                        <Link
-                          href={row.href}
-                          className="underline-offset-4 hover:underline"
-                        >
-                          {row.name}
-                        </Link>
-                      ) : (
-                        row.name
-                      )}
-                    </span>
-                    <span className="text-[12px] text-ink-500">
-                      {row.benchmarkLabel} · sin datos
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          <section className="mt-16 border-t border-ink-200 pt-8" aria-labelledby="estudios-heading">
-            <h2
-              id="estudios-heading"
-              className="text-[22px] font-medium tracking-[-0.03em] text-ink-900"
-            >
+          {/* Estudios */}
+          <section className="mt-12" aria-labelledby="estudios-heading">
+            <h2 id="estudios-heading" className="text-app-title font-semibold text-ink-900">
               Cómo se midió cada estudio
             </h2>
-            <p className="mt-3 max-w-2xl text-[13px] leading-relaxed text-ink-500">
-              Las cifras de los estudios son históricas y tienen fecha de corte.
-              Cada una enlaza su fuente pública.
+            <p className="mt-1 max-w-2xl text-app-caption text-ink-500">
+              Cifras históricas con fecha de corte. Cada una enlaza su fuente pública.
             </p>
-            <dl className="mt-6 grid grid-cols-1 gap-px border border-ink-200 bg-ink-200 md:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
               {RESEARCH_RESULTS.map((study) => (
-                <div key={study.id} className="bg-white p-5">
-                  <dt className="text-[15px] font-medium text-ink-900">
-                    {study.name}
-                  </dt>
-                  <dd className="mt-2 text-[13px] leading-relaxed text-ink-600">
-                    {study.method}
-                  </dd>
-                  <dd className="mt-3 text-[12px] leading-relaxed text-ink-500">
-                    Corte {formatAsOf(study.asOf)}
-                    {study.sampleSize !== null ? (
-                      <>
-                        {" · "}
-                        {study.sampleSize} {study.sampleUnit}
-                      </>
-                    ) : null}
-                    {" · "}
+                <article key={study.id} className="app-card flex flex-col rounded-2xl p-4 sm:p-5">
+                  <div className="flex items-start gap-3">
+                    <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-ink-100 text-ink-700">
+                      <FlaskConical className="size-5" />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-[15px] font-semibold text-ink-900">{study.name}</h3>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        <Chip>Corte {formatAsOf(study.asOf)}</Chip>
+                        {study.sampleSize !== null ? (
+                          <Chip>
+                            {study.sampleSize} {study.sampleUnit}
+                          </Chip>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-[13px] leading-relaxed text-ink-600">{study.method}</p>
+                  {study.detail && study.detail.length > 0 && (
+                    <ul className="mt-3 space-y-1.5 rounded-xl bg-ink-50 p-3">
+                      {study.detail.map((item) => (
+                        <li key={item.name} className="flex items-baseline justify-between gap-3 text-[12px]">
+                          <span className="min-w-0 truncate text-ink-700">{item.name}</span>
+                          <span className="num shrink-0 tabular-nums">
+                            <span className={toneClass(item.returnPct)}>{formatPercent(item.returnPct, 2)}</span>
+                            {item.benchmarkReturnPct !== undefined ? (
+                              <span className="text-ink-500"> vs SPY {formatPercent(item.benchmarkReturnPct, 2)}</span>
+                            ) : null}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="mt-auto pt-3 text-app-caption text-ink-500">
+                    Fuente:{" "}
                     {study.sourceUrl ? (
                       <a
                         href={study.sourceUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-ink-900 underline underline-offset-4"
+                        className="inline-flex items-center gap-0.5 font-medium text-ink-900 hover:underline"
                       >
                         {study.source}
+                        <ArrowUpRight aria-hidden className="size-3" />
                       </a>
                     ) : (
                       study.source
                     )}
-                  </dd>
-                  {study.detail && study.detail.length > 0 && (
-                    <dd className="mt-3 border-t border-ink-200 pt-2 text-[12px] text-ink-500">
-                      {study.detail.map((item) => (
-                        <span key={item.name} className="block py-0.5">
-                          <span className="text-ink-700">{item.name}:</span>{" "}
-                          <span className="num">{formatPercent(item.returnPct, 2)}</span>
-                          {item.benchmarkReturnPct !== undefined ? (
-                            <span className="num">
-                              {" "}
-                              vs SPY {formatPercent(item.benchmarkReturnPct, 2)}
-                            </span>
-                          ) : null}
-                        </span>
-                      ))}
-                    </dd>
-                  )}
-                </div>
+                  </p>
+                </article>
               ))}
-            </dl>
+            </div>
           </section>
 
-          <section className="mt-16 border-t border-ink-200 pt-8" aria-labelledby="metodo-heading">
-            <h2
-              id="metodo-heading"
-              className="text-[22px] font-medium tracking-[-0.03em] text-ink-900"
-            >
+          {/* Metodología */}
+          <section className="mt-12" aria-labelledby="metodo-heading">
+            <h2 id="metodo-heading" className="text-app-title font-semibold text-ink-900">
               Metodología del ranking
             </h2>
-            <ul className="mt-5 max-w-3xl list-disc space-y-2.5 pl-6 text-[15px] leading-relaxed text-ink-600">
-              <li>
-                <strong className="font-medium text-ink-900">Benchmark de EE.UU.</strong>:
-                S&P 500, replicable con el ETF SPY. Para Chile usamos el IPSA con{" "}
-                <strong className="font-medium text-ink-900">ECH en CLP</strong> como
-                proxy, rotulado así en cada fila. El ECH sigue el índice MSCI Chile,
-                no el IPSA exacto, y agrega costo y riesgo de tipo de cambio.
-              </li>
-              <li>
-                <strong className="font-medium text-ink-900">Exceso de retorno</strong>:
-                retorno acumulado de la fuente menos retorno acumulado del benchmark,
-                en puntos porcentuales, sobre fechas alineadas. Es un exceso
-                aritmético, no un alfa de modelo de factores.
-              </li>
-              <li>
-                <strong className="font-medium text-ink-900">Sin dividendos ni costos</strong>:
-                se usan precios de cierre. No se descuentan comisiones, impuestos ni
-                conversión de moneda. El retorno real de una estrategia ejecutable
-                sería menor.
-              </li>
-              <li>
-                <strong className="font-medium text-ink-900">Muestra chica</strong>:
-                con menos de 30 puntos de datos la fila se rotula{" "}
-                <span className="border border-ink-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-500">
-                  {SMALL_SAMPLE_LABEL}
-                </span>
-                . El número se muestra igual, pero no alcanza para sacar conclusiones.
-              </li>
-              <li>
-                <strong className="font-medium text-ink-900">Perdedores incluidos</strong>:
-                el ranking no filtra por resultado. Las fuentes sin datos quedan al
-                final, sin número, porque un cero sería un dato falso.
-              </li>
-            </ul>
-            <p className="mt-6 text-[13px] text-ink-500">
-              El detalle de retornos, volatilidad, Sharpe y máxima caída está en{" "}
-              <Link href="/metodologia" className="text-ink-900 underline underline-offset-4">
-                /metodologia
-              </Link>
-              .
-            </p>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <MethodCard title="Benchmark">
+                S&P 500 (ETF SPY) en EE.UU. Para Chile, el IPSA con <strong className="font-medium text-ink-900">ECH en CLP</strong> como
+                proxy: sigue el MSCI Chile, no el IPSA exacto, y agrega costo y riesgo de tipo de cambio.
+              </MethodCard>
+              <MethodCard title="Exceso de retorno">
+                Retorno acumulado de la fuente menos el del benchmark, en puntos porcentuales y sobre fechas
+                alineadas. Es un exceso aritmético, no un alfa de factores.
+              </MethodCard>
+              <MethodCard title="Sin dividendos ni costos">
+                Precios de cierre, sin comisiones, impuestos ni conversión de moneda. El retorno de una
+                estrategia ejecutable sería menor.
+              </MethodCard>
+              <MethodCard title="Muestra chica">
+                Con menos de 30 puntos de datos la fila lleva la etiqueta{" "}
+                <Chip className="h-5 px-2 text-[10px] uppercase">{SMALL_SAMPLE_LABEL}</Chip>. El número se muestra,
+                pero no alcanza para concluir.
+              </MethodCard>
+              <MethodCard title="Perdedores incluidos">
+                El ranking no filtra por resultado. Las fuentes sin datos quedan al final, sin número.
+              </MethodCard>
+              <MethodCard title="Más detalle">
+                Retornos, volatilidad, Sharpe y máxima caída en{" "}
+                <Link href="/metodologia" className="font-medium text-ink-900 underline underline-offset-4">
+                  metodología
+                </Link>
+                .
+              </MethodCard>
+            </div>
           </section>
 
           <div className="mt-12">
@@ -395,81 +348,219 @@ export default async function RankingPage() {
   );
 }
 
-function RankingTable({ rows }: { rows: RankedSource[] }) {
+function SourceMark({ row, portfolio, size = 40 }: { row: RankedSource; portfolio?: Portfolio; size?: number }) {
+  if (portfolio) return <PortfolioAvatar portfolio={portfolio} size={40} />;
   return (
-    <div className="mt-5">
-      <div className="hidden grid-cols-[2.5rem_minmax(0,1fr)_6rem_8rem_6rem] gap-4 border-y border-ink-200 py-2 text-[11px] uppercase tracking-[0.12em] text-ink-500 sm:grid">
-        <span>#</span>
-        <span>Fuente</span>
-        <span className="text-right">Retorno</span>
-        <span className="text-right">Benchmark</span>
-        <span className="text-right">Exceso</span>
-      </div>
-      <ul>
-        {rows.map((row) => (
-          <li key={row.id} className="border-b border-ink-200 py-4">
-            <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 sm:grid-cols-[2.5rem_minmax(0,1fr)_6rem_8rem_6rem] sm:items-baseline">
-              <span className="num text-[12px] text-ink-500">
-                {row.rank !== null ? String(row.rank).padStart(2, "0") : "—"}
-              </span>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  {row.href ? (
-                    <Link
-                      href={row.href}
-                      className="text-[15px] text-ink-900 underline-offset-4 hover:underline"
-                    >
-                      {row.name}
-                    </Link>
-                  ) : (
-                    <span className="text-[15px] text-ink-900">{row.name}</span>
-                  )}
-                  {row.smallSample && (
-                    <span className="border border-ink-200 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-ink-500">
-                      {SMALL_SAMPLE_LABEL}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-1 text-[12px] text-ink-500">
-                  {row.kind === "estudio" ? "Estudio" : "Portafolio"} ·{" "}
-                  {row.benchmarkLabel}
-                  {row.asOf ? ` · corte ${formatAsOf(row.asOf)}` : ""}
-                </p>
-                <p className="mt-1 text-[12px] text-ink-500 sm:hidden">
-                  Retorno {row.returnPct !== null ? formatPercent(row.returnPct, 2) : "—"}{" "}
-                  · Benchmark{" "}
-                  {row.benchmarkReturnPct !== null
-                    ? formatPercent(row.benchmarkReturnPct, 2)
-                    : "—"}
-                </p>
-                {row.note && (
-                  <p className="mt-1 text-[12px] leading-relaxed text-ink-500">
-                    {row.note}
-                  </p>
-                )}
-              </div>
-              <span className="num hidden text-right text-[13px] text-ink-700 sm:block">
-                {row.returnPct !== null ? formatPercent(row.returnPct, 2) : "—"}
-              </span>
-              <span className="num hidden text-right text-[13px] text-ink-500 sm:block">
-                {row.benchmarkReturnPct !== null
-                  ? formatPercent(row.benchmarkReturnPct, 2)
-                  : "—"}
-              </span>
-              <span
-                className={cn(
-                  "num col-start-2 text-[15px] sm:col-start-auto sm:text-right",
-                  row.excessReturnPct !== null && row.excessReturnPct > 0 && "text-positive",
-                  row.excessReturnPct !== null && row.excessReturnPct < 0 && "text-negative",
-                  row.excessReturnPct === null && "text-ink-500",
-                )}
-              >
-                {formatExcess(row.excessReturnPct)}
-              </span>
-            </div>
+    <span
+      aria-hidden
+      style={{ width: size, height: size }}
+      className="flex shrink-0 items-center justify-center rounded-xl bg-ink-100 text-ink-700"
+    >
+      <FlaskConical className="size-[45%]" />
+    </span>
+  );
+}
+
+function NameLink({ row, className }: { row: RankedSource; className?: string }) {
+  return row.href ? (
+    <Link href={row.href} className={cn("hover:underline", className)}>
+      {row.name}
+    </Link>
+  ) : (
+    <span className={className}>{row.name}</span>
+  );
+}
+
+const MEDALS = ["bg-amber-400 text-amber-950", "bg-zinc-300 text-zinc-800", "bg-orange-300 text-orange-950"];
+
+function PodiumCard({ row, place, portfolio }: { row: RankedSource; place: number; portfolio?: Portfolio }) {
+  return (
+    <article className="app-card relative flex h-full flex-col rounded-2xl p-4 transition-shadow hover:shadow-app-raised">
+      <span
+        className={cn(
+          "absolute right-4 top-4 flex size-7 items-center justify-center rounded-full text-[13px] font-bold tabular-nums",
+          MEDALS[place - 1] ?? "bg-ink-100 text-ink-700",
+        )}
+      >
+        {place}
+      </span>
+      <SourceMark row={row} portfolio={portfolio} size={40} />
+      <NameLink row={row} className="mt-3 line-clamp-2 pr-8 text-[15px] font-semibold text-ink-900" />
+      <p className="mt-0.5 text-app-caption text-ink-500">
+        {row.kind === "estudio" ? "Estudio" : "Portafolio"} · {row.benchmarkLabel}
+      </p>
+      <p className={cn("mt-4 text-[28px] font-semibold leading-none tracking-tight tabular-nums", toneClass(row.excessReturnPct))}>
+        {formatExcess(row.excessReturnPct)}
+      </p>
+      <p className="mt-1.5 text-app-caption tabular-nums text-ink-500">
+        {formatPct(row.returnPct)} vs {formatPct(row.benchmarkReturnPct)}
+      </p>
+      <ComparisonBar value={row.returnPct} benchmark={row.benchmarkReturnPct} />
+    </article>
+  );
+}
+
+/** Dos barras SVG: fuente vs benchmark, en la misma escala. */
+function ComparisonBar({ value, benchmark }: { value: number | null; benchmark: number | null }) {
+  if (value === null || benchmark === null) return null;
+  const max = Math.max(Math.abs(value), Math.abs(benchmark), 1);
+  const w = (v: number) => Math.max(2, (Math.abs(v) / max) * 100);
+  return (
+    <svg viewBox="0 0 100 14" preserveAspectRatio="none" className="mt-3 h-3.5 w-full" aria-hidden>
+      <rect x="0" y="0" width="100" height="5" rx="2.5" className="fill-ink-100" />
+      <rect x="0" y="0" width={w(value)} height="5" rx="2.5" className={value >= 0 ? "fill-positive" : "fill-negative"} />
+      <rect x="0" y="9" width="100" height="5" rx="2.5" className="fill-ink-100" />
+      <rect x="0" y="9" width={w(benchmark)} height="5" rx="2.5" className="fill-ink-400" />
+    </svg>
+  );
+}
+
+/** Barras divergentes de exceso, en SVG propio. */
+function ExcessChart({ rows }: { rows: RankedSource[] }) {
+  const shown = rows.slice(0, 24);
+  const max = Math.max(...shown.map((r) => Math.abs(r.excessReturnPct ?? 0)), 1);
+  const rowH = 28;
+  const H = shown.length * rowH;
+  return (
+    <ol className="mt-4 space-y-0" aria-label="Exceso de retorno por fuente">
+      {shown.map((row) => {
+        const v = row.excessReturnPct ?? 0;
+        const pct = (Math.abs(v) / max) * 50;
+        return (
+          <li key={row.id} className="grid grid-cols-[minmax(0,7.5rem)_minmax(0,1fr)_4.5rem] items-center gap-2 sm:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_5.5rem]" style={{ height: rowH }}>
+            <span className="truncate text-[12px] text-ink-700 sm:text-[13px]">{row.name}</span>
+            <svg viewBox="0 0 100 10" preserveAspectRatio="none" className="h-2.5 w-full" aria-hidden>
+              <line x1="50" y1="0" x2="50" y2="10" className="stroke-ink-200" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />
+              <rect
+                x={v >= 0 ? 50 : 50 - pct}
+                y="1"
+                width={Math.max(pct, 0.6)}
+                height="8"
+                rx="1.5"
+                className={v > 0 ? "fill-positive" : v < 0 ? "fill-negative" : "fill-ink-400"}
+              />
+            </svg>
+            <span className={cn("text-right text-[12px] font-medium tabular-nums sm:text-[13px]", toneClass(row.excessReturnPct))}>
+              {formatExcess(row.excessReturnPct)}
+            </span>
           </li>
-        ))}
-      </ul>
+        );
+      })}
+      {rows.length > shown.length ? (
+        <li className="pt-2 text-app-caption text-ink-500" style={{ minHeight: H > 0 ? undefined : 0 }}>
+          +{rows.length - shown.length} fuentes más en la tabla.
+        </li>
+      ) : null}
+    </ol>
+  );
+}
+
+function RankingGroup({
+  id,
+  title,
+  tone,
+  rows,
+  portfolioById,
+  action,
+}: {
+  id: string;
+  title: string;
+  tone: "buy" | "sell" | "neutral";
+  rows: RankedSource[];
+  portfolioById: Map<string, Portfolio>;
+  action?: React.ReactNode;
+}) {
+  if (rows.length === 0) return null;
+  return (
+    <section className="mt-10" aria-labelledby={`${id}-heading`}>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 id={`${id}-heading`} className="flex items-center gap-2 text-app-title font-semibold text-ink-900">
+          {title}
+          <Chip tone={tone}>{rows.length}</Chip>
+        </h2>
+        {action}
+      </div>
+      <div className="app-card mt-3 overflow-hidden rounded-2xl">
+        <div className="hidden grid-cols-[2.5rem_minmax(0,1fr)_6rem_7rem_6.5rem] gap-4 border-b border-app-border bg-ink-50 px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-500 sm:grid">
+          <span>#</span>
+          <span>Fuente</span>
+          <span className="text-right">Retorno</span>
+          <span className="text-right">Benchmark</span>
+          <span className="text-right">Exceso</span>
+        </div>
+        <ul className="divide-y divide-app-border">
+          {rows.map((row) => (
+            <RankingRow key={row.id} row={row} portfolio={portfolioById.get(row.id)} />
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function RankingRow({ row, portfolio }: { row: RankedSource; portfolio?: Portfolio }) {
+  return (
+    <li className="grid grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-ink-50 sm:grid-cols-[2.5rem_minmax(0,1fr)_6rem_7rem_6.5rem] sm:gap-4 sm:px-5">
+      <span className="text-[12px] font-medium tabular-nums text-ink-400">
+        {row.rank !== null ? String(row.rank).padStart(2, "0") : "—"}
+      </span>
+      <div className="flex min-w-0 items-center gap-3">
+        <SourceMark row={row} portfolio={portfolio} size={40} />
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <NameLink row={row} className="truncate text-[15px] font-medium text-ink-900" />
+            {row.smallSample && (
+              <Chip className="h-5 shrink-0 px-2 text-[10px] uppercase">{SMALL_SAMPLE_LABEL}</Chip>
+            )}
+          </div>
+          <p className="truncate text-app-caption text-ink-500">
+            {row.kind === "estudio" ? "Estudio" : "Portafolio"} · {row.benchmarkLabel}
+            {row.asOf ? ` · ${formatAsOf(row.asOf)}` : ""}
+          </p>
+          <p className="text-app-caption tabular-nums text-ink-500 sm:hidden">
+            {formatPct(row.returnPct)} vs {formatPct(row.benchmarkReturnPct)}
+          </p>
+          {row.note && <p className="mt-0.5 text-app-caption text-ink-500">{row.note}</p>}
+        </div>
+      </div>
+      <span className={cn("hidden text-right text-[13px] tabular-nums sm:block", toneClass(row.returnPct))}>
+        {formatPct(row.returnPct)}
+      </span>
+      <span className="hidden text-right text-[13px] tabular-nums text-ink-500 sm:block">
+        {formatPct(row.benchmarkReturnPct)}
+      </span>
+      <span
+        className={cn(
+          "justify-self-end rounded-lg px-2 py-1 text-right text-[13px] font-semibold tabular-nums",
+          row.excessReturnPct !== null && row.excessReturnPct > 0 && "bg-positive/10 text-positive",
+          row.excessReturnPct !== null && row.excessReturnPct < 0 && "bg-negative/10 text-negative",
+          (row.excessReturnPct === null || row.excessReturnPct === 0) && "bg-ink-100 text-ink-500",
+        )}
+      >
+        {formatExcess(row.excessReturnPct)}
+      </span>
+    </li>
+  );
+}
+
+function SimpleRow({ row, portfolio, trailing }: { row: RankedSource; portfolio?: Portfolio; trailing: React.ReactNode }) {
+  return (
+    <li className="flex items-center gap-3 py-2.5">
+      <SourceMark row={row} portfolio={portfolio} size={40} />
+      <div className="min-w-0 flex-1">
+        <NameLink row={row} className="block truncate text-[14px] font-medium text-ink-900" />
+        <p className="truncate text-app-caption text-ink-500">{row.benchmarkLabel}</p>
+      </div>
+      {trailing}
+    </li>
+  );
+}
+
+function MethodCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="app-card rounded-2xl p-4">
+      <h3 className="text-[14px] font-semibold text-ink-900">{title}</h3>
+      <p className="mt-1.5 text-[13px] leading-relaxed text-ink-600">{children}</p>
     </div>
   );
 }
