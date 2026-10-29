@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { LazyMotion, m, useReducedMotion } from "framer-motion";
+import { loadMotionFeatures } from "@/lib/load-motion-features";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,7 +39,8 @@ export function FadeIn({
   const reduced = useReducedMotion();
 
   return (
-    <motion.div
+    <LazyMotion features={loadMotionFeatures}>
+    <m.div
       className={className}
       initial={reduced ? undefined : { opacity: 0, y: 14 }}
       whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
@@ -46,7 +48,8 @@ export function FadeIn({
       transition={{ duration: 0.55, ease: EASE, delay: reduced ? 0 : delay }}
     >
       {children}
-    </motion.div>
+    </m.div>
+    </LazyMotion>
   );
 }
 
@@ -82,7 +85,8 @@ export function StaggerList({
 }) {
   const reduced = useReducedMotion();
   return (
-    <motion.div
+    <LazyMotion features={loadMotionFeatures}>
+    <m.div
       className={className}
       style={style}
       initial={reduced ? undefined : "hidden"}
@@ -91,7 +95,8 @@ export function StaggerList({
       variants={reduced ? undefined : listVariants}
     >
       {children}
-    </motion.div>
+    </m.div>
+    </LazyMotion>
   );
 }
 
@@ -109,13 +114,15 @@ export function StaggerItem({
 }) {
   const reduced = useReducedMotion();
   return (
-    <motion.div
+    <LazyMotion features={loadMotionFeatures}>
+    <m.div
       className={className}
       style={style}
       variants={reduced ? undefined : itemVariants}
     >
       {children}
-    </motion.div>
+    </m.div>
+    </LazyMotion>
   );
 }
 
@@ -135,7 +142,8 @@ export function AnimatedNumber({
   const reduced = useReducedMotion();
   const display = format ? format(value) : String(value);
   return (
-    <motion.span
+    <LazyMotion features={loadMotionFeatures}>
+    <m.span
       className={cn("tabular-nums", className)}
       initial={reduced ? undefined : { opacity: 0, y: 10 }}
       whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
@@ -143,6 +151,7 @@ export function AnimatedNumber({
       transition={{ duration: 0.55, ease: EASE }}
     >
       {display}
-    </motion.span>
+    </m.span>
+    </LazyMotion>
   );
 }

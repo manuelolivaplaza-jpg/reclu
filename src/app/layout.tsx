@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { AiChatWidget } from "@/components/ai-chat-widget";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { DeferredAiChatWidget } from "@/components/deferred-widgets";
 import { PwaRegister } from "@/components/pwa-register";
 import { siteUrl } from "@/lib/site";
 import { plausibleDomain } from "@/lib/analytics";
@@ -89,7 +90,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             src="https://plausible.io/js/script.tagged-events.js"
           />
         )}
-        <AiChatWidget />
+        <DeferredAiChatWidget />
+        <SpeedInsights />
         <PwaRegister />
       </body>
     </html>

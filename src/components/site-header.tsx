@@ -3,11 +3,12 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, LazyMotion, m, useReducedMotion } from "framer-motion";
+import { loadMotionFeatures } from "@/lib/load-motion-features";
 import { Menu, X } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { LogoLockup } from "@/components/logo";
-import { CommandPalette } from "@/components/command-palette";
+import { CommandPalette } from "@/components/command-palette-lazy";
 import { useHideOnScroll } from "@/lib/use-hide-on-scroll";
 import { cn } from "@/lib/utils";
 
@@ -129,9 +130,10 @@ export function SiteHeader() {
       {/* Mobile nav — pantalla completa blanca, links grandes.
           AnimatePresence: opacidad + y sutil; los links entran escalonados. */}
       {mounted && createPortal(
+      <LazyMotion features={loadMotionFeatures}>
       <AnimatePresence>
         {mobileOpen && (
-          <motion.div
+          <m.div
             id="menu-movil"
             role="dialog"
             aria-modal="true"
@@ -161,7 +163,7 @@ export function SiteHeader() {
                 <X className="size-6" />
               </button>
             </div>
-            <motion.nav
+            <m.nav
               className="container-page flex flex-1 flex-col pt-6"
               aria-label="Principal móvil"
               initial={reduced ? undefined : "hidden"}
@@ -171,7 +173,7 @@ export function SiteHeader() {
               }}
             >
               {NAV_LINKS.map((link) => (
-                <motion.div
+                <m.div
                   key={link.href}
                   variants={{
                     hidden: { opacity: 0, y: 14 },
@@ -190,10 +192,10 @@ export function SiteHeader() {
                   >
                     {link.label}
                   </Link>
-                </motion.div>
+                </m.div>
               ))}
-            </motion.nav>
-            <motion.div
+            </m.nav>
+            <m.div
               className="container-page flex flex-col gap-3 pt-8 pb-[calc(env(safe-area-inset-bottom)+2rem)]"
               initial={reduced ? undefined : { opacity: 0, y: 14 }}
               animate={reduced ? undefined : { opacity: 1, y: 0 }}
@@ -214,10 +216,11 @@ export function SiteHeader() {
               >
                 Empezar
               </ButtonLink>
-            </motion.div>
-          </motion.div>
+            </m.div>
+          </m.div>
         )}
-      </AnimatePresence>,
+      </AnimatePresence>
+      </LazyMotion>,
       document.body,
       )}
     </header>
