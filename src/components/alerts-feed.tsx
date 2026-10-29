@@ -26,6 +26,8 @@ interface AlertsFeedProps {
   alerts: EnrichedAlert[];
   followedIds: string[];
   isPro: boolean;
+  /** False sin clave de OpenRouter: se ocultan los CTA de IA. */
+  aiEnabled?: boolean;
 }
 
 interface ExplainSourceView {
@@ -91,7 +93,7 @@ const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: "weight_change", label: "Ponderación" },
 ];
 
-export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
+export function AlertsFeed({ alerts, followedIds, isPro, aiEnabled = true }: AlertsFeedProps) {
   const [view, setView] = useState<ViewTab>("global");
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [query, setQuery] = useState("");
@@ -337,6 +339,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                     key={alert.id}
                     alert={alert}
                     isPro={isPro}
+                    aiEnabled={aiEnabled}
                     explain={explanations[alert.id]}
                     onExplain={() => handleExplain(alert)}
                   />
@@ -461,11 +464,13 @@ const CHIP_CLASS: Partial<Record<AlertType, string>> = {
 function AlertRow({
   alert,
   isPro,
+  aiEnabled,
   explain,
   onExplain,
 }: {
   alert: EnrichedAlert;
   isPro: boolean;
+  aiEnabled: boolean;
   explain: ExplainState | undefined;
   onExplain: () => void;
 }) {
@@ -586,7 +591,7 @@ function AlertRow({
             <p className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">Resumen IA</p>
             <p className="mt-1 text-[14px] leading-relaxed text-ink-900">{alert.summary}</p>
           </div>
-        ) : !isPro ? (
+        ) : !isPro && aiEnabled ? (
           <p className="mt-3 text-[13px] text-ink-500">
             Resumen IA disponible en{" "}
             <Link href="/upgrade?plan=pro" className="font-medium text-ink-900 underline underline-offset-4">
@@ -597,6 +602,7 @@ function AlertRow({
         ) : null}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
+          {aiEnabled ? (
           <button
             type="button"
             onClick={onExplain}
@@ -606,6 +612,7 @@ function AlertRow({
           >
             {explainLabel}
           </button>
+          ) : null}
           <Link
             href={`/portfolio/${alert.portfolio.slug}`}
             className="inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] text-ink-500 hover:bg-ink-100 hover:text-ink-900"

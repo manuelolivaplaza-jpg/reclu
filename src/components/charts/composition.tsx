@@ -29,7 +29,12 @@ export function Composition({ data, maxSlices = 7 }: CompositionProps) {
 
   const clean = (Array.isArray(data) ? data : [])
     .filter((s) => s && Number.isFinite(Number(s.weight)) && Number(s.weight) > 0)
-    .map((s) => ({ symbol: String(s.symbol ?? "—"), name: s.name ?? "", weight: Number(s.weight) }))
+    .map((s) => {
+      const symbol = String(s.symbol ?? "—");
+      const name = String(s.name ?? "").trim();
+      // Nunca "BE BE": el nombre solo se muestra si aporta algo al ticker.
+      return { symbol, name: name.toUpperCase() === symbol.toUpperCase() ? "" : name, weight: Number(s.weight) };
+    })
     .sort((a, b) => b.weight - a.weight);
   const total = clean.reduce((sum, s) => sum + s.weight, 0);
 

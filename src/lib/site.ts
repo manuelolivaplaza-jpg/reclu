@@ -21,8 +21,14 @@ function normalizeUrl(raw: string): string {
 
 /** URL base pública del sitio, sin slash final. */
 export function siteUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL ?? "";
-  return normalizeUrl(raw || DEFAULT_LOCAL_URL);
+  const raw = (process.env.NEXT_PUBLIC_SITE_URL ?? "").trim();
+  if (raw) return normalizeUrl(raw);
+  // Fallback en Vercel sin NEXT_PUBLIC_SITE_URL: dominio de producción del
+  // proyecto (solo en producción) o la URL del deploy. En local, localhost.
+  const vercel =
+    (process.env.VERCEL_ENV === "production" ? (process.env.VERCEL_PROJECT_PRODUCTION_URL ?? "").trim() : "") ||
+    (process.env.VERCEL_URL ?? "").trim();
+  return normalizeUrl(vercel || DEFAULT_LOCAL_URL);
 }
 
 /** URL absoluta para una ruta interna (p. ej. `absoluteUrl("/explore")`). */

@@ -14,7 +14,7 @@ const FOOTER_SECTIONS: { title: string; links: FooterLink[] }[] = [
       { href: "/explore", label: "Portafolios" },
       { href: "/ranking", label: "Ranking" },
       { href: "/#como-funciona", label: "Cómo funciona" },
-      { href: "/#precios", label: "Precios" },
+      { href: "/planes", label: "Precios" },
     ],
   },
   {

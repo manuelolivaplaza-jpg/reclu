@@ -86,6 +86,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: "/portfolio/inverse-cramer", destination: "/portfolio/inverse-cramer-real", permanent: true },
+      { source: "/pricing", destination: "/planes", permanent: true },
+      { source: "/precios", destination: "/planes", permanent: true },
       { source: "/portfolio/afp-multifondos", destination: "/portfolio/afp-consenso-chile", permanent: true },
     ];
   },

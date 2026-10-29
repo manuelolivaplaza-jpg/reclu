@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { aiEnabled } from "@/lib/ai-flags";
 import { Suspense } from "react";
 import { getAlerts, getFollows, getPortfolios, getProfile } from "@/lib/queries";
 import { isPaidPlan, type Alert, type PortfolioCategory } from "@/lib/types";
@@ -83,6 +84,7 @@ async function AlertsContent() {
       alerts={enrichedAlerts}
       followedIds={followedIds}
       isPro={isPro}
+      aiEnabled={aiEnabled()}
     />
   );
 }

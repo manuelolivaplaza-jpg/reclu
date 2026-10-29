@@ -21,7 +21,7 @@ const NAV_LINKS = [
   { href: "/aprende", label: "Aprende" },
   { href: "/herramientas", label: "Herramientas" },
   { href: "/#como-funciona", label: "Cómo funciona" },
-  { href: "/#precios", label: "Precios" },
+  { href: "/planes", label: "Precios" },
 ];
 
 /** Enlace simple del nav: gris, se oscurece al hover. */

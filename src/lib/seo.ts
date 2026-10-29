@@ -14,6 +14,10 @@ export const SITE_NAME = "reclu.cl";
  */
 export function isIndexableHost(host: string | null | undefined, canonicalHost = siteHost()): boolean {
   if (!host) return false;
+  // Solo producción indexa: en previews y prueba (VERCEL_ENV distinto de
+  // "production") robots.txt sigue con Disallow total.
+  const vercelEnv = (process.env.VERCEL_ENV ?? "").trim();
+  if (vercelEnv && vercelEnv !== "production") return false;
   const h = host.toLowerCase().split(":")[0];
   const c = canonicalHost.toLowerCase().split(":")[0];
   if (h !== c) return false;

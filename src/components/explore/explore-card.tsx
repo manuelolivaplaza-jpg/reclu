@@ -36,7 +36,8 @@ function AreaSpark({ data, up }: { data: number[]; up: boolean }) {
 /**
  * d54: tarjeta pro de Explorar. Logo oficial (o iniciales), nombre,
  * categoría, retorno real con sparkline y botón Seguir. Sin serie no hay
- * cifra ("—"): nunca el return_ytd estático.
+ * cifra: estado "Historial en preparación" con línea base, nunca el
+ * return_ytd estático ni un "—" vacío.
  */
 export function ExploreCard({
   portfolio,
@@ -57,7 +58,6 @@ export function ExploreCard({
     <article
       className={cn(
         "app-card group flex h-full flex-col rounded-2xl p-4 transition-shadow hover:shadow-app-raised",
-        noSeries && "opacity-70",
       )}
     >
       <Link href={`/portfolio/${portfolio.slug}`} className="flex min-w-0 items-center gap-3">
@@ -71,13 +71,28 @@ export function ExploreCard({
         </div>
       </Link>
 
+      {noSeries || pct === null ? (
+        <Link href={`/portfolio/${portfolio.slug}`} className="mt-4 block" tabIndex={-1} aria-hidden="true">
+          <div className="flex h-[22px] items-end">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-50 px-2.5 py-1 text-[11px] font-medium text-ink-500">
+              <span className="size-1.5 rounded-full bg-ink-400" />
+              Historial en preparación
+            </span>
+          </div>
+          <div className="mt-2 flex h-14 items-end">
+            <svg viewBox="0 0 240 56" preserveAspectRatio="none" className="h-14 w-full" aria-hidden="true">
+              <path d="M0,40 L240,40" fill="none" stroke="currentColor" strokeWidth={1.25} strokeDasharray="3 5" className="text-ink-200" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
+        </Link>
+      ) : (
       <Link href={`/portfolio/${portfolio.slug}`} className="mt-4 block" tabIndex={-1} aria-hidden="true">
         <div className="flex items-end justify-between gap-2">
-          <p className={cn("text-[22px] font-semibold leading-none tracking-tight tabular-nums", pct === null ? "text-ink-400" : up ? "text-positive" : "text-negative")}>
-            {pct === null ? "—" : formatSignedPct(pct)}
+          <p className={cn("text-[22px] font-semibold leading-none tracking-tight tabular-nums", up ? "text-positive" : "text-negative")}>
+            {formatSignedPct(pct)}
           </p>
           <p className="text-right text-[11px] text-ink-500">
-            {noSeries ? "Sin serie aún" : stat?.label || ""}
+            {stat?.label || ""}
             {stat?.estimated ? " · estimado" : ""}
           </p>
         </div>
@@ -85,6 +100,7 @@ export function ExploreCard({
           <AreaSpark data={stat?.spark ?? []} up={up} />
         </div>
       </Link>
+      )}
 
       <div className="mt-4 flex items-center justify-between gap-3">
         <span className="text-[12px] text-ink-500 tabular-nums">{formatCompact(portfolio.followers)} seguidores</span>

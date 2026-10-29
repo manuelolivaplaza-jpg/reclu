@@ -164,7 +164,9 @@ export function ReplicateList({ slug, portfolioName, holdings }: ReplicateListPr
                 <tr key={item.symbol} className="border-b border-ink-100 last:border-0">
                   <td className="px-3 py-2.5">
                     <span className="num text-ink-900">{item.symbol}</span>
-                    <span className="ml-2 text-ink-500">{item.name}</span>
+                    {item.name && item.name.trim().toUpperCase() !== item.symbol.toUpperCase() ? (
+                      <span className="ml-2 text-ink-500">{item.name}</span>
+                    ) : null}
                     {item.warning ? (
                       <span className="ml-2 text-[12px] text-ink-400">{item.warning}</span>
                     ) : null}

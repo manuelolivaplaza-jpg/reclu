@@ -6,6 +6,7 @@ import { DeferredAiChatWidget, DeferredSpeedInsights } from "@/components/deferr
 import { PwaRegister } from "@/components/pwa-register";
 import { siteUrl } from "@/lib/site";
 import { plausibleDomain } from "@/lib/analytics";
+import { aiEnabled } from "@/lib/ai-flags";
 import "./globals.css";
 
 /**
@@ -89,7 +90,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         )}
         <JsonLd data={organizationSchema()} />
         <JsonLd data={websiteSchema()} />
-        <DeferredAiChatWidget />
+        {/* Sin clave de OpenRouter no se monta el chat (flag server-side). */}
+        {aiEnabled() ? <DeferredAiChatWidget /> : null}
         {/* d65: medición real solo en producción y fuera del JS inicial. */}
         {process.env.VERCEL_ENV === "production" ? <DeferredSpeedInsights /> : null}
         <PwaRegister />

@@ -120,6 +120,10 @@ export const SLUG_IMAGES: Readonly<Record<string, string>> = {
   arkg: "/portfolios/ark/arkg.svg",
   arkq: "/portfolios/ark/arkq.svg",
   arkf: "/portfolios/ark/arkf.svg",
+  // Carteras chilenas sin logo propio: misma línea gráfica que los ARK.
+  "consenso-corredoras-cl": "/portfolios/cl/consenso-corredoras-cl.svg",
+  "fondos-mutuos-acciones-cl": "/portfolios/cl/fondos-mutuos-acciones-cl.svg",
+  "larrainvial-top-picks": "/portfolios/cl/larrainvial-top-picks.svg",
 };
 
 /** Imagen fija por slug (o null). */
