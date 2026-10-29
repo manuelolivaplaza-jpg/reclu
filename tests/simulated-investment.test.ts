@@ -56,8 +56,9 @@ describe("simulateInvestment", () => {
 
     expect(result).not.toBeNull();
     expect(result!.points[0].value).toBeCloseTo(DEFAULT_SIMULATED_AMOUNT, 6);
-    expect(result!.finalValue).toBeCloseTo(10_000 * 1.08, 6);
-    expect(result!.gainPct).toBeCloseTo(8, 6);
+    // d69: compuesto, no resta en pp (antes 8%).
+    expect(result!.finalValue).toBeCloseTo((10_000 * 1.2) / 1.12, 6);
+    expect(result!.gainPct).toBeCloseTo((1.2 / 1.12 - 1) * 100, 6);
   });
 
   it("respeta el monto inicial y ordena por fecha", () => {

@@ -16,6 +16,8 @@ import { PaywallGate } from "@/components/paywall-gate";
 import { PortfolioTools, PortfolioMetricsStrip } from "@/components/portfolio-tools";
 import { PortfolioHero } from "@/components/portfolio-hero";
 import { SERIES_START_BY_SLUG, clipSeriesForSlug } from "@/lib/card-series";
+import { returnSinceStart } from "@/lib/returns";
+import { seriesPeriodLabel } from "@/lib/simulated-investment";
 import { displayHoldings, displaySymbol, sourceLabel } from "@/lib/holding-display";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { PortraitCredit } from "@/components/portrait-credit";
@@ -254,6 +256,18 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
     value_pct: point.value,
   }));
   const heroDemo = performanceReal.length === 0 && demoPoints.length > 0;
+  // d69: "desde el inicio" = serie COMPLETA (misma fuente que explore/home),
+  // compuesta. Solo se envía la cifra agregada, no la serie (muro intacto).
+  const fullSeries = officialSeries.length >= 2
+    ? officialSeries
+    : heroDemo
+      ? []
+      : clipSeriesForSlug(portfolio.slug, (await getPerformanceSeriesAdmin([portfolio.id])).get(portfolio.id) ?? []);
+  const inceptionPct = fullSeries.length >= 2 ? returnSinceStart(fullSeries) : null;
+  const heroHeadline =
+    inceptionPct !== null && heroSeries.length >= 2
+      ? { pct: inceptionPct, label: seriesPeriodLabel(fullSeries) }
+      : null;
 
   return (
     <div className={inApp ? "flex flex-col" : "flex min-h-screen flex-col"}>
@@ -318,6 +332,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             </>
           }
           series={heroSeries}
+          headline={heroHeadline}
           followers={portfolio.followers}
           demo={heroDemo}
           action={

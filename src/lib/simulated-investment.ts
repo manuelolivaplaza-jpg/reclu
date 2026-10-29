@@ -10,6 +10,8 @@
  * siempre da el mismo resultado (testeable).
  */
 
+import { levelFromPct } from "@/lib/returns";
+
 export interface SimulatedSeriesPoint {
   /** Fecha del punto (YYYY-MM-DD o ISO). */
   date: string;
@@ -72,10 +74,12 @@ export function simulateInvestment(
 
   if (clean.length === 0) return null;
 
-  const base = clean[0].value_pct;
+  // d69: componer (nunca restar pp): la serie recortada no parte en 0.
+  const base = levelFromPct(clean[0].value_pct);
+  if (!(base > 0)) return null;
   const points: SimulatedPoint[] = clean.map((point) => ({
     date: point.date,
-    value: initial * (1 + (point.value_pct - base) / 100),
+    value: (initial * levelFromPct(point.value_pct)) / base,
   }));
 
   const finalValue = points[points.length - 1].value;

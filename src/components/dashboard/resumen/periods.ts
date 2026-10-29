@@ -1,4 +1,6 @@
 /** d53: cálculos puros sobre la serie real (value_pct acumulado). Sin datos => null ("—"). */
+import { compoundReturnPct } from "@/lib/returns";
+
 export interface SeriesPt {
   date: string;
   value: number;
@@ -7,7 +9,6 @@ export interface SeriesPt {
 export type PeriodKey = "1D" | "1S" | "1M" | "YTD" | "1A";
 export const PERIOD_LABELS: Record<PeriodKey, string> = { "1D": "Día", "1S": "Semana", "1M": "Mes", YTD: "YTD", "1A": "1 año" };
 
-const lvl = (p: SeriesPt) => 1 + p.value / 100;
 
 function shift(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
@@ -27,10 +28,8 @@ function atOrBefore(pts: SeriesPt[], target: string): SeriesPt | null {
 
 function change(from: SeriesPt | null, to: SeriesPt): number | null {
   if (!from || from === to) return null;
-  const a = lvl(from);
-  if (a <= 0) return null;
-  const pct = (lvl(to) / a - 1) * 100;
-  return Number.isFinite(pct) ? Math.round(pct * 100) / 100 : null;
+  const pct = compoundReturnPct(from.value, to.value);
+  return pct === null ? null : Math.round(pct * 100) / 100;
 }
 
 export function periodChanges(series: SeriesPt[]): Record<PeriodKey, number | null> {

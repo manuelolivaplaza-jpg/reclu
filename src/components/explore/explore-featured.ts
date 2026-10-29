@@ -1,5 +1,6 @@
 import { clipSeriesForSlug } from "@/lib/card-series";
 import type { Holding, Portfolio } from "@/lib/types";
+import { windowReturnPct } from "@/lib/returns";
 import { holdingLimitFor, type AccessRole } from "@/lib/access";
 
 /** Datos planos (serializables) de una diapositiva del carrusel de Explorar. */
@@ -28,23 +29,9 @@ type Pt = { date: string; value: number; estimated?: boolean };
 const DAY = 86_400_000;
 const t = (d: string) => Date.parse(`${d.slice(0, 10)}T00:00:00Z`);
 
-/** Retorno entre el último punto y el último punto con fecha <= fin − días. */
+/** d69: retorno compuesto de la ventana (fuente única en lib/returns). */
 function periodReturn(pts: Pt[], days: number, maxGapDays: number): number | null {
-  if (pts.length < 2) return null;
-  const last = pts[pts.length - 1];
-  const target = t(last.date) - days * DAY;
-  let base: Pt | null = null;
-  for (let i = pts.length - 2; i >= 0; i--) {
-    if (t(pts[i].date) <= target) {
-      base = pts[i];
-      break;
-    }
-  }
-  if (!base || target - t(base.date) > maxGapDays * DAY) return null;
-  const a = 1 + base.value / 100;
-  if (a <= 0) return null;
-  const r = ((1 + last.value / 100) / a - 1) * 100;
-  return Number.isFinite(r) ? r : null;
+  return windowReturnPct(pts, days, maxGapDays);
 }
 
 /** Hasta n puntos equiespaciados, conservando siempre el último. */
