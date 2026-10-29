@@ -35,7 +35,7 @@ const FOOTER_SECTIONS: { title: string; links: FooterLink[] }[] = [
   },
   {
     title: "Contacto",
-    links: [{ href: "mailto:hola@reclu.cl", label: "hola@reclu.cl", external: true }],
+    links: [{ href: "mailto:hola@fraccion.si", label: "hola@fraccion.si", external: true }],
   },
 ];
 
@@ -92,7 +92,7 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-8 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
-          <p>© {CURRENT_YEAR} reclu.cl</p>
+          <p>© {CURRENT_YEAR} fraccion.si</p>
           <p className="max-w-xl leading-relaxed md:text-right">
             Información pública con fines informativos. No constituye asesoría de
             inversión. Rentabilidades pasadas no garantizan resultados futuros.

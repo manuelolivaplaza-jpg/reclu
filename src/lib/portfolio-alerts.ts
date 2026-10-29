@@ -25,7 +25,7 @@ export const PORTFOLIO_NEWS_DISCLAIMER =
   "IA · Información, no recomendación · Puede tener errores.";
 
 /** Etiqueta del resumen diario / asunto base del correo. */
-export const PORTFOLIO_NEWS_SUBJECT = "reclu.cl — Noticias que tocan tu cartera";
+export const PORTFOLIO_NEWS_SUBJECT = "fraccion.si — Noticias que tocan tu cartera";
 
 /** Un aviso listo para renderizar y enviar. */
 export interface PortfolioAlertItem {
@@ -205,7 +205,7 @@ export function portfolioAlertSubject(items: readonly PortfolioAlertItem[]): str
   if (items.length !== 1) return PORTFOLIO_NEWS_SUBJECT;
   const item = items[0];
   const title = item.title.trim().slice(0, 90);
-  return `reclu.cl — ${item.symbol}: ${title}`;
+  return `fraccion.si — ${item.symbol}: ${title}`;
 }
 
 /** Texto de Telegram (parse_mode HTML). Nunca incluye montos. */
@@ -290,7 +290,7 @@ export function renderPortfolioAlertEmail(input: EmailRenderInput): string {
 </head>
 <body style="margin:0;padding:0;background:#ffffff;color:#0a0a0a;font-family:'Instrument Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
-    <p style="margin:0 0 24px;font-size:18px;font-weight:600;letter-spacing:-0.04em;line-height:1;color:#0a0a0a;">reclu</p>
+    <p style="margin:0 0 24px;font-size:18px;font-weight:600;letter-spacing:-0.04em;line-height:1;color:#0a0a0a;">fraccion</p>
     <div style="background:#ffffff;border:1px solid #e6e6e6;border-radius:0;box-shadow:none;padding:24px;">
       <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;letter-spacing:-0.03em;line-height:1.2;color:#0a0a0a;">${heading}</h1>
       <p style="margin:0;font-size:15px;line-height:1.5;color:#6b6b6b;">${lede}</p>

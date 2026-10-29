@@ -2,8 +2,8 @@ import { JsonLd } from "@/components/json-ld";
 import { faqSchema } from "@/lib/seo";
 const FAQ_ITEMS = [
   {
-    q: "¿reclu.cl ejecuta operaciones por mí?",
-    a: "No. reclu.cl es una plataforma de seguimiento y alertas. Nunca ejecutamos órdenes, ni custodiamos tus fondos ni tenemos acceso a tus cuentas de corretaje. Solo monitoreamos información pública y te avisamos por email o Telegram.",
+    q: "¿fraccion.si ejecuta operaciones por mí?",
+    a: "No. fraccion.si es una plataforma de seguimiento y alertas. Nunca ejecutamos órdenes, ni custodiamos tus fondos ni tenemos acceso a tus cuentas de corretaje. Solo monitoreamos información pública y te avisamos por email o Telegram.",
   },
   {
     q: "¿De dónde salen los datos?",
@@ -19,7 +19,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "¿Puedo comparar con mi propia cartera?",
-    a: "Sí. Puedes subir tu portafolio con un archivo CSV o ingresarlo manualmente, y reclu.cl te muestra cómo se compara con los portafolios que sigues.",
+    a: "Sí. Puedes subir tu portafolio con un archivo CSV o ingresarlo manualmente, y fraccion.si te muestra cómo se compara con los portafolios que sigues.",
   },
   {
     q: "¿Qué pasa si supero el límite del plan gratuito?",
@@ -41,8 +41,8 @@ export function FAQ() {
           <h2 className="type-section mt-4 text-ink-900">Preguntas.</h2>
           <p className="mt-4 max-w-sm text-[16px] leading-relaxed text-ink-500">
             Lo esencial sobre datos, alertas y planes. ¿Algo más?{" "}
-            <a href="mailto:hola@reclu.cl" className="text-ink-900 underline underline-offset-4">
-              hola@reclu.cl
+            <a href="mailto:hola@fraccion.si" className="text-ink-900 underline underline-offset-4">
+              hola@fraccion.si
             </a>
           </p>
         </div>

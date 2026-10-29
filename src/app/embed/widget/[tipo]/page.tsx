@@ -44,9 +44,9 @@ interface EmbedPageProps {
 
 export async function generateMetadata({ params }: EmbedPageProps): Promise<Metadata> {
   const { tipo } = await params;
-  if (!isWidgetTipo(tipo)) return { title: "reclu.cl", robots: { index: false } };
+  if (!isWidgetTipo(tipo)) return { title: "fraccion.si", robots: { index: false } };
   return {
-    title: `${WIDGET_META[tipo].title} — Datos de reclu.cl`,
+    title: `${WIDGET_META[tipo].title} — Datos de fraccion.si`,
     description: WIDGET_META[tipo].description,
     robots: { index: false },
   };
@@ -114,7 +114,7 @@ function WidgetFrame({
           rel="noreferrer"
           className="shrink-0 font-medium text-ink-900 underline underline-offset-4"
         >
-          Datos de reclu.cl
+          Datos de fraccion.si
         </Link>
       </footer>
     </div>
@@ -339,7 +339,7 @@ async function RankingWidget() {
         ))}
       </ul>
       <p className="mt-auto pt-1.5 text-[10px] leading-snug text-ink-500">
-        Incluye las fuentes que pierden. Metodología en reclu.cl/metodologia.
+        Incluye las fuentes que pierden. Metodología en fraccion.si/metodologia.
       </p>
     </div>
   );

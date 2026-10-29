@@ -448,7 +448,7 @@ export function PerformancePanel({
 
       <p className="mt-6 text-xs leading-relaxed text-ink-500">
         Estimación basada en información pública y precios de cierre; no constituye
-        asesoría de inversión. Reclu no ejecuta órdenes.{" "}
+        asesoría de inversión. Fraccion no ejecuta órdenes.{" "}
         <Link href="/metodologia" className="underline underline-offset-4 hover:text-ink-900">
           Cómo calculamos estos números
         </Link>

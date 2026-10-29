@@ -20,7 +20,7 @@ export default function AprendePage() {
           <p className="label-line">Educación</p>
           <h1 className="type-section mt-3 text-ink-900">Aprende.</h1>
           <p className="type-body mt-5">
-            Diez fichas cortas sobre los documentos públicos que usa reclu.cl.
+            Diez fichas cortas sobre los documentos públicos que usa fraccion.si.
             Cada una dice solo lo que está en sus fuentes, con el enlace al
             final. Si un número no está en la fuente, no está en la ficha.
           </p>

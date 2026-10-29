@@ -31,14 +31,14 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             padding: "1.75rem",
           }}
         >
-          <div style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.04em" }}>reclu</div>
+          <div style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.04em" }}>fraccion</div>
           <svg viewBox="0 0 200 60" style={{ width: "100%", height: "auto", margin: "1.25rem 0 0.5rem" }} aria-hidden>
             <path d="M0,20 L40,26 L80,18 L120,32 L160,44 L200,54" fill="none" stroke="#c81e1e" strokeWidth="2" strokeLinecap="round" />
             <circle cx="200" cy="54" r="4" fill="#c81e1e" />
           </svg>
           <h1 style={{ fontSize: 26, lineHeight: 1.1, letterSpacing: "-0.03em", margin: "0.5rem 0 0.75rem" }}>Algo salió mal</h1>
           <p style={{ color: "#6b6b6b", fontSize: 15, lineHeight: 1.6, margin: "0 0 1.5rem" }}>
-            Tuvimos un problema al cargar reclu. Intenta de nuevo en unos segundos.
+            Tuvimos un problema al cargar Fraccion. Intenta de nuevo en unos segundos.
           </p>
           <button
             type="button"
@@ -58,7 +58,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
             Reintentar
           </button>
           <p style={{ marginTop: "1.25rem", fontSize: 13, color: "#6b6b6b", textAlign: "center" }}>
-            Si sigue fallando, escríbenos a <a href="mailto:hola@reclu.cl" style={{ color: "#0a0a0a" }}>hola@reclu.cl</a>.
+            Si sigue fallando, escríbenos a <a href="mailto:hola@fraccion.si" style={{ color: "#0a0a0a" }}>hola@fraccion.si</a>.
             {error?.digest ? <span style={{ display: "block", marginTop: 6, color: "#9a9a9a" }}>Código: {error.digest}</span> : null}
           </p>
         </main>

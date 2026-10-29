@@ -219,7 +219,7 @@ export const CATEGORY_META: Record<
     description: "Filings 13F y portafolios institucionales",
   },
   model: {
-    label: "Modelo reclu",
+    label: "Modelo Fraccion",
     description: "Portafolios modelo construidos por el equipo",
   },
 };

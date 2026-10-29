@@ -14,7 +14,7 @@ import {
 export const metadata: Metadata = withSeo("/api-docs", {
   title: "API de datos",
   description:
-    "API pública de datos chilenos de reclu.cl: AFP, corredoras, InfoProbidad, dividendos, hechos esenciales e insiders. JSON paginado con licencia y atribución.",
+    "API pública de datos chilenos de fraccion.si: AFP, corredoras, InfoProbidad, dividendos, hechos esenciales e insiders. JSON paginado con licencia y atribución.",
 });
 
 const EXAMPLE_RESPONSE = `{
@@ -117,7 +117,7 @@ export default function ApiDocsPage() {
 
             <pre className="mt-5 overflow-x-auto border border-ink-200 p-4 text-[12px] leading-relaxed text-ink-900">
               <code>{`curl -H "Authorization: Bearer rcl_..." \\
-  "https://reclu.cl${API_BASE_PATH}/dividendos?page=1&per_page=50"`}</code>
+  "https://fraccion.si${API_BASE_PATH}/dividendos?page=1&per_page=50"`}</code>
             </pre>
 
             <p className="mt-4 text-[13px] leading-relaxed text-ink-500">

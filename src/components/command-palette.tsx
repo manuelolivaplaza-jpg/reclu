@@ -49,7 +49,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   broker_cl: "Corredoras Chile",
   public_disclosure: "Declaraciones públicas",
   hedge_fund: "Hedge Funds",
-  model: "Modelo reclu",
+  model: "Modelo Fraccion",
 };
 
 /** Portafolios destacados que encabezan el estado inicial. */
@@ -206,7 +206,7 @@ export function CommandPalette() {
             onClick={() => setOpen(false)}
             role="dialog"
             aria-modal="true"
-            aria-label="Buscar en reclu"
+            aria-label="Buscar en Fraccion"
           >
             <motion.div
               className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl shadow-black/10 ring-1 ring-black/5 sm:max-h-[70vh]"

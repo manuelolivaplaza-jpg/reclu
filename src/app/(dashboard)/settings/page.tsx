@@ -1,3 +1,4 @@
+import { siteUrl as siteUrlFn } from "@/lib/site";
 import { connection } from "next/server";
 import { getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -134,7 +135,7 @@ export default async function SettingsPage() {
   const referralCode = referralsEnabled()
     ? ((referralResult.data as { code: string } | null)?.code ?? null)
     : null;
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://reclu.cl";
+  const siteUrl = siteUrlFn();
 
   // F75: datos de Mi portafolio. Si la tabla aún no existe (migración 050 sin
   // aplicar) la página sigue funcionando y las acciones fallan con elegancia.
@@ -257,7 +258,7 @@ export default async function SettingsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Perfil</CardTitle>
-          <CardDescription>Tu información pública en reclu.cl.</CardDescription>
+          <CardDescription>Tu información pública en fraccion.si.</CardDescription>
         </CardHeader>
         <CardContent>
           <SettingsForm name={profile.full_name ?? ""} email={profile.email} />

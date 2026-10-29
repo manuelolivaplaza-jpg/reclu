@@ -191,7 +191,7 @@ describe("explainSources", () => {
     ).toEqual({ label: "Cartera publicada por Nancy Pelosi", href: null });
     expect(
       explainSources(alert({ portfolio: { ...alert().portfolio, category: "thematic" } }))[0],
-    ).toEqual({ label: "Datos públicos de reclu.cl", href: null });
+    ).toEqual({ label: "Datos públicos de fraccion.si", href: null });
   });
 });
 

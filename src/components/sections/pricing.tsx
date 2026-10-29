@@ -34,7 +34,7 @@ const COMPARISON: { label: string; free: string; pro: string; elite: string }[] 
   { label: "Ver todas las acciones de cada portafolio", free: "Solo corredoras", pro: "Incluido", elite: "Incluido" },
   { label: "Frecuencia de alertas", free: "Diaria", pro: "Tiempo real", elite: "Prioritaria instantánea" },
   { label: "Fondos 13F y carteras Premium", free: "-", pro: "Parcial", elite: "Acceso total" },
-  { label: "Asistente reclu AI", free: "5 por día", pro: "50 por semana", elite: "Ilimitado" },
+  { label: "Asistente Fraccion AI", free: "5 por día", pro: "50 por semana", elite: "Ilimitado" },
   { label: "Exportación CSV y Cruce Multi-cartera", free: "-", pro: "-", elite: "Incluido" },
 ];
 
@@ -268,8 +268,8 @@ export function Pricing() {
           <span className="pub-chip">Pago seguro con Mercado Pago</span>
           <span>
             Planes para equipos:{" "}
-            <a href="mailto:hola@reclu.cl" className="text-ink-900 underline underline-offset-4">
-              hola@reclu.cl
+            <a href="mailto:hola@fraccion.si" className="text-ink-900 underline underline-offset-4">
+              hola@fraccion.si
             </a>
           </span>
         </div>

@@ -186,7 +186,7 @@ export function AlignmentPanel({
 
       <p className="border-t border-ink-200 px-6 py-4 text-xs leading-relaxed text-ink-500">
         Información, no recomendación: esto describe qué tan distinta es tu
-        cartera de la que sigues. Reclu no ejecuta órdenes ni gestiona carteras.
+        cartera de la que sigues. Fraccion no ejecuta órdenes ni gestiona carteras.
       </p>
     </div>
   );

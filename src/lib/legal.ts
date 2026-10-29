@@ -4,7 +4,7 @@
  */
 
 export const FINTEC_NOTICE =
-  "reclu.cl entrega información pública con fines informativos. No ejecuta órdenes ni da asesoría de inversión personalizada (Ley 21.521).";
+  "fraccion.si entrega información pública con fines informativos. No ejecuta órdenes ni da asesoría de inversión personalizada (Ley 21.521).";
 
 export const SIMULATION_NOTICE =
   "Simulación histórica con fines informativos. No es recomendación de inversión.";

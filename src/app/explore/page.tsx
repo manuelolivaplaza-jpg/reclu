@@ -12,7 +12,7 @@ import { GridSkeleton } from "@/components/explore/skeletons";
 
 export const metadata = withSeo("/explore", {
   title: "Portafolios",
-  description: "Explora todos los portafolios disponibles en reclu.cl",
+  description: "Explora todos los portafolios disponibles en fraccion.si",
 });
 
 /**
@@ -62,7 +62,7 @@ async function ExploreJsonLd() {
   return (
     <JsonLd
       data={itemListSchema(
-        "Portafolios en reclu.cl",
+        "Portafolios en fraccion.si",
         portfolios.slice(0, INITIAL_CARDS).map((p) => ({ name: p.name, url: absoluteUrl(`/portfolio/${p.slug}`) })),
       )}
     />

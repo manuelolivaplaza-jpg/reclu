@@ -13,7 +13,7 @@ import { Avatar, Chip, StatCard } from "@/components/app";
 export const metadata: Metadata = withSeo("/creadores", {
   title: "Creadores",
   description:
-    "Carteras publicadas por creadores de la comunidad de reclu.cl. Contenido informativo de terceros, no asesoría de inversión.",
+    "Carteras publicadas por creadores de la comunidad de fraccion.si. Contenido informativo de terceros, no asesoría de inversión.",
 });
 
 // Lee la bandera COMMUNITY_ENABLED y Supabase por request; nunca se prerenderiza.
@@ -146,7 +146,7 @@ export default async function CreadoresPage() {
 
           <div className="mt-4 rounded-2xl border border-ink-900/80 bg-app-card px-4 py-3 text-[13px] leading-relaxed text-ink-900">
             <strong className="font-semibold">Contenido de terceros, no asesoría.</strong> Las carteras las publica cada creador y reflejan su
-            opinión, no una recomendación de reclu.cl. No ejecutamos órdenes ni damos asesoría de inversión personalizada.
+            opinión, no una recomendación de fraccion.si. No ejecutamos órdenes ni damos asesoría de inversión personalizada.
           </div>
 
           {loadError && (

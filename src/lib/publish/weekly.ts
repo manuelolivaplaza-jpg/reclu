@@ -173,7 +173,7 @@ function sourceLine(alert: WeeklyAlert): string {
   if (url && source) return `   Fuente: ${source} · ${url}`;
   if (url) return `   Fuente: ${url}`;
   if (source) return `   Fuente: ${source}`;
-  return "   Fuente: reclu.cl (información pública)";
+  return "   Fuente: fraccion.si (información pública)";
 }
 
 function disclosureLine(alert: WeeklyAlert): string | null {
@@ -232,7 +232,7 @@ export function composeWeekly(
 
   const intro =
     selected.length === 0
-      ? `Esta semana no hubo movimientos que superaran el umbral de reclu.cl (${range.start} – ${range.end}).`
+      ? `Esta semana no hubo movimientos que superaran el umbral de fraccion.si (${range.start} – ${range.end}).`
       : `Los ${selected.length} movimientos de mayor variación de peso entre el ${range.start} y el ${range.end}.`;
 
   const blocks = selected.map((alert, index) => {

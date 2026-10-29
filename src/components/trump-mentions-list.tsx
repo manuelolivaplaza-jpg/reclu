@@ -119,7 +119,7 @@ function CramerMentions({ data }: { data: MentionsList }) {
         <div className="mt-4 border-t border-ink-200">
           <div className="hidden grid-cols-2 gap-8 border-b border-ink-200 py-2 text-[13px] text-ink-500 sm:grid">
             <span>Cramer dijo</span>
-            <span>Reclu hace</span>
+            <span>Fraccion hace</span>
           </div>
           <ul>
             {data.mentions.map((mention) => (
@@ -162,7 +162,7 @@ function CramerRow({ mention }: { mention: PublicMention }) {
         </a>
       </div>
       <div className="border-t border-ink-200 pt-3 sm:border-t-0 sm:pt-0">
-        <p className="text-[13px] text-ink-500 sm:hidden">Reclu hace</p>
+        <p className="text-[13px] text-ink-500 sm:hidden">Fraccion hace</p>
         <p className="text-[15px] font-medium text-ink-900">{action ?? "Sin posición"}</p>
       </div>
     </li>

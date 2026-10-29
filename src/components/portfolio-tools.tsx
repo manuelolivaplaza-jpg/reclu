@@ -163,7 +163,7 @@ export function PortfolioTools({
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `reclu-${slug}-composicion.csv`;
+    link.download = `fraccion-${slug}-composicion.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

@@ -75,7 +75,7 @@ export function ReplicateList({ slug, portfolioName, holdings }: ReplicateListPr
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `reclu-${slug}-lista-compras.csv`;
+    link.download = `fraccion-${slug}-lista-compras.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

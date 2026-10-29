@@ -8,7 +8,7 @@ export function ogCard({ kicker, title, subtitle }: { kicker: string; title: str
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", backgroundColor: "#0a0a0a", color: "#ffffff", padding: "56px 64px", fontFamily: "sans-serif" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #262626", paddingBottom: "24px" }}>
-          <div style={{ display: "flex", fontSize: "28px", fontWeight: 600, letterSpacing: "-0.04em" }}>reclu</div>
+          <div style={{ display: "flex", fontSize: "28px", fontWeight: 600, letterSpacing: "-0.04em" }}>fraccion</div>
           <div style={{ display: "flex", fontSize: "14px", letterSpacing: "0.08em", color: "#8a8a8a" }}>{kicker.toUpperCase()}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "20px", maxWidth: "1000px" }}>
@@ -16,7 +16,7 @@ export function ogCard({ kicker, title, subtitle }: { kicker: string; title: str
           {subtitle ? <div style={{ display: "flex", fontSize: "26px", color: "#a3a3a3" }}>{subtitle}</div> : null}
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", borderTop: "1px solid #262626", paddingTop: "24px", fontSize: "16px", color: "#8a8a8a" }}>
-          <div style={{ display: "flex" }}>reclu.cl · Seguimiento de portafolios</div>
+          <div style={{ display: "flex" }}>fraccion.si · Seguimiento de portafolios</div>
           <div style={{ display: "flex" }}>Información pública, no asesoría</div>
         </div>
       </div>

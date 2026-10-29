@@ -138,7 +138,7 @@ export async function generateMetadata({
 
   return withSeo(`/creadores/${alias}`, {
     title: `Creador ${alias}`,
-    description: `Carteras publicadas por ${alias} en la comunidad de reclu.cl. Contenido de terceros, no asesoría de inversión.`,
+    description: `Carteras publicadas por ${alias} en la comunidad de fraccion.si. Contenido de terceros, no asesoría de inversión.`,
   });
 }
 
@@ -254,7 +254,7 @@ export default async function CreatorPage({ params }: CreatorPageProps) {
 
               <div className="mt-4 rounded-2xl border border-ink-900/80 bg-app-card px-4 py-3 text-[13px] leading-relaxed text-ink-900">
                 <strong className="font-semibold">Contenido de terceros, no asesoría.</strong> Las carteras las publica cada creador y reflejan su
-                opinión, no una recomendación de reclu.cl. No ejecutamos órdenes ni damos asesoría de inversión personalizada. Los pesos son los
+                opinión, no una recomendación de fraccion.si. No ejecutamos órdenes ni damos asesoría de inversión personalizada. Los pesos son los
                 que declara el creador y no los verificamos posición por posición.
               </div>
 

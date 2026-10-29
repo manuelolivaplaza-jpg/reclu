@@ -5,7 +5,7 @@ import { AuthShell } from "@/components/public/auth-shell";
 
 export const metadata = withSeo("/signup", {
   title: "Crear cuenta",
-  description: "Crea tu cuenta gratuita en reclu.cl",
+  description: "Crea tu cuenta gratuita en fraccion.si",
 });
 
 export default function SignupPage() {

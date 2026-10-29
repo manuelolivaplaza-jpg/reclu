@@ -65,7 +65,7 @@ export function WidgetEmbedCode({
           width="100%"
           height={height}
           style={{ border: 0 }}
-          title="Vista previa del widget de reclu.cl"
+          title="Vista previa del widget de fraccion.si"
           loading="lazy"
         />
       </div>

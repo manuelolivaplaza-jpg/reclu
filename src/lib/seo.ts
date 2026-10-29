@@ -6,7 +6,7 @@ import { absoluteUrl, siteHost, siteUrl } from "@/lib/site";
  * de indexación por host y esquemas JSON-LD reutilizables.
  */
 
-export const SITE_NAME = "reclu.cl";
+export const SITE_NAME = "fraccion.si";
 
 /**
  * Solo se indexa el host de NEXT_PUBLIC_SITE_URL, y nunca un *.vercel.app

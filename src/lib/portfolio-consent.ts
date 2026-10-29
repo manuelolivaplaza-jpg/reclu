@@ -107,10 +107,10 @@ export function aiModelLabel(raw?: string | null): string {
 export function portfolioConsentParagraphs(rawModel?: string | null): string[] {
   const model = aiModelLabel(rawModel);
   return [
-    "Autorizo a Reclu a tratar los datos de mi cartera que ingrese o importe (instrumentos, pesos y, si los agrego, cantidades, costo promedio, moneda y corredora) con el único fin de mostrarme comparaciones, la exposición de mi cartera a noticias y, si las activo, alertas.",
+    "Autorizo a Fraccion a tratar los datos de mi cartera que ingrese o importe (instrumentos, pesos y, si los agrego, cantidades, costo promedio, moneda y corredora) con el único fin de mostrarme comparaciones, la exposición de mi cartera a noticias y, si las activo, alertas.",
     "Entiendo que estos datos se tratan como datos sensibles (Ley 21.719).",
     `Para responder preguntas con IA se envían a OpenRouter Inc. y al proveedor del modelo (${model}), en EE.UU., solo los pesos porcentuales, sin mi nombre, correo ni montos, y que los datos se alojan en proveedores fuera de Chile, según la Política de privacidad.`,
-    "Reclu no me da recomendaciones de inversión.",
+    "Fraccion no me da recomendaciones de inversión.",
     "Puedo retirar este consentimiento y borrar mi cartera en cualquier momento desde Ajustes.",
     `Versión del texto: ${PORTFOLIO_CONSENT_VERSION}.`,
   ];

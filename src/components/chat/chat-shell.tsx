@@ -229,7 +229,7 @@ export function ChatShell({ firstName }: { firstName?: string | null }) {
           </button>
           <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-sky-500 text-xs font-bold text-black">R</span>
           <div>
-            <h1 className="text-sm font-semibold">Reclu IA</h1>
+            <h1 className="text-sm font-semibold">Fraccion IA</h1>
             <p className="text-[11px] text-zinc-500">Datos públicos de portafolios · no es asesoría</p>
           </div>
         </header>
@@ -304,7 +304,7 @@ export function ChatShell({ firstName }: { firstName?: string | null }) {
                   void send(input);
                 }
               }}
-              placeholder="Pregúntale a Reclu…"
+              placeholder="Pregúntale a Fraccion…"
               className="max-h-40 min-h-[40px] flex-1 resize-none bg-transparent px-1 py-2 text-[15px] text-white outline-none placeholder:text-zinc-500"
             />
             <button type="submit" disabled={busy || !input.trim()} className="rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-black transition hover:bg-emerald-400 disabled:opacity-40">

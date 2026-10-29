@@ -96,7 +96,7 @@ export default async function ComparePage() {
           Comparar
         </h1>
         <p className="text-[14px] text-ink-500 sm:text-[15px]">
-          Cruza tu cartera con los portafolios de Reclu y mira cuánto se parecen.
+          Cruza tu cartera con los portafolios de Fraccion y mira cuánto se parecen.
         </p>
       </header>
       {profile && !hasConsent && (

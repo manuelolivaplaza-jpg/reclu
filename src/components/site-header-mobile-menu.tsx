@@ -51,7 +51,7 @@ export function MobileMenu({
             <div className="container-page flex h-16 shrink-0 items-center justify-between border-b border-neutral-200/70">
               <Link
                 href="/"
-                aria-label="reclu inicio"
+                aria-label="Fraccion inicio"
                 onClick={() => onClose()}
                 className="rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
               >

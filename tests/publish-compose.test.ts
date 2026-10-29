@@ -43,7 +43,7 @@ describe("composeFromAlert", () => {
     expect(body).toContain("08-10-2026");
     expect(body).toContain("48 días después de la operación");
     expect(body).toContain(
-      "https://reclu.cl/portfolio/pelosi-tracker?utm_source=reclu&utm_medium=x&utm_campaign=alertas",
+      "https://fraccion.si/portfolio/pelosi-tracker?utm_source=fraccion&utm_medium=x&utm_campaign=alertas",
     );
     expect(body).toContain(PUBLISH_DISCLAIMER);
   });
@@ -69,9 +69,9 @@ describe("composeFromAlert", () => {
     for (const channel of CHANNELS) {
       const body = composeFromAlert(alert(), portfolio, channel);
       expect(body).toContain(PUBLISH_DISCLAIMER);
-      expect(body).toContain("utm_source=reclu");
+      expect(body).toContain("utm_source=fraccion");
       expect(body).toContain(`utm_medium=${channel}`);
-      expect(body).toContain("https://reclu.cl/portfolio/pelosi-tracker");
+      expect(body).toContain("https://fraccion.si/portfolio/pelosi-tracker");
     }
   });
 

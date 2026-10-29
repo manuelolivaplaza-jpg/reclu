@@ -4,7 +4,7 @@ import { getSessionUser } from "@/lib/supabase/session";
 import { ChatShell } from "@/components/chat/chat-shell";
 
 export const metadata: Metadata = {
-  title: "Reclu IA",
+  title: "Fraccion IA",
   robots: { index: false, follow: false },
 };
 

@@ -111,7 +111,7 @@ describe("composeWeekly", () => {
     );
 
     expect(draft.body).toContain(
-      "https://reclu.cl/portfolio/pelosi-tracker?utm_source=reclu&utm_medium=newsletter&utm_campaign=alertas",
+      "https://fraccion.si/portfolio/pelosi-tracker?utm_source=fraccion&utm_medium=newsletter&utm_campaign=alertas",
     );
   });
 

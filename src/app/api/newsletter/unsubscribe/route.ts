@@ -26,12 +26,12 @@ function page(token: string, message: string, withForm: boolean): string {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Newsletter — reclu.cl</title>
+  <title>Newsletter — fraccion.si</title>
   <meta name="robots" content="noindex" />
 </head>
 <body style="margin:0;padding:0;background:#ffffff;color:#0a0a0a;font-family:'Instrument Sans',Helvetica,Arial,sans-serif;">
   <main style="max-width:560px;margin:0 auto;padding:48px 24px;">
-    <p style="margin:0 0 32px;padding-bottom:16px;border-bottom:1px solid #e6e6e6;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">reclu.cl</p>
+    <p style="margin:0 0 32px;padding-bottom:16px;border-bottom:1px solid #e6e6e6;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">fraccion.si</p>
     <h1 style="margin:0 0 12px;font-size:26px;font-weight:500;letter-spacing:-.03em;">Newsletter semanal</h1>
     <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#3d3d3d;">${message}</p>
     ${form}
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
   return html(
     page(
       token,
-      "Si confirmas, dejarás de recibir el newsletter semanal. Tu cuenta de reclu.cl no se modifica.",
+      "Si confirmas, dejarás de recibir el newsletter semanal. Tu cuenta de fraccion.si no se modifica.",
       true,
     ),
   );

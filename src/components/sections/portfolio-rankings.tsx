@@ -282,7 +282,7 @@ export function PortfolioRankings({ data }: { data: RankingsPayload }) {
         <p className="mt-12 text-[13px] leading-relaxed text-neutral-500">
           Rentabilidades pasadas no garantizan resultados futuros. Los datos
           provienen de fuentes públicas y tienen el atraso propio de cada
-          fuente. Reclu entrega información, no asesoría de inversión.
+          fuente. Fraccion entrega información, no asesoría de inversión.
         </p>
 
         {data.updatedAt ? (

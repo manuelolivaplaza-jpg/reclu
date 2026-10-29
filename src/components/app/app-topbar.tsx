@@ -34,7 +34,7 @@ export function AppTopbar({ user }: { user: AppUser }) {
   return (
     <header className="sticky top-0 z-30 border-b border-app-border bg-white/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex h-[52px] max-w-[1400px] items-center gap-3 px-4 sm:px-6 lg:h-14 lg:px-8">
-        <Link href="/dashboard" className="lg:hidden" aria-label="Reclu, ir al resumen">
+        <Link href="/dashboard" className="lg:hidden" aria-label="Fraccion, ir al resumen">
           <LogoMark />
         </Link>
         <h1 className="hidden text-[15px] font-semibold text-ink-900 lg:block">{titleFor(pathname)}</h1>

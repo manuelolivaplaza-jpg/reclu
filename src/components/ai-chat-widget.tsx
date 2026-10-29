@@ -430,7 +430,7 @@ export function AiChatWidget() {
               />
               <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.8" />
             </svg>
-            Pregúntale a reclu
+            Pregúntale a Fraccion
           </motion.button>
         )}
       </AnimatePresence>
@@ -445,7 +445,7 @@ export function AiChatWidget() {
             exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: 32, scale: 0.98 }}
             transition={reduceMotion ? { duration: 0.15 } : { type: "spring", stiffness: 380, damping: 34 }}
             role="dialog"
-            aria-label="Asistente IA de reclu"
+            aria-label="Asistente IA de Fraccion"
           >
             <ChatGateModal
               open={gate.open}
@@ -465,7 +465,7 @@ export function AiChatWidget() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[15px] font-semibold tracking-[-0.02em] text-ink-900">
-                  Asistente reclu
+                  Asistente Fraccion
                 </p>
                 <p className="truncate text-[11px] text-ink-500">
                   Información con fines informativos. No es asesoría de inversión.

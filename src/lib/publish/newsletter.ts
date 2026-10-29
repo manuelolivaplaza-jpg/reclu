@@ -16,7 +16,7 @@ import type { Draft, Publisher } from "./types";
 const DEFAULT_BATCH_SIZE = 20;
 const MAX_BATCH_SIZE = 100;
 const MIN_BATCH_SIZE = 1;
-const DEFAULT_SUBJECT = "reclu.cl — novedades";
+const DEFAULT_SUBJECT = "fraccion.si — novedades";
 
 /** Datos mínimos de una suscripción. El enlace lo genera F22. */
 export interface NewsletterRecipient {
@@ -84,11 +84,11 @@ export function renderNewsletterHtml(body: string, unsubscribeUrl: string): stri
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>reclu.cl</title>
+  <title>fraccion.si</title>
 </head>
 <body style="margin:0;padding:0;background:#ffffff;color:#0a0a0a;font-family:'Instrument Sans',Helvetica,Arial,sans-serif;">
   <div style="max-width:600px;margin:0 auto;padding:32px 24px;">
-    <p style="margin:0 0 24px;padding-bottom:16px;border-bottom:1px solid #e6e6e6;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">reclu.cl</p>
+    <p style="margin:0 0 24px;padding-bottom:16px;border-bottom:1px solid #e6e6e6;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">fraccion.si</p>
       ${paragraphs}
     <p style="margin:32px 0 0;padding-top:20px;border-top:1px solid #e6e6e6;font-size:11px;line-height:1.6;color:#6b6b6b;">
       Información pública con fines informativos. No constituye asesoría de inversión.

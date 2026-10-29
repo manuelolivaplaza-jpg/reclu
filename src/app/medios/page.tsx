@@ -16,7 +16,7 @@ import {
 export const metadata: Metadata = withSeo("/medios", {
   title: "Widgets para medios",
   description:
-    "Widgets incrustables de reclu.cl para medios y creadores: consenso de corredoras, carteras de AFP, últimas compras de insiders y el ranking honesto. Con atribución \"Datos de reclu.cl\".",
+    "Widgets incrustables de fraccion.si para medios y creadores: consenso de corredoras, carteras de AFP, últimas compras de insiders y el ranking honesto. Con atribución \"Datos de fraccion.si\".",
   alternates: { canonical: "/medios" },
 });
 
@@ -46,7 +46,7 @@ export default function MediosPage() {
             Widgets para tus historias.
           </h1>
           <p className="type-body mt-5">
-            Cuatro widgets incrustables con datos públicos de reclu.cl:
+            Cuatro widgets incrustables con datos públicos de fraccion.si:
             consenso de corredoras chilenas, carteras de AFP, últimas compras de
             insiders de EE.UU. y el ranking honesto. Copia el código, pégalo en
             tu CMS y listo — sin registro ni API keys.
@@ -78,9 +78,9 @@ export default function MediosPage() {
               <p>
                 <strong className="font-medium text-ink-900">Atribución.</strong>{" "}
                 El iframe ya incluye el crédito{" "}
-                <em>“Datos de reclu.cl”</em> en su pie. Si tu medio prefiere
+                <em>“Datos de fraccion.si”</em> en su pie. Si tu medio prefiere
                 además un crédito en el texto, úsalo tal cual:{" "}
-                <em>Datos de reclu.cl</em>.
+                <em>Datos de fraccion.si</em>.
               </p>
               <p>
                 <strong className="font-medium text-ink-900">
@@ -95,7 +95,7 @@ export default function MediosPage() {
                 <strong className="font-medium text-ink-900">
                   Sin recomendaciones.
                 </strong>{" "}
-                reclu.cl entrega información pública con fines informativos. No
+                fraccion.si entrega información pública con fines informativos. No
                 ejecuta órdenes ni da asesoría de inversión personalizada (Ley
                 21.521). No presentes un widget como recomendación de comprar
                 o vender.
@@ -113,7 +113,7 @@ export default function MediosPage() {
                   Sin modificar el iframe.
                 </strong>{" "}
                 No alteres el contenido del widget ni lo uses para implicar que
-                reclu.cl respalda tu nota. Si un dato te parece incorrecto,{" "}
+                fraccion.si respalda tu nota. Si un dato te parece incorrecto,{" "}
                 <Link
                   href="/disclaimer"
                   className="text-ink-900 underline underline-offset-4"

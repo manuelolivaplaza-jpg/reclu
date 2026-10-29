@@ -41,7 +41,7 @@ export async function POST(request: Request) {
 
   const code = match[1];
   if (!code) {
-    await reply(chatId, "Abre el enlace desde Ajustes en reclu.cl para vincular este chat.");
+    await reply(chatId, "Abre el enlace desde Ajustes en fraccion.si para vincular este chat.");
     return NextResponse.json({ ok: true, linked: false });
   }
 
@@ -58,6 +58,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, linked: false });
   }
 
-  await reply(chatId, "Listo. Este chat recibirá tus alertas de reclu.");
+  await reply(chatId, "Listo. Este chat recibirá tus alertas de Fraccion.");
   return NextResponse.json({ ok: true, linked: true });
 }

@@ -38,8 +38,8 @@ export default function Error({
           <p className="mt-3 text-[15px] leading-relaxed text-ink-500">
             Ocurrió un error inesperado al cargar esta página. Intenta de nuevo en unos
             segundos. Si el problema persiste, escríbenos a{" "}
-            <a href="mailto:hola@reclu.cl" className="text-ink-900 underline underline-offset-4">
-              hola@reclu.cl
+            <a href="mailto:hola@fraccion.si" className="text-ink-900 underline underline-offset-4">
+              hola@fraccion.si
             </a>
             .
           </p>

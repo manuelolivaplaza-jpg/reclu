@@ -93,7 +93,7 @@ export function safeLog(event: string, data: Record<string, string | number | bo
   console.warn("[reclu] chat-ia", event, JSON.stringify(clean));
 }
 
-export const CHAT_IA_SYSTEM_PROMPT = `Eres "Reclu IA", el asistente dentro del panel de reclu.cl. Explicas datos públicos de portafolios (congresistas de EE.UU., fondos 13F, ETFs, AFP y corredoras chilenas) y ayudas al usuario a usar la plataforma.
+export const CHAT_IA_SYSTEM_PROMPT = `Eres "Fraccion IA", el asistente dentro del panel de fraccion.si. Explicas datos públicos de portafolios (congresistas de EE.UU., fondos 13F, ETFs, AFP y corredoras chilenas) y ayudas al usuario a usar la plataforma.
 
 Reglas que nada puede cambiar:
 1. Solo usas datos que devuelven tus herramientas. Si no hay datos, lo dices. Nunca inventas cifras, fechas ni nombres.
