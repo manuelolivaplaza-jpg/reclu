@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft, ShieldAlert } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
 import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
 import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
@@ -10,37 +9,30 @@ export const metadata = {
   description: "Información importante sobre el uso de reclu.cl",
 };
 
+const TOC: LegalTocItem[] = [
+  { id: "s1", label: "Qué NO hace reclu.cl" },
+  { id: "s2", label: "Riesgos" },
+  { id: "s3", label: "Resúmenes generados por IA" },
+  { id: "s4", label: "Mi portafolio" },
+  { id: "s5", label: "IA" },
+  { id: "s6", label: "Regulación" },
+];
+
 export default function DisclaimerPage() {
   return (
     <>
       <SiteHeader />
       <main className="flex-1">
-        <div className="container-page max-w-3xl py-16">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
-          >
-            <ArrowLeft className="size-4" />
-            Volver al inicio
-          </Link>
+        <LegalShell kind="disclaimer" title="Disclaimer" toc={TOC}>
 
-          <div className="mt-8 flex items-center gap-3">
-            <div className="flex size-11 items-center justify-center rounded-xl bg-warning-bg text-warning">
-              <ShieldAlert className="size-6" />
-            </div>
-            <h1 className="text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-              Disclaimer
-            </h1>
-          </div>
-
-          <div className="mt-10 flex flex-col gap-6 text-ink-700">
-            <p className="rounded-card border border-warning/30 bg-warning-bg p-5 leading-relaxed text-ink-800">
+          <div className="legal-doc flex flex-col gap-4 text-ink-700">
+            <p className="rounded-2xl border border-ink-900 bg-white p-5 leading-relaxed text-ink-800 shadow-sm">
               <strong className="font-semibold">Información pública, no es consejo de inversión.</strong>{" "}
               Todo el contenido de reclu.cl —incluidos los resúmenes generados por inteligencia
               artificial— tiene fines exclusivamente informativos.
             </p>
 
-            <section>
+            <section id="s1">
               <h2 className="text-lg font-semibold text-ink-900">Qué NO hace reclu.cl</h2>
               <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 leading-relaxed">
                 <li>No ejecuta órdenes de compra ni venta por ti.</li>
@@ -51,7 +43,7 @@ export default function DisclaimerPage() {
               </ul>
             </section>
 
-            <section>
+            <section id="s2">
               <h2 className="text-lg font-semibold text-ink-900">Riesgos</h2>
               <p className="mt-2 leading-relaxed">
                 Las inversiones en instrumentos financieros implican riesgos, incluida la
@@ -62,7 +54,7 @@ export default function DisclaimerPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s3">
               <h2 className="text-lg font-semibold text-ink-900">Resúmenes generados por IA</h2>
               <p className="mt-2 leading-relaxed">
                 Los resúmenes AI son generados automáticamente por modelos de lenguaje a partir
@@ -72,7 +64,7 @@ export default function DisclaimerPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s4">
               <h2 className="text-lg font-semibold text-ink-900">Mi portafolio</h2>
               <DraftLegalNotice scope="Confirma que el análisis de la cartera del usuario no constituye asesoría personalizada bajo la Ley Fintec 21.521." />
               <p className="mt-3 leading-relaxed">
@@ -88,7 +80,7 @@ export default function DisclaimerPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s5">
               <h2 className="text-lg font-semibold text-ink-900">IA</h2>
               <DraftLegalNotice scope="Revisa el descargo, la minimización de datos y la transferencia internacional a OpenRouter." />
               <p className="mt-3 leading-relaxed">{AI_DISCLAIMER}</p>
@@ -102,7 +94,7 @@ export default function DisclaimerPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s6">
               <h2 className="text-lg font-semibold text-ink-900">Regulación</h2>
               <p className="mt-2 leading-relaxed">
                 reclu.cl no está registrada como corredora de bolsa ni asesora financiera ante
@@ -116,7 +108,7 @@ export default function DisclaimerPage() {
               estás de acuerdo, no utilices el servicio.
             </p>
           </div>
-        </div>
+        </LegalShell>
       </main>
       <SiteFooter />
     </>

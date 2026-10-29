@@ -21,7 +21,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "¿Qué pasa si supero el límite del plan gratuito?",
-    a: "El plan gratuito permite seguir hasta 2 portafolios y usar el asistente IA 5 veces al día. Si quieres seguir más portafolios, puedes actualizar a Pro en cualquier momento — tus alertas y datos se mantienen intactos.",
+    a: "El plan gratuito incluye las carteras recomendadas de corredoras con todas sus acciones y 5 consultas diarias al asistente IA. Seguir portafolios y ver todas las acciones de políticos y fondos requiere Pro o Elite; puedes actualizar en cualquier momento y tus alertas y datos se mantienen intactos.",
   },
 ];
 
@@ -31,27 +31,40 @@ const FAQ_ITEMS = [
  */
 export function FAQ() {
   return (
-    <section id="faq" className="bg-white py-28 md:py-36">
-      <div className="container-page">
-        <h2 className="type-section text-ink-900">Preguntas.</h2>
-
-        <div className="mt-16 max-w-[46rem] md:mt-20">
-          {FAQ_ITEMS.map((item) => (
-            <details key={item.q} className="group border-t border-ink-200 py-7 md:py-8">
-              <summary className="flex cursor-pointer list-none items-start justify-between gap-8 marker:content-none [&::-webkit-details-marker]:hidden">
-                <span className="text-[22px] font-medium leading-[1.2] tracking-[-0.03em] text-ink-900 underline decoration-transparent underline-offset-[0.22em] [text-decoration-thickness:1px] transition-[text-decoration-color] duration-200 group-hover:decoration-ink-900 md:text-[26px]">
+    <section id="faq" className="bg-white py-20 md:py-32">
+      <div className="container-page grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
+        <div>
+          <span className="pub-chip">Preguntas frecuentes</span>
+          <h2 className="type-section mt-4 text-ink-900">Preguntas.</h2>
+          <p className="mt-4 max-w-sm text-[16px] leading-relaxed text-ink-500">
+            Lo esencial sobre datos, alertas y planes. ¿Algo más?{" "}
+            <a href="mailto:hola@reclu.cl" className="text-ink-900 underline underline-offset-4">
+              hola@reclu.cl
+            </a>
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {FAQ_ITEMS.map((item, i) => (
+            <details
+              key={item.q}
+              className="group pub-card overflow-hidden transition-shadow open:shadow-lg"
+            >
+              <summary className="flex cursor-pointer list-none items-center gap-4 p-4 marker:content-none md:p-5 [&::-webkit-details-marker]:hidden">
+                <span className="num flex size-8 shrink-0 items-center justify-center rounded-lg bg-ink-50 text-[13px] text-ink-500 group-open:bg-ink-900 group-open:text-white">
+                  {String(i + 1).padStart(2, "0")}
+                </span>
+                <span className="flex-1 text-[16px] font-medium leading-snug tracking-[-0.01em] text-ink-900 md:text-[17px]">
                   {item.q}
                 </span>
-                <span className="mt-1 shrink-0 text-[22px] leading-none text-ink-900 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-open:rotate-45">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-ink-200 text-[18px] leading-none text-ink-900 transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-open:rotate-45">
                   +
                 </span>
               </summary>
-              <p className="mt-4 max-w-[40rem] text-[16px] leading-[1.65] text-ink-500">
+              <p className="px-4 pb-5 pl-16 text-[15px] leading-[1.65] text-ink-500 md:px-5 md:pl-[4.25rem]">
                 {item.a}
               </p>
             </details>
           ))}
-          <div className="border-t border-ink-200" />
         </div>
       </div>
     </section>

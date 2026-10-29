@@ -1,189 +1,209 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Check, Lock, Minus, Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
-import { FadeIn, StaggerList, StaggerItem } from "@/components/ui/motion";
+import { FadeIn } from "@/components/ui/motion";
 import { track } from "@/lib/analytics";
 import { PLANS, followLimitLabel, formatClp } from "@/lib/plans";
 
 type Billing = "monthly" | "annual";
 
-// Características y precios salen de la fuente única `src/lib/plans.ts`.
-const COMPARISON: { label: string; free: string; pro: string; elite: string }[] = [
-  {
-    label: "Portafolios seguidos",
-    free: followLimitLabel("free"),
-    pro: followLimitLabel("pro"),
-    elite: followLimitLabel("elite"),
-  },
-  {
-    label: "Frecuencia de alertas",
-    free: "Diaria",
-    pro: "Tiempo real",
-    elite: "Prioritaria instantánea",
-  },
-  {
-    label: "Fondos 13F y carteras Premium",
-    free: "—",
-    pro: "Parcial",
-    elite: "Acceso total",
-  },
-  {
-    label: "Asistente reclu AI",
-    free: "5 por día",
-    pro: "50 por semana",
-    elite: "Ilimitado",
-  },
-  {
-    label: "Exportación CSV y Cruce Multi-cartera",
-    free: "—",
-    pro: "—",
-    elite: "Incluido",
-  },
+/**
+ * Regla de acceso vigente: seguir portafolios y ver todas las acciones es de
+ * pago; las carteras recomendadas de corredoras son gratis. Los bullets de
+ * Gratis se muestran aquí (no en `lib/plans.ts`) para no pisar el cambio del
+ * muro de pago que vive en otra rama.
+ */
+const FREE_FEATURES = [
+  "Carteras recomendadas de corredoras (Renta 4, BTG y más) con todas sus acciones",
+  "Explorador público y retorno YTD de cada portafolio",
+  "Resumen semanal «Lo que movieron los grandes»",
+  "Alertas por email con resumen diario",
+  "5 consultas diarias al asistente IA",
 ];
 
-const WHITE_FILET = "rgba(255,255,255,0.16)";
+const PRO_FEATURES = [
+  "Seguir portafolios y ver todas sus acciones",
+  ...PLANS.pro.features,
+];
 
-/**
- * Precios — tres columnas. Gratis y Pro en blanco, Elite en negativo.
- * Toggle de facturación Mensual / Anual (−20%). Gap de 1px sobre
- * #e6e6e6 = el filete entre columnas. Radio 0, sin sombras.
- */
+const COMPARISON: { label: string; free: string; pro: string; elite: string }[] = [
+  { label: "Carteras recomendadas de corredoras", free: "Incluido", pro: "Incluido", elite: "Incluido" },
+  { label: "Seguir portafolios", free: "-", pro: followLimitLabel("pro"), elite: followLimitLabel("elite") },
+  { label: "Ver todas las acciones de cada portafolio", free: "Solo corredoras", pro: "Incluido", elite: "Incluido" },
+  { label: "Frecuencia de alertas", free: "Diaria", pro: "Tiempo real", elite: "Prioritaria instantánea" },
+  { label: "Fondos 13F y carteras Premium", free: "-", pro: "Parcial", elite: "Acceso total" },
+  { label: "Asistente reclu AI", free: "5 por día", pro: "50 por semana", elite: "Ilimitado" },
+  { label: "Exportación CSV y Cruce Multi-cartera", free: "-", pro: "-", elite: "Incluido" },
+];
+
+function Cell({ value, dark = false }: { value: string; dark?: boolean }) {
+  if (value === "-")
+    return <Minus className={"size-4 " + (dark ? "text-white/30" : "text-ink-400")} aria-label="No incluido" />;
+  if (value === "Incluido")
+    return <Check className={"size-4 " + (dark ? "text-white" : "text-positive")} aria-label="Incluido" />;
+  return <span>{value}</span>;
+}
+
+function FeatureList({ items, dark = false }: { items: string[]; dark?: boolean }) {
+  return (
+    <ul className="mt-6 flex flex-1 flex-col gap-3">
+      {items.map((f) => (
+        <li key={f} className="flex gap-3 text-[14px] leading-snug">
+          <span
+            className={
+              "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full " +
+              (dark ? "bg-white/10 text-white" : "bg-positive/10 text-positive")
+            }
+          >
+            <Check className="size-3" strokeWidth={3} aria-hidden />
+          </span>
+          <span className={dark ? "text-white/85" : "text-ink-800"}>{f}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Precios: tarjetas con jerarquía (Pro destacado), regla de acceso y comparación. */
 export function Pricing() {
   const [billing, setBilling] = useState<Billing>("monthly");
   const annual = billing === "annual";
 
-  // Medición: la sección de precios entró en viewport.
   useEffect(() => {
     track("pricing_view", { billing });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const proPrice = formatClp(
-    annual ? PLANS.pro.annualMonthlyPrice : PLANS.pro.monthlyPrice,
-  );
-  const proSuffix = annual ? "CLP / mes · facturado anual" : "CLP / mes";
-  const elitePrice = formatClp(
-    annual ? PLANS.elite.annualMonthlyPrice : PLANS.elite.monthlyPrice,
-  );
-  const eliteSuffix = annual ? "CLP / mes · facturado anual" : "CLP / mes";
+
+  const proPrice = formatClp(annual ? PLANS.pro.annualMonthlyPrice : PLANS.pro.monthlyPrice);
+  const elitePrice = formatClp(annual ? PLANS.elite.annualMonthlyPrice : PLANS.elite.monthlyPrice);
+  const suffix = annual ? "/ mes · facturado anual" : "/ mes";
 
   return (
-    <section id="precios" className="bg-white py-28 md:py-36">
+    <section id="precios" className="pub-canvas py-20 md:py-32">
       <div className="container-page">
         <FadeIn>
-          <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-            <h2 className="type-section text-ink-900">Empieza en cero.</h2>
+          <div className="flex flex-col items-start gap-6 md:flex-row md:items-end md:justify-between">
+            <div>
+              <span className="pub-chip">Planes y precios</span>
+              <h2 className="type-section mt-4 text-ink-900">Empieza en cero.</h2>
+              <p className="mt-4 max-w-md text-[16px] leading-relaxed text-ink-500">
+                Las carteras de corredoras son gratis. Para seguir portafolios y ver todas sus
+                acciones, elige Pro o Elite.
+              </p>
+            </div>
 
-            {/* Toggle de facturación — filete 1px negro, fondo negro en activo */}
-            <div
-              role="group"
-              aria-label="Ciclo de facturación"
-              className="flex w-fit border border-ink-900"
-            >
-              <button
-                type="button"
-                onClick={() => setBilling("monthly")}
-                aria-pressed={!annual}
-                className={
-                  "px-5 py-2.5 text-[13px] transition-colors " +
-                  (!annual
-                    ? "bg-ink-900 text-white"
-                    : "bg-white text-ink-500 hover:text-ink-900")
-                }
-              >
-                Mensual
-              </button>
-              <button
-                type="button"
-                onClick={() => setBilling("annual")}
-                aria-pressed={annual}
-                className={
-                  "px-5 py-2.5 text-[13px] transition-colors " +
-                  (annual
-                    ? "bg-ink-900 text-white"
-                    : "bg-white text-ink-500 hover:text-ink-900")
-                }
-              >
-                Anual (−20%)
-              </button>
+            <div role="group" aria-label="Ciclo de facturación" className="flex w-full rounded-full border border-ink-200 bg-white p-1 sm:w-fit">
+              {(["monthly", "annual"] as const).map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  onClick={() => setBilling(b)}
+                  aria-pressed={billing === b}
+                  className={
+                    "flex flex-1 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-[13px] font-medium transition-colors sm:flex-none " +
+                    (billing === b ? "bg-ink-900 text-white" : "text-ink-500 hover:text-ink-900")
+                  }
+                >
+                  {b === "monthly" ? "Mensual" : "Anual"}
+                  {b === "annual" && (
+                    <span className={"rounded-full px-1.5 py-0.5 text-[11px] " + (annual ? "bg-white/15" : "bg-positive/10 text-positive")}>
+                      -20%
+                    </span>
+                  )}
+                </button>
+              ))}
             </div>
           </div>
         </FadeIn>
 
-        <FadeIn delay={0.08} className="mt-16 md:mt-20">
-          <div className="grid max-w-[1120px] grid-cols-1 gap-px border border-ink-200 bg-ink-200 lg:grid-cols-3">
+        {/* Regla de acceso */}
+        <FadeIn delay={0.04} className="mt-10">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="pub-card flex items-start gap-3 p-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-positive/10 text-positive">
+                <Check className="size-4" strokeWidth={3} aria-hidden />
+              </span>
+              <div>
+                <p className="text-[14px] font-semibold text-ink-900">Gratis para todos</p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-ink-500">
+                  Carteras recomendadas de corredoras, como Renta 4, con todas sus acciones.
+                </p>
+              </div>
+            </div>
+            <div className="pub-card flex items-start gap-3 p-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-white">
+                <Lock className="size-4" aria-hidden />
+              </span>
+              <div>
+                <p className="text-[14px] font-semibold text-ink-900">Con suscripción</p>
+                <p className="mt-0.5 text-[13px] leading-relaxed text-ink-500">
+                  Seguir portafolios y ver todas las acciones de políticos, fondos y ballenas.
+                </p>
+              </div>
+            </div>
+          </div>
+        </FadeIn>
+
+        <FadeIn delay={0.08} className="mt-6">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
             {/* Gratis */}
-            <div className="flex flex-col bg-white p-8 md:p-12">
-              <p className="label-line">Gratis</p>
-              <p className="type-section num mt-5 text-ink-900">$0</p>
-              <p className="label-line mt-3">Para siempre</p>
-
-              <StaggerList className="mt-10 flex flex-1 flex-col border-t border-ink-200">
-                {PLANS.free.features.map((f) => (
-                  <StaggerItem
-                    key={f}
-                    className="border-b border-ink-200 py-3.5 text-[15px] leading-snug text-ink-900 last:border-b-0"
-                  >
-                    {f}
-                  </StaggerItem>
-                ))}
-              </StaggerList>
-
-              <ButtonLink href="/signup" variant="outline" className="mt-10 w-full">
+            <div className="pub-card flex flex-col p-6 md:p-8">
+              <div className="flex items-center justify-between">
+                <p className="text-[15px] font-semibold text-ink-900">Gratis</p>
+                <span className="pub-chip">Para siempre</span>
+              </div>
+              <p className="num mt-6 text-[44px] leading-none text-ink-900">$0</p>
+              <p className="mt-2 text-[13px] text-ink-500">Sin tarjeta</p>
+              <FeatureList items={FREE_FEATURES} />
+              <ButtonLink href="/signup" variant="outline" size="lg" className="mt-8 w-full">
                 Crear cuenta
               </ButtonLink>
             </div>
 
             {/* Pro */}
-            <div className="relative flex flex-col bg-white p-8 md:p-12">
-              <span className="absolute top-0 left-1/2 h-[3px] w-16 -translate-x-1/2 bg-ink-900" aria-hidden />
-              <p className="label-line">Pro · Inversor activo</p>
-              <p className="mt-4 text-[11px] tracking-[0.08em] text-ink-900">
+            <div className="pub-card relative flex flex-col p-6 ring-2 ring-ink-900 md:p-8 lg:-my-3 lg:py-11">
+              <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-ink-900 px-3 py-1 text-[11px] font-medium text-white">
+                <Sparkles className="size-3" aria-hidden />
                 Más elegido
+              </span>
+              <div className="flex items-center justify-between">
+                <p className="text-[15px] font-semibold text-ink-900">Pro</p>
+                <span className="pub-chip">{PLANS.pro.tagline}</span>
+              </div>
+              <p className="mt-6 flex items-baseline gap-1.5">
+                <span className="num text-[44px] leading-none text-ink-900">{proPrice}</span>
+                <span className="text-[13px] text-ink-500">CLP {suffix}</span>
               </p>
-              <p className="type-section num mt-3 text-ink-900">{proPrice}</p>
-              <p className="label-line mt-3">{proSuffix}</p>
-
-              <StaggerList className="mt-10 flex flex-1 flex-col border-t border-ink-200">
-                {PLANS.pro.features.map((f) => (
-                  <StaggerItem
-                    key={f}
-                    className="border-b border-ink-200 py-3.5 text-[15px] leading-snug text-ink-900 last:border-b-0"
-                  >
-                    {f}
-                  </StaggerItem>
-                ))}
-              </StaggerList>
-
-              <ButtonLink href="/signup?plan=pro" className="mt-10 w-full" onClick={() => track("checkout_click", { plan: "pro", source: "pricing" })}>
+              <p className="mt-2 text-[13px] text-positive">7 días de prueba en cuentas nuevas</p>
+              <FeatureList items={PRO_FEATURES} />
+              <ButtonLink
+                href="/signup?plan=pro"
+                size="lg"
+                className="mt-8 w-full"
+                onClick={() => track("checkout_click", { plan: "pro", source: "pricing" })}
+              >
                 Elegir Pro
               </ButtonLink>
             </div>
 
-            {/* Elite — monolito negativo */}
-            <div className="flex flex-col bg-ink-900 p-8 text-white md:p-12">
-              <p className="text-[13px] text-white/60">Elite · Institucional & 13F</p>
-              <p className="type-section num mt-5 text-white">{elitePrice}</p>
-              <p className="mt-3 text-[13px] text-white/60">{eliteSuffix}</p>
-
-              <StaggerList
-                className="mt-10 flex flex-1 flex-col border-t"
-                style={{ borderColor: WHITE_FILET }}
-              >
-                {PLANS.elite.features.map((f) => (
-                  <StaggerItem
-                    key={f}
-                    className="border-b py-3.5 text-[15px] leading-snug text-white last:border-b-0"
-                    style={{ borderColor: WHITE_FILET }}
-                  >
-                    {f}
-                  </StaggerItem>
-                ))}
-              </StaggerList>
-
+            {/* Elite */}
+            <div className="pub-card-dark flex flex-col p-6 md:p-8">
+              <div className="flex items-center justify-between">
+                <p className="text-[15px] font-semibold">Elite</p>
+                <span className="pub-chip pub-chip-dark">{PLANS.elite.tagline}</span>
+              </div>
+              <p className="mt-6 flex items-baseline gap-1.5">
+                <span className="num text-[44px] leading-none">{elitePrice}</span>
+                <span className="text-[13px] text-white/60">CLP {suffix}</span>
+              </p>
+              <p className="mt-2 text-[13px] text-white/60">Todo Pro, sin límites</p>
+              <FeatureList items={PLANS.elite.features} dark />
               <ButtonLink
                 href="/signup?plan=elite"
-                className="mt-10 w-full bg-white text-ink-900 hover:opacity-90"
+                size="lg"
+                className="mt-8 w-full bg-white text-ink-900 hover:bg-white hover:opacity-90"
                 onClick={() => track("checkout_click", { plan: "elite", source: "pricing" })}
               >
                 Pasar a Elite
@@ -192,25 +212,51 @@ export function Pricing() {
           </div>
         </FadeIn>
 
-        {/* Matriz comparativa — filetes 1px #e6e6e6 */}
-        <FadeIn delay={0.12} className="mt-16">
-          <div className="max-w-[1120px] overflow-x-auto">
-            <table className="w-full border border-ink-200 text-[15px]">
+        {/* Comparación: tarjetas en celular, tabla en escritorio */}
+        <FadeIn delay={0.12} className="mt-12">
+          <h3 className="text-[18px] font-semibold tracking-[-0.02em] text-ink-900">Comparación rápida</h3>
+
+          <div className="mt-4 flex flex-col gap-3 md:hidden">
+            {COMPARISON.map((row) => (
+              <div key={row.label} className="pub-card p-4">
+                <p className="text-[14px] font-medium text-ink-900">{row.label}</p>
+                <dl className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
+                  {(
+                    [
+                      ["Gratis", row.free],
+                      ["Pro", row.pro],
+                      ["Elite", row.elite],
+                    ] as const
+                  ).map(([k, v]) => (
+                    <div key={k} className="rounded-xl bg-ink-50 px-2.5 py-2">
+                      <dt className="text-[11px] text-ink-500">{k}</dt>
+                      <dd className="mt-1 flex min-h-4 items-center text-ink-900">
+                        <Cell value={v} />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            ))}
+          </div>
+
+          <div className="pub-card mt-4 hidden overflow-hidden md:block">
+            <table className="w-full text-[14px]">
               <thead>
-                <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
-                  <th className="p-4 font-normal">Comparación rápida</th>
-                  <th className="p-4 font-normal">Gratis</th>
-                  <th className="p-4 font-normal">Pro</th>
-                  <th className="p-4 font-normal">Elite</th>
+                <tr className="bg-ink-50 text-left text-[13px] text-ink-500">
+                  <th className="px-5 py-3.5 font-medium">Función</th>
+                  <th className="px-5 py-3.5 font-medium">Gratis</th>
+                  <th className="px-5 py-3.5 font-semibold text-ink-900">Pro</th>
+                  <th className="px-5 py-3.5 font-medium">Elite</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARISON.map((row) => (
-                  <tr key={row.label} className="border-b border-ink-200 last:border-b-0">
-                    <td className="p-4 text-ink-900">{row.label}</td>
-                    <td className="p-4 text-ink-500">{row.free}</td>
-                    <td className="p-4 text-ink-900">{row.pro}</td>
-                    <td className="p-4 text-ink-900">{row.elite}</td>
+                  <tr key={row.label} className="border-t border-ink-200">
+                    <td className="px-5 py-3.5 text-ink-900">{row.label}</td>
+                    <td className="px-5 py-3.5 text-ink-500"><Cell value={row.free} /></td>
+                    <td className="bg-ink-50/50 px-5 py-3.5 font-medium text-ink-900"><Cell value={row.pro} /></td>
+                    <td className="px-5 py-3.5 text-ink-900"><Cell value={row.elite} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -218,15 +264,15 @@ export function Pricing() {
           </div>
         </FadeIn>
 
-        <p className="mt-10 text-[13px] text-ink-500">
-          Planes para equipos:{" "}
-          <a
-            href="mailto:hola@reclu.cl"
-            className="text-ink-900 underline decoration-transparent underline-offset-[0.25em] [text-decoration-thickness:1px] transition-[text-decoration-color] duration-200 hover:decoration-ink-900"
-          >
-            hola@reclu.cl
-          </a>
-        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-2 text-[13px] text-ink-500">
+          <span className="pub-chip">Pago seguro con Mercado Pago</span>
+          <span>
+            Planes para equipos:{" "}
+            <a href="mailto:hola@reclu.cl" className="text-ink-900 underline underline-offset-4">
+              hola@reclu.cl
+            </a>
+          </span>
+        </div>
       </div>
     </section>
   );

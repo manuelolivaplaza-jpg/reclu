@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
 import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
 import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
@@ -10,27 +9,27 @@ export const metadata = {
   description: "Cómo reclu.cl maneja tus datos",
 };
 
+const TOC: LegalTocItem[] = [
+  { id: "s1", label: "Datos que recopilamos" },
+  { id: "s2", label: "Cómo usamos tus datos" },
+  { id: "s3", label: "Proveedores de servicio" },
+  { id: "s4", label: "Analítica y cookies" },
+  { id: "s5", label: "Retención y eliminación" },
+  { id: "s6", label: "Mi portafolio" },
+  { id: "s7", label: "IA" },
+  { id: "s8", label: "Tus derechos" },
+  { id: "s9", label: "Seguridad" },
+];
+
 export default function PrivacidadPage() {
   return (
     <>
       <SiteHeader />
       <main className="flex-1">
-        <div className="container-page max-w-3xl py-16">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
-          >
-            <ArrowLeft className="size-4" />
-            Volver al inicio
-          </Link>
+        <LegalShell kind="privacidad" title="Política de privacidad" updated="Última actualización: 20 de octubre de 2026" toc={TOC}>
 
-          <h1 className="mt-8 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-            Política de privacidad
-          </h1>
-          <p className="mt-2 text-sm text-ink-500">Última actualización: 20 de octubre de 2026</p>
-
-          <div className="mt-10 flex flex-col gap-6 text-ink-700">
-            <section>
+          <div className="legal-doc flex flex-col gap-4 text-ink-700">
+            <section id="s1">
               <h2 className="text-lg font-semibold text-ink-900">Datos que recopilamos</h2>
               <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 leading-relaxed">
                 <li><strong className="text-ink-900">Cuenta:</strong> correo electrónico y nombre (proporcionados al registrarte, vía email o Google OAuth).</li>
@@ -40,7 +39,7 @@ export default function PrivacidadPage() {
               </ul>
             </section>
 
-            <section>
+            <section id="s2">
               <h2 className="text-lg font-semibold text-ink-900">Cómo usamos tus datos</h2>
               <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 leading-relaxed">
                 <li>Enviarte las alertas de los portafolios que sigues.</li>
@@ -54,7 +53,7 @@ export default function PrivacidadPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s3">
               <h2 className="text-lg font-semibold text-ink-900">Proveedores de servicio</h2>
               <p className="mt-2 leading-relaxed">
                 Usamos proveedores que procesan datos en nuestro nombre:{" "}
@@ -67,7 +66,7 @@ export default function PrivacidadPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s4">
               <h2 className="text-lg font-semibold text-ink-900">Analítica y cookies</h2>
               <p className="mt-2 leading-relaxed">
                 Usamos <strong className="text-ink-900">analítica sin cookies</strong> para
@@ -85,7 +84,7 @@ export default function PrivacidadPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s5">
               <h2 className="text-lg font-semibold text-ink-900">Retención y eliminación</h2>
               <p className="mt-2 leading-relaxed">
                 Conservamos tus datos mientras tu cuenta esté activa. Puedes eliminar tu
@@ -98,7 +97,7 @@ export default function PrivacidadPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s6">
               <h2 className="text-lg font-semibold text-ink-900">Mi portafolio</h2>
               <DraftLegalNotice scope="Describe el tratamiento de tenencias personales y el derecho de supresión." />
               <p className="mt-3 leading-relaxed">
@@ -137,7 +136,7 @@ export default function PrivacidadPage() {
               </ul>
             </section>
 
-            <section>
+            <section id="s7">
               <h2 className="text-lg font-semibold text-ink-900">IA</h2>
               <DraftLegalNotice scope="Describe la transferencia internacional a OpenRouter y el alcance del análisis con IA." />
               <p className="mt-3 leading-relaxed">{AI_DISCLAIMER}</p>
@@ -159,7 +158,7 @@ export default function PrivacidadPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s8">
               <h2 className="text-lg font-semibold text-ink-900">Tus derechos</h2>
               <p className="mt-2 leading-relaxed">
                 Conforme a la Ley 19.628 sobre protección de la vida privada (Chile), tienes
@@ -171,7 +170,7 @@ export default function PrivacidadPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s9">
               <h2 className="text-lg font-semibold text-ink-900">Seguridad</h2>
               <p className="mt-2 leading-relaxed">
                 Implementamos medidas de seguridad estándar de la industria: conexiones cifradas
@@ -180,7 +179,7 @@ export default function PrivacidadPage() {
               </p>
             </section>
           </div>
-        </div>
+        </LegalShell>
       </main>
       <SiteFooter />
     </>

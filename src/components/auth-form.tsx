@@ -7,7 +7,6 @@ import { signIn, signUp, signInWithGoogle } from "@/app/actions/auth";
 import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LogoLockup } from "@/components/logo";
 import type { FormState } from "@/lib/form-state";
 
 /** Google "G" glyph — inline SVG so no external dependency. */
@@ -62,35 +61,33 @@ export function AuthForm({ mode }: AuthFormProps) {
   const success = state.success;
 
   return (
-    <div className="w-full max-w-sm">
-      {/* Wordmark centrado en la columna */}
-      <div className="flex justify-center">
-        <Link href="/">
-          <LogoLockup />
-        </Link>
+    <div className="pub-card pub-auth pub-rise w-full max-w-md p-6 md:p-9">
+      <div className="flex items-center gap-2">
+        <span className="pub-chip">{isLogin ? "Bienvenido de vuelta" : "Cuenta nueva"}</span>
+        {!isLogin && !isPaidSignup && <span className="pub-chip pub-chip-positive">Sin tarjeta</span>}
       </div>
 
-      <h1 className="mt-10 text-[32px] font-medium tracking-[-0.03em] text-ink-900">
-        {isLogin ? "Entrar." : "Crear cuenta."}
+      <h1 className="mt-4 text-[30px] font-semibold leading-[1.05] tracking-[-0.035em] text-ink-900 md:text-[34px]">
+        {isLogin ? "Entrar a reclu" : "Crea tu cuenta"}
       </h1>
-      <p className="mt-2 text-[15px] text-ink-500">
+      <p className="mt-2 text-[15px] leading-relaxed text-ink-500">
         {isLogin
-          ? "Accede a tu dashboard y alertas."
+          ? "Accede a tu dashboard, tu seguimiento y tus alertas."
           : isPaidSignup
             ? "Crea tu cuenta para activar tu suscripción."
-            : "Gratis en 2 portafolios. Sin tarjeta."}
+            : "Gratis: carteras recomendadas de corredoras y alertas diarias."}
       </p>
 
       {/* Recuadro del plan seleccionado — filete negro 1px */}
       {isPaidSignup && (
-        <div className="mt-6 border border-ink-900 p-4">
+        <div className="mt-6 rounded-2xl border border-ink-900 bg-ink-50 p-4">
           <p className="text-[15px] font-medium text-ink-900">{planLabel}</p>
           <p className="mt-1 text-[13px] leading-relaxed text-ink-500">{planBlurb}</p>
         </div>
       )}
 
       {/* Google OAuth */}
-      <form action={signInWithGoogle} className="mt-8">
+      <form action={signInWithGoogle} className="mt-7">
         <Button
           type="submit"
           variant="outline"

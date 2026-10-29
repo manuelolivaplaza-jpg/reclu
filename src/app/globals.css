@@ -213,3 +213,119 @@ details[open] > summary ~ * {
 @utility pb-tabbar {
   padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
 }
+/* ==== d58: estilos de páginas públicas (legal, auth, precios, FAQ, errores). Prefijo pub-. ==== */
+.pub-canvas {
+  background:
+    radial-gradient(1200px 420px at 50% -120px, rgb(15 122 50 / 0.07), transparent 70%),
+    linear-gradient(#fafafa, #ffffff 420px);
+}
+.pub-card {
+  background: #ffffff;
+  border: 1px solid #e6e6e6;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px rgb(16 24 40 / 0.05);
+}
+.pub-card-dark {
+  background: radial-gradient(600px 300px at 80% 0%, rgb(15 122 50 / 0.35), transparent 70%), #0a0a0a;
+  color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+}
+.pub-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid #e6e6e6;
+  background: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  color: #3d3d3d;
+  white-space: nowrap;
+}
+.pub-chip-dark {
+  border-color: rgb(255 255 255 / 0.16);
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(255 255 255 / 0.85);
+}
+.pub-chip-positive {
+  border-color: rgb(15 122 50 / 0.25);
+  background: rgb(15 122 50 / 0.07);
+  color: #0f7a32;
+}
+.pub-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #0f7a32;
+  box-shadow: 0 0 0 3px rgb(15 122 50 / 0.15);
+}
+.pub-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #0a0a0a;
+  color: #ffffff;
+}
+
+/* Documentos legales: cada sección es una tarjeta numerada; el texto no cambia. */
+.legal-doc {
+  counter-reset: legal;
+}
+.legal-doc > section {
+  counter-increment: legal;
+  position: relative;
+  scroll-margin-top: 96px;
+  background: #ffffff;
+  border: 1px solid #e6e6e6;
+  border-radius: 16px;
+  padding: 20px 20px 22px;
+  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  line-height: 1.65;
+}
+@media (min-width: 768px) {
+  .legal-doc > section {
+    padding: 28px 32px 30px;
+  }
+}
+.legal-doc > section > h2 {
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+.legal-doc > section a {
+  color: #0a0a0a;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.legal-doc > section li::marker {
+  color: #0f7a32;
+}
+.legal-doc > p {
+  border-radius: 16px;
+}
+
+/* Auth: campos más táctiles en celular */
+.pub-auth input {
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pub-rise {
+    animation: pub-rise 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+@keyframes pub-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
