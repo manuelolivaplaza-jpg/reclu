@@ -36,16 +36,19 @@ describe("trimHoldersForRole", () => {
     }),
   );
 
-  it("anon ve solo el rank 1 a 5", () => {
-    expect(trimHoldersForRole(rows, "anon").map((row) => row.rankInPortfolio)).toEqual([
-      1, 2, 3, 4, 5,
-    ]);
+  // D55: anon y free no ven posiciones, salvo corredoras (broker_cl).
+  it("anon no ve posiciones", () => {
+    expect(trimHoldersForRole(rows, "anon")).toEqual([]);
   });
 
-  it("free ve el rank 1 a 10 y oculta el 11", () => {
-    expect(trimHoldersForRole(rows, "free").map((row) => row.rankInPortfolio)).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-    ]);
+  it("free no ve posiciones", () => {
+    expect(trimHoldersForRole(rows, "free")).toEqual([]);
+  });
+
+  it("corredoras (broker_cl) abiertas a anon y free", () => {
+    const broker = rows.map((row) => ({ ...row, category: "broker_cl" }));
+    expect(trimHoldersForRole(broker, "anon")).toHaveLength(rows.length);
+    expect(trimHoldersForRole(broker, "free")).toHaveLength(rows.length);
   });
 
   it("pro (rol paid) ve todos los ranks", () => {
@@ -87,7 +90,7 @@ describe("rankAtLatestAsOf", () => {
     expect(ranks.get("nvda")).toBe(6);
   });
 
-  it("un símbolo en el puesto 6 queda fuera del recorte anónimo", () => {
+  it("D55: anónimo no ve ningún puesto (antes top 5)", () => {
     const book: RankInput[] = [20, 15, 11, 8, 4, 2].map((weight, index) => ({
       id: `h${index}`,
       portfolioId: "p",
@@ -106,7 +109,7 @@ describe("rankAtLatestAsOf", () => {
       ),
       "anon",
     );
-    expect(visible.map((row) => row.weight)).toEqual([20, 15, 11, 8, 4]);
+    expect(visible.map((row) => row.weight)).toEqual([]);
   });
 
   it("ignora fechas anteriores al as_of vigente", () => {

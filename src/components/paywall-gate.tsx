@@ -24,7 +24,10 @@ export function PaywallGate({
   children,
   label = "contenido",
   className,
+  mode = "signup",
 }: {
+  /** D55: "upgrade" = usuario con cuenta Free; el CTA lleva a suscribirse. */
+  mode?: "signup" | "upgrade";
   locked: boolean;
   children: React.ReactNode;
   /** Qué se está censurando, para el copy del muro. */
@@ -33,6 +36,33 @@ export function PaywallGate({
 }) {
   if (!locked) {
     return <>{children}</>;
+  }
+
+  if (mode === "upgrade") {
+    return (
+      <div
+        className={cn("relative overflow-hidden rounded-xl border border-ink-200 bg-white", className)}
+        role="region"
+        aria-label={`Contenido reservado: ${label}`}
+      >
+        <div aria-hidden="true" className="pointer-events-none select-none blur-[6px]">
+          <GhostRows rows={GHOST_ABOVE} />
+          <GhostRows rows={GHOST_BELOW} />
+        </div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 px-6 text-center">
+          <p className="text-[17px] font-semibold tracking-tight text-ink-900">Solo para suscriptores</p>
+          <p className="mt-1 max-w-xs text-[13px] leading-relaxed text-ink-500">
+            Suscríbete para ver {label} de este portafolio. Las carteras recomendadas de corredoras son abiertas.
+          </p>
+          <Link
+            href="/upgrade"
+            className="mt-4 inline-flex h-10 items-center rounded-full bg-ink-900 px-5 text-[14px] font-medium text-white hover:bg-black"
+          >
+            Suscribirme
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -48,8 +78,7 @@ export function PaywallGate({
           Crea tu cuenta.
         </p>
         <p className="mt-3 max-w-sm text-[15px] leading-relaxed text-ink-500">
-          Para ver {label}. Accede a las acciones, las gráficas y las alertas de este
-          portafolio. Gratis en 2 portafolios.
+          Para ver {label}. Accede a las gráficas y las alertas de este portafolio.
         </p>
         <div className="mt-6 flex items-center gap-5">
           <Link

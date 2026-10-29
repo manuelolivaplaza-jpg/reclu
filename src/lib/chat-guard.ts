@@ -4,6 +4,8 @@
  * porque esa función no es ejecutable por el cliente. El anónimo usa
  * `check_anon_chat_quota`; si falla, un Map en memoria con el mismo límite.
  */
+import { holdingsOpenToAll } from "@/lib/access";
+import type { Plan } from "@/lib/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { demoAlerts, demoHoldings, demoPortfolioBySlug } from "@/lib/demo-data";
 import {
@@ -233,7 +235,7 @@ function alertLine(row: unknown): string {
 export async function portfolioSystemContext(supabase: SupabaseClient, slug: string): Promise<string> {
   const { data: portfolio, error } = await supabase
     .from("portfolios")
-    .select("id, name")
+    .select("id, name, category, source")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -261,6 +263,17 @@ export async function portfolioSystemContext(supabase: SupabaseClient, slug: str
       .order("weight", { ascending: false })
       .limit(15);
     if (!direct.error && Array.isArray(direct.data)) rows = direct.data;
+  }
+
+  // D55: posiciones solo para planes pagados, salvo corredoras (broker_cl). Se verifica aquí por si la 070 no está aplicada.
+  if (!holdingsOpenToAll(portfolio as { category?: string; source?: string })) {
+    const { data: auth } = await supabase.auth.getUser();
+    let paid = false;
+    if (auth?.user) {
+      const { data: prof } = await supabase.from("profiles").select("plan").eq("id", auth.user.id).maybeSingle();
+      paid = isPaidPlan((prof as { plan?: Plan } | null)?.plan ?? null);
+    }
+    if (!paid) rows = [];
   }
 
   const holdings = (rows ?? []).slice(0, 15).map(holdingLine).filter((line): line is string => !!line);

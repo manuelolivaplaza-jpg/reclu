@@ -27,7 +27,7 @@ import { computePerformanceMetrics, fromPctToLevel } from "@/lib/performance";
 import { DemoBadge } from "@/components/demo-badge";
 import { JsonLd } from "@/components/json-ld";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
-import { roleFor, HOLDING_LIMITS } from "@/lib/access";
+import { roleFor, holdingLimitFor } from "@/lib/access";
 import { buildComposition } from "@/lib/composition";
 import { absoluteUrl } from "@/lib/site";
 import { timeAgo, formatSignedPct, formatPctPlain } from "@/lib/utils";
@@ -212,7 +212,9 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
   // Pesos actuales: dato real para la composición.
   // D39: último snapshot, una fila por símbolo y suma 100% si la lista está
   // completa (un top-N recortado por el muro no se infla).
-  const holdingLimit = HOLDING_LIMITS[role];
+  const holdingLimit = holdingLimitFor(role, portfolio);
+  // D55: posiciones solo para planes pagados, salvo corredoras y declaraciones oficiales.
+  const holdingsLocked = holdingLimit === 0;
   const composition = buildComposition(holdings, {
     complete: !Number.isFinite(holdingLimit) || holdings.length < holdingLimit,
   }).map((slice) => ({ ...slice, symbol: displaySymbol(slice.symbol) }));
@@ -523,7 +525,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
               <h2 className="text-[15px] font-medium text-ink-900">
                 {esAgregado
                   ? `Emisoras cotizadas (${holdings.length})`
-                  : `Composición${fechaAfp ? ` al ${fechaAfp}` : ""} (${Number.isFinite(HOLDING_LIMITS[role]) ? `top ${holdings.length}` : `${holdings.length} activos`})`}
+                  : `Composición${fechaAfp ? ` al ${fechaAfp}` : ""} (${holdingsLocked ? "solo suscriptores" : Number.isFinite(holdingLimit) ? `top ${holdings.length}` : `${holdings.length} activos`})`}
               </h2>
               {esAgregado ? (
                 <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
@@ -534,7 +536,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                 <p className="mt-2 text-[13px] text-ink-500">{AVISO_DESFASE_SP}</p>
               ) : null}
 
-              <PaywallGate locked={locked} label="composición" className="mt-4">
+              <PaywallGate locked={holdingsLocked} mode={role === "anon" ? "signup" : "upgrade"} label="las posiciones" className="mt-4">
                 {holdings.length > 0 ? (
                   <table className="w-full text-[15px]">
                     <thead>
