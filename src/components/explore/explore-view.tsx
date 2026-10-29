@@ -57,7 +57,7 @@ export async function ExploreView({ params, inApp = false }: { params: ExploreSe
   const content = (
     <>
           <div className="mt-10">
-            <ExploreFilters categories={categories} activeCategory={category} />
+            <ExploreFilters categories={categories} activeCategory={category} basePath={inApp ? "/app/explorar" : "/explore"} />
           </div>
 
           <Suspense fallback={<RankingsSkeleton />}>

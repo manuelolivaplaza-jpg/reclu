@@ -281,7 +281,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Ticker, político o fondo"
             aria-label="Filtra por ticker, político o fondo"
-            className="h-11 w-full rounded-[10px] border border-[#e6e6e6] bg-white pr-11 pl-10 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
+            className="h-11 w-full rounded-[10px] border border-app-border bg-white pr-11 pl-10 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
           />
           {hasActiveFilters && (
             <button
@@ -309,7 +309,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                     "h-8 shrink-0 rounded-full border px-3.5 text-[13px] transition-colors",
                     active
                       ? "border-ink-900 bg-ink-900 font-medium text-white"
-                      : "border-[#e6e6e6] bg-white text-ink-600 hover:border-ink-900 hover:text-ink-900",
+                      : "border-app-border bg-white text-ink-600 hover:border-ink-900 hover:text-ink-900",
                   )}
                 >
                   {item.label}
@@ -328,10 +328,10 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
         <div className="flex flex-col gap-6">
           {groups.map((group) => (
             <section key={group.key} aria-label={group.label} className="flex flex-col gap-2">
-              <h2 className="sticky top-0 z-[1] -mx-1 bg-[#f6f6f6]/90 px-1 py-1.5 text-[12px] font-medium tracking-wide text-ink-500 uppercase backdrop-blur">
+              <h2 className="sticky top-0 z-[1] -mx-1 bg-app-canvas/90 px-1 py-1.5 text-[12px] font-medium tracking-wide text-ink-500 uppercase backdrop-blur">
                 {group.label}
               </h2>
-              <div className="overflow-hidden rounded-[12px] border border-[#e6e6e6] bg-white shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
+              <div className="overflow-hidden rounded-app border border-app-border bg-white shadow-app">
                 {group.items.map((alert) => (
                   <AlertRow
                     key={alert.id}
@@ -346,7 +346,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
           ))}
         </div>
       ) : (
-        <div className="rounded-[12px] border border-[#e6e6e6] bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgb(0_0_0/0.04)]">
+        <div className="rounded-app border border-app-border bg-white px-6 py-12 text-center shadow-app">
           <span className="mx-auto flex size-12 items-center justify-center rounded-full bg-ink-100">
             <BellRing className="size-5 text-ink-600" strokeWidth={1.75} />
           </span>
@@ -368,7 +368,7 @@ export function AlertsFeed({ alerts, followedIds, isPro }: AlertsFeedProps) {
                 <button
                   type="button"
                   onClick={() => setView("global")}
-                  className="inline-flex h-10 items-center rounded-full border border-[#e6e6e6] px-5 text-[14px] text-ink-900 hover:border-ink-900"
+                  className="inline-flex h-10 items-center rounded-full border border-app-border px-5 text-[14px] text-ink-900 hover:border-ink-900"
                 >
                   Ver feed global
                 </button>
@@ -500,7 +500,7 @@ function AlertRow({
   })();
 
   return (
-    <article className="flex min-w-0 gap-3 border-t border-[#e6e6e6] p-4 first:border-t-0 sm:gap-4 sm:p-5">
+    <article className="flex min-w-0 gap-3 border-t border-app-border p-4 first:border-t-0 sm:gap-4 sm:p-5">
       <Link
         href={`/portfolio/${alert.portfolio.slug}`}
         className="shrink-0"
@@ -545,7 +545,7 @@ function AlertRow({
           <span
             className={cn(
               "shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-              CHIP_CLASS[alert.type] ?? "border border-[#e6e6e6] text-ink-600",
+              CHIP_CLASS[alert.type] ?? "border border-app-border text-ink-600",
             )}
           >
             {TYPE_LABEL[alert.type] ?? "Alerta"}
@@ -582,7 +582,7 @@ function AlertRow({
         )}
 
         {alert.summary ? (
-          <div className="mt-3 rounded-[8px] bg-[#f6f6f6] p-3">
+          <div className="mt-3 rounded-[8px] bg-app-canvas p-3">
             <p className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">Resumen IA</p>
             <p className="mt-1 text-[14px] leading-relaxed text-ink-900">{alert.summary}</p>
           </div>
@@ -602,7 +602,7 @@ function AlertRow({
             onClick={onExplain}
             disabled={explain?.status === "loading"}
             aria-expanded={explain?.status === "done" ? explain.open : undefined}
-            className="inline-flex h-8 items-center rounded-full border border-[#e6e6e6] px-3 text-[13px] text-ink-900 transition-colors hover:border-ink-900 disabled:cursor-wait disabled:text-ink-500"
+            className="inline-flex h-8 items-center rounded-full border border-app-border px-3 text-[13px] text-ink-900 transition-colors hover:border-ink-900 disabled:cursor-wait disabled:text-ink-500"
           >
             {explainLabel}
           </button>
@@ -620,7 +620,7 @@ function AlertRow({
         )}
 
         {explain?.status === "done" && explain.open && (
-          <div className="mt-3 rounded-[8px] border border-[#e6e6e6] p-3">
+          <div className="mt-3 rounded-[8px] border border-app-border p-3">
             <p className="text-[11px] font-medium tracking-wide text-ink-500 uppercase">Explicación simple · IA</p>
             <p className="mt-1.5 whitespace-pre-line text-[14px] leading-relaxed text-ink-900">{explain.text}</p>
             {explain.sources.length > 0 && (

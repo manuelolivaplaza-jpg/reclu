@@ -25,7 +25,7 @@ export function UpgradeBanner({ title, body, href, cta, storageKey }: Props) {
   }, [storageKey]);
   if (hidden) return null;
   return (
-    <div className="relative flex items-center gap-4 overflow-hidden rounded-[12px] bg-ink-900 p-4 pr-12 text-white sm:p-5 sm:pr-14">
+    <div className="relative flex items-center gap-4 overflow-hidden rounded-app bg-ink-900 p-4 pr-12 text-white sm:p-5 sm:pr-14">
       <div className="min-w-0 flex-1">
         <p className="text-[15px] font-semibold">{title}</p>
         <p className="mt-0.5 text-[13px] text-white/70">{body}</p>

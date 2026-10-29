@@ -238,7 +238,7 @@ export default async function MyPortfolioPage() {
   const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
 
   return (
-    <div className="flex max-w-4xl flex-col gap-8">
+    <div className="flex flex-col gap-8">
       <div>
         <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
           Mi portafolio

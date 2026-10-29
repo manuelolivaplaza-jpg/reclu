@@ -47,7 +47,7 @@ export function AppShell({
   }
 
   return (
-    <div className="app-root min-h-dvh bg-app-canvas text-ink-900">
+    <div className="app-root min-h-dvh bg-app-canvas text-ink-900 [--app-tabbar-h:calc(64px+env(safe-area-inset-bottom))] [--app-topbar-h:52px] lg:[--app-tabbar-h:0px] lg:[--app-topbar-h:56px]">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-app-control focus:bg-white focus:px-3 focus:py-2 focus:shadow-app-raised"

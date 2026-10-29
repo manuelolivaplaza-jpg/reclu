@@ -106,7 +106,7 @@ export default async function ComparePage() {
           model={aiModel}
         />
       )}
-      <section className="min-w-0 rounded-[12px] border border-[#e6e6e6] bg-white p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04)] sm:p-6">
+      <section className="min-w-0 rounded-app border border-app-border bg-white p-4 shadow-app sm:p-6">
       <PortfolioManager
         initialHoldings={userHoldings}
         catalog={compare.portfolios}
@@ -116,7 +116,7 @@ export default async function ComparePage() {
         imageImportEnabled={imageImportEnabled}
       />
       </section>
-      <section className="min-w-0 rounded-[12px] border border-[#e6e6e6] bg-white p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04)] sm:p-6">
+      <section className="min-w-0 rounded-app border border-app-border bg-white p-4 shadow-app sm:p-6">
         <AlignmentPanel catalog={compare.portfolios} />
       </section>
     </div>

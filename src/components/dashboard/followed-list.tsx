@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { Sparkline } from "@/components/sparkline";
 import { FollowButton } from "@/components/follow-button";
@@ -18,7 +18,7 @@ export function FollowedList({ portfolios, stats, following = true, isPro }: Pro
   return (
     <>
       {/* Móvil: lista */}
-      <ul className="divide-y divide-[#e6e6e6] overflow-hidden rounded-[12px] border border-[#e6e6e6] bg-white sm:hidden">
+      <ul className="divide-y divide-app-border overflow-hidden rounded-app border border-app-border bg-white sm:hidden">
         {portfolios.map((p) => {
           const s = stats[p.id];
           const pct = s?.pct ?? null;
@@ -53,7 +53,7 @@ export function FollowedList({ portfolios, stats, following = true, isPro }: Pro
           return (
             <div
               key={p.id}
-              className="group flex flex-col rounded-[12px] border border-[#e6e6e6] bg-white p-5 shadow-[0_1px_2px_rgb(0_0_0/0.04)] transition-shadow hover:shadow-[0_4px_16px_rgb(0_0_0/0.06)]"
+              className="group flex flex-col rounded-app border border-app-border bg-white p-5 shadow-app transition-shadow hover:shadow-[0_4px_16px_rgb(0_0_0/0.06)]"
             >
               <Link href={`/portfolio/${p.slug}`} className="flex items-center gap-3">
                 <PortfolioAvatar portfolio={p} size={40} />
@@ -81,7 +81,7 @@ export function FollowedList({ portfolios, stats, following = true, isPro }: Pro
                 </div>
                 {s && s.spark.length >= 2 && <Sparkline data={s.spark} className="h-10 w-28" />}
               </div>
-              <div className="mt-5 flex items-center justify-between border-t border-[#e6e6e6] pt-4">
+              <div className="mt-5 flex items-center justify-between border-t border-app-border pt-4">
                 <span className="text-[12px] text-ink-500">{formatCompact(p.followers)} seguidores</span>
                 <FollowButton
                   portfolioId={p.id}

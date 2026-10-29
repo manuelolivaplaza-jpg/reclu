@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { BellRing } from "lucide-react";
 import type { Alert, AlertType } from "@/lib/types";
 import { cn, timeAgo } from "@/lib/utils";
@@ -20,7 +20,7 @@ const CHIP: Partial<Record<AlertType, { label: string; cls: string }>> = {
 export function AlertsPreview({ alerts }: { alerts: A[] }) {
   if (alerts.length === 0) {
     return (
-      <div className="flex flex-col items-center rounded-[12px] border border-[#e6e6e6] bg-white px-6 py-10 text-center">
+      <div className="flex flex-col items-center rounded-app border border-app-border bg-white px-6 py-10 text-center">
         <span className="flex size-11 items-center justify-center rounded-full bg-ink-100">
           <BellRing className="size-5 text-ink-500" strokeWidth={1.75} />
         </span>
@@ -30,7 +30,7 @@ export function AlertsPreview({ alerts }: { alerts: A[] }) {
     );
   }
   return (
-    <ul className="divide-y divide-[#e6e6e6] overflow-hidden rounded-[12px] border border-[#e6e6e6] bg-white">
+    <ul className="divide-y divide-app-border overflow-hidden rounded-app border border-app-border bg-white">
       {alerts.slice(0, 5).map((a) => {
         const chip = CHIP[a.type];
         return (

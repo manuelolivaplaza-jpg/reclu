@@ -8,6 +8,7 @@ import { getInsiderTrades, holdingsAtLatestAsOf } from "@/lib/insider-queries";
 import { InsiderTradesList } from "@/components/insider-trades-list";
 import { demoPerformance } from "@/lib/demo-data";
 import { SiteHeader } from "@/components/site-header";
+import { PortfolioSectionTabs } from "@/components/portfolio-section-tabs";
 import { PortfolioDetailCharts, ChartSection } from "@/components/charts/portfolio-detail-charts";
 import { PortfolioEvolution } from "@/components/charts/portfolio-evolution";
 import { FollowButton } from "@/components/follow-button";
@@ -335,8 +336,10 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
           }
         />
 
+        {inApp ? <PortfolioSectionTabs /> : null}
+
         {/* Portfolio header */}
-        <div className="bg-white">
+        <div id="resumen" className="scroll-mt-28 bg-white">
           <div className="container-page py-10">
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
@@ -485,7 +488,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
           ) : null}
 
           {showComposition && !esAgregado ? (
-            <div className="mb-12 rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
+            <div className="mb-12 rounded-2xl bg-white p-5 shadow-app-raised sm:p-7">
               <ChartSection>
                 <PortfolioDetailCharts composition={composition} />
               </ChartSection>
@@ -516,7 +519,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
 
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
             {/* Holdings — censurados sin cuenta */}
-            <section className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
+            <section id="posiciones" className="scroll-mt-28 rounded-2xl bg-white p-5 shadow-app-raised sm:p-7">
               <h2 className="text-[15px] font-medium text-ink-900">
                 {esAgregado
                   ? `Emisoras cotizadas (${holdings.length})`
@@ -599,7 +602,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             </section>
 
             {/* Recent alerts — censuradas sin cuenta */}
-            <section className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
+            <section id="movimientos" className="scroll-mt-28 rounded-2xl bg-white p-5 shadow-app-raised sm:p-7">
               <h2 className="text-[15px] font-medium text-ink-900">Alertas recientes</h2>
               <PaywallGate locked={locked} label="historial de alertas" className="mt-4">
                 {alerts.length > 0 ? (

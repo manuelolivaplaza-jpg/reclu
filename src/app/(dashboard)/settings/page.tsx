@@ -21,6 +21,7 @@ import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 import { hasCurrentPortfolioConsent, portfolioAlertChannelsFor } from "@/lib/portfolio-consent";
 import { referralsEnabled } from "@/lib/referrals";
 import { isPaidPlan } from "@/lib/types";
+import { SettingsSubnav, DEFAULT_SETTINGS_SECTIONS } from "@/components/settings/settings-subnav";
 
 export const metadata = { title: "Ajustes" };
 // Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
@@ -151,7 +152,7 @@ export default async function SettingsPage() {
   const portfolioMinRelevance = Number.isFinite(rawMinRelevance) ? rawMinRelevance : 0.5;
 
   return (
-    <div className="flex max-w-2xl flex-col gap-8">
+    <div className="flex max-w-3xl flex-col gap-8">
       <div>
         <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
           Ajustes
@@ -161,7 +162,12 @@ export default async function SettingsPage() {
         </p>
       </div>
 
+      <SettingsSubnav
+        sections={DEFAULT_SETTINGS_SECTIONS.filter((s) => s.href !== "#referidos" || referralsEnabled())}
+      />
+
       {/* Plan */}
+      <div id="plan" className="scroll-mt-28">
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -244,8 +250,10 @@ export default async function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Perfil */}
+      <div id="cuenta" className="scroll-mt-28">
       <Card>
         <CardHeader>
           <CardTitle>Perfil</CardTitle>
@@ -255,8 +263,10 @@ export default async function SettingsPage() {
           <SettingsForm name={profile.full_name ?? ""} email={profile.email} />
         </CardContent>
       </Card>
+      </div>
 
       {/* Frecuencia de alertas */}
+      <div id="notificaciones" className="scroll-mt-28">
       <Card>
         <CardHeader>
           <CardTitle>Frecuencia de alertas</CardTitle>
@@ -266,8 +276,11 @@ export default async function SettingsPage() {
           <AlertFrequencyForm current={profile.alert_frequency} isPro={isPro} />
         </CardContent>
       </Card>
+      </div>
 
-      <TelegramConnect profile={profile} />
+      <div id="telegram" className="scroll-mt-28">
+        <TelegramConnect profile={profile} />
+      </div>
 
       {myPortfolioEnabled && (
         <>
@@ -329,7 +342,9 @@ export default async function SettingsPage() {
         </>
       )}
 
-      {referralCode && <ReferralCard code={referralCode} siteUrl={siteUrl} />}
+      {referralCode && <div id="referidos" className="scroll-mt-28">
+<ReferralCard code={referralCode} siteUrl={siteUrl} />
+</div>}
 
       {/* D31: email de compras y ventas por portafolio seguido. */}
       <Card>

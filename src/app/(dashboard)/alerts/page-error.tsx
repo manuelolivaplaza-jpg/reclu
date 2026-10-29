@@ -4,7 +4,7 @@ export function PageError({ title, reset }: { title: string; reset: () => void }
   return (
     <div
       role="alert"
-      className="rounded-[12px] border border-[#e6e6e6] bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgb(0_0_0/0.04)]"
+      className="rounded-app border border-app-border bg-white px-6 py-12 text-center shadow-app"
     >
       <p className="text-[17px] font-medium tracking-[-0.02em] text-ink-900">{title}</p>
       <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-ink-500">

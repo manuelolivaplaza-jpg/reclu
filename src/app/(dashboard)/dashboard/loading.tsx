@@ -1,5 +1,5 @@
 function Box({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-[12px] bg-[#ececec] ${className}`} />;
+  return <div className={`animate-pulse rounded-app bg-ink-100 ${className}`} />;
 }
 
 export default function Loading() {

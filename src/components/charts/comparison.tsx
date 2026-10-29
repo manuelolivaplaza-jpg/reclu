@@ -201,7 +201,7 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
 
   if (all.length === 0) {
     return (
-      <p className="rounded-[12px] border border-dashed border-[#e6e6e6] px-3 py-10 text-center text-[13px] text-ink-500">
+      <p className="rounded-app border border-dashed border-app-border px-3 py-10 text-center text-[13px] text-ink-500">
         Sin serie para comparar.
       </p>
     );
@@ -343,7 +343,7 @@ export function Comparison({ portfolio, benchmark }: ComparisonProps) {
                 style={{ left: `${hoverPct}%` }}
               />
               <div
-                className="pointer-events-none absolute z-10 rounded-[8px] border border-[#e6e6e6] bg-white px-2.5 py-1.5 shadow-[0_4px_12px_rgb(0_0_0/0.08)]"
+                className="pointer-events-none absolute z-10 rounded-[8px] border border-app-border bg-white px-2.5 py-1.5 shadow-[0_4px_12px_rgb(0_0_0/0.08)]"
                 style={{
                   left: `${hoverPct}%`,
                   top: 8,
