@@ -13,6 +13,26 @@ import xml.etree.ElementTree as ET
 
 import httpx
 
+
+def largest_remainder(values: list[float], decimals: int = 2) -> list[float]:
+    """D45: porcentajes redondeados que suman exactamente 100.
+
+    Redondear cada fila por separado deja el snapshot fuera de 100 cuando hay
+    miles de posiciones chicas (renaissance-13f 101,26; bridgewater-13f
+    100,97; activistas-13d 617 x 0,16 = 98,72). Se trunca cada peso y los
+    centesimos que faltan van a las filas con mayor resto."""
+    total = sum(v for v in values if v > 0)
+    if total <= 0:
+        return [0.0 for _ in values]
+    scale = 10 ** decimals
+    exact = [max(v, 0.0) / total * 100 * scale for v in values]
+    base = [int(x) for x in exact]
+    missing = 100 * scale - sum(base)
+    order = sorted(range(len(values)), key=lambda i: (-(exact[i] - base[i]), i))
+    for i in order[:max(missing, 0)]:
+        base[i] += 1
+    return [b / scale for b in base]
+
 # fund manager name -> CIK
 FUNDS: dict[str, int] = {
     # --- US short-book funds (verified in data.sec.gov 2026-10-12) ---
@@ -130,7 +150,8 @@ def parse_infotable(
     """Parse a 13F information table.
 
     Duplicate issuers (one row per manager or discretion) are merged first.
-    Weights are the share of the full reported book, rounded to 2 decimals.
+    Weights are the share of the full reported book, 2 decimals, summing
+    exactly 100 (largest remainder, D45).
     If top_n is set, only the N largest positions by value are kept, largest
     first. The long tail is left out of the published book.
     """
@@ -163,9 +184,9 @@ def parse_infotable(
             merged[key] = dict(h)
     holdings = list(merged.values())
 
-    total = sum(h["value"] for h in holdings) or 1.0
-    for h in holdings:
-        h["weight"] = round(h["value"] / total * 100, 2)
+    weights = largest_remainder([h["value"] for h in holdings])
+    for h, w in zip(holdings, weights):
+        h["weight"] = w
 
     if top_n is not None:
         holdings = sorted(holdings, key=lambda h: h["value"], reverse=True)[:top_n]

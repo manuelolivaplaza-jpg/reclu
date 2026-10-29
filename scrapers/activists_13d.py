@@ -28,7 +28,7 @@ import xml.etree.ElementTree as ET
 from datetime import date, datetime, timedelta
 
 from base import Holding, SourceAdapter, get_db, log
-from sec13f import USER_AGENT
+from sec13f import USER_AGENT, largest_remainder
 
 EFTS_URL = "https://efts.sec.gov/LATEST/search-index"
 EFTS_PAGE_SIZE = 100
@@ -262,18 +262,20 @@ def holdings_from_filings(filings: list[dict], as_of: date | None = None) -> lis
             latest[symbol] = filing
     if not latest:
         return []
-    weight = round(100.0 / len(latest), 2)
+    # D45: 617 x round(100/617, 2) sumaba 98,72; se reparte el resto.
+    items = sorted(latest.items())
+    weights = largest_remainder([1.0] * len(items))
     return [
         Holding(
             symbol=symbol,
             name=(filing.get("issuer_name") or symbol)[:120],
-            weight=weight,
+            weight=weights[i],
             asset_class="equity",
             exchange=None,
             currency="USD",
             as_of=as_of,
         )
-        for symbol, filing in sorted(latest.items())
+        for i, (symbol, filing) in enumerate(items)
     ]
 
 
