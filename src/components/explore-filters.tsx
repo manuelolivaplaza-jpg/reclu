@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X } from "lucide-react";
 import type { PortfolioCategory } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useAppHref } from "@/components/app/app-link";
 
 interface ExploreFiltersProps {
   categories: [PortfolioCategory, { label: string; description: string }][];
@@ -14,6 +15,7 @@ const ALL = { value: "all", label: "Todos" };
 
 export function ExploreFilters({ categories, activeCategory }: ExploreFiltersProps) {
   const router = useRouter();
+  const appHref = useAppHref();
   const searchParams = useSearchParams();
 
   function setCategory(value: string) {
@@ -23,7 +25,7 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
     } else {
       params.set("categoria", value);
     }
-    router.push(`/explore?${params.toString()}`);
+    router.push(appHref(`/explore?${params.toString()}`));
   }
 
   function handleSearch(formData: FormData) {
@@ -40,7 +42,7 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
     } else {
       params.delete("simbolo");
     }
-    router.push(`/explore?${params.toString()}`);
+    router.push(appHref(`/explore?${params.toString()}`));
   }
 
   const pills = [ALL, ...categories.map(([value, meta]) => ({ value, label: meta.label }))];
@@ -49,7 +51,7 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
   );
 
   function clearFilters() {
-    router.push("/explore");
+    router.push(appHref("/explore"));
   }
 
   return (

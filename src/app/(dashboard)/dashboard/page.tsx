@@ -163,7 +163,7 @@ export default async function DashboardPage() {
             {recentAlerts.map((alert) => (
               <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
                 <Link
-                  href={`/portfolio/${alert.portfolio.slug}`}
+                  href={`/app/portafolio/${alert.portfolio.slug}`}
                   className="text-[13px] text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
                 >
                   {alert.portfolio.name}
@@ -192,7 +192,7 @@ export default async function DashboardPage() {
       <section>
         <div className="flex items-center justify-between">
           <h2 className="text-[15px] font-medium text-ink-900">Tus portafolios</h2>
-          <Link href="/explore" className="text-[14px] text-ink-900 underline-offset-4 hover:underline">
+          <Link href="/app/explorar" className="text-[14px] text-ink-900 underline-offset-4 hover:underline">
             Explorar más
           </Link>
         </div>
@@ -210,7 +210,7 @@ export default async function DashboardPage() {
             <p className="mt-1 mb-4 max-w-sm text-sm text-ink-500">
               Explora el catálogo y sigue los portafolios que te interesen.
             </p>
-            <ButtonLink href="/explore">
+            <ButtonLink href="/app/explorar">
               Explorar portafolios
               <ArrowRight className="size-4" />
             </ButtonLink>

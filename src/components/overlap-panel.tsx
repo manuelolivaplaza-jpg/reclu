@@ -2,7 +2,7 @@
 import { formatPctPlain } from "@/lib/utils";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { getOverlapForSymbols } from "@/app/actions/holdings";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { CATEGORY_META, type PortfolioCategory } from "@/lib/types";

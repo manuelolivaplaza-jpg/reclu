@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { ArrowUpRight, BellRing, Search, X } from "lucide-react";
 import type { Alert, AlertType, PortfolioCategory } from "@/lib/types";
 import { LagBadge } from "@/components/lag-badge";

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ArrowUp, ArrowDown, CornerDownLeft, Search } from "lucide-react";
 import { DEMO_PORTFOLIOS } from "@/lib/demo-data";

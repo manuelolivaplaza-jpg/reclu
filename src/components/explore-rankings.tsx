@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import type { Alert, Portfolio } from "@/lib/types";
 import { cn, formatPercent } from "@/lib/utils";
 import type { BeatMarketRow } from "@/lib/performance-queries";

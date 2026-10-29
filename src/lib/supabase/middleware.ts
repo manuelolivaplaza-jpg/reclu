@@ -72,6 +72,7 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/alerts") ||
     path.startsWith("/settings") ||
     path.startsWith("/compare") ||
+    path.startsWith("/app/") ||
     path.startsWith("/admin");
   const isAuthPage = path === "/login" || path === "/signup";
 

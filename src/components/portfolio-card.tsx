@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { FollowButton } from "@/components/follow-button";
 import { Sparkline } from "@/components/sparkline";
 import { CATEGORY_META, type Portfolio } from "@/lib/types";
