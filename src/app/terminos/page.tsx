@@ -1,34 +1,32 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
 
 export const metadata = {
   title: "Términos y condiciones",
   description: "Términos de uso de reclu.cl",
 };
 
+const TOC: LegalTocItem[] = [
+  { id: "s1", label: "Naturaleza del servicio" },
+  { id: "s2", label: "No constituye asesoría financiera" },
+  { id: "s3", label: "Fuentes de información" },
+  { id: "s4", label: "Cuentas de usuario" },
+  { id: "s5", label: "Planes y pagos" },
+  { id: "s6", label: "Limitación de responsabilidad" },
+  { id: "s7", label: "Modificaciones" },
+  { id: "s8", label: "Contacto" },
+];
+
 export default function TerminosPage() {
   return (
     <>
       <SiteHeader />
       <main className="flex-1">
-        <div className="container-page max-w-3xl py-16">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
-          >
-            <ArrowLeft className="size-4" />
-            Volver al inicio
-          </Link>
+        <LegalShell kind="terminos" title="Términos y condiciones" updated="Última actualización: 10 de octubre de 2026" toc={TOC}>
 
-          <h1 className="mt-8 text-3xl font-semibold tracking-tight text-ink-900 sm:text-4xl">
-            Términos y condiciones
-          </h1>
-          <p className="mt-2 text-sm text-ink-500">Última actualización: 10 de octubre de 2026</p>
-
-          <div className="prose-reclu mt-10 flex flex-col gap-6 text-ink-700">
-            <section>
+          <div className="legal-doc flex flex-col gap-4 text-ink-700">
+            <section id="s1">
               <h2 className="text-lg font-semibold text-ink-900">1. Naturaleza del servicio</h2>
               <p className="mt-2 leading-relaxed">
                 reclu.cl es una plataforma de seguimiento de portafolios de inversión basada en
@@ -42,7 +40,7 @@ export default function TerminosPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s2">
               <h2 className="text-lg font-semibold text-ink-900">2. No constituye asesoría financiera</h2>
               <p className="mt-2 leading-relaxed">
                 Toda la información proporcionada —incluyendo resúmenes generados por inteligencia
@@ -57,7 +55,7 @@ export default function TerminosPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s3">
               <h2 className="text-lg font-semibold text-ink-900">3. Fuentes de información</h2>
               <p className="mt-2 leading-relaxed">
                 Los datos provienen de fuentes públicas de terceros (Capitol Trades, Renta 4,
@@ -67,7 +65,7 @@ export default function TerminosPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s4">
               <h2 className="text-lg font-semibold text-ink-900">4. Cuentas de usuario</h2>
               <p className="mt-2 leading-relaxed">
                 Eres responsable de mantener la confidencialidad de tus credenciales y de todas
@@ -76,7 +74,7 @@ export default function TerminosPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s5">
               <h2 className="text-lg font-semibold text-ink-900">5. Planes y pagos</h2>
               <p className="mt-2 leading-relaxed">
                 El plan gratuito permite seguir hasta 2 portafolios. El plan Pro se factura
@@ -85,7 +83,7 @@ export default function TerminosPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s6">
               <h2 className="text-lg font-semibold text-ink-900">6. Limitación de responsabilidad</h2>
               <p className="mt-2 leading-relaxed">
                 En la máxima medida permitida por la ley, reclu.cl no será responsable por
@@ -94,7 +92,7 @@ export default function TerminosPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s7">
               <h2 className="text-lg font-semibold text-ink-900">7. Modificaciones</h2>
               <p className="mt-2 leading-relaxed">
                 Nos reservamos el derecho de modificar estos términos. Los cambios sustanciales
@@ -102,7 +100,7 @@ export default function TerminosPage() {
               </p>
             </section>
 
-            <section>
+            <section id="s8">
               <h2 className="text-lg font-semibold text-ink-900">8. Contacto</h2>
               <p className="mt-2 leading-relaxed">
                 Para consultas sobre estos términos:{" "}
@@ -112,7 +110,7 @@ export default function TerminosPage() {
               </p>
             </section>
           </div>
-        </div>
+        </LegalShell>
       </main>
       <SiteFooter />
     </>
