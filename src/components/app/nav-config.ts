@@ -11,7 +11,8 @@ export type AppIconName =
   | "Settings"
   | "Sparkles"
   | "Menu"
-  | "LogOut";
+  | "LogOut"
+  | "Star";
 
 export interface AppNavItem {
   href: string;
@@ -35,6 +36,7 @@ export const NAV_EXPLORAR: AppNavItem = {
   icon: "Compass",
   match: ["/app/portafolio"],
 };
+export const NAV_SEGUIMIENTO: AppNavItem = { href: "/app/seguimiento", label: "Seguimiento", icon: "Star" };
 export const NAV_ALERTAS: AppNavItem = { href: "/alerts", label: "Alertas", icon: "BellRing" };
 export const NAV_MI_PORTAFOLIO: AppNavItem = { href: "/mi-portafolio", label: "Mi portafolio", icon: "Wallet" };
 export const NAV_COMPARAR: AppNavItem = { href: "/compare", label: "Comparar", short: "Cartera", icon: "PieChart" };
@@ -43,7 +45,7 @@ export const NAV_PLAN: AppNavItem = { href: "/upgrade", label: "Plan", icon: "Sp
 
 export function navSections(myPortfolio: boolean): AppNavSection[] {
   return [
-    { title: "Principal", items: [NAV_RESUMEN, NAV_EXPLORAR, NAV_ALERTAS] },
+    { title: "Principal", items: [NAV_RESUMEN, NAV_SEGUIMIENTO, NAV_EXPLORAR, NAV_ALERTAS] },
     {
       title: "Mis inversiones",
       items: myPortfolio ? [NAV_MI_PORTAFOLIO, NAV_COMPARAR] : [NAV_COMPARAR],
@@ -62,12 +64,12 @@ export function mobileTabs(myPortfolio: boolean): AppNavItem[] {
 }
 
 export function moreItems(myPortfolio: boolean): AppNavItem[] {
-  return myPortfolio ? [NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN] : [NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
+  return myPortfolio ? [NAV_SEGUIMIENTO, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN] : [NAV_SEGUIMIENTO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
 }
 
 /** Título para la topbar según la ruta. */
 export function titleFor(pathname: string): string {
-  const all = [NAV_RESUMEN, NAV_EXPLORAR, NAV_ALERTAS, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
+  const all = [NAV_RESUMEN, NAV_SEGUIMIENTO, NAV_EXPLORAR, NAV_ALERTAS, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
   if (pathname.startsWith("/app/portafolio")) return "Portafolio";
   const hit = all.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
   return hit?.label ?? "Reclu";
