@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/session";
 import { AppShell } from "@/components/app/app-shell";
 import { isPaidPlan, isElitePlan } from "@/lib/types";
 import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
@@ -12,10 +13,7 @@ import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [supabase, user] = await Promise.all([createClient(), getSessionUser()]);
   if (!user) redirect("/login?next=/dashboard");
 
   const { data: profile } = await supabase

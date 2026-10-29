@@ -40,22 +40,40 @@ export function FollowButton({
     }
 
     setError(null);
+    // d63: UI optimista. Se muestra el nuevo estado al instante y se revierte
+    // si el servidor rechaza (403 del muro de pago, 401, error de red).
+    const previous = following;
+    setFollowing(!previous);
     startTransition(async () => {
-      track("follow", { portfolioId, following: !following });
-      const res = await fetch("/api/follow", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ portfolioId }),
-      });
-      const data = await res.json();
+      track("follow", { portfolioId, following: !previous });
+      let data: { ok?: boolean; following?: boolean; upgrade?: unknown; error?: string; redirect?: string } = {};
+      let status = 0;
+      try {
+        const res = await fetch("/api/follow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ portfolioId }),
+        });
+        status = res.status;
+        data = await res.json().catch(() => ({}));
+      } catch {
+        setFollowing(previous);
+        setError("No se pudo conectar. Intenta de nuevo.");
+        return;
+      }
       if (data.ok) {
-        setFollowing(data.following);
+        setFollowing(Boolean(data.following));
         router.refresh();
-      } else if (data.upgrade) {
+        return;
+      }
+      setFollowing(previous);
+      if (data.upgrade || status === 403) {
         setUpsell(true);
       } else if (data.error) {
         setError(data.error);
         if (data.redirect) router.push(data.redirect);
+      } else {
+        setError("No se pudo actualizar. Intenta de nuevo.");
       }
     });
   }
