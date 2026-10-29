@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Info } from "lucide-react";
-import { AreaChart } from "@/components/charts/area-chart";
+import { PortfolioRangeChart } from "@/components/charts/portfolio-range-chart";
 import { simulateInvestment, seriesPeriodLabel } from "@/lib/simulated-investment";
 
 export interface PortfolioHeroSeriesPoint {
@@ -31,10 +31,6 @@ export interface PortfolioHeroProps {
 }
 
 const AMOUNT = 10_000;
-
-function formatUsd(value: number): string {
-  return `${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 0 }).format(value)} USD`;
-}
 
 function formatPct(value: number): string {
   return `${new Intl.NumberFormat("es-CL", { maximumFractionDigits: 1 }).format(value)}%`;
@@ -90,111 +86,66 @@ export function PortfolioHero({
     : "Variación calculada sobre la serie de rendimiento del portafolio. No es una recomendación de inversión.";
 
   return (
-    <section className="border-b border-neutral-200/70 bg-white">
-      <div className="container-page py-10">
-        <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-14">
-          {/* Izquierda: título, métrica y CTA */}
+    <section className="border-b border-ink-200 bg-white">
+      <div className="container-page py-6 sm:py-10">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-12">
+          {/* Izquierda: identidad, seguidores y CTA */}
           <div className="min-w-0">
-            {avatar ? <div className="mb-6">{avatar}</div> : null}
-            <h1 className="font-sans text-[clamp(2.25rem,5.2vw,3.75rem)] font-semibold leading-[0.98] tracking-tight text-neutral-950">
-              {simulation ? (
-                <>
-                  {name} {positive ? "subió" : "bajó"}{" "}
-                  <span className={positive ? "text-green-600" : "text-red-600"}>
-                    {formatPct(Math.abs(pct))}
-                  </span>
-                </>
-              ) : (
-                <>{name}</>
-              )}
-            </h1>
+            <div className="flex items-center gap-4">
+              {avatar ? <div className="shrink-0">{avatar}</div> : null}
+              <div className="min-w-0">
+                <h1 className="font-sans text-[clamp(1.75rem,4.4vw,2.75rem)] font-semibold leading-[1.02] tracking-tight text-ink-900">
+                  {name}
+                </h1>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-ink-500">
+                  {pill ? (
+                    <span className="inline-flex rounded-full bg-ink-100 px-2.5 py-1 font-medium text-ink-700">
+                      {pill}
+                    </span>
+                  ) : null}
+                  {simulation ? <span>Serie {periodLabel}</span> : null}
+                  {simulation ? (
+                    <span className="group relative inline-flex">
+                      <button
+                        type="button"
+                        aria-label={explanation}
+                        title={explanation}
+                        className="inline-flex size-5 items-center justify-center rounded-full border border-ink-200 text-ink-500 transition-colors hover:border-ink-900 hover:text-ink-900 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-ink-900"
+                      >
+                        <Info className="size-3" aria-hidden="true" />
+                      </button>
+                      <span
+                        role="tooltip"
+                        className="pointer-events-none absolute left-0 top-7 z-20 hidden w-72 rounded-xl border border-ink-200 bg-white p-3 text-[12px] leading-relaxed text-ink-500 shadow-sm group-hover:block group-focus-within:block"
+                      >
+                        {explanation}
+                      </span>
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
 
             {simulation ? (
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <span className="text-[13px] text-neutral-500">
-                  Retorno {periodLabel}
-                </span>
-                <span className="group relative inline-flex">
-                  <button
-                    type="button"
-                    aria-label={explanation}
-                    title={explanation}
-                    className="inline-flex size-5 items-center justify-center rounded-full border border-neutral-200/70 text-neutral-500 transition-colors hover:border-neutral-950 hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
-                  >
-                    <Info className="size-3" aria-hidden="true" />
-                  </button>
-                  <span
-                    role="tooltip"
-                    className="pointer-events-none absolute left-0 top-7 z-20 hidden w-72 rounded-xl border border-neutral-200/70 bg-white p-3 text-[12px] leading-relaxed text-neutral-500 shadow-sm group-hover:block group-focus-within:block"
-                  >
-                    {explanation}
-                  </span>
-                </span>
-                {demo ? (
-                  <span className="rounded-full bg-neutral-100 px-2.5 py-1 text-[11px] font-medium text-neutral-600">
-                    Ejemplo
-                  </span>
-                ) : null}
-              </div>
-            ) : null}
-
-            {pill ? (
-              <p className="mt-5 inline-flex rounded-full bg-green-50 px-3 py-1.5 text-[13px] font-medium text-green-700">
-                {pill}
+              <p className="mt-5 text-[15px] leading-relaxed text-ink-600">
+                {name} {positive ? "subió" : "bajó"}{" "}
+                <span className={positive ? "font-medium text-positive" : "font-medium text-negative"}>
+                  {formatPct(Math.abs(pct))}
+                </span>{" "}
+                {periodLabel}.
               </p>
             ) : null}
 
             {action ? (
-              <div className="mt-6 max-w-xs [&_button]:rounded-full [&_button]:border-neutral-950 [&_button]:bg-neutral-950 [&_button]:text-white [&_button]:hover:bg-neutral-800 [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-neutral-950">
+              <div className="fixed inset-x-0 bottom-[var(--app-tabbar-h,0px)] pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-30 border-t border-ink-200 bg-white/90 px-4 py-3 backdrop-blur md:static md:mt-6 md:max-w-xs md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none [&_button]:w-full [&_button]:rounded-full [&_button]:border-ink-900 [&_button]:bg-ink-900 [&_button]:text-white [&_button]:hover:bg-ink-800 [&_button]:focus-visible:ring-2 [&_button]:focus-visible:ring-offset-2 [&_button]:focus-visible:ring-ink-900">
                 {action}
               </div>
             ) : null}
           </div>
 
-          {/* Derecha: simulación */}
+          {/* Derecha: retorno por rango y gráfico SVG propio */}
           {simulation ? (
-            <div className="min-w-0">
-              <div className="rounded-2xl bg-[#111] p-6 text-white">
-                <p className="text-[13px] text-white/60">
-                  Si hubieras invertido {formatUsd(amount)}
-                </p>
-                <p className="num mt-2 text-[clamp(1.75rem,3.6vw,2.5rem)] leading-none tracking-tight">
-                  {formatUsd(simulation.finalValue)}
-                </p>
-                <p
-                  className={
-                    simulation.gain >= 0
-                      ? "num mt-2 text-[15px] text-green-400"
-                      : "num mt-2 text-[15px] text-red-400"
-                  }
-                >
-                  {simulation.gain >= 0 ? "+" : "−"}
-                  {formatUsd(Math.abs(simulation.gain))} ({formatPct(Math.abs(simulation.gainPct))})
-                </p>
-
-                <div className="mt-5">
-                  <AreaChart
-                    points={simulation.points.map((point) => ({
-                      x: point.date,
-                      y: point.value,
-                    }))}
-                    positive={simulation.gainPct >= 0}
-                    dark
-                    height={140}
-                    format="usd"
-                    ariaLabel={`Evolución de una inversión de ${formatUsd(
-                      amount,
-                    )}: de ${formatUsd(simulation.points[0].value)} a ${formatUsd(
-                      simulation.finalValue,
-                    )}.`}
-                  />
-                </div>
-              </div>
-              <p className="mt-3 text-xs text-neutral-500">
-                Basado en rendimiento histórico. Rentabilidades pasadas no garantizan
-                resultados futuros.
-              </p>
-            </div>
+            <PortfolioRangeChart series={cleanSeries} amount={amount} demo={demo} />
           ) : null}
         </div>
       </div>
