@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { ArrowRight } from "lucide-react";
 import { FollowButton } from "@/components/follow-button";
 import type { Portfolio } from "@/lib/types";

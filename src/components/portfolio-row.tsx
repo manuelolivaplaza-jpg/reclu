@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { Sparkline } from "@/components/sparkline";
 import type { ShowcasePortfolio } from "@/components/sections/portfolio-data";
 import { cn, formatSignedPct } from "@/lib/utils";

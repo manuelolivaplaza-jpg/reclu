@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { AppLink as Link } from "@/components/app/app-link";
 import { cn, formatPercent } from "@/lib/utils";
 import type { BeatMarketRow } from "@/lib/performance-queries";
 
