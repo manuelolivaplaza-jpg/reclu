@@ -8,11 +8,17 @@ import { cn } from "@/lib/utils";
 interface ExploreFiltersProps {
   categories: [PortfolioCategory, { label: string; description: string }][];
   activeCategory: string;
+  /** Ruta base de los filtros: "/explore" (pública) o la ruta interna de la app. */
+  basePath?: string;
 }
 
 const ALL = { value: "all", label: "Todos" };
 
-export function ExploreFilters({ categories, activeCategory }: ExploreFiltersProps) {
+export function ExploreFilters({
+  categories,
+  activeCategory,
+  basePath = "/explore",
+}: ExploreFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -23,7 +29,7 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
     } else {
       params.set("categoria", value);
     }
-    router.push(`/explore?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   function handleSearch(formData: FormData) {
@@ -40,7 +46,7 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
     } else {
       params.delete("simbolo");
     }
-    router.push(`/explore?${params.toString()}`);
+    router.push(`${basePath}?${params.toString()}`);
   }
 
   const pills = [ALL, ...categories.map(([value, meta]) => ({ value, label: meta.label }))];
@@ -49,12 +55,12 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
   );
 
   function clearFilters() {
-    router.push("/explore");
+    router.push(basePath);
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Búsqueda: borde 1px gris, radio 0, focus negro */}
+    <div className="flex flex-col gap-4">
+      {/* Búsqueda arriba: campos redondeados tipo app, foco negro */}
       <form action={handleSearch} className="flex max-w-3xl flex-col gap-3 sm:flex-row">
         <div className="relative min-w-0 flex-1">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-500" />
@@ -62,7 +68,7 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
             name="q"
             defaultValue={searchParams.get("q") ?? ""}
             placeholder="Buscar por nombre, gestor o descripción..."
-            className="h-11 w-full rounded-none border border-ink-200 bg-white pr-4 pl-9 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
+            className="h-11 w-full rounded-full border border-ink-200 bg-ink-50 pr-4 pl-9 text-[15px] text-ink-900 placeholder:text-ink-500 focus:border-ink-900 focus:bg-white focus:outline-none transition-colors"
           />
         </div>
         <div className="relative min-w-0 flex-1">
@@ -73,14 +79,14 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
             defaultValue={(searchParams.get("simbolo") ?? "").toUpperCase()}
             placeholder="Buscar por símbolo"
             autoCapitalize="characters"
-            className="h-11 w-full rounded-none border border-ink-200 bg-white pr-9 pl-9 text-[15px] text-ink-900 uppercase placeholder:normal-case placeholder:text-ink-500 focus:border-ink-900 focus:outline-none"
+            className="h-11 w-full rounded-full border border-ink-200 bg-ink-50 pr-9 pl-9 text-[15px] text-ink-900 uppercase placeholder:normal-case placeholder:text-ink-500 focus:border-ink-900 focus:bg-white focus:outline-none transition-colors"
           />
         </div>
         {hasActiveSearch && (
           <button
             type="button"
             onClick={clearFilters}
-            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 border border-ink-200 px-4 text-[14px] text-ink-900 transition-colors hover:bg-ink-50 sm:w-auto"
+            className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-ink-200 px-4 text-[14px] text-ink-900 transition-colors hover:bg-ink-50 sm:w-auto"
             aria-label="Limpiar búsqueda y filtros"
           >
             <X className="size-4" strokeWidth={1.8} />
@@ -90,10 +96,10 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
       </form>
 
       {/* Filtros: scroll horizontal fluido en móvil (sin cortar palabras),
-          filete activo inferior nítido de 1px. */}
+          chips con el activo relleno. */}
       <div className="-mx-5 overflow-x-auto no-scrollbar px-5 md:mx-0 md:px-0">
         <div
-          className="flex w-max min-w-full items-center gap-x-6 gap-y-3 pb-1"
+          className="flex w-max min-w-full items-center gap-2 pb-1"
           role="tablist"
           aria-label="Categorías"
         >
@@ -104,10 +110,10 @@ export function ExploreFilters({ categories, activeCategory }: ExploreFiltersPro
               aria-selected={activeCategory === pill.value}
               onClick={() => setCategory(pill.value)}
               className={cn(
-                "shrink-0 whitespace-nowrap border-b pb-1.5 text-[14px] transition-opacity",
+                "h-9 shrink-0 whitespace-nowrap rounded-full border px-4 text-[14px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900",
                 activeCategory === pill.value
-                  ? "border-ink-900 font-medium text-ink-900"
-                  : "border-transparent text-ink-500 hover:opacity-70",
+                  ? "border-ink-900 bg-ink-900 font-medium text-white"
+                  : "border-ink-200 bg-white text-ink-700 hover:border-ink-400 hover:text-ink-900",
               )}
             >
               {pill.label}

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, X } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 
 /**
@@ -12,6 +12,25 @@ import { ButtonLink } from "@/components/ui/button";
  * notificación simulada a /api/billing/webhook/mock — el mismo camino que
  * recorrería el webhook real del proveedor. Se llama una sola vez por id.
  */
+
+/** Círculo de estado del resultado (éxito o error). */
+function StatusMark({ ok }: { ok: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={
+        ok
+          ? "inline-flex size-14 items-center justify-center rounded-full bg-positive/10 text-positive"
+          : "inline-flex size-14 items-center justify-center rounded-full bg-negative/10 text-negative"
+      }
+    >
+      {ok ? <Check className="size-7" strokeWidth={2} /> : <X className="size-7" strokeWidth={2} />}
+    </span>
+  );
+}
+
+const CARD =
+  "mx-auto flex w-full max-w-xl flex-col gap-7 rounded-2xl border border-ink-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-8";
 
 export function UpgradeSuccess({
   planName,
@@ -42,7 +61,7 @@ export function UpgradeSuccess({
   }, [mockPaymentId]);
 
   return (
-    <div className="flex max-w-xl flex-col gap-8">
+    <div className={CARD}>
       <div>
         <Link
           href="/dashboard"
@@ -51,7 +70,8 @@ export function UpgradeSuccess({
           <ArrowLeft className="size-3.5" strokeWidth={1.5} />
           Volver al dashboard
         </Link>
-        <h1 className="mt-3 text-[28px] font-medium tracking-[-0.035em] text-ink-900 sm:text-[36px]">
+        <div className="mt-6"><StatusMark ok /></div>
+        <h1 className="mt-3 text-[26px] font-semibold tracking-tight text-ink-900 sm:text-[32px]">
           Listo. Plan {planName} activo.
         </h1>
         <p className="mt-1.5 text-[15px] text-ink-500">
@@ -61,7 +81,7 @@ export function UpgradeSuccess({
       </div>
 
       {mockPaymentId && (
-        <p className="border border-ink-200 p-4 text-[13px] text-ink-500">
+        <p className="rounded-xl bg-ink-50 p-4 text-[13px] text-ink-500">
           Modo prueba: el pago se simuló y confirmó{" "}
           {confirmed ? (
             <span className="text-ink-900">correctamente</span>
@@ -72,7 +92,7 @@ export function UpgradeSuccess({
         </p>
       )}
 
-      <ul className="flex flex-col border-t border-ink-200">
+      <ul className="flex flex-col divide-y divide-ink-100 rounded-xl border border-ink-200 px-4">
         {[
           "Acceso completo al catálogo premium",
           "Alertas en tiempo real con resúmenes AI",
@@ -80,15 +100,15 @@ export function UpgradeSuccess({
         ].map((line) => (
           <li
             key={line}
-            className="flex items-start gap-2.5 border-b border-ink-200 py-3 text-[14px] text-ink-900"
+            className="flex items-start gap-2.5 py-3 text-[14px] text-ink-900"
           >
-            <Check className="mt-0.5 size-4 shrink-0" strokeWidth={1.5} />
+            <Check className="mt-0.5 size-4 shrink-0 text-positive" strokeWidth={2} />
             <span>{line}</span>
           </li>
         ))}
       </ul>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row [&>a]:w-full sm:[&>a]:w-auto">
         <ButtonLink href="/dashboard">Ir al dashboard</ButtonLink>
         <ButtonLink href="/explore" variant="outline">
           Explorar catálogo
@@ -105,7 +125,7 @@ export function UpgradeSuccess({
 
 export function UpgradeFailure() {
   return (
-    <div className="flex max-w-xl flex-col gap-8">
+    <div className={CARD}>
       <div>
         <Link
           href="/upgrade"
@@ -114,7 +134,8 @@ export function UpgradeFailure() {
           <ArrowLeft className="size-3.5" strokeWidth={1.5} />
           Volver a intentar
         </Link>
-        <h1 className="mt-3 text-[28px] font-medium tracking-[-0.035em] text-ink-900 sm:text-[36px]">
+        <div className="mt-6"><StatusMark ok={false} /></div>
+        <h1 className="mt-3 text-[26px] font-semibold tracking-tight text-ink-900 sm:text-[32px]">
           El pago no se concretó.
         </h1>
         <p className="mt-1.5 text-[15px] text-ink-500">
@@ -123,7 +144,7 @@ export function UpgradeFailure() {
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row [&>a]:w-full sm:[&>a]:w-auto">
         <ButtonLink href="/upgrade?plan=pro">Volver al checkout</ButtonLink>
         <ButtonLink href="/dashboard" variant="outline">
           Ir al dashboard
