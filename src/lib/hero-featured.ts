@@ -13,6 +13,22 @@ import { clipSeriesForSlug } from "@/lib/card-series";
 export const FEATURED_HERO_SLUGS = ["berkshire-hathaway", "trump-dice", "ibit"] as const;
 export const FEATURED_CENTER_SLUG = "trump-dice";
 
+/**
+ * D66: la serie real de Berkshire vive en el portafolio del 13F
+ * ("berkshire-hathaway-13f", cargado por load_13f/compute_returns); la fila
+ * de catalogo "berkshire-hathaway" no tiene puntos en portfolio_performance,
+ * por eso la tarjeta salia sin grafico y con "YTD (estimado)". Si el slug
+ * destacado no tiene serie, se usa la del alias y la tarjeta enlaza a el.
+ */
+export const FEATURED_SERIES_ALIAS: Record<string, string> = {
+  "berkshire-hathaway": "berkshire-hathaway-13f",
+};
+
+/** Slugs cuyas series hay que pedir para el hero (destacados + alias). */
+export function featuredSeriesSlugs(): string[] {
+  return [...FEATURED_HERO_SLUGS, ...Object.values(FEATURED_SERIES_ALIAS)];
+}
+
 export interface SeriesPointPct {
   date: string;
   /** Retorno acumulado en % (value_pct). */
@@ -62,8 +78,20 @@ export function buildFeaturedHeroCards(
     const p = portfolios.find((item) => item.slug === slug);
     if (!p) continue;
     // D40: misma serie y mismo recorte que /trump-dice y el detalle.
-    const series = clipSeriesForSlug(p.slug, seriesById.get(p.id) ?? []);
-    const cum = cumulativeFromPct(series);
+    let series = clipSeriesForSlug(p.slug, seriesById.get(p.id) ?? []);
+    let cum = cumulativeFromPct(series);
+    let linkSlug = p.slug;
+    const aliasSlug = FEATURED_SERIES_ALIAS[slug];
+    const alias = aliasSlug ? portfolios.find((item) => item.slug === aliasSlug) : undefined;
+    if (cum === null && alias) {
+      const aliasSeries = clipSeriesForSlug(alias.slug, seriesById.get(alias.id) ?? []);
+      const aliasCum = cumulativeFromPct(aliasSeries);
+      if (aliasCum !== null) {
+        series = aliasSeries;
+        cum = aliasCum;
+        linkSlug = alias.slug;
+      }
+    }
     let returnPct: number | null = null;
     let periodLabel = "";
     if (cum !== null) {
@@ -76,7 +104,7 @@ export function buildFeaturedHeroCards(
     }
     if (returnPct === null) continue;
     cards.push({
-      slug: p.slug,
+      slug: linkSlug,
       name: p.name,
       manager: p.manager,
       returnPct,

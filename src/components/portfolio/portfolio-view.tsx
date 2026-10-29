@@ -1,4 +1,5 @@
 import { notFound, permanentRedirect } from "next/navigation";
+import { slugImage } from "@/lib/portfolio-avatar";
 import { connection } from "next/server";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -307,7 +308,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
           avatar={
             <>
               <PortfolioAvatar portfolio={portfolio} size={96} />
-              {portfolio.portrait_image ? (
+              {portfolio.portrait_image && !slugImage(portfolio.slug) ? (
                 <PortraitCredit
                   portraitSource={portfolio.portrait_source}
                   portraitLicense={portfolio.portrait_license}

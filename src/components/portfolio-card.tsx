@@ -1,4 +1,5 @@
 import { AppLink as Link } from "@/components/app/app-link";
+import { slugImage } from "@/lib/portfolio-avatar";
 import { FollowButton } from "@/components/follow-button";
 import { Sparkline } from "@/components/sparkline";
 import { CATEGORY_META, type Portfolio } from "@/lib/types";
@@ -47,7 +48,7 @@ export function PortfolioCard({
           portfolio={portfolio}
           size={64}
           title={
-            portfolio.portrait_image
+            portfolio.portrait_image && !slugImage(portfolio.slug)
               ? portraitCreditText(portfolio.portrait_source, portfolio.portrait_license, portfolio.portrait_author)
               : undefined
           }

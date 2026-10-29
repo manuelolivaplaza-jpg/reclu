@@ -10,6 +10,7 @@
  *   una propuesta que la interfaz muestra para que el usuario confirme. El
  *   guardado real lo hace la server action saveHoldingsByMode tras el clic.
  */
+import { slugImage } from "@/lib/portfolio-avatar";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { holdingLimitFor, roleFor } from "@/lib/access";
@@ -188,6 +189,8 @@ interface PortfolioRow {
 const PORTFOLIO_COLS = "id, slug, name, category, portrait_image, cover_image";
 
 function imageOf(p: PortfolioRow): string | null {
+  const fixed = slugImage(p.slug);
+  if (fixed) return fixed;
   if (p.portrait_image && /^[\w.-]+$/.test(p.portrait_image)) return `/portraits/${p.portrait_image}`;
   if (p.cover_image && /^[\w.-]+$/.test(p.cover_image)) return `/covers/${p.cover_image}`;
   return null;
