@@ -26,8 +26,9 @@ describe("d72: URL del sitio con fallback", () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;
     process.env.VERCEL_ENV = "production";
     process.env.VERCEL_PROJECT_PRODUCTION_URL = "prod.ejemplo.cl";
+    delete process.env.NEXT_PUBLIC_BRAND_DOMAIN;
     process.env.VERCEL_URL = "deploy-123.vercel.app";
-    expect(siteUrl()).toBe("https://prod.ejemplo.cl");
+    expect(siteUrl()).toBe("https://fraccion.si");
   });
   it("en preview cae a VERCEL_URL", () => {
     delete process.env.NEXT_PUBLIC_SITE_URL;

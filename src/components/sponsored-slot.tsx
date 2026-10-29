@@ -73,7 +73,7 @@ export function SponsoredSlot({
       </a>
       <p className="mt-3 text-[11px] leading-relaxed text-ink-500">
         Espacio pagado por {name}. No es una recomendación de inversión ni una
-        cartera o alerta de reclu.cl.
+        cartera o alerta de fraccion.si.
       </p>
     </aside>
   );

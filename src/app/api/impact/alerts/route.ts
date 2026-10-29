@@ -306,7 +306,7 @@ export async function POST(request: Request) {
   }
 
   const resendKey = process.env.RESEND_API_KEY ?? "";
-  const from = process.env.EMAIL_FROM ?? "reclu.cl <alertas@reclu.cl>";
+  const from = process.env.EMAIL_FROM ?? "fraccion.si <alertas@fraccion.si>";
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN ?? "";
   if (!resendKey && !telegramToken) {
     return Response.json(

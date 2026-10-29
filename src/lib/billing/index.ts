@@ -60,7 +60,7 @@ function hasFlowKeys(): boolean {
 }
 
 function hasMercadoPagoKeys(): boolean {
-  return !!process.env.MP_ACCESS_TOKEN;
+  return !!(process.env.MERCADOPAGO_ACCESS_TOKEN || process.env.MP_ACCESS_TOKEN);
 }
 
 /** Proveedor configurado — falla si el pedido no tiene claves. */
@@ -71,7 +71,10 @@ export function getPaymentProvider(): PaymentProvider {
   if (process.env.CHECKOUT_ENABLED === "false") {
     throw new PaymentsNotConfiguredError("disabled");
   }
-  const requested = (process.env.PAYMENT_PROVIDER ?? "mock").toLowerCase();
+  // Sin PAYMENT_PROVIDER explícito: si hay token de Mercado Pago se usa
+  // Mercado Pago; si no, el mock (solo donde isMockAllowed lo permite).
+  const explicit = (process.env.PAYMENT_PROVIDER ?? "").trim().toLowerCase();
+  const requested = explicit || (hasMercadoPagoKeys() ? "mercadopago" : "mock");
 
   if (requested === "flow") {
     if (hasFlowKeys()) return createFlowProvider(getPaymentMode());

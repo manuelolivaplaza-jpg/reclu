@@ -5,7 +5,7 @@ import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
 
 export const metadata = withSeo("/terminos", {
   title: "Términos y condiciones",
-  description: "Términos de uso de reclu.cl",
+  description: "Términos de uso de fraccion.si",
 });
 
 const TOC: LegalTocItem[] = [
@@ -30,13 +30,13 @@ export default function TerminosPage() {
             <section id="s1">
               <h2 className="text-lg font-semibold text-ink-900">1. Naturaleza del servicio</h2>
               <p className="mt-2 leading-relaxed">
-                reclu.cl es una plataforma de seguimiento de portafolios de inversión basada en
+                fraccion.si es una plataforma de seguimiento de portafolios de inversión basada en
                 información pública. El servicio consiste en monitorear fuentes públicas
                 (declaraciones de congresistas, informes de corredoras de bolsa, filings
                 regulatorios) y enviar alertas por correo electrónico cuando se detectan cambios.
               </p>
               <p className="mt-2 leading-relaxed font-medium text-ink-900">
-                reclu.cl NO ejecuta órdenes de compra o venta, NO custodia fondos, NO administra
+                fraccion.si NO ejecuta órdenes de compra o venta, NO custodia fondos, NO administra
                 inversiones y NO tiene acceso a cuentas de corretaje de los usuarios.
               </p>
             </section>
@@ -60,7 +60,7 @@ export default function TerminosPage() {
               <h2 className="text-lg font-semibold text-ink-900">3. Fuentes de información</h2>
               <p className="mt-2 leading-relaxed">
                 Los datos provienen de fuentes públicas de terceros (Capitol Trades, Renta 4,
-                InfoProbidad, SEC, entre otras). reclu.cl no garantiza la exactitud, integridad
+                InfoProbidad, SEC, entre otras). fraccion.si no garantiza la exactitud, integridad
                 u oportunidad de dicha información, y no se responsabiliza por errores u
                 omisiones en las fuentes originales.
               </p>
@@ -87,7 +87,7 @@ export default function TerminosPage() {
             <section id="s6">
               <h2 className="text-lg font-semibold text-ink-900">6. Limitación de responsabilidad</h2>
               <p className="mt-2 leading-relaxed">
-                En la máxima medida permitida por la ley, reclu.cl no será responsable por
+                En la máxima medida permitida por la ley, fraccion.si no será responsable por
                 daños indirectos, incidentales o consecuentes derivados del uso del servicio,
                 incluyendo pérdidas financieras resultantes de decisiones de inversión.
               </p>
@@ -105,8 +105,8 @@ export default function TerminosPage() {
               <h2 className="text-lg font-semibold text-ink-900">8. Contacto</h2>
               <p className="mt-2 leading-relaxed">
                 Para consultas sobre estos términos:{" "}
-                <a href="mailto:hola@reclu.cl" className="font-medium text-ink-900 underline-offset-4 hover:underline">
-                  hola@reclu.cl
+                <a href="mailto:hola@fraccion.si" className="font-medium text-ink-900 underline-offset-4 hover:underline">
+                  hola@fraccion.si
                 </a>
               </p>
             </section>

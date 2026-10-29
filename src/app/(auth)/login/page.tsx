@@ -5,7 +5,7 @@ import { AuthShell } from "@/components/public/auth-shell";
 
 export const metadata = withSeo("/login", {
   title: "Entrar",
-  description: "Accede a tu dashboard de reclu.cl",
+  description: "Accede a tu dashboard de fraccion.si",
 });
 
 export default function LoginPage() {

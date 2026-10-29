@@ -273,7 +273,7 @@ export function createFlowProvider(mode: "sandbox" | "production"): PaymentProvi
       // 1. Crear (o reutilizar) el cliente en Flow. externalId = user id,
       //    así un usuario existente devuelve el mismo customerId.
       const customer = await flowPost(config, "customer/create", {
-        name: req.email.split("@")[0] || "Usuario reclu",
+        name: req.email.split("@")[0] || "Usuario Fraccion",
         email: req.email,
         externalId: req.userId,
       });

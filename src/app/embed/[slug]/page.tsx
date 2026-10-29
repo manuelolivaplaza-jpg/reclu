@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: EmbedPageProps) {
   const { slug } = await params;
   const portfolio = await getPortfolioBySlug(slug);
   return {
-    title: portfolio ? `${portfolio.name} — Datos de reclu.cl` : "reclu.cl",
+    title: portfolio ? `${portfolio.name} — Datos de fraccion.si` : "fraccion.si",
     robots: { index: false },
   };
 }

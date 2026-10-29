@@ -68,7 +68,7 @@ export function AuthForm({ mode }: AuthFormProps) {
       </div>
 
       <h1 className="mt-4 text-[30px] font-semibold leading-[1.05] tracking-[-0.035em] text-ink-900 md:text-[34px]">
-        {isLogin ? "Entrar a reclu" : "Crea tu cuenta"}
+        {isLogin ? "Entrar a Fraccion" : "Crea tu cuenta"}
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-ink-500">
         {isLogin

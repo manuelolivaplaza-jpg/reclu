@@ -22,7 +22,7 @@ const KINDS: LegalNoticeKind[] = [
 describe("descargos legales", () => {
   it("fija el texto de la Ley Fintec", () => {
     expect(FINTEC_NOTICE).toBe(
-      "reclu.cl entrega información pública con fines informativos. No ejecuta órdenes ni da asesoría de inversión personalizada (Ley 21.521).",
+      "fraccion.si entrega información pública con fines informativos. No ejecuta órdenes ni da asesoría de inversión personalizada (Ley 21.521).",
     );
     expect(FINTEC_NOTICE).not.toMatch(/recomendamos comprar/i);
   });

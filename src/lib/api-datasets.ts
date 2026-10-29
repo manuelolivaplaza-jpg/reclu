@@ -62,7 +62,7 @@ export const API_DATASETS = {
     license: "Uso informativo; términos de las corredoras pendientes de revisión",
     licenseUrl: "https://www.cmfchile.cl/",
     attribution:
-      "Fuente: BICE Inversiones, MBI Corredores de Bolsa y consenso de corredoras de reclu.cl.",
+      "Fuente: BICE Inversiones, MBI Corredores de Bolsa y consenso de corredoras de fraccion.si.",
     sourceUrl: "https://mercadosenlinea.biceinversiones.cl/reportes/cartera-inversiones-bice.pdf",
     filters: ["symbol", "portfolio", "page", "per_page"],
   },

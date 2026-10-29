@@ -115,7 +115,7 @@ afterEach(() => {
 describe("texto de consentimiento", () => {
   it("usa el texto de la §2.5: finalidad, datos sensibles, IA y borrado", () => {
     const text = portfolioConsentParagraphs("google/gemini-2.0-flash-001").join(" ");
-    expect(text).toMatch(/autorizo a reclu a tratar los datos de mi cartera/i);
+    expect(text).toMatch(/autorizo a fraccion a tratar los datos de mi cartera/i);
     expect(text).toMatch(/datos sensibles/i);
     expect(text).toMatch(/openrouter inc\./i);
     expect(text).toContain("google/gemini-2.0-flash-001");

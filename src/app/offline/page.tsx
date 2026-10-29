@@ -24,7 +24,7 @@ export default function OfflinePage() {
           Volver al inicio
         </Link>
         <p className="mt-10 max-w-md text-xs leading-relaxed text-ink-500">
-          reclu muestra información pública con fines informativos. No constituye
+          Fraccion muestra información pública con fines informativos. No constituye
           asesoría de inversión.
         </p>
       </main>

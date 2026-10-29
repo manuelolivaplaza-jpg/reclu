@@ -1,6 +1,6 @@
 import { ogCard, OG_SIZE } from "@/lib/og-card";
 
-export const alt = "¿Quién tiene esta acción? reclu.cl";
+export const alt = "¿Quién tiene esta acción? fraccion.si";
 export const size = OG_SIZE;
 export const contentType = "image/png";
 

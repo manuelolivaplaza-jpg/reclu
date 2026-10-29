@@ -72,7 +72,7 @@ export function SiteHeader() {
       <div className="container-page flex h-16 items-center justify-between">
         <Link
           href="/"
-          aria-label="reclu inicio"
+          aria-label="Fraccion inicio"
           className="shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
         >
           <LogoLockup />

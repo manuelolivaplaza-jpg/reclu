@@ -91,7 +91,7 @@ describe("widgetIframeCode", () => {
   it("genera el iframe con la URL, altura y atribución correctas", () => {
     const codigo = widgetIframeCode("insiders", "https://app.reclu.cl");
     expect(codigo).toBe(
-      `<iframe src="https://app.reclu.cl/embed/widget/insiders" width="100%" height="400" style="border:0" title="Datos de reclu.cl" loading="lazy"></iframe>`,
+      `<iframe src="https://app.reclu.cl/embed/widget/insiders" width="100%" height="400" style="border:0" title="Datos de fraccion.si" loading="lazy"></iframe>`,
     );
   });
 
@@ -105,7 +105,7 @@ describe("widgetIframeCode", () => {
   it("la atribución va dentro del propio iframe", () => {
     for (const tipo of WIDGET_TIPOS) {
       const codigo = widgetIframeCode(tipo, "https://app.reclu.cl");
-      expect(codigo).toContain('title="Datos de reclu.cl"');
+      expect(codigo).toContain('title="Datos de fraccion.si"');
     }
   });
 
@@ -182,7 +182,7 @@ describe("página del widget (/embed/widget/[tipo])", () => {
   });
 
   it("muestra la atribución y no consulta datos de InfoProbidad", () => {
-    expect(fuentePage).toContain("Datos de reclu.cl");
+    expect(fuentePage).toContain("Datos de fraccion.si");
     expect(fuentePage).not.toMatch(/from\s+"@\/lib\/infoprobidad"/);
   });
 });
@@ -198,7 +198,7 @@ describe("página /medios", () => {
 
   it("incluye las condiciones de uso con la atribución pedida", () => {
     expect(fuenteMedios).toContain("Condiciones de uso");
-    expect(fuenteMedios).toContain("Datos de reclu.cl");
+    expect(fuenteMedios).toContain("Datos de fraccion.si");
     expect(fuenteMedios).toContain("5 U.S.C. § 13107");
     expect(fuenteMedios).toContain("21.521");
   });

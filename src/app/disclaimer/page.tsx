@@ -7,11 +7,11 @@ import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
 export const metadata = withSeo("/disclaimer", {
   title: "Disclaimer de inversión",
-  description: "Información importante sobre el uso de reclu.cl",
+  description: "Información importante sobre el uso de fraccion.si",
 });
 
 const TOC: LegalTocItem[] = [
-  { id: "s1", label: "Qué NO hace reclu.cl" },
+  { id: "s1", label: "Qué NO hace fraccion.si" },
   { id: "s2", label: "Riesgos" },
   { id: "s3", label: "Resúmenes generados por IA" },
   { id: "s4", label: "Mi portafolio" },
@@ -29,12 +29,12 @@ export default function DisclaimerPage() {
           <div className="legal-doc flex flex-col gap-4 text-ink-700">
             <p className="rounded-2xl border border-ink-900 bg-white p-5 leading-relaxed text-ink-800 shadow-sm">
               <strong className="font-semibold">Información pública, no es consejo de inversión.</strong>{" "}
-              Todo el contenido de reclu.cl —incluidos los resúmenes generados por inteligencia
+              Todo el contenido de fraccion.si —incluidos los resúmenes generados por inteligencia
               artificial— tiene fines exclusivamente informativos.
             </p>
 
             <section id="s1">
-              <h2 className="text-lg font-semibold text-ink-900">Qué NO hace reclu.cl</h2>
+              <h2 className="text-lg font-semibold text-ink-900">Qué NO hace fraccion.si</h2>
               <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 leading-relaxed">
                 <li>No ejecuta órdenes de compra ni venta por ti.</li>
                 <li>No custodia ni administra tu dinero.</li>
@@ -98,14 +98,14 @@ export default function DisclaimerPage() {
             <section id="s6">
               <h2 className="text-lg font-semibold text-ink-900">Regulación</h2>
               <p className="mt-2 leading-relaxed">
-                reclu.cl no está registrada como corredora de bolsa ni asesora financiera ante
+                fraccion.si no está registrada como corredora de bolsa ni asesora financiera ante
                 la Comisión para el Mercado Financiero (CMF) de Chile, la SEC de EE.UU., ni
                 ningún otro regulador. El servicio es puramente informativo.
               </p>
             </section>
 
             <p className="mt-4 border-t border-ink-200 pt-6 text-sm leading-relaxed text-ink-500">
-              Al utilizar reclu.cl reconoces haber leído y entendido este disclaimer. Si no
+              Al utilizar fraccion.si reconoces haber leído y entendido este disclaimer. Si no
               estás de acuerdo, no utilices el servicio.
             </p>
           </div>

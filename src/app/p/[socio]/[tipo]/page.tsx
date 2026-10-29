@@ -46,16 +46,16 @@ export async function generateMetadata({
 }: PartnerPageProps): Promise<Metadata> {
   const { socio, tipo } = await params;
   if (!isPartnerWidgetTipo(tipo)) {
-    return { title: "reclu.cl", robots: { index: false } };
+    return { title: "fraccion.si", robots: { index: false } };
   }
   const partner = await getPartnerBySlug(socio);
   return {
     title: partner
-      ? `${partner.nombre} — Datos de reclu.cl`
-      : "Datos de reclu.cl",
+      ? `${partner.nombre} — Datos de fraccion.si`
+      : "Datos de fraccion.si",
     description: partner
-      ? `Datos públicos de reclu.cl para ${partner.nombre}. Información informativa, no es recomendación de inversión.`
-      : "Datos públicos de reclu.cl.",
+      ? `Datos públicos de fraccion.si para ${partner.nombre}. Información informativa, no es recomendación de inversión.`
+      : "Datos públicos de fraccion.si.",
     robots: { index: false },
   };
 }
@@ -100,7 +100,7 @@ export default async function PartnerWidgetPage({
               </h1>
             </div>
           </div>
-          <p className="shrink-0 text-[11px] text-ink-500">Datos de reclu.cl</p>
+          <p className="shrink-0 text-[11px] text-ink-500">Datos de fraccion.si</p>
         </div>
       </header>
 
@@ -115,8 +115,8 @@ export default async function PartnerWidgetPage({
       <footer className="border-t border-ink-200">
         <div className="container-page py-6">
           <p className="text-[12px] leading-relaxed text-ink-500">
-            Datos públicos de reclu.cl. La atribución{" "}
-            <span className="text-ink-900">“Datos de reclu.cl”</span> es
+            Datos públicos de fraccion.si. La atribución{" "}
+            <span className="text-ink-900">“Datos de fraccion.si”</span> es
             obligatoria: no se puede quitar ni modificar el widget.
           </p>
           <div className="mt-4">
@@ -262,7 +262,7 @@ async function RankingPanel({ partner }: { partner: Partner }) {
         ))}
       </ul>
       <p className="mt-4 text-[11px] leading-snug text-ink-500">
-        Incluye los portafolios que pierden. Metodología en reclu.cl/metodologia.
+        Incluye los portafolios que pierden. Metodología en fraccion.si/metodologia.
       </p>
     </div>
   );

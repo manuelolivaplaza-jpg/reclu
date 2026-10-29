@@ -12,7 +12,7 @@ const REQUIRED_SERVER = ["SUPABASE_SERVICE_ROLE_KEY"] as const;
 
 function formatMissing(missing: string[], context: string): string {
   return (
-    `[reclu.cl] Missing required environment variable(s): ${missing.join(", ")}. ` +
+    `[fraccion.si] Missing required environment variable(s): ${missing.join(", ")}. ` +
     `Required for: ${context}. ` +
     `Copy .env.example to .env.local and fill in the values (see README.md).`
   );

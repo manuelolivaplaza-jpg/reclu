@@ -8,8 +8,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "reclu — Seguimiento de portafolios",
-    short_name: "reclu",
+    name: "Fraccion — Seguimiento de portafolios",
+    short_name: "Fraccion",
     description:
       "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email con análisis AI cuando hay cambios.",
     start_url: "/?utm_source=pwa",

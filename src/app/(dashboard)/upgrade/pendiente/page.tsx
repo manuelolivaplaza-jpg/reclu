@@ -35,7 +35,7 @@ export default async function UpgradePendientePage() {
             : "Tu pago está en proceso. Esto puede tardar unos minutos; tu plan se activa automáticamente al confirmarse. No necesitas hacer nada más."}
       </p>
       <p className="border border-ink-200 p-4 text-[13px] text-ink-500">
-        Si pasadas unas horas tu plan sigue sin activarse, escríbenos a hola@reclu.cl y
+        Si pasadas unas horas tu plan sigue sin activarse, escríbenos a hola@fraccion.si y
         lo resolvemos a mano.
       </p>
     </div>

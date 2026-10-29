@@ -86,7 +86,7 @@ export function UpgradeSuccess({
           {confirmed ? (
             <span className="text-ink-900">correctamente</span>
           ) : (
-            <span>…si no ves tu plan activo, escribe a hola@reclu.cl</span>
+            <span>…si no ves tu plan activo, escribe a hola@fraccion.si</span>
           )}
           . No se realizó ningún cobro real.
         </p>
@@ -140,7 +140,7 @@ export function UpgradeFailure() {
         </h1>
         <p className="mt-1.5 text-[15px] text-ink-500">
           No se realizó ningún cobro. Puedes reintentarlo ahora o escribirnos a
-          hola@reclu.cl si el problema persiste.
+          hola@fraccion.si si el problema persiste.
         </p>
       </div>
 

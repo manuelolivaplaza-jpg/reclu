@@ -14,7 +14,7 @@ import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
 
 const CONSENT_LABEL =
-  "Acepto recibir el newsletter semanal de reclu.cl en este correo. " +
+  "Acepto recibir el newsletter semanal de fraccion.si en este correo. " +
   "Se usa solo para enviarme ese resumen y puedo darme de baja en cualquier momento.";
 
 type State = "idle" | "sending" | "sent" | "error";

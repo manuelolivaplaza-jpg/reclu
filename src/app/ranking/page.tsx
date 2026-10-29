@@ -29,7 +29,7 @@ import { cn, formatPercent } from "@/lib/utils";
 export const metadata: Metadata = withSeo("/ranking", {
   title: "Ranking honesto — todas las fuentes contra el mercado",
   description:
-    "Cada portafolio y estudio de reclu.cl contra el benchmark de su país: S&P 500 (SPY) en Estados Unidos e IPSA (ECH en CLP) en Chile. Incluye las fuentes que pierden, con fecha de corte y metodología.",
+    "Cada portafolio y estudio de fraccion.si contra el benchmark de su país: S&P 500 (SPY) en Estados Unidos e IPSA (ECH en CLP) en Chile. Incluye las fuentes que pierden, con fecha de corte y metodología.",
 });
 
 // Lee cookies de auth (getPortfolios) por request; nunca se prerenderiza.
@@ -124,7 +124,7 @@ export default async function RankingPage() {
     <>
       <SiteHeader />
       <main id="main" className="bg-app-canvas">
-        <JsonLd data={itemListSchema("Ranking honesto de reclu.cl", rows.filter((r) => r.rank !== null).map((r) => ({ name: r.name })))} />
+        <JsonLd data={itemListSchema("Ranking honesto de fraccion.si", rows.filter((r) => r.rank !== null).map((r) => ({ name: r.name })))} />
         <div className="container-page py-8 sm:py-12 md:py-16">
           {/* Hero */}
           <header className="max-w-3xl">

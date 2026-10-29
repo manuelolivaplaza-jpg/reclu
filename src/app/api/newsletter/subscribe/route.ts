@@ -1,3 +1,4 @@
+import { brandUrl } from "@/lib/brand";
 /**
  * POST /api/newsletter/subscribe — alta con doble opt-in.
  *
@@ -18,7 +19,7 @@ import { firstZodMessage, emailSchema } from "@/lib/validation";
 
 /** Texto que se guarda junto al consentimiento. Debe coincidir con la UI. */
 export const NEWSLETTER_CONSENT_TEXT =
-  "Acepto recibir el newsletter semanal de reclu.cl en este correo. " +
+  "Acepto recibir el newsletter semanal de fraccion.si en este correo. " +
   "Se usa solo para enviarme ese resumen y puedo darme de baja en cualquier momento.";
 
 export const newsletterSubscribeSchema = z.object({
@@ -37,7 +38,7 @@ export const newsletterSubscribeSchema = z.object({
 
 function siteUrl(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  const base = configured && configured.startsWith("http") ? configured : "https://reclu.cl";
+  const base = configured && configured.startsWith("http") ? configured : brandUrl();
   return base.replace(/\/+$/, "");
 }
 
@@ -59,8 +60,8 @@ async function sendConfirmationEmail(email: string, token: string): Promise<bool
 <html lang="es">
 <body style="margin:0;padding:0;background:#ffffff;color:#0a0a0a;font-family:'Instrument Sans',Helvetica,Arial,sans-serif;">
   <div style="max-width:560px;margin:0 auto;padding:32px 24px;">
-    <p style="margin:0 0 24px;padding-bottom:16px;border-bottom:1px solid #e6e6e6;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">reclu.cl</p>
-    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Confirma que quieres recibir el newsletter semanal de reclu.cl.</p>
+    <p style="margin:0 0 24px;padding-bottom:16px;border-bottom:1px solid #e6e6e6;font-size:12px;letter-spacing:.08em;text-transform:uppercase;">fraccion.si</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.6;">Confirma que quieres recibir el newsletter semanal de fraccion.si.</p>
     <p style="margin:0 0 24px;"><a href="${link}" style="display:inline-block;background:#0a0a0a;color:#ffffff;padding:12px 20px;border-radius:999px;text-decoration:none;font-size:14px;">Confirmar suscripción</a></p>
     <p style="margin:0;font-size:12px;line-height:1.6;color:#6b6b6b;">Si no pediste esta suscripción, ignora este correo: no recibirás nada más.</p>
     <p style="margin:24px 0 0;padding-top:16px;border-top:1px solid #e6e6e6;font-size:11px;line-height:1.6;color:#6b6b6b;">Información pública con fines informativos. No constituye asesoría de inversión.</p>
@@ -78,7 +79,7 @@ async function sendConfirmationEmail(email: string, token: string): Promise<bool
       body: JSON.stringify({
         from,
         to: email,
-        subject: "Confirma tu suscripción al newsletter de reclu.cl",
+        subject: "Confirma tu suscripción al newsletter de fraccion.si",
         html,
       }),
     });

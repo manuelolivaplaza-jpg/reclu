@@ -49,7 +49,7 @@ function subjectOf(draft: Draft): string {
   if (typeof subject === "string" && subject.trim().length > 0) {
     return subject.trim();
   }
-  return "reclu.cl — novedades";
+  return "fraccion.si — novedades";
 }
 
 function DraftPreview({ draft }: { draft: Draft }) {
@@ -63,7 +63,7 @@ function DraftPreview({ draft }: { draft: Draft }) {
           <div className="size-9 shrink-0 rounded-full bg-ink-900" aria-hidden />
           <div className="min-w-0">
             <p className="text-sm font-medium text-ink-900">
-              reclu.cl <span className="font-normal text-ink-500">@reclu_cl</span>
+              fraccion.si <span className="font-normal text-ink-500">@reclu_cl</span>
             </p>
             <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink-900">
               {draft.body}
@@ -101,7 +101,7 @@ function DraftPreview({ draft }: { draft: Draft }) {
         </div>
         <div className="p-3">
           <p className="text-xs uppercase tracking-[0.08em] text-ink-500">
-            reclu.cl
+            fraccion.si
           </p>
           <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-ink-900">
             {draft.body}

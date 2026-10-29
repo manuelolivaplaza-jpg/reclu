@@ -66,7 +66,7 @@ export function isWidgetTipo(value: string): value is WidgetTipo {
 /** Código de iframe listo para pegar. La atribución va dentro del widget. */
 export function widgetIframeCode(tipo: WidgetTipo, baseUrl: string): string {
   const src = `${baseUrl.replace(/\/+$/, "")}/embed/widget/${tipo}`;
-  return `<iframe src="${src}" width="100%" height="${WIDGET_META[tipo].height}" style="border:0" title="Datos de reclu.cl" loading="lazy"></iframe>`;
+  return `<iframe src="${src}" width="100%" height="${WIDGET_META[tipo].height}" style="border:0" title="Datos de fraccion.si" loading="lazy"></iframe>`;
 }
 
 /**

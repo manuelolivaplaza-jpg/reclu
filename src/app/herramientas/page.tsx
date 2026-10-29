@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 export const metadata: Metadata = withSeo("/herramientas", {
   title: "Herramientas",
   description:
-    "Calculadoras y simuladores de reclu.cl: backtest de portafolios y asistente para la Declaración Jurada 1929 y el Formulario 22.",
+    "Calculadoras y simuladores de fraccion.si: backtest de portafolios y asistente para la Declaración Jurada 1929 y el Formulario 22.",
 });
 
 const HERRAMIENTAS = [

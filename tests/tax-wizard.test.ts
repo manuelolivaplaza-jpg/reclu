@@ -131,7 +131,7 @@ describe("CSV de salida", () => {
   });
 
   it("nombra el archivo con el año", () => {
-    expect(nombreArchivoCsv(2025)).toBe("resumen-dj1929-reclu-2025.csv");
+    expect(nombreArchivoCsv(2025)).toBe("resumen-dj1929-fraccion-2025.csv");
   });
 });
 

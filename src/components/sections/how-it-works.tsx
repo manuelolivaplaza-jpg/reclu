@@ -54,7 +54,7 @@ function StepArt({ step }: { step: string }) {
           </g>
         ))}
         <rect x="140" y="26" width="80" height="44" rx="12" fill="#0a0a0a" />
-        <text x="180" y="45" textAnchor="middle" fontSize="11" fill="#fff" fontWeight="600">reclu</text>
+        <text x="180" y="45" textAnchor="middle" fontSize="11" fill="#fff" fontWeight="600">fraccion</text>
         <text x="180" y="59" textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.6)">normaliza</text>
       </svg>
     );

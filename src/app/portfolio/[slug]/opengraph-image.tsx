@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { getPortfolioBySlug } from "@/lib/queries";
 
-export const alt = "Portafolio en reclu.cl";
+export const alt = "Portafolio en fraccion.si";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -65,7 +65,7 @@ export default async function OpenGraphImage({ params }: OGProps) {
               color: "#ffffff",
             }}
           >
-            reclu
+            fraccion
           </div>
           <div
             style={{
@@ -146,7 +146,7 @@ export default async function OpenGraphImage({ params }: OGProps) {
             color: "#8a8a8a",
           }}
         >
-          <div style={{ display: "flex" }}>reclu.cl · Seguimiento de portafolios</div>
+          <div style={{ display: "flex" }}>fraccion.si · Seguimiento de portafolios</div>
           <div style={{ display: "flex" }}>Información pública, no asesoría</div>
         </div>
       </div>

@@ -172,11 +172,11 @@ export function armarCsvResumen(filas: readonly ResumenInstrumento[]): string {
 }
 
 export function nombreArchivoCsv(anio: number): string {
-  return `resumen-dj1929-reclu-${anio}.csv`;
+  return `resumen-dj1929-fraccion-${anio}.csv`;
 }
 
 export function nombreArchivoImportado(): string {
-  return "operaciones-dj1929-reclu.csv";
+  return "operaciones-dj1929-fraccion.csv";
 }
 
 /* ------------------------------------------------------------------ */

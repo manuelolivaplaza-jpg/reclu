@@ -26,7 +26,7 @@ export type FichaAprende = {
 
 /** Aviso visible al pie de /aprende. Ver TODO(F16) arriba. */
 export const AVISO_APRENDE =
-  "Estas fichas resumen fuentes públicas y tienen fines solo informativos. No son asesoría de inversión, tributaria, legal ni contable, ni una recomendación personalizada de compra o venta. Reclu no ejecuta órdenes, no las enruta y no gestiona carteras. Los informes de funcionarios de Estados Unidos que cubre el 5 U.S.C. § 13107 se muestran sin muro de pago. Los datos personales que ya traen las fuentes se usan al mínimo y solo para explicar esa información pública (leyes 19.628 y 21.719).";
+  "Estas fichas resumen fuentes públicas y tienen fines solo informativos. No son asesoría de inversión, tributaria, legal ni contable, ni una recomendación personalizada de compra o venta. Fraccion no ejecuta órdenes, no las enruta y no gestiona carteras. Los informes de funcionarios de Estados Unidos que cubre el 5 U.S.C. § 13107 se muestran sin muro de pago. Los datos personales que ya traen las fuentes se usan al mínimo y solo para explicar esa información pública (leyes 19.628 y 21.719).";
 
 export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
@@ -80,7 +80,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
     cuerpo: [
       "Unusual Whales resume la STOCK Act de 2012 así: los miembros del Congreso deben informar sus operaciones en acciones dentro de 30 a 45 días, aunque algunos presentan en 24 a 48 horas. El aviso sale cuando el documento ya está publicado, de modo que la operación ocurrió días o semanas antes. El mismo texto describe montos por tramos (US$1.000–15.000, US$15.000–50.000, US$50.000–100.000 y siguientes) y si la operación fue compra o venta. Esas declaraciones periódicas de transacciones son las que aquí llamamos PTR.",
       "El 5 U.S.C. § 13107 ordena que el Clerk de la Cámara de Representantes, el Secretario del Senado y las oficinas de ética pongan a disposición del público cada informe presentado bajo ese subcapítulo, con excepciones puntuales de inteligencia y de ciertos informes judiciales. En general, la inspección o la copia debe ofrecerse dentro de los 30 días desde que reciben el informe. Una nota de la STOCK Act publicada en esa misma página (la Representative Louise McIntosh Slaughter Stop Trading on Congressional Knowledge Act, Pub. L. 112-105) exige que los formularios de los miembros del Congreso, de los candidatos y del personal del Congreso queden en los sitios oficiales a más tardar 30 días después de presentarse. El informe de un miembro sigue público hasta seis años después de que deja el cargo.",
-      "La misma sección permite un cargo razonable por el costo de reproducir o enviar una copia, y prohíbe obtener o usar un informe para un fin comercial, salvo los medios de noticias y comunicaciones cuando lo difunden al público general. En reclu estos informes se muestran sin muro de pago.",
+      "La misma sección permite un cargo razonable por el costo de reproducir o enviar una copia, y prohíbe obtener o usar un informe para un fin comercial, salvo los medios de noticias y comunicaciones cuando lo difunden al público general. En Fraccion estos informes se muestran sin muro de pago.",
       "Unusual Whales informa, en su reporte de trading del Congreso de 2024, que un 32,2% le ganó al mercado. Es una cifra de ese sitio, no un censo oficial. El atraso y los tramos de monto hacen que una PTR no sea la cartera real de la persona ni una instrucción para copiarla.",
     ],
     fuentes: [
@@ -181,7 +181,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
     cuerpo: [
       "InfoProbidad es una iniciativa del Consejo para la Transparencia y de la Contraloría General de la República. Publica catálogos CSV de datos abiertos asociados a la ley de probidad en la función pública y prevención de los conflictos de intereses. La licencia indicada en el catálogo es Creative Commons 4.0 (CC BY 4.0).",
       "Los catálogos cubren declaraciones y la autoridad respectiva, actividades paralelas, bienes inmuebles, bienes muebles declarados por la autoridad, su cónyuge u otro familiar, acciones o derechos en Chile y en el extranjero, valores transables o no en bolsa, y pasivos por deudas superiores a cien unidades tributarias mensuales. La actualización es semanal, los martes y los viernes, según las declaraciones recibidas. La fecha de publicación del dataset en el catálogo es el 5 de septiembre de 2016.",
-      "Esas declaraciones incluyen datos de la autoridad y, en el catálogo de bienes muebles, de su cónyuge u otros familiares. Reclu las usa solo para mostrar lo que la fuente ya publicó, con esa finalidad, y no pide datos personales adicionales. El tratamiento se limita a lo necesario para esa finalidad (leyes 19.628 y 21.719).",
+      "Esas declaraciones incluyen datos de la autoridad y, en el catálogo de bienes muebles, de su cónyuge u otros familiares. Fraccion las usa solo para mostrar lo que la fuente ya publicó, con esa finalidad, y no pide datos personales adicionales. El tratamiento se limita a lo necesario para esa finalidad (leyes 19.628 y 21.719).",
     ],
     fuentes: [
       {
@@ -224,11 +224,11 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
     slug: "ley-fintec",
     titulo: "Ley Fintec: por qué no te decimos qué comprar",
     resumen:
-      "La Ley N° 21.521 define la asesoría de inversión como evaluar o recomendar si a un tercero le conviene una operación. Reclu no hace eso: no recomienda, no ejecuta órdenes y no las enruta.",
+      "La Ley N° 21.521 define la asesoría de inversión como evaluar o recomendar si a un tercero le conviene una operación. Fraccion no hace eso: no recomienda, no ejecuta órdenes y no las enruta.",
     cuerpo: [
       "CMF Educa explica que, con la promulgación de la Ley N° 21.521 el 4 de enero de 2023, la asesoría de inversión quedó regulada como servicio basado en tecnología y fiscalizado por la CMF. El número 2 del artículo 3 la define como la prestación de evaluaciones o recomendaciones a terceros sobre la conveniencia de realizar determinadas inversiones u operaciones en valores de oferta pública, instrumentos financieros o proyectos de inversión.",
       "Para prestar ese servicio, la misma ficha de la CMF dice que hay que estar inscrito en el Registro de Prestadores de Servicios Financieros y contar con autorización, según la Norma de Carácter General N° 502 de 2024. La ficha exceptúa a entidades que la Comisión ya fiscaliza: intermediarios de valores de la ley N° 18.045, administradoras generales de fondos y administradores de carteras de la ley N° 20.712, bancos, compañías de seguros y reaseguros, y corredores de productos de la ley N° 19.220.",
-      "Reclu no evalúa si a una persona le conviene comprar o vender un instrumento. No da una recomendación personalizada. No ejecuta órdenes ni las enruta a un intermediario. Publica información de fuentes públicas para que cada cual la lea. Leer una cartera ajena no es una invitación a copiarla.",
+      "Fraccion no evalúa si a una persona le conviene comprar o vender un instrumento. No da una recomendación personalizada. No ejecuta órdenes ni las enruta a un intermediario. Publica información de fuentes públicas para que cada cual la lea. Leer una cartera ajena no es una invitación a copiarla.",
     ],
     fuentes: [
       {
@@ -250,7 +250,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
       "Las instrucciones del SII para el año tributario 2025 titulan la DJ 1929 como la declaración jurada anual sobre operaciones en el exterior. La sección A identifica al declarante y la sección B informa las operaciones. Deben informarla, entre otros, los contribuyentes con domicilio o residencia en Chile que invierten en el exterior, aunque la inversión no haya generado rentas. Las administradoras de fondos de pensiones no informan las inversiones ni las rentas de los fondos que administran; sí informan sus inversiones y rentas propias. Las rentas del exterior se informan aunque no se hayan remitido a Chile.",
       "Para acciones y ETF, el resumen verificado de esas instrucciones y las guías de Fintual y Racional usan estos códigos de operación: 10, dividendos de una entidad extranjera no controlada; 11, intereses; 13, ganancias de capital; 21, otras rentas. También se informan el nombre o razón social, el Tax-ID, el país, la participación, el monto actualizado al 31 de diciembre, las rentas del exterior y los impuestos pagados o retenidos en el exterior.",
       "La guía de Fintual dice que la DJ 1929 con las operaciones de 2025 se presenta antes del 30 de junio de 2026, y recomienda completarla antes del Formulario 22, cuyo plazo en esa guía llega al 30 de abril. Quien empezó a invertir en 2026 declara en 2027, según Fintual y Racional. La guía de Racional, cuando hubo rentas del exterior positivas, indica en el Formulario 22 la fila 12 código 1104 (“Otras rentas de fuente extranjera afectas al IGC o IA”), la fila 14 código 748 y la fila 49 código 746. En esa guía, el monto de las filas 14 y 49 es el mismo y no puede superar la renta de la fila 12.",
-      "Esta ficha no es asesoría tributaria, legal ni contable. Los montos y el archivo que acepta el SII salen de las instrucciones oficiales y, si corresponde, del reporte de quien custodia las acciones. Reclu no reemplaza ese archivo.",
+      "Esta ficha no es asesoría tributaria, legal ni contable. Los montos y el archivo que acepta el SII salen de las instrucciones oficiales y, si corresponde, del reporte de quien custodia las acciones. Fraccion no reemplaza ese archivo.",
     ],
     fuentes: [
       {

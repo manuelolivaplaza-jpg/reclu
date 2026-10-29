@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 /**
- * Wordmark reclu — solo la palabra, en Instrument Sans, peso 600,
+ * Wordmark Fraccion — solo la palabra, en Instrument Sans, peso 600,
  * tracking apretado. Sin SVG, sin cuadrado, sin gradiente, sin ".cl" de color.
  *
  * `tone="inverse"` lo pone en blanco para usarlo sobre negro (footer).

@@ -186,7 +186,7 @@ export function EmbeddedPerformanceChart({
             target="_top"
             rel="noreferrer"
           >
-            Datos de reclu.cl
+            Datos de fraccion.si
           </a>
         </span>
       </div>

@@ -8,7 +8,7 @@ import { Chip } from "@/components/app";
 export const metadata: Metadata = withSeo("/metodologia", {
   title: "Metodología",
   description:
-    "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, el ranking honesto, el muro de 90 días, los datos públicos de funcionarios y la anonimización de personas naturales.",
+    "Cómo calcula fraccion.si el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, el ranking honesto, el muro de 90 días, los datos públicos de funcionarios y la anonimización de personas naturales.",
 });
 
 const SECTIONS = [
@@ -368,7 +368,7 @@ export default function MetodologiaPage() {
                 La API pública tampoco redistribuye esas fuentes: los datasets
                 de funcionarios quedan excluidos de las claves y de cualquier
                 plan. Son información para leer en el sitio, no un producto que
-                reclu revenda.
+                Fraccion revenda.
               </p>
               <p>
                 Los montos siguen siendo rangos y llegan con retraso de
@@ -490,10 +490,10 @@ export default function MetodologiaPage() {
           <section className="rounded-2xl border border-app-border px-5 py-4">
             <h2 className="text-[15px] font-medium text-ink-900">Aviso legal</h2>
             <p className="mt-3 text-xs leading-relaxed text-ink-500">
-              Toda la información de reclu.cl proviene de fuentes públicas y tiene
+              Toda la información de fraccion.si proviene de fuentes públicas y tiene
               fines exclusivamente informativos. No constituye asesoría de inversión
               ni una recomendación de compra o venta de instrumentos financieros.
-              Reclu no ejecuta órdenes ni gestiona carteras. Rentabilidades pasadas
+              Fraccion no ejecuta órdenes ni gestiona carteras. Rentabilidades pasadas
               no garantizan resultados futuros.
             </p>
           </section>

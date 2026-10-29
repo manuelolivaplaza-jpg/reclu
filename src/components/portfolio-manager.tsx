@@ -89,7 +89,7 @@ function formatWeight(w: number): string {
  * 1. CSV upload (auto-parsed with Papa Parse)
  * 2. Manual entry (add rows)
  * Both normalize to 100% before saving.
- * Además: pestaña "Cruzar dos carteras de reclu" que solapa dos
+ * Además: pestaña "Cruzar dos carteras de Fraccion" que solapa dos
  * portafolios del catálogo (Pelosi vs. Duquesne, Berkshire, etc.).
  */
 export function PortfolioManager({

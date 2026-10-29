@@ -9,9 +9,9 @@ export interface LegalTocItem {
 type LegalKind = "terminos" | "privacidad" | "disclaimer";
 
 const KIND: Record<LegalKind, { kicker: string; blurb: string }> = {
-  terminos: { kicker: "Legal · Términos", blurb: "Las reglas de uso de reclu.cl, en un formato fácil de recorrer." },
+  terminos: { kicker: "Legal · Términos", blurb: "Las reglas de uso de fraccion.si, en un formato fácil de recorrer." },
   privacidad: { kicker: "Legal · Privacidad", blurb: "Qué datos guardamos, para qué y cómo los protegemos." },
-  disclaimer: { kicker: "Legal · Aviso", blurb: "reclu.cl muestra información pública. No es asesoría de inversión." },
+  disclaimer: { kicker: "Legal · Aviso", blurb: "fraccion.si muestra información pública. No es asesoría de inversión." },
 };
 
 const OTHER_DOCS: { href: string; label: string; kind: LegalKind }[] = [
@@ -133,10 +133,10 @@ export function LegalShell({
                 <p className="mt-1 text-[14px] text-white/60">Te respondemos en menos de 48 horas hábiles.</p>
               </div>
               <a
-                href="mailto:hola@reclu.cl"
+                href="mailto:hola@fraccion.si"
                 className="inline-flex h-11 items-center justify-center rounded-full bg-white px-5 text-[14px] font-medium text-ink-900 hover:opacity-90"
               >
-                hola@reclu.cl
+                hola@fraccion.si
               </a>
             </div>
           </div>

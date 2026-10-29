@@ -4,7 +4,7 @@ import { UpgradeSuccess } from "@/components/upgrade-result";
 
 export const metadata = {
   title: "Suscripción activada",
-  description: "Tu plan de reclu.cl quedó activo.",
+  description: "Tu plan de fraccion.si quedó activo.",
 };
 
 // Ruta con searchParams + cookies — nunca se prerenderiza.

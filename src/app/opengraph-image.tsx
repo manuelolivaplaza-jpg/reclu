@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "reclu.cl — Sigue las carteras que mueven el mercado";
+export const alt = "fraccion.si — Sigue las carteras que mueven el mercado";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -48,7 +48,7 @@ export default function OpenGraphImage() {
               color: "#ffffff",
             }}
           >
-            reclu
+            fraccion
           </div>
           <div
             style={{

@@ -1,3 +1,4 @@
+import { brandUrl } from "@/lib/brand";
 /**
  * Redactor de borradores a partir de una alerta publicada.
  *
@@ -23,7 +24,7 @@ import { X_MAX_LENGTH, weightedLength } from "./x";
 export const PUBLISH_DISCLAIMER = "No es recomendación de inversión.";
 
 /** Dominio público usado en los enlaces de los borradores. */
-export const PUBLISH_SITE = "https://reclu.cl";
+export const PUBLISH_SITE = brandUrl();
 
 const INFOPROBIDAD_SLUG = "infoProbidad-cl";
 const INFOPROBIDAD_SOURCE = "infoprobidad";
@@ -70,7 +71,7 @@ function payloadNumber(
 export function draftLink(slug: string, channel: Channel): string {
   const path = encodeURIComponent(slug);
   const params = new URLSearchParams({
-    utm_source: "reclu",
+    utm_source: "fraccion",
     utm_medium: channel,
     utm_campaign: "alertas",
   });
@@ -129,7 +130,7 @@ function infoprobidadBody(alert: Alert): string {
 /** Cuerpo general: título o resumen AI, sin inventar datos. */
 function generalBody(alert: Alert): string {
   const text = clean(alert.summary) || clean(alert.title);
-  return text || "Nueva alerta publicada en reclu.cl.";
+  return text || "Nueva alerta publicada en fraccion.si.";
 }
 
 function truncateToFit(text: string, budget: number): string {

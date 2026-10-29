@@ -69,7 +69,7 @@ export const TOOL_DEFINITIONS = [
     type: "function",
     function: {
       name: "search_portfolios",
-      description: "Busca portafolios públicos de reclu por nombre (persona, fondo, ETF, AFP, corredora).",
+      description: "Busca portafolios públicos de Fraccion por nombre (persona, fondo, ETF, AFP, corredora).",
       parameters: {
         type: "object",
         additionalProperties: false,

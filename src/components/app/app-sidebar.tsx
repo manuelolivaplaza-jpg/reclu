@@ -52,7 +52,7 @@ export function AppSidebar({
     >
       <div className={cn("flex h-14 items-center border-b border-app-border px-4", collapsed ? "justify-center" : "justify-between")}>
         {!collapsed && (
-          <Link href="/dashboard" aria-label="Reclu, ir al resumen">
+          <Link href="/dashboard" aria-label="Fraccion, ir al resumen">
             <LogoLockup />
           </Link>
         )}

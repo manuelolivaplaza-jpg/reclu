@@ -23,7 +23,7 @@ import { getPortfolioRankings } from "@/lib/portfolio-rankings";
 // streaming dentro de Suspense.
 
 export const metadata = withSeo("/", {
-  title: { absolute: "reclu.cl — Seguimiento de portafolios y alertas inteligentes" },
+  title: { absolute: "fraccion.si — Seguimiento de portafolios y alertas inteligentes" },
   description:
     "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email con análisis AI cuando hay cambios.",
 });

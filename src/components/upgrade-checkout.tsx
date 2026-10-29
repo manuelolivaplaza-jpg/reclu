@@ -49,7 +49,7 @@ const PLAN_DETAILS: Record<
       "Alertas en tiempo real apenas se detecta un filing o cambio",
       "Resúmenes AI completos explicando la tesis de cada movimiento",
       "Acceso completo a carteras temáticas y portafolios premium",
-      "50 consultas semanales al asistente reclu AI",
+      "50 consultas semanales al asistente Fraccion AI",
     ],
   },
   elite: {
@@ -62,7 +62,7 @@ const PLAN_DETAILS: Record<
       "Portafolios ilimitados",
       "Fondos 13F institucionales y soberanos (Buffett, Burry, Druckenmiller, Ackman, PIF)",
       "Radar de menciones de Trump y políticos en tiempo real",
-      "Asistente reclu AI ilimitado",
+      "Asistente Fraccion AI ilimitado",
       "Comparador multi-cartera y exportación CSV",
     ],
   },
@@ -382,7 +382,7 @@ export function UpgradeCheckout({
             <div role="alert" className="border border-ink-900 bg-white p-6">
               <p className="text-[14px] font-medium text-ink-900">{error}</p>
               <p className="mt-1 text-[13px] text-ink-500">
-                Si el problema persiste, escríbenos a hola@reclu.cl.
+                Si el problema persiste, escríbenos a hola@fraccion.si.
               </p>
             </div>
           )}

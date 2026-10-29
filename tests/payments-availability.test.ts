@@ -26,6 +26,8 @@ const PAYMENT_ENV = [
   "FLOW_API_KEY",
   "FLOW_SECRET_KEY",
   "MP_ACCESS_TOKEN",
+  "MERCADOPAGO_ACCESS_TOKEN",
+  "MERCADOPAGO_WEBHOOK_SECRET",
 ] as const;
 
 /** Aísla el entorno de pagos. No lee `.env.local`. */

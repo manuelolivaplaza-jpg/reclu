@@ -10,7 +10,7 @@ import {
 
 export const metadata = {
   title: "Activar plan",
-  description: "Actualiza tu cuenta de reclu.cl a Plan Pro o Plan Elite.",
+  description: "Actualiza tu cuenta de fraccion.si a Plan Pro o Plan Elite.",
 };
 
 // Ruta protegida por auth: lee cookies y searchParams por request — nunca se prerenderiza.

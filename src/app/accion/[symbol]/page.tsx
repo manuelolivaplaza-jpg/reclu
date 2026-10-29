@@ -1,3 +1,4 @@
+import { absoluteUrl } from "@/lib/site";
 import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -53,7 +54,7 @@ export async function generateMetadata({ params }: AccionPageProps): Promise<Met
   if (!symbol || (who === 0 && !overview.displayName)) notFound();
   const title = `¿Quién tiene ${symbol}? Políticos y fondos que la compran`;
   return withSeo(`/accion/${symbol.toLowerCase()}`, {
-    title: who > 0 ? title : `${symbol} — Ticker en reclu.cl`,
+    title: who > 0 ? title : `${symbol} — Ticker en fraccion.si`,
     description: `Consulta quiénes tienen ${name} (${symbol}): ${who} ${who === 1 ? "cartera" : "carteras"} entre políticos de EE.UU., corredoras chilenas y fondos 13F, con peso, antigüedad y últimos movimientos.`,
   });
 }
@@ -297,8 +298,8 @@ function tickerJsonLd(symbol: string, name: string, holders: TickerHolder[]) {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: `¿Quién tiene ${symbol}? Políticos y fondos que la compran`,
-    description: `Carteras de reclu.cl que incluyen ${name} (${symbol}), con peso, antigüedad y movimientos recientes.`,
-    url: `https://reclu.cl/accion/${symbol.toLowerCase()}`,
+    description: `Carteras de fraccion.si que incluyen ${name} (${symbol}), con peso, antigüedad y movimientos recientes.`,
+    url: absoluteUrl(`/accion/${symbol.toLowerCase()}`),
     about: { "@type": "Corporation", name, tickerSymbol: symbol },
     ...(holders.length > 0
       ? {
@@ -309,7 +310,7 @@ function tickerJsonLd(symbol: string, name: string, holders: TickerHolder[]) {
               "@type": "ListItem",
               position: i + 1,
               name: h.portfolio.name,
-              url: `https://reclu.cl/portfolio/${h.portfolio.slug}`,
+              url: absoluteUrl(`/portfolio/${h.portfolio.slug}`),
             })),
           },
         }

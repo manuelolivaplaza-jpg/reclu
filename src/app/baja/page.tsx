@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata = {
   title: "Baja de alertas",
-  description: "Deja de recibir correos de alertas de reclu.cl",
+  description: "Deja de recibir correos de alertas de fraccion.si",
 };
 
 // Lee el token de la URL por request — nunca se prerenderiza.
@@ -29,7 +29,7 @@ export default async function BajaPage({ searchParams }: BajaPageProps) {
       <SiteHeader />
       <main id="main" className="flex-1">
         <div className="container-page max-w-xl py-16">
-          <p className="text-[18px] font-semibold tracking-[-0.04em] text-ink-900">reclu</p>
+          <p className="text-[18px] font-semibold tracking-[-0.04em] text-ink-900">fraccion</p>
           <h1 className="mt-8 text-[32px] font-medium tracking-[-0.04em] text-ink-900">
             Correos de alertas
           </h1>

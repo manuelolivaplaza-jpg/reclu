@@ -204,7 +204,7 @@ export default async function ApiSettingsPage() {
           API
         </h1>
         <p className="mt-1.5 text-[15px] text-ink-500">
-          Consulta los datos públicos de reclu desde tus propios sistemas con
+          Consulta los datos públicos de Fraccion desde tus propios sistemas con
           una clave personal.
         </p>
       </div>

@@ -25,8 +25,8 @@ const SITE = siteUrl();
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
   title: {
-    default: "reclu.cl — Seguimiento de portafolios y alertas inteligentes",
-    template: "%s · reclu.cl",
+    default: "fraccion.si — Seguimiento de portafolios y alertas inteligentes",
+    template: "%s · fraccion.si",
   },
   description:
     "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email con análisis AI cuando hay cambios.",
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
     "inversiones Chile",
     "seguimiento inversiones",
   ],
-  authors: [{ name: "reclu.cl" }],
+  authors: [{ name: "fraccion.si" }],
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -48,16 +48,16 @@ export const metadata: Metadata = {
     apple: "/icon.svg",
   },
   openGraph: {
-    title: "reclu.cl — Seguimiento de portafolios y alertas inteligentes",
+    title: "fraccion.si — Seguimiento de portafolios y alertas inteligentes",
     description:
       "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
-    siteName: "reclu.cl",
+    siteName: "fraccion.si",
     locale: "es_CL",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "reclu.cl — Seguimiento de portafolios y alertas inteligentes",
+    title: "fraccion.si — Seguimiento de portafolios y alertas inteligentes",
     description:
       "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
   },

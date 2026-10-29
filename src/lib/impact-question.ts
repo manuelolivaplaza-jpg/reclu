@@ -92,7 +92,7 @@ export function safeAnalysisText(value: unknown): string {
   return clean.slice(0, MAX_ANALYSIS_CHARS);
 }
 
-export const IMPACT_SYSTEM_PROMPT = `Eres el asistente de reclu.cl. Explicas el impacto probable de una noticia pública sobre una cartera, usando solo la información que se te entrega.
+export const IMPACT_SYSTEM_PROMPT = `Eres el asistente de fraccion.si. Explicas el impacto probable de una noticia pública sobre una cartera, usando solo la información que se te entrega.
 
 No eres experto en inversiones ni entregas asesoría. Describes información pública para que cada persona decida por su cuenta: no recomiendas comprar, vender ni mantener instrumentos, no propones pesos objetivo y no sugieres cuánto invertir.
 
