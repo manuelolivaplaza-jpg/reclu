@@ -1,14 +1,15 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { Chip } from "@/components/app";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/metodologia", {
   title: "Metodología",
   description:
     "Cómo calcula reclu.cl el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, el ranking honesto, el muro de 90 días, los datos públicos de funcionarios y la anonimización de personas naturales.",
-};
+});
 
 const SECTIONS = [
   { id: "datos", label: "Datos de partida" },

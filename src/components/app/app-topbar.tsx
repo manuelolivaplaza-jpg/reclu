@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { LogOut, Settings, Sparkles } from "lucide-react";
 import { LogoMark } from "@/components/app/logo-mark";
-import { CommandPalette } from "@/components/command-palette";
+import { CommandPalette } from "@/components/command-palette-lazy";
 import { Avatar } from "@/components/app/avatar";
 import { titleFor } from "@/components/app/nav-config";
 import type { AppUser } from "@/components/app/app-shell";

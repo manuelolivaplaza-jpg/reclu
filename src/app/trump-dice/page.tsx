@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import Link from "next/link";
 import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
@@ -11,11 +12,11 @@ import { getClosesSince } from "@/lib/trump-dice-queries";
 import { returnSince, totalFromPct, windowReturn } from "@/lib/trump-dice-page";
 import { cn, formatShortDate, formatSignedPct } from "@/lib/utils";
 
-export const metadata = {
+export const metadata = withSeo("/trump-dice", {
   title: "Trump dice: cada mención y su retorno",
   description:
     "Las menciones verificadas de Donald Trump sobre acciones desde agosto de 2025, con su fuente, el retorno desde cada fecha y la estrategia completa contra el S&P 500.",
-};
+});
 
 export const instant = false;
 

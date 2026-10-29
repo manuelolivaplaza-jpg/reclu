@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
@@ -6,11 +7,11 @@ import { LegalNotice } from "@/components/legal/legal-notice";
 import { TaxWizard } from "@/components/tax/tax-wizard";
 import { GUIAS_OFICIALES, PLAZOS } from "@/lib/tax/plazos";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/herramientas/impuestos", {
   title: "Impuestos · DJ 1929",
   description:
     "Asistente paso a paso para ordenar los montos de la Declaración Jurada 1929 y la renta del Formulario 22. Corre en tu navegador, sin enviar datos al servidor.",
-};
+});
 
 export default function ImpuestosPage() {
   return (

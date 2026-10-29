@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
@@ -19,6 +20,12 @@ import { getPortfolioRankings } from "@/lib/portfolio-rankings";
 // Lee cookies de sesión (perfil/plan) para el muro de pago del ranking.
 // Nunca se prerenderiza.
 export const instant = false;
+
+export const metadata = withSeo("/", {
+  title: { absolute: "reclu.cl — Seguimiento de portafolios y alertas inteligentes" },
+  description:
+    "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email con análisis AI cuando hay cambios.",
+});
 
 export default async function HomePage() {
   await connection();

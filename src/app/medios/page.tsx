@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
@@ -12,12 +13,12 @@ import {
   type WidgetTipo,
 } from "@/lib/widgets";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/medios", {
   title: "Widgets para medios",
   description:
     "Widgets incrustables de reclu.cl para medios y creadores: consenso de corredoras, carteras de AFP, últimas compras de insiders y el ranking honesto. Con atribución \"Datos de reclu.cl\".",
   alternates: { canonical: "/medios" },
-};
+});
 
 /**
  * /medios — catálogo de widgets incrustables (F52).

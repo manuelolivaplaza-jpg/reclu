@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
@@ -10,11 +11,11 @@ import {
   EXCLUDED_API_DATASETS,
 } from "@/lib/api-datasets";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/api-docs", {
   title: "API de datos",
   description:
     "API pública de datos chilenos de reclu.cl: AFP, corredoras, InfoProbidad, dividendos, hechos esenciales e insiders. JSON paginado con licencia y atribución.",
-};
+});
 
 const EXAMPLE_RESPONSE = `{
   "dataset": "dividendos",

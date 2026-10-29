@@ -1,3 +1,4 @@
+import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
@@ -20,11 +21,11 @@ import {
 } from "@/lib/backtest-window";
 import { isPaidPlan } from "@/lib/types";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = withSeo("/herramientas/backtest", {
   title: "Backtest de portafolios",
   description:
     "Combina hasta cinco portafolios con los pesos que elijas, define el rebalanceo y compara la curva contra el S&P 500 o el IPSA. Simulación histórica, sin órdenes ni recomendaciones.",
-};
+});
 
 // Lee la sesión para decidir la ventana de historial: nunca se prerenderiza.
 export const instant = false;

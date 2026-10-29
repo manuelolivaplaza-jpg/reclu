@@ -1,11 +1,12 @@
+import { withSeo } from "@/lib/seo";
 import { Suspense } from "react";
 import { AuthForm } from "@/components/auth-form";
 import { AuthShell } from "@/components/public/auth-shell";
 
-export const metadata = {
+export const metadata = withSeo("/signup", {
   title: "Crear cuenta",
   description: "Crea tu cuenta gratuita en reclu.cl",
-};
+});
 
 export default function SignupPage() {
   return (

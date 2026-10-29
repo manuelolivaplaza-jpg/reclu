@@ -1,11 +1,12 @@
+import { withSeo } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
 
-export const metadata = {
+export const metadata = withSeo("/terminos", {
   title: "Términos y condiciones",
   description: "Términos de uso de reclu.cl",
-};
+});
 
 const TOC: LegalTocItem[] = [
   { id: "s1", label: "Naturaleza del servicio" },

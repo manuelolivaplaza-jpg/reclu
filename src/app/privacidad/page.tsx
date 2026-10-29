@@ -1,13 +1,14 @@
+import { withSeo } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
 import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
 import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
-export const metadata = {
+export const metadata = withSeo("/privacidad", {
   title: "Política de privacidad",
   description: "Cómo reclu.cl maneja tus datos",
-};
+});
 
 const TOC: LegalTocItem[] = [
   { id: "s1", label: "Datos que recopilamos" },

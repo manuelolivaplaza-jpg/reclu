@@ -195,11 +195,10 @@ describe("páginas públicas de creadores: bandera y 404", () => {
     ).rejects.toThrow(NOT_FOUND);
   });
 
-  it("metadata no indexa con la comunidad apagada", async () => {
-    const meta = await generateMetadata({
-      params: Promise.resolve({ alias: "manu-01" }),
-    });
-    expect(meta.robots).toMatchObject({ index: false });
+  it("metadata da 404 real con la comunidad apagada (D60)", async () => {
+    await expect(
+      generateMetadata({ params: Promise.resolve({ alias: "manu-01" }) }),
+    ).rejects.toThrow();
 
     enabled();
     const on = await generateMetadata({

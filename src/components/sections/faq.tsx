@@ -1,3 +1,5 @@
+import { JsonLd } from "@/components/json-ld";
+import { faqSchema } from "@/lib/seo";
 const FAQ_ITEMS = [
   {
     q: "¿reclu.cl ejecuta operaciones por mí?",
@@ -32,6 +34,7 @@ const FAQ_ITEMS = [
 export function FAQ() {
   return (
     <section id="faq" className="bg-white py-20 md:py-32">
+      <JsonLd data={faqSchema(FAQ_ITEMS)} />
       <div className="container-page grid gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-16">
         <div>
           <span className="pub-chip">Preguntas frecuentes</span>
