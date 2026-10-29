@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { Chip, StatCard } from "@/components/app";
-import { getPortfolios, getProfile } from "@/lib/queries";
+import { getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
 import { isPaidPlan, type Portfolio } from "@/lib/types";
 import {
   benchmarkSymbolForCountry,
@@ -66,6 +66,8 @@ export default async function RankingPage() {
     getProfile(),
   ]);
   const paid = isPaidPlan(profile?.plan);
+  // Fecha de inicio real de cada serie, para rotular "retorno total desde <fecha>".
+  const seriesById = await getPerformanceSeriesAdmin(portfolios.map((p) => p.id)).catch(() => new Map());
 
   const metricsByPortfolio = new Map(metrics.map((row) => [row.portfolio_id, row]));
   const portfolioById = new Map<string, Portfolio>(
@@ -89,6 +91,7 @@ export default async function RankingPage() {
       ),
       dataPoints: metric?.data_points ?? null,
       asOf: metric?.as_of ?? "",
+      startDate: metric ? (seriesById.get(portfolio.id)?.[0]?.date ?? null) : null,
       href: `/portfolio/${portfolio.slug}`,
       locked,
       source: metric ? "portfolio_metrics (Supabase)" : undefined,
@@ -487,7 +490,7 @@ function RankingGroup({
         <div className="hidden grid-cols-[2.5rem_minmax(0,1fr)_6rem_7rem_6.5rem] gap-4 border-b border-app-border bg-ink-50 px-5 py-2.5 text-[11px] font-medium uppercase tracking-[0.08em] text-ink-500 sm:grid">
           <span>#</span>
           <span>Fuente</span>
-          <span className="text-right">Retorno</span>
+          <span className="text-right">Retorno total</span>
           <span className="text-right">Benchmark</span>
           <span className="text-right">Exceso</span>
         </div>
@@ -518,7 +521,8 @@ function RankingRow({ row, portfolio }: { row: RankedSource; portfolio?: Portfol
           </div>
           <p className="truncate text-app-caption text-ink-500">
             {row.kind === "estudio" ? "Estudio" : "Portafolio"} · {row.benchmarkLabel}
-            {row.asOf ? ` · ${formatAsOf(row.asOf)}` : ""}
+            {row.startDate ? ` · Retorno total desde ${formatAsOf(row.startDate)}` : ""}
+            {row.asOf ? ` · corte ${formatAsOf(row.asOf)}` : ""}
           </p>
           <p className="text-app-caption tabular-nums text-ink-500 sm:hidden">
             {formatPct(row.returnPct)} vs {formatPct(row.benchmarkReturnPct)}

@@ -42,6 +42,8 @@ export interface RankingSourceInput {
   dataPoints?: number | null;
   /** Fecha de corte (YYYY-MM-DD). */
   asOf: string;
+  /** Primer punto de la serie (YYYY-MM-DD): el retorno es total desde esa fecha. */
+  startDate?: string | null;
   /** Enlace interno al portafolio, si aplica. */
   href?: string;
   /** Fuente pública del dato. */
