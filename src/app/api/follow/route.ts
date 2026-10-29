@@ -62,6 +62,17 @@ export async function POST(request: Request) {
         },
       );
     }
+    if (result.reason === "plan_required") {
+      // D55: seguir es solo para planes pagados. El botón muestra el aviso.
+      return Response.json(
+        {
+          ok: false,
+          error: "Seguir portafolios es parte de los planes pagados. Suscríbete para recibir sus movimientos.",
+          upgrade: "/upgrade",
+        },
+        { status: 403 },
+      );
+    }
     if (result.reason === "premium_required") {
       return Response.json({
         ok: false,

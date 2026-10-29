@@ -217,6 +217,8 @@ export function trimHoldersForRole(
   const capped = Number.isFinite(limit);
   return rows.filter((row) => {
     if (row.premium && !canViewPremium(role)) return false;
+    // D55: corredoras (broker_cl) abiertas a todos.
+    if (row.category === "broker_cl") return true;
     if (capped && row.rankInPortfolio !== null && row.rankInPortfolio > (limit as number)) {
       return false;
     }

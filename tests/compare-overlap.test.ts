@@ -44,7 +44,7 @@ describe("visibleHoldingsForRole", () => {
         { symbol: "AAPL", weight: 5 },
         { symbol: "MSFT", weight: 4 },
       ],
-      "free",
+      "paid",
     );
     expect(visible).toEqual([
       { symbol: "AAPL", weight: 15 },
@@ -123,15 +123,15 @@ describe("buildComparePayload", () => {
       ],
     });
 
+    // D55: Free no ve posiciones (HOLDING_LIMITS.free = 0): nada en común.
     const [uno] = payload.portfolios;
     expect(uno.holdingsCount).toBe(HOLDING_LIMITS.free);
-    expect(uno.sharedSymbols).toEqual(["SYM1"]);
-    // SYM12 está fuera del top 10 de "uno": no puede aparecer como faltante.
+    expect(uno.sharedSymbols).toEqual([]);
     expect(uno.alignment.missing.map((row) => row.symbol)).not.toContain("SYM12");
 
-    const [pair] = payload.pairs;
-    expect(pair.shared.map((row) => row.symbol)).toEqual(["SYM1"]);
-    expect(pair.shared.map((row) => row.symbol)).not.toContain("SYM12");
+    for (const pair of payload.pairs) {
+      expect(pair.shared.map((row) => row.symbol)).not.toContain("SYM12");
+    }
   });
 
   it("un plan pagado recibe todas las posiciones y sus símbolos en común", () => {

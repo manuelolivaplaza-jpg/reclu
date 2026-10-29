@@ -28,10 +28,14 @@ export function FollowButton({
   const [isPending, startTransition] = useTransition();
 
   const requiresPro = portfolioPremium && !initialIsPro;
+  // D55: seguir es solo para planes pagados. Free ve el aviso en vez de
+  // seguir (el servidor también lo bloquea). Dejar de seguir sigue permitido.
+  const [upsell, setUpsell] = useState(false);
 
   function handleClick() {
-    if (requiresPro) {
-      router.push("/#precios");
+    if (!initialIsPro && !following) {
+      track("follow", { portfolioId, upsell: true });
+      setUpsell(true);
       return;
     }
 
@@ -47,6 +51,8 @@ export function FollowButton({
       if (data.ok) {
         setFollowing(data.following);
         router.refresh();
+      } else if (data.upgrade) {
+        setUpsell(true);
       } else if (data.error) {
         setError(data.error);
         if (data.redirect) router.push(data.redirect);
@@ -86,6 +92,25 @@ export function FollowButton({
         )}
       </Button>
       {error && <p className="text-xs font-medium text-negative">{error}</p>}
+      {upsell ? (
+        <div role="status" className="rounded-xl border border-ink-200 bg-white p-3 text-left shadow-sm">
+          <p className="text-[13px] font-medium text-ink-900">Seguir es para suscriptores</p>
+          <p className="mt-0.5 text-[12px] leading-snug text-ink-500">
+            Suscríbete para seguir portafolios y recibir sus movimientos.
+          </p>
+          <div className="mt-2 flex items-center gap-3">
+            <a
+              href="/upgrade"
+              className="inline-flex h-8 items-center rounded-full bg-ink-900 px-3 text-[12px] font-medium text-white hover:bg-black"
+            >
+              Ver planes
+            </a>
+            <button type="button" onClick={() => setUpsell(false)} className="text-[12px] text-ink-500 hover:text-ink-900">
+              Ahora no
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

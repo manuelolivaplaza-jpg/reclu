@@ -56,8 +56,8 @@ describe("roleFor", () => {
 
 describe("limits", () => {
   it("matches the proposal of the report", () => {
-    expect(HOLDING_LIMITS.anon).toBe(5);
-    expect(HOLDING_LIMITS.free).toBe(10);
+    expect(HOLDING_LIMITS.anon).toBe(0);
+    expect(HOLDING_LIMITS.free).toBe(0);
     expect(ALERT_LIMITS.anon).toBe(3);
     expect(ALERT_LIMITS.free).toBe(10);
   });
@@ -79,14 +79,13 @@ describe("sliceForRole", () => {
 
   it("slices both lists for anon", () => {
     const out = sliceForRole(data, "anon");
-    expect(out.holdings).toHaveLength(5);
+    expect(out.holdings).toHaveLength(0);
     expect(out.alerts).toHaveLength(3);
-    expect(out.holdings![0].weight).toBe(100);
   });
 
   it("slices both lists for free", () => {
     const out = sliceForRole(data, "free");
-    expect(out.holdings).toHaveLength(10);
+    expect(out.holdings).toHaveLength(0);
     expect(out.alerts).toHaveLength(10);
   });
 
@@ -104,5 +103,20 @@ describe("sliceForRole", () => {
 
   it("tolerates objects without holdings or alerts", () => {
     expect(sliceForRole({}, "anon")).toEqual({});
+  });
+});
+
+describe("D55: posiciones y seguir", () => {
+  it("broker_cl y declaraciones oficiales abiertas; el resto solo pago", async () => {
+    const { holdingLimitFor, holdingsOpenToAll, canFollow } = await import("@/lib/access");
+    expect(holdingsOpenToAll({ category: "broker_cl", source: "renta4" })).toBe(true);
+    expect(holdingsOpenToAll({ category: "hedge_fund", source: "sec_13f" })).toBe(false);
+    expect(holdingsOpenToAll({ category: "political_us", source: "house_ptr" })).toBe(true);
+    expect(holdingLimitFor("free", { category: "broker_cl" })).toBe(Infinity);
+    expect(holdingLimitFor("anon", { category: "hedge_fund" })).toBe(0);
+    expect(holdingLimitFor("paid", { category: "hedge_fund" })).toBe(Infinity);
+    expect(canFollow("free")).toBe(false);
+    expect(canFollow("anon")).toBe(false);
+    expect(canFollow("paid")).toBe(true);
   });
 });

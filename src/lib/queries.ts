@@ -17,6 +17,9 @@ import { demoFallbackAllowed } from "@/lib/demo-mode";
 import { DEMO_PORTFOLIOS, demoPortfolioBySlug, demoHoldings, demoAlerts, HIDDEN_DEMO_SLUGS, demoRedirectTarget, isHiddenSlug } from "@/lib/demo-data";
 import {
   HOLDING_LIMITS,
+  holdingsOpenToAll,
+  canFollow,
+  roleFor,
   ALERT_LIMITS,
   type AccessRole,
 } from "@/lib/access";
@@ -228,6 +231,7 @@ export async function getHoldings(
     const slug = DEMO_PORTFOLIOS.find((p) => p.id === portfolioId)?.slug ?? portfolioId;
     const list = demoHoldings(slug);
     if (slug === "trump-compra") return list;
+    if (holdingsOpenToAll(DEMO_PORTFOLIOS.find((p) => p.slug === slug))) return list;
     return sliceHoldings(list, opts?.role);
   }
 
@@ -236,15 +240,19 @@ export async function getHoldings(
   // Camino con migración 012 aplicada: RPC con recorte en la base.
   const slugRow = await supabase
     .from("portfolios")
-    .select("slug, source")
+    .select("slug, source, category")
     .eq("id", portfolioId)
     .maybeSingle();
+  // D55: corredoras (broker_cl) y declaraciones oficiales, abiertas a todos.
+  const openToAll = holdingsOpenToAll(slugRow.data);
   if (slugRow.data?.slug) {
     const { data: rpc, error: rpcError } = await supabase
       .rpc("get_portfolio_holdings", { p_slug: slugRow.data.slug });
     if (!rpcError && Array.isArray(rpc)) {
       // D39: sin la migración 067 la RPC trae todos los snapshots mezclados.
-      return currentHoldings(rpc as Holding[]);
+      // D55: se recorta también aquí por si la migración 069 aún no está aplicada.
+      const list = currentHoldings(rpc as Holding[]);
+      return openToAll ? list : sliceHoldings(list, opts?.role);
     }
     // Si la función no existe, seguimos por el camino legacy de abajo.
   }
@@ -266,7 +274,7 @@ export async function getHoldings(
     return pf ? sliceHoldings(demoHoldings(pf.slug), opts?.role) : [];
   }
   const current = currentHoldings(data as Holding[]);
-  if (isPublicDisclosureSource(slugRow.data?.source)) return current;
+  if (openToAll || isPublicDisclosureSource(slugRow.data?.source)) return current;
   return sliceHoldings(current, opts?.role);
 }
 
@@ -749,7 +757,7 @@ export async function isFollowing(portfolioId: string): Promise<boolean> {
 export async function followPortfolio(portfolioId: string): Promise<{
   ok: boolean;
   error?: string;
-  reason?: "limit_reached" | "auth_required" | "premium_required";
+  reason?: "limit_reached" | "auth_required" | "premium_required" | "plan_required";
   /** Plan limit hit, for a tailored message. */
   limit?: number;
 }> {
@@ -766,6 +774,11 @@ export async function followPortfolio(portfolioId: string): Promise<{
     .eq("id", user.id)
     .single();
   const plan = profile?.plan ?? "free";
+
+  // D55: seguir es solo para planes pagados (también lo exige el trigger de la 069).
+  if (!canFollow(roleFor({ plan }))) {
+    return { ok: false, reason: "plan_required" };
+  }
 
   // Check portfolio premium status (any paid plan unlocks it)
   const { data: portfolio } = await supabase
