@@ -5,7 +5,6 @@ import type { MetadataRoute } from "next";
  * Identidad: blanco/negro, marca "reclu", standalone tipo app nativa.
  * Los íconos PNG se sirven desde /public/icons (192 y 512, + maskable).
  */
-export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
