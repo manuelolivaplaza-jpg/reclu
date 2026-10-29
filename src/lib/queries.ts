@@ -140,8 +140,19 @@ export async function getPortfolioRedirect(slug: string): Promise<string | null>
 
 export async function getPortfolioBySlug(slug: string): Promise<Portfolio | null> {
   if (!isSupabaseLive()) return demoPortfolioBySlug(slug);
+  return getPortfolioBySlugPublic(slug);
+}
 
-  const supabase = await createClient();
+/**
+ * D61: ficha pública cacheada (1 h, tags portfolios). Cliente anon SIN
+ * cookies: RLS "portfolios public read" ya limita a is_active = true, igual
+ * que la lectura con sesión, así que el resultado no depende del usuario.
+ */
+async function getPortfolioBySlugPublic(slug: string): Promise<Portfolio | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PORTFOLIOS_TAG);
+  const supabase = createPublicClient();
   const { data, error } = await supabase
     .from("portfolios")
     .select("*")
@@ -451,6 +462,14 @@ async function readPortfolioIdsWithSeries(): Promise<Set<string> | null> {
 
 export async function getEstimatedUntil(portfolioId: string): Promise<string | null> {
   if (!isSupabaseLive()) return null;
+  return getEstimatedUntilCached(portfolioId);
+}
+
+/** D61: solo expone una fecha pública; cacheada 1 h (tag performance). */
+async function getEstimatedUntilCached(portfolioId: string): Promise<string | null> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(PUBLIC_DATA_TAG, PERFORMANCE_TAG);
   const admin = createAdminClient();
   if (!admin) return null;
   try {
