@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getSessionUser } from "@/lib/supabase/session";
 import { ChatShell } from "@/components/chat/chat-shell";
 
 export const metadata: Metadata = {
@@ -9,10 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ChatPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login?next=/app/chat");
   const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string };
   const firstName = (meta.full_name ?? meta.name ?? "").split(" ")[0] || null;
