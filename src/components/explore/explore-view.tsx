@@ -7,9 +7,9 @@ import { RankingsSkeleton } from "@/components/explore/skeletons";
 import { portfolioIdsWithSymbol } from "@/lib/explore-paging";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
-import { PageHeader } from "@/components/app/page-header";
 import { CATEGORY_META, isPaidPlan, type Portfolio, type PortfolioCategory } from "@/lib/types";
-import { ExploreFilters } from "@/components/explore-filters";
+import { ExploreToolbar } from "@/components/explore/explore-toolbar";
+import { ExploreHeroSection, ExploreHeroSkeleton } from "@/components/explore/explore-hero-section";
 
 
 export interface ExploreSearchParams {
@@ -54,49 +54,61 @@ export async function ExploreView({ params, inApp = false }: { params: ExploreSe
     { label: string; description: string },
   ][];
 
+  const pills = categories.map(([value, meta]) => ({ value, label: meta.label }));
+  const filtering = category !== "all" || Boolean(search.trim()) || Boolean(symbol);
+
+  // d54: panel principal (carrusel de los más seguidos) arriba; buscador y
+  // filtros discretos; todo lo demás en tarjetas. Sin título gigante.
   const content = (
-    <>
-          <div className="mt-10">
-            <ExploreFilters categories={categories} activeCategory={category} />
+    <div className="flex flex-col gap-6 sm:gap-8">
+      <h1 className="sr-only">Explorar portafolios</h1>
+
+      {!filtering ? (
+        <Suspense fallback={<ExploreHeroSkeleton />}>
+          <ExploreHeroSection />
+        </Suspense>
+      ) : null}
+
+      <section aria-labelledby="todos-heading" className="flex flex-col gap-4">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="todos-heading" className="text-[17px] font-semibold tracking-tight text-ink-900">
+            {filtering ? "Resultados" : "Todos los portafolios"}
+          </h2>
+          <span className="text-[12px] tabular-nums text-ink-500">{portfolios.length}</span>
+        </div>
+        <ExploreToolbar categories={pills} activeCategory={category} basePath={inApp ? "/app/explorar" : "/explore"} />
+
+        {portfolios.length === 0 ? (
+          <div className="app-card rounded-2xl px-6 py-12 text-center">
+            <p className="text-[15px] font-medium text-ink-900">Sin resultados</p>
+            <p className="mt-1 text-[13px] text-ink-500">Prueba con otra búsqueda o vuelve a “Todos”.</p>
           </div>
+        ) : (
+          <PortfolioGrid
+            portfolios={portfolios}
+            followedIds={followedIds}
+            isPro={isPro}
+            cardStats={cardStats}
+            noSeriesIds={withSeries ? portfolios.filter((p) => !withSeries.has(p.id)).map((p) => p.id) : []}
+          />
+        )}
+      </section>
 
-          <Suspense fallback={<RankingsSkeleton />}>
-            <ExploreRankingsSection />
-          </Suspense>
-
-          {portfolios.length === 0 ? (
-            <p className="mt-16 text-[15px] text-ink-500">
-              Sin resultados. Prueba con otra búsqueda o vuelve a “Todos”.
-            </p>
-          ) : (
-            <PortfolioGrid
-              portfolios={portfolios}
-              followedIds={followedIds}
-              isPro={isPro}
-              cardStats={cardStats}
-              noSeriesIds={withSeries ? portfolios.filter((p) => !withSeries.has(p.id)).map((p) => p.id) : []}
-            />
-          )}
-    </>
+      {!filtering ? (
+        <Suspense fallback={<RankingsSkeleton />}>
+          <ExploreRankingsSection />
+        </Suspense>
+      ) : null}
+    </div>
   );
 
-  if (inApp) {
-    return (
-      <>
-        <PageHeader title="Explorar" subtitle="Portafolios de inversionistas, fondos y políticos con datos públicos." />
-        <div className="[&>div:first-child]:mt-0">{content}</div>
-      </>
-    );
-  }
+  if (inApp) return content;
 
   return (
     <>
       <SiteHeader />
-      <main id="main">
-        <div className="container-page py-16 md:py-20">
-          <h1 className="type-section text-ink-900">Portafolios.</h1>
-          {content}
-        </div>
+      <main id="main" className="bg-app-canvas">
+        <div className="container-page py-6 md:py-10">{content}</div>
       </main>
       <SiteFooter />
     </>
