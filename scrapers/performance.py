@@ -37,7 +37,7 @@ import time
 from typing import Any
 
 from holdings_merge import us_class_hyphen
-from prices import fetch_eod
+from prices import fetch_eod, yahoo_symbol
 
 PAGE_SIZE = 1000
 SYMBOL_DELAY_SECONDS = 1
@@ -57,7 +57,7 @@ def _paged(build_query) -> list[dict[str, Any]]:
         start += PAGE_SIZE
 
 
-def get_portfolio_holdings(db, portfolio_id: str) -> list[tuple[str, float]]:
+def get_portfolio_holdings(db, portfolio_id: str, *, equal_if_missing: bool = False) -> list[tuple[str, float]]:
     """Current (symbol, weight) pairs for a portfolio.
 
     Holdings can repeat across as_of dates. The latest as_of wins per symbol.
@@ -67,22 +67,32 @@ def get_portfolio_holdings(db, portfolio_id: str) -> list[tuple[str, float]]:
     def query():
         return (
             db.table("holdings")
-            .select("symbol, weight, as_of")
+            .select("symbol, weight, as_of, exchange, currency")
             .eq("portfolio_id", portfolio_id)
             .order("as_of", desc=True)
             .order("symbol")
         )
 
-    latest: dict[str, float] = {}
+    latest: dict[str, float | None] = {}
     for row in _paged(query):
         symbol = str(row.get("symbol") or "").strip()
-        if not symbol or symbol in latest:
+        if not symbol:
+            continue
+        # D70: el ticker Yahoo depende de la bolsa/moneda (SQM-B -> SQM-B.SN).
+        # Antes se pedia el nemotecnico chileno como si fuera de EE.UU.: casi
+        # todos fallaban y solo sobrevivian los que chocan con un ticker US,
+        # por eso varias carteras CL quedaban con la MISMA serie.
+        yahoo = yahoo_symbol(symbol, row.get("exchange"), row.get("currency")) if " " not in symbol else ""
+        key = yahoo or symbol
+        if key in latest:
             continue
         weight = row.get("weight")
-        if weight is None:
-            continue
-        latest[symbol] = float(weight)
-    return [(symbol, latest[symbol]) for symbol in sorted(latest)]
+        latest[key] = None if weight is None else float(weight)
+    if equal_if_missing and latest and all(w is None for w in latest.values()):
+        # D70: carteras sin pesos publicados (OGE en tramos, listas de
+        # corredoras): pesos iguales. La serie queda is_estimated = true.
+        return [(symbol, 1.0) for symbol in sorted(latest)]
+    return [(symbol, float(latest[symbol])) for symbol in sorted(latest) if latest[symbol] is not None]
 
 
 def _align_prices(
@@ -177,7 +187,11 @@ def build_performance_series(
     Only the top MAX_HOLDINGS by weight are used; those weights are
     renormalized to sum to 1 before fetching prices.
     """
-    holdings = [(symbol, weight) for symbol, weight in get_portfolio_holdings(db, portfolio_id) if weight > 0]
+    holdings = [
+        (symbol, weight)
+        for symbol, weight in get_portfolio_holdings(db, portfolio_id, equal_if_missing=True)
+        if weight > 0
+    ]
     # Nombres de emisor sin resolver (13F) no son tickers: Yahoo da 404.
     # Se omiten y se registran; los pesos se renormalizan sobre el resto.
     # D28: antes de omitirlos, se intenta resolver el nombre a ticker con la
@@ -274,14 +288,25 @@ def stitch_estimated(
     real = sorted(real or [], key=lambda p: p["date"])
     if real:
         first = real[0]
+        out: list[dict[str, Any]] = []
         before = [p for p in est if p["date"] < first["date"]]
-        if not before:
-            return []
-        upto = [p for p in est if p["date"] <= first["date"]]
-        join = upto[-1]
-        if level(join) <= 0:
-            return []
-        return scaled(before, level(first) / level(join))
+        if before:
+            upto = [p for p in est if p["date"] <= first["date"]]
+            join = upto[-1]
+            if level(join) > 0:
+                out.extend(scaled(before, level(first) / level(join)))
+        # D70: tramo DESPUES del ultimo punto real (13F trimestral, eventos).
+        # Antes quedaban filas estimadas viejas con otra base y aparecia un
+        # salto de un dia (-20% a -51% el 17-ago en los 13F). Se encadena:
+        # la proyeccion arranca en el nivel del ultimo punto real (NAV continuo).
+        last = real[-1]
+        after = [p for p in est if p["date"] > last["date"]]
+        if after:
+            upto = [p for p in est if p["date"] <= last["date"]]
+            join = upto[-1] if upto else None
+            if join is not None and level(join) > 0:
+                out.extend(scaled(after, level(last) / level(join)))
+        return out
 
     prior = sorted(
         (p for p in (existing or []) if p["date"] <= est[0]["date"]),
