@@ -11,11 +11,12 @@ import {
   Menu,
   LogOut,
   Star,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { AppIconName } from "@/components/app/nav-config";
 
-const ICONS = { LayoutDashboard, Compass, BellRing, PieChart, Wallet, Settings, Sparkles, Menu, LogOut, Star } satisfies Record<
+const ICONS = { LayoutDashboard, Compass, BellRing, PieChart, Wallet, Settings, Sparkles, Menu, LogOut, Star, MessageCircle } satisfies Record<
   AppIconName,
   LucideIcon
 >;
