@@ -2,13 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { type LucideIcon } from "lucide-react";
+import { LayoutDashboard, Compass, BellRing, PieChart, Settings, Wallet, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// d46: el icono viaja como string (serializable) desde el Server Component.
+const NAV_ICONS = { LayoutDashboard, Compass, BellRing, PieChart, Settings, Wallet } satisfies Record<string, LucideIcon>;
+export type NavIconName = keyof typeof NAV_ICONS;
 
 export interface NavItem {
   href: string;
   label: string;
-  icon: LucideIcon;
+  icon: NavIconName;
 }
 
 /**
@@ -25,7 +29,7 @@ export function DashboardNavLink({
 }) {
   const pathname = usePathname();
   const active = pathname === item.href;
-  const Icon = item.icon;
+  const Icon = NAV_ICONS[item.icon];
 
   if (variant === "sidebar") {
     return (

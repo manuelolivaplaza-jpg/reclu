@@ -1,15 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
-import {
-  LayoutDashboard,
-  Compass,
-  BellRing,
-  PieChart,
-  Settings,
-  LogOut,
-  Wallet,
-} from "lucide-react";
+import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { LogoLockup } from "@/components/logo";
 import { DashboardNavLink, type NavItem } from "@/components/dashboard-nav-link";
@@ -17,11 +9,11 @@ import { isPaidPlan, isElitePlan } from "@/lib/types";
 import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 
 const NAV_ITEMS: NavItem[] = [
-  { href: "/dashboard", label: "Resumen", icon: LayoutDashboard },
-  { href: "/explore", label: "Explorar", icon: Compass },
-  { href: "/alerts", label: "Alertas", icon: BellRing },
-  { href: "/compare", label: "Mi cartera", icon: PieChart },
-  { href: "/settings", label: "Ajustes", icon: Settings },
+  { href: "/dashboard", label: "Resumen", icon: "LayoutDashboard" },
+  { href: "/explore", label: "Explorar", icon: "Compass" },
+  { href: "/alerts", label: "Alertas", icon: "BellRing" },
+  { href: "/compare", label: "Mi cartera", icon: "PieChart" },
+  { href: "/settings", label: "Ajustes", icon: "Settings" },
 ];
 
 /** F62: el enlace a Mi portafolio solo existe con MY_PORTFOLIO_ENABLED=true. */
@@ -32,7 +24,7 @@ function navItems(): NavItem[] {
     dashboard,
     explore,
     alerts,
-    { href: "/mi-portafolio", label: "Mi portafolio", icon: Wallet },
+    { href: "/mi-portafolio", label: "Mi portafolio", icon: "Wallet" },
     ...rest,
   ];
 }
