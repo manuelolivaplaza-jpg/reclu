@@ -28,6 +28,11 @@ export interface PortfolioHeroProps {
   avatar?: ReactNode;
   /** Monto de la simulación en USD. */
   amount?: number;
+  /**
+   * d69: retorno real "desde el inicio" (serie completa, compuesto). Es la
+   * misma cifra que explore y la home; el gráfico sigue recortado por el muro.
+   */
+  headline?: { pct: number; label: string } | null;
 }
 
 const AMOUNT = 10_000;
@@ -57,6 +62,7 @@ export function PortfolioHero({
   action,
   avatar,
   amount = AMOUNT,
+  headline = null,
 }: PortfolioHeroProps) {
   const cleanSeries = (series ?? []).filter(
     (point) =>
@@ -68,9 +74,9 @@ export function PortfolioHero({
 
   const simulation =
     cleanSeries.length >= 2 ? simulateInvestment(cleanSeries, amount) : null;
-  const periodLabel = seriesPeriodLabel(cleanSeries);
+  const periodLabel = headline?.label ?? seriesPeriodLabel(cleanSeries);
 
-  const pct = simulation?.gainPct ?? 0;
+  const pct = headline?.pct ?? simulation?.gainPct ?? 0;
   const positive = pct >= 0;
 
   // Métrica real de la pastilla: seguidores (dato del portafolio).

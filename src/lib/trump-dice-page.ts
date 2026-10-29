@@ -6,6 +6,8 @@
  * de la tabla `prices` (datos reales); sin precios la cifra queda en null.
  */
 
+import { returnSinceStart } from "@/lib/returns";
+
 export interface ClosePoint {
   date: string;
   close: number;
@@ -45,10 +47,6 @@ export function windowReturn(closes: readonly ClosePoint[], from: string): numbe
 
 /** Retorno total desde una serie de value_pct acumulado (portfolio_performance). */
 export function totalFromPct(series: readonly { date: string; value: number }[], from: string): number | null {
-  const pts = series.filter((p) => p.date >= from && Number.isFinite(p.value)).sort((a, b) => a.date.localeCompare(b.date));
-  if (pts.length < 2) return null;
-  const a = 1 + pts[0].value / 100;
-  const b = 1 + pts[pts.length - 1].value / 100;
-  if (a <= 0) return null;
-  return Math.round((b / a - 1) * 10000) / 100;
+  const pct = returnSinceStart(series.filter((p) => p.date >= from));
+  return pct === null ? null : Math.round(pct * 100) / 100;
 }

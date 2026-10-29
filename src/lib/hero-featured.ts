@@ -1,3 +1,4 @@
+import { returnSinceStart } from "@/lib/returns";
 import type { Portfolio } from "@/lib/types";
 import type { HeroCard } from "@/lib/hero-portfolios";
 import { clipSeriesForSlug } from "@/lib/card-series";
@@ -31,13 +32,8 @@ export function monthYear(iso: string): string {
 
 /** Retorno acumulado (%) entre el primer y el último punto de una serie de value_pct. */
 export function cumulativeFromPct(series: SeriesPointPct[]): number | null {
-  const pts = (series ?? []).filter((p) => p && Number.isFinite(p.value)).sort((a, b) => a.date.localeCompare(b.date));
-  if (pts.length < 2) return null;
-  const first = 1 + pts[0].value / 100;
-  const last = 1 + pts[pts.length - 1].value / 100;
-  if (first <= 0) return null;
-  const pct = (last / first - 1) * 100;
-  return Number.isFinite(pct) ? Math.round(pct * 10) / 10 : null;
+  const pct = returnSinceStart(series);
+  return pct === null ? null : Math.round(pct * 10) / 10;
 }
 
 /** Hasta `n` puntos equiespaciados (niveles base 1) para el sparkline. */
