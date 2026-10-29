@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+﻿import { describe, expect, it } from "vitest";
 import {
   avatarGradient,
   avatarInitials,
@@ -7,11 +7,11 @@ import {
 } from "@/lib/portfolio-avatar";
 
 /**
- * D4 — lógica pura del avatar de portafolios.
+ * D4 â€” lÃ³gica pura del avatar de portafolios.
  *
  *  - `avatarInitials`: 2 letras, sin "Tracker"/"13F".
  *  - `avatarGradient`: hash determinista del slug -> 6 degradados.
- *  - `categoryIcon`: nombre del ícono lucide por categoría.
+ *  - `categoryIcon`: nombre del Ã­cono lucide por categorÃ­a.
  *  - `avatarSource`: retrato > cover > iniciales, tolerante a la 055
  *    sin aplicar (campos undefined).
  */
@@ -34,12 +34,12 @@ describe("avatarInitials", () => {
     expect(avatarInitials("Renta")).toBe("RE");
   });
 
-  it("mantiene números (R4) y elimina puntuación", () => {
+  it("mantiene nÃºmeros (R4) y elimina puntuaciÃ³n", () => {
     expect(avatarInitials("Renta 4")).toBe("R4");
     expect(avatarInitials("AI World War III")).toBe("AW");
   });
 
-  it("devuelve vacío sin nada usable", () => {
+  it("devuelve vacÃ­o sin nada usable", () => {
     expect(avatarInitials("")).toBe("");
     expect(avatarInitials(null)).toBe("");
     expect(avatarInitials(undefined)).toBe("");
@@ -78,7 +78,7 @@ describe("avatarGradient", () => {
     expect(seen.size).toBeGreaterThanOrEqual(3);
   });
 
-  it("cae a un degradado válido sin slug", () => {
+  it("cae a un degradado vÃ¡lido sin slug", () => {
     expect(GRADIENTS.has(avatarGradient(null))).toBe(true);
     expect(GRADIENTS.has(avatarGradient(undefined))).toBe(true);
     expect(GRADIENTS.has(avatarGradient(""))).toBe(true);
@@ -86,7 +86,7 @@ describe("avatarGradient", () => {
 });
 
 describe("categoryIcon", () => {
-  it("mapea cada categoría a su ícono lucide", () => {
+  it("mapea cada categorÃ­a a su Ã­cono lucide", () => {
     expect(categoryIcon("political_us")).toBe("Landmark");
     expect(categoryIcon("hedge_fund")).toBe("Briefcase");
     expect(categoryIcon("broker_cl")).toBe("Building2");
@@ -123,7 +123,7 @@ describe("avatarSource", () => {
     ).toEqual({ kind: "initials" });
   });
 
-  it("tolera la migración 055 sin aplicar (campos undefined)", () => {
+  it("tolera la migraciÃ³n 055 sin aplicar (campos undefined)", () => {
     expect(avatarSource({ slug: "x", cover_image: "08-grafico.png" })).toEqual({
       kind: "cover",
       src: "/covers/08-grafico.png",
@@ -132,7 +132,7 @@ describe("avatarSource", () => {
     expect(avatarSource({})).toEqual({ kind: "initials" });
   });
 
-  it("ignora strings vacíos", () => {
+  it("ignora strings vacÃ­os", () => {
     expect(
       avatarSource({ slug: "x", portrait_image: "", cover_image: "" }),
     ).toEqual({ kind: "initials" });
@@ -141,6 +141,14 @@ describe("avatarSource", () => {
 
 describe("D28: toro generico", () => {
   it("no usa 02-toro.png como avatar", () => {
-    expect(avatarSource({ slug: "arkk", cover_image: "02-toro.png" })).toEqual({ kind: "initials" });
+    expect(avatarSource({ slug: "otro-fondo", cover_image: "02-toro.png" })).toEqual({ kind: "initials" });
+  });
+});
+
+describe("D66: imagenes propias de ARK", () => {
+  it("usa el SVG estilo ETF por slug aunque la DB tenga la foto", () => {
+    for (const slug of ["arkk", "arkw", "arkg", "arkq", "arkf"]) {
+      expect(avatarSource({ slug, portrait_image: "ark-invest.webp" })).toEqual({ kind: "portrait", src: `/portfolios/ark/${slug}.svg` });
+    }
   });
 });

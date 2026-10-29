@@ -109,6 +109,24 @@ export function categoryIcon(category: PortfolioCategory): string {
 
 // ---- Fuente del avatar ----
 
+/**
+ * D66: imagen propia estilo ETF (fondo blanco, ticker y nombre del fondo)
+ * para los ETF de ARK. Reemplaza la foto de la gestora que dejo la 059 en
+ * portrait_image sin tocar la base: el mapping por slug tiene prioridad.
+ */
+export const SLUG_IMAGES: Readonly<Record<string, string>> = {
+  arkk: "/portfolios/ark/arkk.svg",
+  arkw: "/portfolios/ark/arkw.svg",
+  arkg: "/portfolios/ark/arkg.svg",
+  arkq: "/portfolios/ark/arkq.svg",
+  arkf: "/portfolios/ark/arkf.svg",
+};
+
+/** Imagen fija por slug (o null). */
+export function slugImage(slug: string | null | undefined): string | null {
+  return slug ? SLUG_IMAGES[slug] ?? null : null;
+}
+
 /** Portadas genéricas compartidas que no se muestran como avatar. */
 export const GENERIC_COVERS: ReadonlySet<string> = new Set(["02-toro.png"]);
 
@@ -134,6 +152,8 @@ export interface AvatarSourceInput {
  * Tolerante a la 055 sin aplicar: campos `undefined` caen al fallback.
  */
 export function avatarSource(portfolio: AvatarSourceInput): AvatarSource {
+  const fixed = slugImage(portfolio?.slug);
+  if (fixed) return { kind: "portrait", src: fixed };
   const portrait = portfolio?.portrait_image;
   if (typeof portrait === "string" && portrait.length > 0) {
     return { kind: "portrait", src: `/portraits/${portrait}` };

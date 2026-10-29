@@ -12,7 +12,7 @@ import { FAQ } from "@/components/sections/faq";
 import { Close } from "@/components/sections/close";
 import { getPortfolios } from "@/lib/queries";
 import { buildHeroCards } from "@/lib/hero-portfolios";
-import { buildFeaturedHeroCards, FEATURED_HERO_SLUGS } from "@/lib/hero-featured";
+import { buildFeaturedHeroCards, featuredSeriesSlugs } from "@/lib/hero-featured";
 import { getPerformanceSeriesAdmin } from "@/lib/queries";
 
 import { getPortfolioRankings } from "@/lib/portfolio-rankings";
@@ -63,7 +63,7 @@ async function HeroWithPortfolios() {
   const portfolios = await getPortfolios();
   // D28: Berkshire, Trump dice (centro) e IBIT con su serie real.
   const featuredIds = portfolios
-    .filter((p) => (FEATURED_HERO_SLUGS as readonly string[]).includes(p.slug))
+    .filter((p) => featuredSeriesSlugs().includes(p.slug))
     .map((p) => p.id);
   const series = await getPerformanceSeriesAdmin(featuredIds);
   const featured = buildFeaturedHeroCards(portfolios, series);

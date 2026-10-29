@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { isLogoImage } from "@/components/portrait-credit";
+import { slugImage } from "@/lib/portfolio-avatar";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
@@ -64,7 +65,7 @@ function PortfolioRow({
         portfolio={{ slug, name, category: category ?? "thematic", cover_image: coverImage, portrait_image: portraitImage ?? null }}
         size={64}
         title={
-          portraitImage
+          portraitImage && !slugImage(slug)
             ? isLogoImage(portraitImage)
               ? "Logo: marca de su titular, uso referencial"
               : "Foto: retrato oficial, dominio público"
