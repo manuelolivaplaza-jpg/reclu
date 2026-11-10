@@ -1,6 +1,17 @@
 import { JsonLd } from "@/components/json-ld";
 import { faqSchema } from "@/lib/seo";
-const FAQ_ITEMS = [
+import { aiEnabled } from "@/lib/ai-flags";
+
+interface FaqItem {
+  q: string;
+  a: string;
+  /** Pregunta sobre IA: solo se publica si aiEnabled(). */
+  requiresAi?: boolean;
+  /** Respuesta alternativa cuando la IA está apagada. */
+  aWithoutAi?: string;
+}
+
+const ALL_FAQ_ITEMS: FaqItem[] = [
   {
     q: "¿fraccion.si ejecuta operaciones por mí?",
     a: "No. fraccion.si es una plataforma de seguimiento y alertas. Nunca ejecutamos órdenes, ni custodiamos tus fondos ni tenemos acceso a tus cuentas de corretaje. Solo monitoreamos información pública y te avisamos por email o Telegram.",
@@ -16,6 +27,7 @@ const FAQ_ITEMS = [
   {
     q: "¿Los resúmenes AI son consejos de inversión?",
     a: "No. Los resúmenes generados por IA son análisis informativos basados en datos públicos. No constituyen asesoría de inversión ni una recomendación de compra o venta. Toda inversión implica riesgo.",
+    requiresAi: true,
   },
   {
     q: "¿Puedo comparar con mi propia cartera?",
@@ -24,14 +36,30 @@ const FAQ_ITEMS = [
   {
     q: "¿Qué pasa si supero el límite del plan gratuito?",
     a: "El plan gratuito incluye las carteras recomendadas de corredoras con todas sus acciones y 5 consultas diarias al asistente IA. Seguir portafolios y ver todas las acciones de políticos y fondos requiere Pro o Elite; puedes actualizar en cualquier momento y tus alertas y datos se mantienen intactos.",
+    aWithoutAi:
+      "El plan gratuito incluye las carteras recomendadas de corredoras con todas sus acciones. Seguir portafolios y ver todas las acciones de políticos y fondos requiere Pro o Elite; puedes actualizar en cualquier momento y tus alertas y datos se mantienen intactos.",
   },
 ];
+
+/**
+ * Lista efectiva de preguntas: sin clave de OpenRouter se omiten las que
+ * hablan de IA y se usa la variante de respuesta sin asistente. El mismo
+ * arreglo alimenta el JSON-LD, para no publicar preguntas que no se muestran.
+ */
+function visibleFaqItems(): { q: string; a: string }[] {
+  const aiOn = aiEnabled();
+  return ALL_FAQ_ITEMS.filter((item) => aiOn || !item.requiresAi).map(({ q, a, aWithoutAi }) => ({
+    q,
+    a: aiOn ? a : (aWithoutAi ?? a),
+  }));
+}
 
 /**
  * FAQ — cada pregunta es un details con filete superior. Control "+" que rota
  * a "×" al abrir. Sin card contenedora, sin sombra.
  */
 export function FAQ() {
+  const FAQ_ITEMS = visibleFaqItems();
   return (
     <section id="faq" className="bg-white py-20 md:py-32">
       <JsonLd data={faqSchema(FAQ_ITEMS)} />

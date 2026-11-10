@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     template: "%s · fraccion.si",
   },
   description:
-    "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email con análisis AI cuando hay cambios.",
+    "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email cuando hay cambios.",
   keywords: [
     "portafolios",
     "trading",
@@ -66,7 +66,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "fraccion.si — Seguimiento de portafolios y alertas inteligentes",
     description:
-      "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
+      "Sigue los portafolios que mueven el mercado. Alertas por email cuando hay cambios.",
     siteName: "fraccion.si",
     locale: "es_CL",
     type: "website",
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "fraccion.si — Seguimiento de portafolios y alertas inteligentes",
     description:
-      "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
+      "Sigue los portafolios que mueven el mercado. Alertas por email cuando hay cambios.",
   },
 };
 

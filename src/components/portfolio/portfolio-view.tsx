@@ -32,7 +32,7 @@ import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, holdingLimitFor } from "@/lib/access";
 import { buildComposition } from "@/lib/composition";
 import { absoluteUrl } from "@/lib/site";
-import { timeAgo, formatSignedPct, formatPctPlain } from "@/lib/utils";
+import { timeAgo, formatSignedPct, formatPctPlain, formatDecimal } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
 import { OgeTradesPanel } from "@/components/oge-trades-panel";
@@ -177,6 +177,9 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
 
   // Tabla de posiciones: último snapshot y una fila por símbolo (sin "INTC INTC").
   const holdingsTable = groupBySymbol(latestSnapshot(holdings));
+  // Sin dato no hay celda: peso y cambio solo si hay cifras reales que mostrar.
+  const hasWeightData = holdingsTable.some((h) => Number.isFinite(h.weight) && h.weight > 0);
+  const hasChangeData = holdingsTable.some((h) => h.previous_weight !== null);
   const aiOn = aiEnabled();
   const meta = CATEGORY_META[portfolio.category];
   const isPro = isPaidPlan(profile?.plan);
@@ -186,8 +189,12 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
   // Modo demo: sin Supabase configurado, los holdings vienen de demo-data.
   const isDemoData = !isSupabaseLive() && holdings.length > 0;
   const locked = role === "anon" && !publicDisclosure;
-  const hasReturn = portfolio.return_ytd !== null;
-  const positive = (portfolio.return_ytd ?? 0) >= 0;
+  // Sin retorno real no hay cifra: ni 0 por defecto ni un "—" de relleno.
+  const portfolioYtd =
+    typeof portfolio.return_ytd === "number" && Number.isFinite(portfolio.return_ytd)
+      ? portfolio.return_ytd
+      : null;
+  const positive = portfolioYtd !== null && portfolioYtd >= 0;
   const performanceReal = (Array.isArray(performance) ? performance : []).filter(
     (p) => p && typeof p.date === "string" && Number.isFinite(Number(p.value)),
   ).map((p) => ({ ...p, value: Number(p.value) }));
@@ -241,6 +248,9 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
         ? perfPanelData.portfolioSeries
         : [];
   const seriesYtd = ytdFromSeries(perfSourceSeries);
+  // Simulador: sin retorno real no hay bloque (nunca un 0 de relleno).
+  const toolReturnYtd =
+    seriesYtd !== null ? seriesYtd : holdingsTable.length > 0 ? portfolioYtd : null;
   const publication = latestDisclosureStamp(alerts);
 
   // Serie del hero: la MISMA que ya usa la página y que el servidor recortó
@@ -429,7 +439,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                       {formatSignedPct(seriesYtd)}
                     </span>
                   </div>
-                ) : hasReturn && holdings.length > 0 ? (
+                ) : portfolioYtd !== null && holdings.length > 0 ? (
                   <div className="mb-5">
                     <p className="label-line">Retorno YTD estimado (posiciones actuales)</p>
                     <span
@@ -438,7 +448,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                         (positive ? "text-positive" : "text-negative")
                       }
                     >
-                      {formatSignedPct(portfolio.return_ytd)}
+                      {formatSignedPct(portfolioYtd)}
                     </span>
                   </div>
                 ) : null}
@@ -467,16 +477,21 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             />
           ) : null}
 
-                    {esAgregado || holdingsLocked || holdings.length === 0 ? null : <PortfolioMetricsStrip holdings={holdings} />}
+          {/* Métricas de composición: solo con pesos reales (nunca "0,0%" de relleno). */}
+          {esAgregado || holdingsLocked || holdings.length === 0 || !hasWeightData ? null : (
+            <PortfolioMetricsStrip holdings={holdings} />
+          )}
 
-          {/* d68: el gráfico principal es el del hero (selector 1D–Máx); se quitó la "Evolución" duplicada. */}
-
+          {/* Un solo gráfico de rendimiento: el del cuerpo, con selector de
+              períodos y muro de plan. El hero conserva su tarjeta de
+              simulación; del panel de métricas se quitó el gráfico que
+              duplicaba el mismo tramo (6M/1A). */}
           {!esAgregado ? (
             <div className="mb-12">
               <PerformancePanel
                 metrics={perfPanelData.metrics}
-                portfolioSeries={perfPanelData.portfolioSeries}
-                benchmarkSeries={perfPanelData.benchmarkSeries}
+                portfolioSeries={[]}
+                benchmarkSeries={[]}
                 benchmarkLabel={benchmarkLabel}
                 method={perfDemo ? "demo" : perfPanelData.method}
                 asOf={perfPanelData.precomputed?.as_of ?? null}
@@ -489,7 +504,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             </div>
           ) : null}
 
-          {!esAgregado ? (
+          {!esAgregado && entrySeries.length >= 2 ? (
             <div className="mb-12">
               <PortfolioPerformanceChart
                 series={entrySeries}
@@ -536,8 +551,16 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             <section id="posiciones" className="scroll-mt-28 rounded-2xl bg-white p-5 shadow-app-raised sm:p-7">
               <h2 className="text-[15px] font-medium text-ink-900">
                 {esAgregado
-                  ? `Emisoras cotizadas (${holdings.length})`
-                  : `Composición${fechaAfp ? ` al ${fechaAfp}` : ""} (${holdingsLocked ? "solo suscriptores" : Number.isFinite(holdingLimit) ? `top ${holdings.length}` : `${holdings.length} activos`})`}
+                  ? holdings.length > 0
+                    ? `Emisoras cotizadas (${holdings.length})`
+                    : "Emisoras cotizadas"
+                  : `Composición${fechaAfp ? ` al ${fechaAfp}` : ""}${
+                      holdingsLocked
+                        ? " (solo suscriptores)"
+                        : holdings.length > 0
+                          ? ` (${Number.isFinite(holdingLimit) ? `top ${holdings.length}` : `${holdings.length} activos`})`
+                          : ""
+                    }`}
               </h2>
               {esAgregado ? (
                 <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
@@ -554,8 +577,8 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                     <thead>
                       <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
                         <th className="py-3 font-normal">Activo</th>
-                        <th className="py-3 text-right font-normal">Peso</th>
-                        <th className="py-3 text-right font-normal">Cambio</th>
+                        {hasWeightData ? <th className="py-3 text-right font-normal">Peso</th> : null}
+                        {hasChangeData ? <th className="py-3 text-right font-normal">Cambio</th> : null}
                       </tr>
                     </thead>
                     <tbody>
@@ -589,19 +612,29 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                                 <div className="text-[13px] text-ink-500">{h.name}</div>
                               ) : null}
                             </td>
-                            <td className="py-3.5 text-right font-medium tabular-nums text-ink-900">
-                              {formatPctPlain(h.weight, 1)}
-                            </td>
-                            <td className="py-3.5 text-right tabular-nums">
-                              {delta !== null && delta !== 0 ? (
-                                <span className={delta > 0 ? "text-positive" : "text-negative"}>
-                                  {delta > 0 ? "+" : ""}
-                                  {delta.toFixed(1)} pp
-                                </span>
-                              ) : (
-                                <span className="text-ink-400">—</span>
-                              )}
-                            </td>
+                            {hasWeightData ? (
+                              <td className="py-3.5 text-right font-medium tabular-nums text-ink-900">
+                                {formatPctPlain(h.weight, 1)}
+                              </td>
+                            ) : null}
+                            {hasChangeData ? (
+                              <td className="py-3.5 text-right tabular-nums">
+                                {delta === null ? null : (
+                                  <span
+                                    className={
+                                      delta === 0
+                                        ? "text-ink-500"
+                                        : delta > 0
+                                          ? "text-positive"
+                                          : "text-negative"
+                                    }
+                                  >
+                                    {delta > 0 ? "+" : ""}
+                                    {formatDecimal(delta, 1)} pp
+                                  </span>
+                                )}
+                              </td>
+                            ) : null}
                           </tr>
                         );
                       })}
@@ -669,11 +702,11 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
 
           {/* Simulador + exportación CSV (Elite) */}
           {/* Simulador: retorno YTD de la serie real; return_ytd solo si hay posiciones que lo respalden. */}
-          {seriesYtd !== null || (hasReturn && portfolio.return_ytd !== null && holdingsTable.length > 0) ? (
+          {toolReturnYtd !== null ? (
             <PortfolioTools
               slug={portfolio.slug}
               portfolioName={portfolio.name}
-              returnYtd={seriesYtd ?? portfolio.return_ytd ?? 0}
+              returnYtd={toolReturnYtd}
               returnLabel={seriesYtd !== null ? "YTD de la serie" : "YTD estimado"}
               holdings={holdingsTable}
               holdingsLocked={holdingsLocked}

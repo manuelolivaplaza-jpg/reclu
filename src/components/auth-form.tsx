@@ -51,7 +51,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const planBlurb =
     plan === "elite"
       ? "Fondos 13F institucionales, portafolios ilimitados y exportación CSV."
-      : "Hasta 15 portafolios, alertas en tiempo real y resúmenes AI.";
+      : "Hasta 15 portafolios y alertas en tiempo real.";
 
   const [state, formAction, isPending] = useActionState<FormState, FormData>(
     isLogin ? signIn : signUp,

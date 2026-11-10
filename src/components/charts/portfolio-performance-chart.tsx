@@ -16,7 +16,10 @@ export interface PortfolioPerformanceChartProps {
   /** Serie del benchmark en la misma escala (opcional). */
   benchmark?: ChartPoint[];
   benchmarkLabel?: string;
-  /** Plan gratis: periodos con mas dias quedan bloqueados. null = sin limite. */
+  /**
+   * Plan gratis: periodos con mas dias quedan bloqueados (muro de pago).
+   * null = sin limite. Los periodos sin datos suficientes no se muestran.
+   */
   maxFreeDays?: number | null;
   /** Última fecha estimada (posiciones actuales); ese tramo va punteado y gris. */
   estimatedUntil?: string | null;
@@ -67,8 +70,9 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-function fmtPct(v: number): string {
-  if (!Number.isFinite(v)) return "—";
+/** Cifra con signo; null cuando no hay dato (nunca un placeholder). */
+function fmtPct(v: number | null | undefined): string | null {
+  if (v === null || v === undefined || !Number.isFinite(v)) return null;
   return formatSignedPct(v, 2);
 }
 
@@ -95,15 +99,22 @@ export function PortfolioPerformanceChart({
   const isLocked = (days: number) => maxFreeDays != null && days > maxFreeDays;
   const hasData = (days: number) => port.filter((p) => p.t >= lastT - days * DAY).length >= 2;
 
+  // Selector: los períodos bloqueados por plan se mantienen (son el muro de
+  // pago); los que no tienen datos suficientes se omiten, no se muestran vacíos.
+  const shown = PERIODS.filter((p) => isLocked(p.days) || hasData(p.days));
+  const usable = PERIODS.filter((p) => !isLocked(p.days) && hasData(p.days));
+
   const defaultKey: PeriodKey = useMemo(() => {
-    const usable = PERIODS.filter((p) => !isLocked(p.days));
-    const withData = [...usable].reverse().find((p) => hasData(p.days));
-    return (withData ?? usable[usable.length - 1] ?? PERIODS[0]).key;
+    const open = PERIODS.filter((p) => !isLocked(p.days) && hasData(p.days));
+    return (open[open.length - 1] ?? PERIODS[0]).key;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [port, maxFreeDays]);
   const [picked, setPicked] = useState<PeriodKey | null>(null);
-  const periodKey = picked ?? defaultKey;
-  const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[2];
+  // Si el período elegido deja de existir (muro o falta de datos), se cae al
+  // período por defecto en vez de pintar un gráfico vacío.
+  const periodKey: PeriodKey =
+    picked !== null && usable.some((p) => p.key === picked) ? picked : defaultKey;
+  const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[0];
 
   const view = useMemo(() => {
     const from = lastT - period.days * DAY;
@@ -140,7 +151,10 @@ export function PortfolioPerformanceChart({
   }, [port, bench, lastT, period.days, estT]);
 
   const [hover, setHover] = useState<number | null>(null);
-  const positive = (view?.last ?? 0) >= 0;
+  // Sin serie utilizable no hay gráfico: ni cifra ni contenedor vacío.
+  if (port.length < 2 || usable.length === 0 || !view) return null;
+
+  const positive = view.last >= 0;
   const color = positive ? "var(--color-positive, #0f7a32)" : "var(--color-negative, #c81e1e)";
   const gradId = positive ? "rc-grad-pos" : "rc-grad-neg";
 
@@ -159,11 +173,17 @@ export function PortfolioPerformanceChart({
     setHover(best);
   };
 
-  const hp = view && hover !== null ? view.pp[hover] : null;
+  const hp = hover !== null ? view.pp[hover] : null;
   const hb =
-    hp && view && view.bb.length
+    hp && view.bb.length
       ? view.bb.reduce((a, b) => (Math.abs(b.t - hp.t) < Math.abs(a.t - hp.t) ? b : a))
       : null;
+  const headline = fmtPct(hp ? hp.pct : view.last);
+  const benchPct = view.bb.length
+    ? fmtPct(hb ? hb.pct : view.bb[view.bb.length - 1].pct)
+    : null;
+  const hoverPort = hp ? fmtPct(hp.pct) : null;
+  const hoverBench = hb ? fmtPct(hb.pct) : null;
   const anyLocked = PERIODS.some((p) => isLocked(p.days));
 
   return (
@@ -171,20 +191,22 @@ export function PortfolioPerformanceChart({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-[13px] text-ink-500">Rendimiento {"\u00b7"} {period.label}</p>
-          <p
-            className="num mt-1 text-[2rem] font-semibold leading-none tracking-[-0.02em]"
-            style={{ color: view ? color : undefined }}
-          >
-            {view ? fmtPct(hp ? hp.pct : view.last) : "—"}
-          </p>
-          {view && view.bb.length ? (
+          {headline !== null ? (
+            <p
+              className="num mt-1 text-[2rem] font-semibold leading-none tracking-[-0.02em]"
+              style={{ color }}
+            >
+              {headline}
+            </p>
+          ) : null}
+          {benchPct !== null ? (
             <p className="mt-2 text-[13px] text-ink-500">
-              {benchmarkLabel}: {fmtPct(hb ? hb.pct : view.bb[view.bb.length - 1].pct)}
+              {benchmarkLabel}: {benchPct}
             </p>
           ) : null}
         </div>
         <div className="flex gap-1 rounded-full bg-neutral-100 p-1">
-          {PERIODS.map((p) => {
+          {shown.map((p) => {
             const locked = isLocked(p.days);
             const active = p.key === periodKey;
             return (
@@ -214,9 +236,8 @@ export function PortfolioPerformanceChart({
         </div>
       </div>
 
-      {view ? (
-        <div className="mt-6">
-          <div className="relative">
+      <div className="mt-6">
+        <div className="relative">
           <svg
             viewBox={`0 0 ${W} ${H}`}
             preserveAspectRatio="none"
@@ -226,7 +247,7 @@ export function PortfolioPerformanceChart({
             onTouchMove={(e) => e.touches[0] && onMove(e.touches[0].clientX, e.currentTarget.getBoundingClientRect())}
             onTouchEnd={() => setHover(null)}
             role="img"
-            aria-label={`Rendimiento ${period.label}: ${fmtPct(view.last)}`}
+            aria-label={headline !== null ? `Rendimiento ${period.label}: ${headline}` : `Rendimiento ${period.label}`}
           >
             <defs>
               <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
@@ -258,42 +279,34 @@ export function PortfolioPerformanceChart({
                 style={{ left: `${Math.min(85, Math.max(15, (view.pxy[hover].x / W) * 100))}%` }}
               >
                 <p className="text-white/70">{fmtDate(hp.t)}</p>
-                <p className="num font-medium">Portafolio {fmtPct(hp.pct)}</p>
-                {hb ? <p className="num text-white/80">{benchmarkLabel} {fmtPct(hb.pct)}</p> : null}
+                {hoverPort !== null ? <p className="num font-medium">Portafolio {hoverPort}</p> : null}
+                {hoverBench !== null ? <p className="num text-white/80">{benchmarkLabel} {hoverBench}</p> : null}
               </div>
             </>
           ) : null}
-          </div>
-          <div className="mt-2 flex justify-between text-[12px] text-ink-400">
-            <span>{fmtDate(view.t0)}</span>
-            <span>{fmtDate(view.t1)}</span>
-          </div>
-          {view.bb.length || view.hasEst ? (
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-500">
-              {view.hasEst ? (
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="h-0 w-4 border-t-2 border-dotted border-neutral-400" /> Estimado con posiciones actuales
-                </span>
-              ) : null}
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-0.5 w-4 rounded-full" style={{ background: color }} /> Portafolio
-              </span>
-              {view.bb.length ? (
-              <span className="inline-flex items-center gap-1.5">
-                <span className="h-0 w-4 border-t-2 border-dashed border-neutral-400" /> {benchmarkLabel}
-              </span>
-              ) : null}
-            </div>
-          ) : null}
         </div>
-      ) : (
-        <div className="mt-6 flex h-48 flex-col items-center justify-center rounded-xl bg-neutral-50 text-center">
-          <p className="text-[15px] font-medium text-ink-900">Aún no hay datos de rendimiento para este portafolio.</p>
-          <p className="mt-1 max-w-sm text-[13px] text-ink-500">
-            El gráfico aparecerá cuando tengamos precios suficientes de sus posiciones.
-          </p>
+        <div className="mt-2 flex justify-between text-[12px] text-ink-400">
+          <span>{fmtDate(view.t0)}</span>
+          <span>{fmtDate(view.t1)}</span>
         </div>
-      )}
+        {view.bb.length || view.hasEst ? (
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-500">
+            {view.hasEst ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-0 w-4 border-t-2 border-dotted border-neutral-400" /> Estimado con posiciones actuales
+              </span>
+            ) : null}
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-0.5 w-4 rounded-full" style={{ background: color }} /> Portafolio
+            </span>
+            {view.bb.length ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className="h-0 w-4 border-t-2 border-dashed border-neutral-400" /> {benchmarkLabel}
+            </span>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {anyLocked ? (
         <p className="mt-4 text-[13px] text-ink-500">

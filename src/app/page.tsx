@@ -15,6 +15,7 @@ import { getPortfolios } from "@/lib/queries";
 import { buildHeroCards } from "@/lib/hero-portfolios";
 import { buildFeaturedHeroCards, featuredSeriesSlugs } from "@/lib/hero-featured";
 import { getPerformanceSeriesAdmin } from "@/lib/queries";
+import { aiEnabled } from "@/lib/ai-flags";
 
 import { getPortfolioRankings } from "@/lib/portfolio-rankings";
 
@@ -25,7 +26,7 @@ import { getPortfolioRankings } from "@/lib/portfolio-rankings";
 export const metadata = withSeo("/", {
   title: { absolute: "fraccion.si — Seguimiento de portafolios y alertas inteligentes" },
   description:
-    "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email con análisis AI cuando hay cambios.",
+    "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email cuando hay cambios.",
 });
 
 export default function HomePage() {
@@ -47,7 +48,7 @@ export default function HomePage() {
         </Suspense>
         <Statement />
         <HowItWorks />
-        <Pricing />
+        <Pricing aiOn={aiEnabled()} />
         <FAQ />
         <Close />
       </main>

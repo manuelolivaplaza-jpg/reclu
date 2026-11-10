@@ -9,6 +9,11 @@ Reglas (una sola implementacion para performance.py y reconstruct_history.py):
 - Precios con forward-fill: un feriado de una bolsa no mueve la serie.
 - Un simbolo sin precio al inicio del tramo queda fuera de ese tramo y los
   pesos se renormalizan; no se inventa precio hacia atras.
+- D75: el primer dia de la serie es el primero en que los simbolos con precio
+  de la primera foto cubren >= MIN_COVERAGE (60 %) de su peso. Un simbolo de la
+  foto vigente que empieza a cotizar despues entra al cierre de su primer dia
+  con precio, rebalanceando igual que una foto nueva y sin salto: la variacion
+  de ese dia es la de la canasta anterior, no un escalon artificial.
 - Fotos repetidas (mismos pesos) no rebalancean.
 """
 
@@ -18,6 +23,13 @@ from bisect import bisect_right
 from typing import Iterable
 
 Snapshot = tuple[str, dict[str, float]]
+
+# D75: cobertura minima de peso de la PRIMERA foto para fijar el primer dia.
+# Antes el inicio era max(primer precio por simbolo), asi que un solo holding
+# que empezara a cotizar tarde retrasaba toda la serie (Duquesne/Soros quedaban
+# en 11 puntos, Appaloosa/PIF/Tiger en ~97, Renaissance en 12). Con 60 % la
+# serie parte cuando el grueso del libro ya cotiza y la cola entra al empezar.
+MIN_COVERAGE = 0.6
 
 
 def _price_index(rows: Iterable[tuple[str, float]]) -> tuple[list[str], list[float]]:
@@ -78,11 +90,25 @@ def chain_series(
         i = bisect_right(days, day)
         return vals[i - 1] if i else None
 
-    # Primer dia: todos los simbolos con precio de la primera foto ya cotizan.
-    first_syms = [s for s in snaps[0][1] if s in idx]
-    if not first_syms:
+    # D75: primer dia con cobertura suficiente de la primera foto. Antes era
+    # max(primer precio por simbolo): un holding que empezaba a cotizar tarde
+    # retrasaba TODA la serie. Si ningun dia alcanza MIN_COVERAGE (p. ej. medio
+    # libro sin precios), se usa el primero con cualquier precio.
+    first_w = snaps[0][1]
+    total_w = sum(first_w.values())
+    first_day: str | None = None
+    for day in calendar:
+        covered = sum(w for s, w in first_w.items() if s in idx and px(s, day) is not None)
+        if total_w > 0 and covered / total_w >= MIN_COVERAGE:
+            first_day = day
+            break
+    if first_day is None:
+        for day in calendar:
+            if any(s in idx and px(s, day) is not None for s in first_w):
+                first_day = day
+                break
+    if first_day is None:
         return []
-    first_day = max(idx[s][0][0] for s in first_syms)
     calendar = [d for d in calendar if d >= first_day]
     if not calendar:
         return []
@@ -94,6 +120,14 @@ def chain_series(
             return None
         return {s: (w / total, px(s, day)) for s, w in live.items()}
 
+    def late_entry(weights: dict[str, float], held: set[str], day: str) -> bool:
+        """True si un simbolo de la foto ya cotiza y aun no esta en la canasta.
+
+        El forward-fill hace que "tiene precio hoy" sea "su primer precio es
+        hoy o antes", asi que basta mirar el primer dia del indice.
+        """
+        return any(s in idx and s not in held and idx[s][0][0] <= day for s in weights)
+
     out: list[tuple[str, float]] = []
     nav = 1.0
     seg = 0
@@ -103,6 +137,7 @@ def chain_series(
     current = basket(snaps[seg][1], calendar[0])
     if current is None:
         return []
+    held = set(current)
     for day in calendar:
         level = nav * sum(w * px(s, day) / p0 for s, (w, p0) in current.items())
         out.append((day, level))
@@ -111,11 +146,17 @@ def chain_series(
         while seg + 1 < len(snaps) and snaps[seg + 1][0] <= day:
             seg += 1
             changed = True
-        if changed:
+        nxt = basket(snaps[seg][1], day) if changed else None
+        # D75: tambien entra al cierre el simbolo de la foto vigente que empieza
+        # a cotizar hoy (antes esperaba a la proxima foto). Mismo rebalanceo:
+        # nav = nivel, sin salto; la variacion del dia es la de la canasta
+        # anterior y desde el cierre el nuevo simbolo ya pesa.
+        if nxt is None and late_entry(snaps[seg][1], held, day):
             nxt = basket(snaps[seg][1], day)
-            if nxt is not None:
-                nav = level
-                current = nxt
+        if nxt is not None:
+            nav = level
+            current = nxt
+            held = set(current)
     return out
 
 

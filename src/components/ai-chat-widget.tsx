@@ -175,12 +175,51 @@ export function AiChatWidget() {
     };
   }, [open]);
 
-  // Rutas del dashboard con nav inferior fija: el botón flota más arriba en móvil.
-  const isDashboardRoute =
+  /* ---------------------------------------------------------------
+     Geometría del botón flotante.
+     Hay dos barras fijas abajo en móvil que la burbuja debe esquivar:
+     1) mobile-tab-bar (shell de la app): h-16 + safe-area = 4rem.
+     2) barra del CTA "Seguir" del detalle de portafolio
+        (portfolio-hero.tsx:146): es `fixed` por debajo de md y mide
+        ~6.5rem (botón h-12 + leyenda + padding + safe-area).
+     --------------------------------------------------------------- */
+
+  // Rutas dentro del shell de la app (tienen mobile-tab-bar fija).
+  const hasTabBar =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/alerts") ||
     pathname.startsWith("/compare") ||
-    pathname.startsWith("/settings");
+    pathname.startsWith("/settings") ||
+    pathname.startsWith("/app") ||
+    pathname.startsWith("/mi-portafolio") ||
+    pathname.startsWith("/upgrade");
+
+  // Rutas con el CTA "Seguir" en barra fija inferior por debajo de md.
+  // (regex sin decodeURIComponent para no arriesgar un throw en render)
+  const hasFollowBar =
+    /^\/portfolio\/[^/]+/.test(pathname) || pathname.startsWith("/app/portafolio");
+
+  // Móvil (< sm): burbuja compacta por encima de la barra más alta presente.
+  // En /app/portafolio se apilan las dos barras y ambas ya suman la safe-area
+  // (la tab bar vía --app-tabbar-h y el CTA vía su pb), de ahí el doble env().
+  const bubbleMobileBottom =
+    hasFollowBar && hasTabBar
+      ? "bottom-[calc(11.5rem+env(safe-area-inset-bottom)+env(safe-area-inset-bottom))]"
+      : hasFollowBar
+        ? "bottom-[calc(7.5rem+env(safe-area-inset-bottom))]"
+        : "bottom-[calc(5.5rem+env(safe-area-inset-bottom))]";
+
+  // Desde sm/md recupera el comportamiento de escritorio (mismos saltos
+  // que ya existían para las rutas del dashboard, ahora con safe-area:
+  // 5rem supera los 4rem de la tab bar también en iPhone apaisado.
+  const bubbleDesktopBottom =
+    hasFollowBar && hasTabBar
+      ? "md:bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-5"
+      : hasTabBar
+        ? "sm:bottom-[calc(5rem+env(safe-area-inset-bottom))] lg:bottom-5"
+        : hasFollowBar
+          ? "md:bottom-5"
+          : "sm:bottom-5";
 
   const suggestions = suggestionsForPath(pathname);
 
@@ -400,7 +439,7 @@ export function AiChatWidget() {
         )}
       </AnimatePresence>
 
-      {/* Botón flotante — en el dashboard móvil flota sobre la nav inferior */}
+      {/* Botón flotante — compacto y por encima de las barras fijas en móvil */}
       <AnimatePresence>
         {!open && (
           <motion.button
@@ -410,8 +449,10 @@ export function AiChatWidget() {
               setOpen(true);
             }}
             className={
-              "fixed right-5 z-[100] flex h-12 items-center gap-2 rounded-full bg-ink-900 pr-4 pl-3.5 text-[14px] font-medium text-white shadow-lg shadow-black/20 " +
-              (isDashboardRoute ? "bottom-20 lg:bottom-5" : "bottom-5")
+              "fixed right-4 z-[100] flex h-12 w-12 items-center justify-center gap-2 rounded-full bg-ink-900 text-[14px] font-medium text-white shadow-lg shadow-black/20 sm:right-5 sm:w-auto sm:pl-3.5 sm:pr-4 " +
+              bubbleMobileBottom +
+              " " +
+              bubbleDesktopBottom
             }
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -430,7 +471,7 @@ export function AiChatWidget() {
               />
               <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.8" />
             </svg>
-            Pregúntale a Fraccion
+            <span className="hidden sm:inline">Pregúntale a Fraccion</span>
           </motion.button>
         )}
       </AnimatePresence>

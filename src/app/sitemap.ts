@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getPortfolios } from "@/lib/queries";
+import { getSitemapPortfolios } from "@/lib/sitemap-data";
 import { absoluteUrl } from "@/lib/site";
 import { apiPublicEnabled } from "@/lib/api-keys";
 import { communityEnabled } from "@/lib/community";
@@ -8,15 +8,16 @@ import { FICHAS_APRENDE } from "@/content/aprende";
 /**
  * Sin segment config: `instant` y `revalidate` no son compatibles con
  * cacheComponents en rutas de metadata (Next 16 los rechaza en build).
- * El sitemap consulta la base sin cachear, así que Next lo regenera
- * solos en cada request — no queda congelado con datos viejos.
+ * La lectura de portafolios vive en `@/lib/sitemap-data`: pide solo
+ * `slug` + `updated_at` y se cachea 1 h con los tags públicos, así que el
+ * pipeline diario la invalida vía /api/revalidate y el sitemap se regenera.
  */
 
 /**
  * Sitemap dinámico: páginas estáticas + todas las páginas de portafolio
  * activas (con lastModified desde la última actualización del dato).
- * Si la base está vacía o sin configurar, getPortfolios cae a demo y el
- * sitemap igual lista los portafolios de ejemplo.
+ * Si la base está vacía, sin configurar o falla, `getSitemapPortfolios`
+ * cae a la lista demo y el sitemap igual lista los portafolios de ejemplo.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -79,14 +80,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  const portfolios = await getPortfolios().catch(() => []);
+  // D75: lectura mínima cacheada (solo slug + updated_at). Antes esta ruta
+  // llamaba getPortfolios() completo sin caché en cada request (8,4 s TTFB).
+  const portfolios = await getSitemapPortfolios();
 
-  const portfolioEntries: MetadataRoute.Sitemap = portfolios.map((portfolio) => ({
-    url: absoluteUrl(`/portfolio/${portfolio.slug}`),
-    lastModified: new Date(portfolio.updated_at),
-    changeFrequency: "weekly",
-    priority: 0.8,
-  }));
+  const portfolioEntries: MetadataRoute.Sitemap = portfolios.map((portfolio) => {
+    const entry: MetadataRoute.Sitemap[number] = {
+      url: absoluteUrl(`/portfolio/${portfolio.slug}`),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    };
+    // Mismo lastModified que hoy (updated_at); si la columna viniera nula se
+    // omite en vez de emitir una fecha inválida en el XML.
+    if (portfolio.updatedAt) entry.lastModified = new Date(portfolio.updatedAt);
+    return entry;
+  });
 
   return [...staticEntries, ...portfolioEntries];
 }

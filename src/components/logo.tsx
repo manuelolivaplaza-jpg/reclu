@@ -1,3 +1,4 @@
+import { BRAND_WORDMARK } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,7 +22,7 @@ export function LogoLockup({
         className,
       )}
     >
-      reclu
+      {BRAND_WORDMARK}
     </span>
   );
 }
