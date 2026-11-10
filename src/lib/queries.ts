@@ -114,28 +114,41 @@ async function getPortfoliosPublic(category: string, search: string, country: st
 export async function getPortfolioRedirect(slug: string): Promise<string | null> {
   if (!isHiddenSlug(slug)) return null;
 
+  // Respaldo estático: se usa sin Supabase configurado o si Supabase falla.
   const fallback = HIDDEN_DEMO_SLUGS[slug] ?? null;
   if (!isSupabaseLive()) return demoRedirectTarget(slug);
 
-  const supabase = await createClient();
+  // Fail-soft: sin request scope (tests) o con Supabase caído, la página no
+  // debe tirar 500; redirigimos con el mapa estático y seguimos.
+  let target = fallback;
+  try {
+    const supabase = await createClient();
 
-  let target: string | null = fallback;
-  const { data: hiddenRow } = await supabase
-    .from("portfolios")
-    .select("slug, replaced_by_slug, is_active")
-    .eq("slug", slug)
-    .maybeSingle();
-  if (hiddenRow?.replaced_by_slug) target = hiddenRow.replaced_by_slug;
-  if (!target) return null;
+    const { data: hiddenRow, error: hiddenError } = await supabase
+      .from("portfolios")
+      .select("slug, replaced_by_slug, is_active")
+      .eq("slug", slug)
+      .maybeSingle();
+    if (hiddenError) throw hiddenError;
+    if (hiddenRow?.replaced_by_slug) target = hiddenRow.replaced_by_slug;
+    if (!target) return null;
 
-  // El destino solo vale si está activo (el cliente anónimo sí puede leerlo).
-  const { data: realRow } = await supabase
-    .from("portfolios")
-    .select("slug, is_active")
-    .eq("slug", target)
-    .eq("is_active", true)
-    .maybeSingle();
-  return realRow ? target : null;
+    // El destino solo vale si está activo (el cliente anónimo sí puede leerlo).
+    const { data: realRow, error: realError } = await supabase
+      .from("portfolios")
+      .select("slug, is_active")
+      .eq("slug", target)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (realError) throw realError;
+    return realRow ? target : null;
+  } catch (error) {
+    console.warn(
+      `[reclu] getPortfolioRedirect(${slug}) falló; uso el mapa estático:`,
+      error instanceof Error ? error.message : error,
+    );
+    return target;
+  }
 }
 
 export async function getPortfolioBySlug(slug: string): Promise<Portfolio | null> {
