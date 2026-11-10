@@ -111,11 +111,6 @@ export function getProviderById(id: string): PaymentProvider {
   throw new PaymentsNotConfiguredError(id);
 }
 
-/** True si el proveedor activo es el de prueba (para UI "modo prueba"). */
-export function isMockProvider(): boolean {
-  return getPaymentProvider().id === "mock";
-}
-
 /**
  * Estado de los pagos para la UI: ¿hay un proveedor utilizable?
  *
