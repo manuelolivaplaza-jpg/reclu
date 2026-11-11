@@ -1,8 +1,10 @@
-import { withSeo } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site";
+import { itemListSchema, withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { JsonLd } from "@/components/json-ld";
 import { AVISO_APRENDE, FICHAS_APRENDE } from "@/content/aprende";
 
 export const metadata: Metadata = withSeo("/aprende", {
@@ -14,6 +16,15 @@ export const metadata: Metadata = withSeo("/aprende", {
 export default function AprendePage() {
   return (
     <>
+      <JsonLd
+        data={itemListSchema(
+          "Fichas de Aprende",
+          FICHAS_APRENDE.map((ficha) => ({
+            name: ficha.titulo,
+            url: absoluteUrl(`/aprende/${ficha.slug}`),
+          })),
+        )}
+      />
       <SiteHeader />
       <main id="main">
         <div className="container-page max-w-3xl py-16 md:py-20">

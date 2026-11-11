@@ -76,7 +76,7 @@ describe("/upgrade sin proveedor de pagos", () => {
     const html = await renderPage();
     expect(html).toContain("Plan Pro");
     expect(html).toContain("Plan Elite");
-    expect(html).toContain("$12.990");
+    expect(html).toContain("$9.990");
   });
 
   it("muestra el aviso de pagos no disponibles", async () => {

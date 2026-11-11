@@ -1,10 +1,12 @@
-import { withSeo } from "@/lib/seo";
+import { articleSchema, breadcrumbSchema, faqSchema, withSeo } from "@/lib/seo";
+import { absoluteUrl } from "@/lib/site";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { JsonLd } from "@/components/json-ld";
 import {
   AVISO_APRENDE,
   FICHAS_APRENDE,
@@ -30,6 +32,9 @@ export async function generateMetadata({
   return withSeo(`/aprende/${ficha.slug}`, {
     title: `${ficha.titulo} — Aprende`,
     description: ficha.resumen,
+    // La ficha define su propio openGraph, así que hereda la imagen del
+    // segmento padre solo si la declaramos explícitamente.
+    openGraph: { images: [absoluteUrl("/aprende/opengraph-image")] },
   });
 }
 
@@ -39,9 +44,32 @@ export default async function AprendeFichaPage({ params }: AprendeFichaProps) {
   if (!ficha) notFound();
 
   const otras = FICHAS_APRENDE.filter((item) => item.slug !== ficha.slug);
+  const ruta = `/aprende/${ficha.slug}`;
+  // La FAQ usa el resumen tal como se ve en la página (más abajo): mismo texto,
+  // sin datos nuevos. Si no hubiera resumen visible, no se emite FAQPage.
+  const faq =
+    ficha.resumen.trim().length > 0
+      ? faqSchema([{ q: `¿Qué es ${ficha.titulo}?`, a: ficha.resumen }])
+      : null;
 
   return (
     <>
+      <JsonLd
+        data={articleSchema({
+          headline: ficha.titulo,
+          description: ficha.resumen,
+          url: ruta,
+        })}
+      />
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Inicio", path: "/" },
+          { name: "Aprende", path: "/aprende" },
+          { name: ficha.titulo, path: ruta },
+        ])}
+      />
+      {faq ? <JsonLd data={faq} /> : null}
+
       <SiteHeader />
       <main id="main">
         <div className="container-page max-w-3xl py-16 md:py-20">
@@ -62,6 +90,26 @@ export default async function AprendeFichaPage({ params }: AprendeFichaProps) {
               <p key={parrafo}>{parrafo}</p>
             ))}
           </div>
+
+          {ficha.portafolios && ficha.portafolios.length > 0 ? (
+            <section className="mt-14">
+              <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+                Portafolios relacionados
+              </h2>
+              <ul className="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-[15px] leading-relaxed">
+                {ficha.portafolios.map((portafolio) => (
+                  <li key={portafolio}>
+                    <Link
+                      href={`/portfolio/${portafolio}`}
+                      className="underline underline-offset-4"
+                    >
+                      {nombrePortafolio(portafolio)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <section className="mt-14">
             <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
@@ -112,4 +160,27 @@ export default async function AprendeFichaPage({ params }: AprendeFichaProps) {
       <SiteFooter />
     </>
   );
+}
+
+/**
+ * Etiqueta legible de un slug de portafolio, sin inventar nombres ni cifras:
+ * separa por guiones y normaliza solo siglas conocidas.
+ */
+function nombrePortafolio(slug: string): string {
+  const siglas: Record<string, string> = {
+    "13f": "13F",
+    "1m": "1M",
+    afp: "AFP",
+    cl: "CL",
+    oge: "OGE",
+    ptr: "PTR",
+  };
+  return slug
+    .split("-")
+    .map((parte) => {
+      const sigla = siglas[parte.toLowerCase()];
+      if (sigla) return sigla;
+      return parte.charAt(0).toUpperCase() + parte.slice(1);
+    })
+    .join(" ");
 }

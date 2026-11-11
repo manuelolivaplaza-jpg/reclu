@@ -146,7 +146,7 @@ reclu/
 
 ## Modelo freemium
 
-| Feature | Gratis | Pro ($12.990/mes) | Elite ($16.990/mes) |
+| Feature | Gratis | Pro ($9.990/mes) | Elite ($16.990/mes) |
 |---|---|---|---|
 | Portafolios seguidos | 2 | 15 | Ilimitados |
 | Alertas por email | Diario (batch) | Tiempo real | Tiempo real |

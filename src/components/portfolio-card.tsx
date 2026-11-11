@@ -1,4 +1,5 @@
 import { AppLink as Link } from "@/components/app/app-link";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import { slugImage } from "@/lib/portfolio-avatar";
 import { FollowButton } from "@/components/follow-button";
 import { Sparkline } from "@/components/sparkline";
@@ -39,7 +40,7 @@ export function PortfolioCard({
   return (
     <div className="flex flex-col overflow-hidden border border-ink-200">
       <Link
-        href={`/portfolio/${portfolio.slug}`}
+        href={`/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`}
         aria-hidden="true"
         tabIndex={-1}
         className="block px-6 pt-6"
@@ -65,7 +66,7 @@ export function PortfolioCard({
         </div>
 
         {/* Nombre */}
-        <Link href={`/portfolio/${portfolio.slug}`} className="group mt-4 block">
+        <Link href={`/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`} className="group mt-4 block">
           <h3 className="text-[20px] font-medium tracking-[-0.03em] text-ink-900 group-hover:underline">
             {portfolio.name}
           </h3>
@@ -106,7 +107,7 @@ export function PortfolioCard({
       {/* Acción */}
       <div className="mt-4 flex items-center justify-between gap-3">
         <Link
-          href={`/portfolio/${portfolio.slug}`}
+          href={`/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`}
           className="text-[14px] text-ink-900 underline-offset-4 hover:underline"
         >
           Ver detalle

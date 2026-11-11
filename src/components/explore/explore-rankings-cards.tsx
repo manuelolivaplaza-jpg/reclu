@@ -1,4 +1,5 @@
 import { AppLink as Link } from "@/components/app/app-link";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import type { Portfolio } from "@/lib/types";
 import type { BeatMarketRow } from "@/lib/performance-queries";
 import { BeatMarketRanking } from "@/components/beat-market-ranking";
@@ -68,7 +69,7 @@ export function ExploreRankingsCards({
             {mostAlerts.map(({ p, n }) => (
               <li key={p.id}>
                 <Link
-                  href={`/portfolio/${p.slug}`}
+                  href={`/portfolio/${canonicalPortfolioSlug(p.slug)}`}
                   className="app-card flex h-full flex-col justify-between gap-3 rounded-2xl p-4 transition-shadow hover:shadow-app-raised"
                 >
                   <span className="line-clamp-2 text-[14px] font-medium text-ink-900">{p.name}</span>

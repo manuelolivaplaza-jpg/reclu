@@ -113,7 +113,7 @@ export function Pricing({ aiOn = false }: { aiOn?: boolean }) {
                   {b === "monthly" ? "Mensual" : "Anual"}
                   {b === "annual" && (
                     <span className={"rounded-full px-1.5 py-0.5 text-[11px] " + (annual ? "bg-white/15" : "bg-positive/10 text-positive")}>
-                      -20%
+                      hasta -20%
                     </span>
                   )}
                 </button>

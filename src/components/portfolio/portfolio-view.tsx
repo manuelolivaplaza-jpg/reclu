@@ -28,10 +28,12 @@ import { getPortfolioPerformanceData } from "@/lib/performance-queries";
 import { computePerformanceMetrics, fromPctToLevel } from "@/lib/performance";
 import { DemoBadge } from "@/components/demo-badge";
 import { JsonLd } from "@/components/json-ld";
+import { PortfolioRelated } from "@/components/portfolio-related";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, holdingLimitFor } from "@/lib/access";
 import { buildComposition } from "@/lib/composition";
-import { absoluteUrl } from "@/lib/site";
+import { absoluteUrl, siteUrl } from "@/lib/site";
+import { BRAND_NAME } from "@/lib/brand";
 import { timeAgo, formatSignedPct, formatPctPlain, formatDecimal } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
@@ -282,22 +284,36 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
       ? { pct: inceptionPct, label: seriesPeriodLabel(fullSeries) }
       : null;
 
+  // Cobertura temporal del Dataset: primer y último punto REALES de la serie
+  // más el as_of declarado. Nunca el año en curso ni la serie de ejemplo: en
+  // modo demo los holdings son ilustrativos y no cuentan como dato.
+  const coverageDates: string[] = performanceReal.map((point) => point.date);
+  if (coverageDates.length === 0) {
+    coverageDates.push(...perfPanelData.portfolioSeries.map((point) => point.date));
+  }
+  if (!isDemoData) {
+    coverageDates.push(...holdings.map((holding) => holding.as_of));
+  }
+
   return (
     <div className={inApp ? "flex flex-col" : "flex min-h-screen flex-col"}>
       {/* SEO: Dataset + BreadcrumbList (schema.org) */}
       <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "Dataset",
+        data={buildPortfolioDataset({
+          slug: portfolio.slug,
           name: portfolio.name,
           description: portfolio.description,
-          url: absoluteUrl(`/portfolio/${portfolio.slug}`),
-          inLanguage: "es-CL",
-          keywords: [meta.label, ...portfolio.tags].join(", "),
-          creator: portfolio.manager ? { "@type": "Person", name: portfolio.manager } : undefined,
-          temporalCoverage: `${new Date().getFullYear()}`,
-          license: esAgregado ? INFOPROBIDAD_LICENCIA_URL : absoluteUrl("/disclaimer"),
-        }}
+          category: portfolio.category,
+          categoryLabel: meta.label,
+          tags: portfolio.tags,
+          manager: portfolio.manager,
+          source: portfolio.source,
+          updatedAt: portfolio.updated_at,
+          licenseUrl: esAgregado ? INFOPROBIDAD_LICENCIA_URL : absoluteUrl("/disclaimer"),
+          baseUrl: siteUrl(),
+          brandName: BRAND_NAME,
+          dates: coverageDates,
+        })}
       />
       <JsonLd
         data={{
@@ -715,6 +731,11 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             />
           ) : null}
 
+          {/* Relacionados: solo en la ficha pública (dentro de la app no aplica) */}
+          {inApp ? null : (
+            <PortfolioRelated slug={portfolio.slug} category={portfolio.category} />
+          )}
+
           {/* Disclaimer */}
           <p className="mt-12 border-t border-ink-200 pt-8 text-xs leading-relaxed text-ink-500">
             La información presentada proviene de fuentes públicas y tiene fines
@@ -743,4 +764,175 @@ function ytdFromSeries(points: { date: string; value: number }[]): number | null
   if (b <= 0) return null;
   const v = ((1 + last.value / 100) / b - 1) * 100;
   return Number.isFinite(v) ? v : null;
+}
+
+// ---------------------------------------------------------------------------
+// B3: Dataset JSON-LD de la ficha
+//
+// El creador del Dataset es Fraccion (Organization con @id estable), porque es
+// quien publica el dataset; la persona o entidad que gestiona la cartera —si
+// existe— va en `about`. La cobertura temporal se arma con fechas REALES de la
+// serie y de los as_of (nunca con el año en curso) y `dateModified` sale de
+// portfolio.updated_at. Los campos sin dato no se emiten.
+//
+// La función es pura y recibe todo explícito (sin env, sin React) para poder
+// testearse con datos de ejemplo.
+// ---------------------------------------------------------------------------
+
+/** Categorías cuyo portafolio pertenece a una persona concreta. */
+const PERSON_CATEGORIES = new Set<string>(["political_us"]);
+/** Fuentes de seguimiento nominal a una persona (Trump, Musk, Cramer). */
+const PERSON_SOURCES = new Set<string>([
+  "trump_mentions",
+  "musk_mentions",
+  "cnbc_lightning_round",
+]);
+/** Categorías donde el gestor es una entidad (corredora, fondo, modelo). */
+const ORGANIZATION_CATEGORIES = new Set<string>(["broker_cl", "hedge_fund", "model"]);
+
+export interface PortfolioDatasetInput {
+  slug: string;
+  name: string;
+  description?: string | null;
+  /** Categoría del portafolio: decide si el gestor es Person u Organization. */
+  category?: string | null;
+  /** Etiqueta legible de la categoría (CATEGORY_META.label). */
+  categoryLabel?: string | null;
+  tags?: string[] | null;
+  /** Gestor de la cartera (no es el creador del dataset). */
+  manager?: string | null;
+  /** Fuente de datos (decide el tipo del gestor en fuentes nominales). */
+  source?: string | null;
+  /** portfolio.updated_at: si falta o no es fecha, no hay dateModified. */
+  updatedAt?: string | null;
+  /** Licencia o aviso legal del dataset. */
+  licenseUrl: string;
+  /** Base pública del sitio (siteUrl()), sin slash final. */
+  baseUrl: string;
+  /** Nombre de la marca creadora (BRAND_NAME). */
+  brandName: string;
+  /** Fechas de la serie y de los as_of reales (ISO o YYYY-MM-DD). */
+  dates?: (string | null | undefined)[] | null;
+  inLanguage?: string | null;
+}
+
+function cleanText(value: string | null | undefined): string | null {
+  const trimmed = (value ?? "").trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+/** Día ISO (YYYY-MM-DD) desde una fecha ISO o un timestamp; null si no sirve. */
+function isoDay(value: string | null | undefined): string | null {
+  const text = cleanText(value);
+  if (!text) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  if (!match) return null;
+  const day = `${match[1]}-${match[2]}-${match[3]}`;
+  const parsed = Date.parse(`${day}T00:00:00Z`);
+  if (!Number.isFinite(parsed)) return null;
+  // Una fecha imposible (2026-02-31) se normaliza a marzo: se descarta.
+  return new Date(parsed).toISOString().slice(0, 10) === day ? day : null;
+}
+
+/**
+ * Cobertura temporal ISO 8601 (`YYYY-MM-DD/YYYY-MM-DD`) entre el primer y el
+ * último punto con fecha real. Null si no hay ninguna fecha válida.
+ */
+export function portfolioTemporalCoverage(
+  dates: (string | null | undefined)[] | null | undefined,
+): string | null {
+  const days = (dates ?? [])
+    .map((value) => isoDay(value))
+    .filter((day): day is string => day !== null)
+    .sort();
+  if (days.length === 0) return null;
+  return `${days[0]}/${days[days.length - 1]}`;
+}
+
+/** Tipo schema.org del gestor; Thing cuando el portafolio no lo determina. */
+function managerSchemaType(
+  category: string | null | undefined,
+  source: string | null | undefined,
+): "Person" | "Organization" | "Thing" {
+  const cat = cleanText(category);
+  const src = cleanText(source);
+  if (cat && PERSON_CATEGORIES.has(cat)) return "Person";
+  if (src && PERSON_SOURCES.has(src)) return "Person";
+  if (cat && ORGANIZATION_CATEGORIES.has(cat)) return "Organization";
+  return "Thing";
+}
+
+/** Keywords sin vacíos ni repetidos (etiqueta de categoría primero). */
+function keywordsFor(
+  categoryLabel: string | null | undefined,
+  tags: string[] | null | undefined,
+): string | null {
+  const seen = new Set<string>();
+  const words: string[] = [];
+  for (const raw of [categoryLabel ?? "", ...(tags ?? [])]) {
+    const word = cleanText(raw);
+    if (!word) continue;
+    const key = word.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    words.push(word);
+  }
+  return words.length > 0 ? words.join(", ") : null;
+}
+
+/** dateModified en ISO completo cuando updated_at es una fecha válida. */
+function isoDateTime(value: string | null | undefined): string | null {
+  const text = cleanText(value);
+  if (!text) return null;
+  const parsed = Date.parse(text);
+  return Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+}
+
+/**
+ * Arma el objeto JSON-LD `Dataset` de una ficha de portafolio.
+ * No incluye campos vacíos y nunca usa el año en curso como cobertura.
+ */
+export function buildPortfolioDataset(input: PortfolioDatasetInput): Record<string, unknown> {
+  const baseUrl = cleanText(input.baseUrl) ?? "";
+  const brandName = cleanText(input.brandName);
+  const slug = cleanText(input.slug);
+
+  const data: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+  };
+
+  const name = cleanText(input.name);
+  if (name) data.name = name;
+  const description = cleanText(input.description);
+  if (description) data.description = description;
+  if (baseUrl) data.url = slug ? `${baseUrl}/portfolio/${slug}` : baseUrl;
+  data.inLanguage = cleanText(input.inLanguage) ?? "es-CL";
+
+  const keywords = keywordsFor(input.categoryLabel, input.tags);
+  if (keywords) data.keywords = keywords;
+
+  // Creador = quien publica el dataset (Fraccion), no el gestor de la cartera.
+  data.creator = {
+    "@type": "Organization",
+    ...(baseUrl ? { "@id": `${baseUrl}/#organization` } : {}),
+    ...(brandName ? { name: brandName } : {}),
+  };
+
+  // Gestor/entidad seguida: Person, Organization o Thing si no se puede saber.
+  const manager = cleanText(input.manager);
+  if (manager) {
+    data.about = { "@type": managerSchemaType(input.category, input.source), name: manager };
+  }
+
+  const coverage = portfolioTemporalCoverage(input.dates);
+  if (coverage) data.temporalCoverage = coverage;
+
+  const modified = isoDateTime(input.updatedAt);
+  if (modified) data.dateModified = modified;
+
+  const license = cleanText(input.licenseUrl);
+  if (license) data.license = license;
+
+  return data;
 }

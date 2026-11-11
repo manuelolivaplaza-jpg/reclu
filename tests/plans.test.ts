@@ -15,16 +15,25 @@ import {
 } from "@/lib/plans";
 
 describe("planes: fuente única de verdad", () => {
-  it("Pro vale $12.990 CLP/mes y Elite $16.990 CLP/mes", () => {
-    expect(PLANS.pro.monthlyPrice).toBe(12990);
+  it("Pro vale $9.990 CLP/mes y Elite $16.990 CLP/mes", () => {
+    expect(PLANS.pro.monthlyPrice).toBe(9990);
     expect(PLANS.elite.monthlyPrice).toBe(16990);
     expect(PLANS.free.monthlyPrice).toBe(0);
   });
 
-  it("el ciclo anual aplica 20% de descuento exacto", () => {
-    expect(PLANS.pro.annualMonthlyPrice).toBe(10390); // 12990 * 0.8 = 10392 → redondeo a $10
-    expect(PLANS.elite.annualMonthlyPrice).toBe(13590); // 16990 * 0.8 = 13592 → redondeo a $10
+  it("Pro tiene anual fijo ($99.900) y Elite aplica 20% de descuento", () => {
+    // Pro: precio cerrado por decisión de producto, no un porcentaje.
+    expect(PLANS.pro.annualMonthlyPrice).toBe(8325);
+    expect(PLANS.pro.annualTotalPrice).toBe(99900);
     expect(PLANS.pro.annualTotalPrice).toBe(PLANS.pro.annualMonthlyPrice * 12);
+    // Elite: sigue con la fórmula del 20% redondeada a $10.
+    expect(PLANS.elite.annualMonthlyPrice).toBe(13590); // 16990 * 0.8 = 13592 → redondeo a $10
+    expect(PLANS.elite.annualTotalPrice).toBe(PLANS.elite.annualMonthlyPrice * 12);
+  });
+
+  it("el anual de Pro ahorra $19.980 frente a 12 meses sueltos", () => {
+    expect(PLANS.pro.monthlyPrice * 12).toBe(119880);
+    expect(PLANS.pro.monthlyPrice * 12 - PLANS.pro.annualTotalPrice).toBe(19980);
   });
 
   it("límites de follows: 2 gratis / 15 pro / ilimitado elite", () => {
@@ -98,9 +107,10 @@ describe("prueba de 7 días", () => {
 
 describe("formatClp", () => {
   it("formatea pesos chilenos con punto de miles", () => {
-    expect(formatClp(12990)).toBe("$12.990");
+    expect(formatClp(9990)).toBe("$9.990");
+    expect(formatClp(8325)).toBe("$8.325");
+    expect(formatClp(99900)).toBe("$99.900");
     expect(formatClp(16990)).toBe("$16.990");
     expect(formatClp(0)).toBe("$0");
-    expect(formatClp(10390)).toBe("$10.390");
   });
 });

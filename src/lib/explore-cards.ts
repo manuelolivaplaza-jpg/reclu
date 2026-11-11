@@ -1,4 +1,5 @@
 import { getExploreCardStats, getFollows, getHoldingSymbolsAdmin, getPortfolioIdsWithSeriesAdmin, getPortfolios, pickCardStats } from "@/lib/queries";
+import { isLegacyPortfolioSlug } from "@/lib/portfolio-canonical";
 import { portfolioIdsWithSymbol } from "@/lib/explore-paging";
 import { timed } from "@/lib/timing";
 import type { Portfolio } from "@/lib/types";
@@ -24,7 +25,10 @@ export interface ExploreCardsPage {
 
 /** Lista filtrada completa (solo servidor; nunca viaja entera al cliente). */
 export async function listExplorePortfolios({ category, search, symbol }: ExploreCardQuery): Promise<Portfolio[]> {
-  const listed = await timed("explore.getPortfolios", getPortfolios({ category, search }));
+  const listed = (await timed("explore.getPortfolios", getPortfolios({ category, search }))).filter(
+    // Los slugs viejos redirigen 301 al canónico: no se listan dos veces.
+    (portfolio) => !isLegacyPortfolioSlug(portfolio.slug),
+  );
   if (!symbol) return listed;
   const rows = await getHoldingSymbolsAdmin(listed.map((p) => p.id));
   const ids = portfolioIdsWithSymbol(rows, symbol);
@@ -38,7 +42,8 @@ export async function exploreCardsPage(
   limit: number,
   followedIds?: readonly string[],
 ): Promise<ExploreCardsPage> {
-  const slice = all.slice(Math.max(0, offset), Math.max(0, offset) + Math.max(0, limit));
+  const visible = all.filter((portfolio) => !isLegacyPortfolioSlug(portfolio.slug));
+  const slice = visible.slice(Math.max(0, offset), Math.max(0, offset) + Math.max(0, limit));
   const [withSeries, allStats, follows] = await Promise.all([
     timed("explore.idsWithSeries", getPortfolioIdsWithSeriesAdmin()),
     timed("explore.cardStats", getExploreCardStats()),
@@ -52,6 +57,6 @@ export async function exploreCardsPage(
     stats: slimCardStats(withData.map((p) => p.id), pickCardStats(withData, allStats)),
     noSeriesIds: withSeries ? slice.filter((p) => !withSeries.has(p.id)).map((p) => p.id) : [],
     followedIds: followed.filter((id) => ids.has(id)),
-    total: all.length,
+    total: visible.length,
   };
 }

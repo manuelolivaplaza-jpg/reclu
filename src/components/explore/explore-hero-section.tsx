@@ -4,6 +4,7 @@ import { getExploreCardStats, getFollows, getPerformanceSeriesAdmin, getPortfoli
 import { roleFor } from "@/lib/access";
 import { isPaidPlan, type Holding } from "@/lib/types";
 import { AppLink as Link } from "@/components/app/app-link";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import { ExploreHeroCarousel } from "@/components/explore/explore-hero-carousel";
 import { buildSlide, slideHasSeries } from "@/components/explore/explore-featured";
 import { cn, formatSignedPct } from "@/lib/utils";
@@ -73,7 +74,7 @@ export async function ExploreHeroSection() {
             {trends.map(({ p, s }, i) => (
               <li key={p.id}>
                 <Link
-                  href={`/portfolio/${p.slug}`}
+                  href={`/portfolio/${canonicalPortfolioSlug(p.slug)}`}
                   className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-ink-50"
                 >
                   <span className="w-4 text-[12px] font-medium tabular-nums text-ink-400">{i + 1}</span>

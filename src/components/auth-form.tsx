@@ -47,7 +47,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const planLabel =
     plan === "elite"
       ? "Plan Elite · $16.990 CLP/mes"
-      : "Plan Pro · $12.990 CLP/mes";
+      : "Plan Pro · $9.990 CLP/mes";
   const planBlurb =
     plan === "elite"
       ? "Fondos 13F institucionales, portafolios ilimitados y exportación CSV."

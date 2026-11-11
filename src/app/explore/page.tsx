@@ -4,6 +4,7 @@ import { absoluteUrl } from "@/lib/site";
 import { getPortfolios } from "@/lib/queries";
 import { itemListSchema, withSeo } from "@/lib/seo";
 import { INITIAL_CARDS } from "@/lib/explore-cards";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ExploreView, type ExploreSearchParams } from "@/components/explore/explore-view";
@@ -63,7 +64,7 @@ async function ExploreJsonLd() {
     <JsonLd
       data={itemListSchema(
         "Portafolios en fraccion.si",
-        portfolios.slice(0, INITIAL_CARDS).map((p) => ({ name: p.name, url: absoluteUrl(`/portfolio/${p.slug}`) })),
+        portfolios.slice(0, INITIAL_CARDS).map((p) => ({ name: p.name, url: absoluteUrl(`/portfolio/${canonicalPortfolioSlug(p.slug)}`) })),
       )}
     />
   );

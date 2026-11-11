@@ -123,3 +123,55 @@ export function faqSchema(items: { q: string; a: string }[]): Record<string, unk
     })),
   };
 }
+
+export type ArticleSchemaInput = {
+  headline: string;
+  description: string;
+  /** Ruta interna ("/aprende/13f") o URL absoluta. */
+  url: string;
+  /** Solo si existe una fecha real en la fuente; nunca inventar. */
+  datePublished?: string;
+  dateModified?: string;
+};
+
+/**
+ * Article para contenido editorial (fichas de /aprende, /metodologia).
+ * Autor y publisher apuntan al Organization del layout raíz por @id, para no
+ * duplicar la entidad. Sin fechas: se omiten si no vienen.
+ */
+export function articleSchema(input: ArticleSchemaInput): Record<string, unknown> {
+  const url = /^https?:\/\//i.test(input.url) ? input.url : absoluteUrl(input.url);
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    url,
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
+    headline: input.headline,
+    description: input.description,
+    inLanguage: "es-CL",
+    author: { "@id": `${siteUrl()}/#organization` },
+    publisher: { "@id": `${siteUrl()}/#organization` },
+    ...(input.datePublished ? { datePublished: input.datePublished } : {}),
+    ...(input.dateModified ? { dateModified: input.dateModified } : {}),
+  };
+}
+
+export type BreadcrumbSchemaItem = {
+  name: string;
+  /** Ruta interna ("/aprende") o URL absoluta. */
+  path: string;
+};
+
+/** BreadcrumbList con item absoluto y posiciones 1..n. */
+export function breadcrumbSchema(items: readonly BreadcrumbSchemaItem[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      item: /^https?:\/\//i.test(item.path) ? item.path : absoluteUrl(item.path),
+    })),
+  };
+}

@@ -182,11 +182,14 @@ describe("proveedor mock", () => {
 // ---- Precios ----
 
 describe("prices", () => {
-  it("Pro $12.990/mes, Elite $16.990/mes, anual con descuento", () => {
-    expect(PLAN_PRICES_CLP.pro.monthly).toBe(12990);
-    expect(PLAN_PRICES_CLP.elite.monthly).toBe(16990);
+  it("Pro $9.990/mes y anual $99.900, Elite $16.990/mes", () => {
+    expect(PLAN_PRICES_CLP.pro.monthly).toBe(9990);
+    expect(PLAN_PRICES_CLP.pro.annualMonthly).toBe(8325);
+    expect(PLAN_PRICES_CLP.pro.annualTotal).toBe(99900);
     expect(PLAN_PRICES_CLP.pro.annualMonthly).toBeLessThan(PLAN_PRICES_CLP.pro.monthly);
-    expect(formatCLP(12990)).toBe("$12.990");
+    expect(PLAN_PRICES_CLP.elite.monthly).toBe(16990);
+    expect(PLAN_PRICES_CLP.elite.annualTotal).toBe(163080);
+    expect(formatCLP(9990)).toBe("$9.990");
   });
 });
 

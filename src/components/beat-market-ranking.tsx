@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { AppLink as Link } from "@/components/app/app-link";
 import { cn, formatPercent } from "@/lib/utils";
 import type { BeatMarketRow } from "@/lib/performance-queries";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 
 /**
  * F5: "Le ganan al mercado" — ranking de portafolios por exceso de retorno
@@ -75,7 +76,7 @@ export function BeatMarketRanking({ rows }: { rows: BeatMarketRow[] }) {
             className="border-t border-ink-200"
           >
             <Link
-              href={`/portfolio/${row.slug}`}
+              href={`/portfolio/${canonicalPortfolioSlug(row.slug)}`}
               className="group flex items-baseline justify-between gap-4 py-3"
             >
               <span className="min-w-0 text-[15px] text-ink-900 group-hover:underline">

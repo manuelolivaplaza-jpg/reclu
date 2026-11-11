@@ -205,7 +205,7 @@ export default async function SettingsPage() {
                   current: profile.plan === "free",
                 },
                 {
-                  name: "Pro — $12.990 CLP/mes",
+                  name: "Pro — $9.990 CLP/mes",
                   desc: aiOn
                     ? "15 portafolios · tiempo real · resúmenes AI · 50 consultas semanales"
                     : "15 portafolios · tiempo real",

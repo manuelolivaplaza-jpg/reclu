@@ -69,7 +69,7 @@ export interface PlanConfig {
   tagline: string;
   /** Precio mensual en CLP. 0 = gratis. */
   monthlyPrice: number;
-  /** Precio mensual equivalente del ciclo anual (20% dcto.), en CLP. */
+  /** Precio mensual equivalente del ciclo anual, en CLP (Elite: 20% dcto.; Pro: fijo). */
   annualMonthlyPrice: number;
   /** Total anual en CLP. */
   annualTotalPrice: number;
@@ -110,15 +110,26 @@ export interface PlanConfig {
 
 /** Duración de la prueba de Pro para cuentas nuevas. */
 export const TRIAL_DAYS = 7;
-/** Descuento del ciclo anual (20%). */
+/** Descuento del ciclo anual de Elite (20%). Pro usa un precio anual fijo. */
 export const ANNUAL_DISCOUNT = 0.2;
 /** Plan efectivo durante la prueba. */
 export const TRIAL_PLAN: Plan = "pro";
 
-/** Precio mensual anualizado: mensual × 0,8 redondeado a $10. */
+/** Precio mensual anualizado: mensual × 0,8 redondeado a $10 (planes sin precio fijo). */
 function annualMonthlyFrom(monthly: number): number {
   if (monthly <= 0) return 0;
   return Math.round((monthly * (1 - ANNUAL_DISCOUNT)) / 10) * 10;
+}
+
+/**
+ * Precio anual pactado a mano, fuera de la fórmula del descuento.
+ * Se usa en Pro, cuyo anual es un precio cerrado y no un porcentaje.
+ */
+interface AnnualPriceOverride {
+  /** Mensual equivalente del ciclo anual, en CLP. */
+  annualMonthlyPrice: number;
+  /** Total anual en CLP. */
+  annualTotalPrice: number;
 }
 
 function buildPlan(
@@ -130,8 +141,10 @@ function buildPlan(
     PlanConfig,
     "id" | "name" | "tagline" | "monthlyPrice" | "annualMonthlyPrice" | "annualTotalPrice" | "features"
   >,
+  annualOverride?: AnnualPriceOverride,
 ): PlanConfig {
-  const annualMonthlyPrice = annualMonthlyFrom(monthlyPrice);
+  const annualMonthlyPrice = annualOverride?.annualMonthlyPrice ?? annualMonthlyFrom(monthlyPrice);
+  const annualTotalPrice = annualOverride?.annualTotalPrice ?? annualMonthlyPrice * 12;
   const { featureItems, ...config } = rest;
   return {
     id,
@@ -139,7 +152,7 @@ function buildPlan(
     tagline,
     monthlyPrice,
     annualMonthlyPrice,
-    annualTotalPrice: annualMonthlyPrice * 12,
+    annualTotalPrice,
     ...config,
     featureItems,
     features: featureItems.map((feature) => feature.text),
@@ -173,7 +186,8 @@ export const PLANS: Record<Plan, PlanConfig> = {
     }),
   },
   pro: {
-    ...buildPlan("pro", "Pro", "Inversor activo", 12990, {
+    // Anual fijo de Pro: $99.900 al año = $8.325/mes (ahorro real $19.980, ~17%).
+    ...buildPlan("pro", "Pro", "Inversor activo", 9990, {
       followLimit: 15,
       chatQuota: { limit: 50, window: "week" },
       alertFrequencies: ["realtime", "daily", "weekly"],
@@ -195,7 +209,7 @@ export const PLANS: Record<Plan, PlanConfig> = {
         { text: "Medidor de desfase de divulgación (Disclosure Lag)" },
         { text: "Alertas por Telegram además del correo" },
       ],
-    }),
+    }, { annualMonthlyPrice: 8325, annualTotalPrice: 99900 }),
   },
   elite: {
     ...buildPlan("elite", "Elite", "Institucional & 13F", 16990, {
@@ -391,7 +405,7 @@ export function allowedFrequencies(
     : ["daily", "weekly"];
 }
 
-/** Formato CLP determinista: 12990 → "$12.990". */
+/** Formato CLP determinista: 9990 → "$9.990". */
 export function formatClp(value: number): string {
   const rounded = Math.round(value);
   const sign = rounded < 0 ? "-" : "";
