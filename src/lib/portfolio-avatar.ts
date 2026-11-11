@@ -107,6 +107,67 @@ export function categoryIcon(category: PortfolioCategory): string {
   return CATEGORY_ICONS[category] ?? "Sparkles";
 }
 
+// ---- Ticker de ETF ----
+
+/**
+ * D11: ticker del ETF que replica el portafolio. Estos portafolios no son
+ * personas ni gestoras: se muestran con un avatar tipográfico blanco y negro
+ * (`EtfTickerAvatar`) en vez de retrato, portada o iniciales.
+ */
+const ETF_TICKERS: Readonly<Record<string, string>> = {
+  // ARK Invest
+  arkk: "ARKK",
+  arkw: "ARKW",
+  arkg: "ARKG",
+  arkq: "ARKQ",
+  arkf: "ARKF",
+  arkx: "ARKX",
+  arks: "ARKS",
+  // Global X
+  copx: "COPX",
+  lit: "LIT",
+  bug: "BUG",
+  hero: "HERO",
+  // iShares (BlackRock)
+  ech: "ECH",
+  eww: "EWW",
+  ewz: "EWZ",
+  ibit: "IBIT",
+  // VanEck
+  smh: "SMH",
+  // Subversive (NANC / GOP)
+  "nanc-etf": "NANC",
+  "gop-etf": "GOP",
+};
+
+/**
+ * Ticker del ETF para un slug de portafolio, o `null` si no es un ETF.
+ *
+ * Normaliza el slug (`trim().toLowerCase()`) y cubre el catálogo real del
+ * sitio (ARK, Global X, iShares, VanEck, NANC/GOP). Un portafolio de una
+ * persona, una corredora o una AFP devuelve `null` y el avatar sigue su
+ * curso normal. También resuelve variantes futuras de ARK que no estén en
+ * el mapa (`arkx`, `arks`, `ark-k`), que siempre son ARK Invest.
+ */
+export function etfTickerForSlug(slug: string): string | null {
+  if (typeof slug !== "string") return null;
+  const normalized = slug.trim().toLowerCase();
+  if (normalized.length === 0) return null;
+
+  const known = Object.hasOwn(ETF_TICKERS, normalized)
+    ? ETF_TICKERS[normalized]
+    : null;
+  if (known) return known;
+
+  // Variantes ARK que todavía no estén en el mapa: arkk, arkx, ark-k.
+  const compact = /^ark([a-z0-9]{1,2})$/.exec(normalized);
+  if (compact) return `ARK${compact[1].toUpperCase()}`;
+  const dashed = /^ark-([a-z]{1,4})$/.exec(normalized);
+  if (dashed) return `ARK${dashed[1].toUpperCase()}`;
+
+  return null;
+}
+
 // ---- Fuente del avatar ----
 
 /**

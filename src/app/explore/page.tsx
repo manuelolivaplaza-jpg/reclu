@@ -26,12 +26,22 @@ export default function ExplorePage({ searchParams }: { searchParams: Promise<Ex
     <>
       <ExploreJsonLd />
       <SiteHeader />
-      <main id="main" className="bg-app-canvas">
-        <div className="container-page py-6 md:py-10">
-          <h1 className="sr-only">Explorar portafolios</h1>
-          <Suspense fallback={<ExploreBodySkeleton />}>
-            <ExploreBody searchParams={searchParams} />
-          </Suspense>
+      <main id="main" className="bg-white dark:bg-ink-950">
+        <div className="container-page pb-16 pt-8 md:pb-24 md:pt-12">
+          <header className="max-w-3xl">
+            <p className="label-line">Catálogo público</p>
+            <h1 className="type-section mt-3 text-ink-900 dark:text-white">Explorar portafolios</h1>
+            <p className="type-body mt-5 max-w-2xl">
+              Carteras públicas —políticos de EE.UU., corredoras chilenas, fondos 13F y
+              temáticas— ordenadas por seguidores. Solo series reales: si un portafolio
+              todavía no tiene historial, la tarjeta lo dice y no muestra una cifra.
+            </p>
+          </header>
+          <div className="mt-8 border-t border-ink-300 pt-8 md:mt-10 md:pt-10 dark:border-white/12">
+            <Suspense fallback={<ExploreBodySkeleton />}>
+              <ExploreBody searchParams={searchParams} />
+            </Suspense>
+          </div>
         </div>
       </main>
       <SiteFooter />
@@ -46,7 +56,7 @@ async function ExploreBody({ searchParams }: { searchParams: Promise<ExploreSear
 
 function ExploreBodySkeleton() {
   return (
-    <div className="flex flex-col gap-6 sm:gap-8" aria-busy="true">
+    <div className="flex flex-col gap-10 sm:gap-12" aria-busy="true">
       <ExploreHeroSkeleton />
       <GridSkeleton />
     </div>

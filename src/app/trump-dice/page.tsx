@@ -4,7 +4,6 @@ import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
-import { Chip, StatCard } from "@/components/app";
 import { getMentions, TRUMP_DICE_START, formatMentionDate, mentionKindLabel } from "@/lib/mentions-queries";
 import { getPortfolioBySlug, getPerformanceSeriesAdmin } from "@/lib/queries";
 import { getBenchmarkSeries } from "@/lib/performance-queries";
@@ -33,7 +32,11 @@ function sample(pts: Pt[], n = 120): Pt[] {
 /** Gráfico principal SVG propio: estrategia vs S&P 500, base 0% en la fecha de inicio. */
 function HeroChart({ strategy, spx }: { strategy: Pt[]; spx: Pt[] }) {
   if (strategy.length < 2) {
-    return <div className="flex h-56 items-center justify-center text-app-caption text-ink-500">—</div>;
+    return (
+      <div className="flex h-56 items-center justify-center px-6 text-center text-[13px] leading-relaxed text-ink-500 dark:text-ink-400">
+        Sin serie de precios suficiente para graficar todavía.
+      </div>
+    );
   }
   const W = 640;
   const H = 220;
@@ -59,10 +62,10 @@ function HeroChart({ strategy, spx }: { strategy: Pt[]; spx: Pt[] }) {
           <stop offset="100%" stopColor={color} stopOpacity={0} />
         </linearGradient>
       </defs>
-      <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="currentColor" className="text-ink-200" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
+      <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="currentColor" className="text-ink-200 dark:text-white/15" strokeDasharray="4 4" vectorEffect="non-scaling-stroke" />
       <path d={`${sPath} L${W},${H} L0,${H} Z`} fill="url(#td-fill)" />
       {spx.length > 1 ? (
-        <path d={path(spx)} fill="none" stroke="currentColor" className="text-ink-400" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
+        <path d={path(spx)} fill="none" stroke="currentColor" className="text-ink-400 dark:text-white/40" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
       ) : null}
       <path d={sPath} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
@@ -70,29 +73,31 @@ function HeroChart({ strategy, spx }: { strategy: Pt[]; spx: Pt[] }) {
 }
 
 function Spark({ points, positive }: { points: number[]; positive: boolean }) {
-  if (points.length < 2) return <span className="text-app-caption text-ink-400">—</span>;
+  if (points.length < 2) return null;
   const min = Math.min(...points);
   const max = Math.max(...points);
   const span = max - min || 1;
   const d = points.map((v, i) => `${i ? "L" : "M"}${((i / (points.length - 1)) * 100).toFixed(2)},${(24 - ((v - min) / span) * 24).toFixed(2)}`).join(" ");
   return (
-    <svg viewBox="0 0 100 24" preserveAspectRatio="none" className={cn("h-9 w-24", positive ? "text-positive" : "text-negative")} aria-hidden>
-      <path d={d} fill="none" stroke="currentColor" strokeWidth={1.75} vectorEffect="non-scaling-stroke" />
+    <svg viewBox="0 0 100 24" preserveAspectRatio="none" className={cn("h-8 w-20 shrink-0", positive ? "text-positive" : "text-negative")} aria-hidden>
+      <path d={d} fill="none" stroke="currentColor" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
 
+/** Cifra real de rendimiento. Sin dato no devuelve nada: nunca pinta un guion. */
 function Pct({ value, className }: { value: number | null; className?: string }) {
+  if (value === null || !Number.isFinite(value)) return null;
   return (
-    <span className={cn("font-semibold tabular-nums", value === null ? "text-ink-400" : value >= 0 ? "text-positive" : "text-negative", className)}>
-      {value === null ? "—" : formatSignedPct(value)}
+    <span className={cn("num", value >= 0 ? "text-positive" : "text-negative", className)}>
+      {formatSignedPct(value)}
     </span>
   );
 }
 
 function Ticker({ symbol }: { symbol: string }) {
   return (
-    <span aria-hidden className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-ink-900 text-[12px] font-bold tracking-tight text-white">
+    <span aria-hidden className="flex size-10 shrink-0 items-center justify-center border border-ink-900 bg-ink-900 text-[11px] font-semibold tracking-tight text-white dark:border-white dark:bg-white dark:text-ink-950">
       {symbol.slice(0, 4)}
     </span>
   );
@@ -129,119 +134,176 @@ export default async function TrumpDicePage() {
   for (const { m } of rows) kinds.set(mentionKindLabel(m.kind), (kinds.get(mentionKindLabel(m.kind)) ?? 0) + 1);
   const maxAbs = Math.max(1, ...priced.map((x) => Math.abs(x.r.pct ?? 0)));
 
+  const ordered = [...rows].sort((a, b) => b.m.saidAt.localeCompare(a.m.saidAt));
+  const ranked = [...priced].sort((a, b) => (b.r.pct ?? 0) - (a.r.pct ?? 0));
+  const kindList = [...kinds.entries()].sort((a, b) => b[1] - a[1]);
+
+  // Solo métricas con dato real: sin cifra no hay bloque (decisión 6).
+  const kpis: Array<{
+    label: string;
+    value: string;
+    tone?: "positive" | "negative";
+    note?: string;
+    delta?: { text: string; positive: boolean };
+  }> = [];
+  if (spxReturn !== null) {
+    kpis.push({
+      label: "S&P 500, mismo período",
+      value: formatSignedPct(spxReturn),
+      tone: spxReturn >= 0 ? "positive" : "negative",
+    });
+  }
+  if (priced.length > 0) {
+    kpis.push({ label: "Menciones en positivo", value: `${winners}/${priced.length}`, note: "con precios disponibles" });
+  }
+  if (best && best.r.pct !== null) {
+    const pct = best.r.pct;
+    kpis.push({
+      label: "Mejor mención",
+      value: best.m.symbol,
+      delta: { text: `${formatSignedPct(pct)} desde la mención`, positive: pct >= 0 },
+    });
+  }
+  if (worst && worst.r.pct !== null) {
+    const pct = worst.r.pct;
+    kpis.push({
+      label: "Peor mención",
+      value: worst.m.symbol,
+      delta: { text: `${formatSignedPct(pct)} desde la mención`, positive: pct >= 0 },
+    });
+  }
+
   return (
     <>
       <SiteHeader />
-      <main id="main" className="bg-app-canvas">
-        <div className="mx-auto w-full max-w-[1360px] px-4 pb-20 pt-6 sm:px-6 md:px-10 md:pt-12">
-          {/* Héroe: tarjeta grande con gráfico propio */}
-          <section className="app-card overflow-hidden p-0">
-            <div className="flex flex-col gap-5 p-5 sm:p-7">
-              <div className="flex items-center gap-3">
-                {portfolio ? <PortfolioAvatar portfolio={portfolio} size={64} className="rounded-2xl" /> : null}
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h1 className="text-app-display font-semibold tracking-tight text-ink-900">Trump dice</h1>
-                    <Chip tone="info">Portafolio estrella</Chip>
-                  </div>
-                  <p className="text-app-caption text-ink-500">
-                    Estudio de menciones públicas · desde {formatShortDate(TRUMP_DICE_START)}
-                    {lastDate ? ` · actualizado ${formatShortDate(lastDate)}` : ""}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
-                <div>
-                  <p className="text-app-caption font-medium text-ink-500">Estrategia{hasEstimated ? " (estimado)" : ""}</p>
-                  <Pct value={strategy} className="block text-[44px] leading-none tracking-tight sm:text-[56px]" />
-                </div>
-                <div className="flex flex-wrap gap-2 pb-1">
-                  <Chip tone={diff === null ? "neutral" : diff >= 0 ? "buy" : "sell"}>
-                    {diff === null ? "— vs S&P 500" : `${formatSignedPct(diff)} vs S&P 500`}
-                  </Chip>
-                  <Chip>{mentions.length} menciones verificadas</Chip>
-                </div>
-              </div>
-              <p className="max-w-2xl text-app-body text-ink-600">
+      <main id="main" className="bg-white dark:bg-ink-950">
+        <div className="container-page pb-24 pt-10 md:pt-14">
+          <header className="border-b border-ink-300 pb-8 dark:border-white/12">
+            <div className="flex items-center gap-3">
+              {portfolio ? <PortfolioAvatar portfolio={portfolio} size={40} className="rounded-none border border-ink-300 dark:border-white/12" /> : null}
+              <p className="label-line">
+                Estudio de menciones públicas · desde {formatShortDate(TRUMP_DICE_START)}
+                {lastDate ? ` · actualizado ${formatShortDate(lastDate)}` : ""}
+              </p>
+            </div>
+            <h1 className="type-display mt-5 text-ink-900 dark:text-white">Trump dice</h1>
+            <div className="mt-8 flex flex-wrap items-end justify-between gap-x-12 gap-y-6">
+              <p className="type-body max-w-2xl">
                 Cada vez que Donald Trump nombró una acción: qué dijo, la fuente y cuánto se movió desde ese día. La estrategia compra US$1.000 en
                 cada mención y mantiene.
               </p>
+              {strategy !== null ? (
+                <div className="shrink-0">
+                  <p className="label-line">Estrategia{hasEstimated ? " · estimado" : ""}</p>
+                  <Pct value={strategy} className="mt-2 block text-[clamp(2.5rem,6vw,4rem)] leading-[0.9]" />
+                </div>
+              ) : null}
             </div>
-            <div className="px-2 sm:px-4">
-              <HeroChart strategy={stratLine} spx={spxLine} />
+            <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
+              {mentions.length > 0 ? <span className="num text-ink-900 dark:text-white">{mentions.length} menciones verificadas</span> : null}
+              {diff !== null ? (
+                <span className={cn("num", diff >= 0 ? "text-positive" : "text-negative")}>{formatSignedPct(diff)} vs S&amp;P 500</span>
+              ) : null}
             </div>
-            <div className="flex items-center gap-4 border-t border-app-border px-5 py-3 text-app-caption text-ink-500 sm:px-7">
-              <span className="flex items-center gap-1.5">
-                <span className={cn("h-0.5 w-4 rounded", (strategy ?? 0) >= 0 ? "bg-positive" : "bg-negative")} /> Trump dice
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="h-0.5 w-4 rounded bg-ink-400" /> S&amp;P 500 (^GSPC)
-              </span>
-            </div>
-          </section>
+          </header>
 
           {isDemo ? (
-            <p className="mt-3 text-app-caption text-ink-500">Sin conexión con la base: se muestran las menciones verificadas sin cifras.</p>
+            <p className="mt-4 text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">
+              Sin conexión con la base: se muestran las menciones verificadas sin cifras.
+            </p>
           ) : null}
 
-          {/* KPIs */}
-          <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <StatCard label="S&P 500, mismo período" value={spxReturn === null ? null : formatSignedPct(spxReturn)} />
-            <StatCard label="Menciones en positivo" value={priced.length ? `${winners}/${priced.length}` : null} hint="con precios disponibles" />
-            <StatCard
-              label="Mejor mención"
-              value={best ? best.m.symbol : null}
-              delta={best?.r.pct ?? null}
-              deltaLabel="desde la mención"
-              points={best?.r.spark}
-            />
-            <StatCard
-              label="Peor mención"
-              value={worst ? worst.m.symbol : null}
-              delta={worst?.r.pct ?? null}
-              deltaLabel="desde la mención"
-              points={worst?.r.spark}
-            />
-          </div>
+          {/* Gráfico: serie real de la estrategia contra el S&P 500, base 0%. */}
+          <figure className="mt-8 border border-ink-300 dark:border-white/12">
+            <figcaption className="flex flex-wrap items-center justify-between gap-3 border-b border-ink-300 px-4 py-3 dark:border-white/12 sm:px-6">
+              <span className="label-line">Serie desde {formatShortDate(TRUMP_DICE_START)} · base 0%</span>
+              <span className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] text-ink-500 dark:text-ink-400">
+                {stratLine.length > 1 ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className={cn("h-px w-5", (stratLine.at(-1)?.v ?? 0) >= 0 ? "bg-positive" : "bg-negative")} /> Trump dice
+                  </span>
+                ) : null}
+                {spxLine.length > 1 ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-px w-5 bg-ink-400 dark:bg-white/50" /> S&amp;P 500 (^GSPC)
+                  </span>
+                ) : null}
+              </span>
+            </figcaption>
+            <div className="px-2 pb-3 pt-4 sm:px-4">
+              <HeroChart strategy={stratLine} spx={spxLine} />
+            </div>
+          </figure>
 
-          <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_340px]">
-            {/* Menciones como tarjetas */}
-            <section>
-              <div className="mb-3 flex items-end justify-between">
-                <h2 className="text-app-title font-semibold text-ink-900">Cada mención</h2>
-                <span className="text-app-caption text-ink-500">más reciente primero</span>
+          {kpis.length > 0 ? (
+            <dl className="mt-10 grid grid-cols-2 gap-x-8 gap-y-8 border-t border-ink-900 pt-6 dark:border-white lg:grid-cols-4">
+              {kpis.map((k) => (
+                <div key={k.label} className="min-w-0">
+                  <dt className="label-line">{k.label}</dt>
+                  <dd
+                    className={cn(
+                      "num mt-2 text-[26px] leading-none",
+                      k.tone === "positive" ? "text-positive" : k.tone === "negative" ? "text-negative" : "text-ink-900 dark:text-white",
+                    )}
+                  >
+                    {k.value}
+                  </dd>
+                  {k.delta ? (
+                    <p className={cn("num mt-1.5 text-[12px]", k.delta.positive ? "text-positive" : "text-negative")}>{k.delta.text}</p>
+                  ) : k.note ? (
+                    <p className="mt-1.5 text-[12px] text-ink-500 dark:text-ink-400">{k.note}</p>
+                  ) : null}
+                </div>
+              ))}
+            </dl>
+          ) : null}
+
+          <div className="mt-12 grid gap-12 lg:grid-cols-12 lg:gap-16">
+            {/* Menciones: lista tipográfica con filetes de 1px. */}
+            <section className="lg:col-span-8">
+              <div className="flex items-baseline justify-between gap-4 border-b border-ink-900 pb-3 dark:border-white">
+                <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">Cada mención</h2>
+                <span className="text-[11px] text-ink-500 dark:text-ink-400">más reciente primero</span>
               </div>
-              <ul className="flex flex-col gap-3">
-                {[...rows].sort((a, b) => b.m.saidAt.localeCompare(a.m.saidAt)).map(({ m, r }) => (
-                  <li key={m.id} className="app-card p-4 sm:p-5">
-                    <div className="flex items-start gap-3">
+              <ul>
+                {ordered.map(({ m, r }) => (
+                  <li key={m.id} className="border-b border-ink-300 py-6 dark:border-white/12">
+                    <article className="flex items-start gap-4">
                       <Ticker symbol={m.symbol} />
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-3">
+                        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                           <div className="min-w-0">
-                            <p className="truncate text-[16px] font-semibold text-ink-900">
+                            <h3 className="text-[17px] font-medium tracking-[-0.02em] text-ink-900 dark:text-white">
                               {m.symbol}
-                              {m.company ? <span className="ml-1.5 font-normal text-ink-500">{m.company}</span> : null}
-                            </p>
-                            <p className="text-app-caption text-ink-500">
+                              {m.company ? <span className="ml-2 font-normal text-ink-500 dark:text-ink-400">{m.company}</span> : null}
+                            </h3>
+                            <p className="mt-1 text-[12px] text-ink-500 dark:text-ink-400">
                               {formatMentionDate(m.saidAt)}
                               {m.externalId ? ` · ${m.externalId}` : ""}
                             </p>
                           </div>
-                          <div className="shrink-0 text-right">
-                            <Pct value={r.pct} className="block text-[18px] leading-tight" />
-                            <p className="text-[11px] text-ink-400">{r.baseDate ? `desde ${formatShortDate(r.baseDate)}` : "sin precios"}</p>
-                          </div>
+                          {r.pct !== null ? (
+                            <div className="shrink-0 text-right">
+                              <Pct value={r.pct} className="block text-[19px] leading-tight" />
+                              {r.baseDate ? (
+                                <p className="mt-1 text-[11px] text-ink-500 dark:text-ink-400">desde {formatShortDate(r.baseDate)}</p>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
-                        <blockquote className="mt-3 border-l-2 border-ink-200 pl-3 text-[15px] leading-relaxed text-ink-800">“{m.quote}”</blockquote>
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                        <blockquote className="mt-4 max-w-[70ch] border-l border-ink-300 pl-4 text-[15px] leading-relaxed text-ink-700 dark:border-white/20 dark:text-ink-300">
+                          “{m.quote}”
+                        </blockquote>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Chip>{mentionKindLabel(m.kind)}</Chip>
+                            <span className="border border-ink-300 px-2 py-0.5 text-[11px] text-ink-600 dark:border-white/12 dark:text-ink-400">
+                              {mentionKindLabel(m.kind)}
+                            </span>
                             <a
                               href={m.sourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex h-6 items-center rounded-full border border-app-border px-2.5 text-[12px] font-medium text-ink-700 hover:bg-ink-100"
+                              className="border border-ink-300 px-2 py-0.5 text-[11px] font-medium text-ink-700 transition-colors hover:border-ink-900 hover:text-ink-900 dark:border-white/12 dark:text-ink-300 dark:hover:border-white dark:hover:text-white"
                             >
                               Fuente ↗
                             </a>
@@ -249,58 +311,65 @@ export default async function TrumpDicePage() {
                           <Spark points={r.spark} positive={(r.pct ?? 0) >= 0} />
                         </div>
                       </div>
-                    </div>
+                    </article>
                   </li>
                 ))}
               </ul>
+              {ordered.length === 0 && !isDemo ? (
+                <p className="mt-6 text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
+                  Todavía no hay menciones verificadas publicadas.
+                </p>
+              ) : null}
             </section>
 
             {/* Columna lateral */}
-            <aside className="flex flex-col gap-4 lg:sticky lg:top-20 lg:self-start">
-              <section className="app-card p-4 sm:p-5">
-                <h2 className="mb-3 text-app-title font-semibold text-ink-900">Retorno por mención</h2>
-                {priced.length ? (
-                  <ul className="flex flex-col gap-2">
-                    {[...priced].sort((a, b) => (b.r.pct ?? 0) - (a.r.pct ?? 0)).map(({ m, r }) => {
+            <aside className="flex flex-col gap-10 border-ink-300 lg:col-span-4 lg:sticky lg:top-20 lg:self-start lg:border-l lg:pl-10 dark:border-white/12">
+              {ranked.length > 0 ? (
+                <section>
+                  <h2 className="border-b border-ink-900 pb-3 text-[13px] font-medium text-ink-900 dark:border-white dark:text-white">Retorno por mención</h2>
+                  <ul className="mt-5 flex flex-col gap-3">
+                    {ranked.map(({ m, r }) => {
                       const v = r.pct ?? 0;
                       return (
-                        <li key={m.id} className="grid grid-cols-[52px_1fr_64px] items-center gap-2 text-[13px]">
-                          <span className="font-semibold text-ink-900">{m.symbol}</span>
-                          <span className="h-2 overflow-hidden rounded-full bg-ink-100">
+                        <li key={m.id} className="grid grid-cols-[56px_1fr_56px] items-center gap-3 text-[12px]">
+                          <span className="truncate font-medium text-ink-900 dark:text-white">{m.symbol}</span>
+                          <span aria-hidden className="h-[3px] bg-ink-100 dark:bg-white/10">
                             <span
-                              className={cn("block h-full rounded-full", v >= 0 ? "bg-positive" : "bg-negative")}
+                              className={cn("block h-full", v >= 0 ? "bg-positive" : "bg-negative")}
                               style={{ width: `${Math.max(4, (Math.abs(v) / maxAbs) * 100)}%` }}
                             />
                           </span>
-                          <Pct value={r.pct} className="text-right" />
+                          <Pct value={r.pct} className="text-right text-[12px]" />
                         </li>
                       );
                     })}
                   </ul>
-                ) : (
-                  <p className="text-app-caption text-ink-500">—</p>
-                )}
-              </section>
-              <section className="app-card p-4 sm:p-5">
-                <h2 className="mb-3 text-app-title font-semibold text-ink-900">Tipo de mención</h2>
-                <div className="flex flex-wrap gap-2">
-                  {[...kinds.entries()].sort((a, b) => b[1] - a[1]).map(([k, n]) => (
-                    <Chip key={k}>
-                      {k} · {n}
-                    </Chip>
-                  ))}
-                </div>
-              </section>
+                </section>
+              ) : null}
+
+              {kindList.length > 0 ? (
+                <section>
+                  <h2 className="border-b border-ink-900 pb-3 text-[13px] font-medium text-ink-900 dark:border-white dark:text-white">Tipo de mención</h2>
+                  <ul className="mt-5 flex flex-wrap gap-2">
+                    {kindList.map(([k, n]) => (
+                      <li key={k} className="border border-ink-300 px-2 py-0.5 text-[11px] text-ink-600 dark:border-white/12 dark:text-ink-400">
+                        {k} · <span className="num">{n}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ) : null}
+
               <Link
                 href="/portfolio/trump-dice"
-                className="app-card flex items-center justify-between p-4 text-[15px] font-semibold text-ink-900 hover:bg-ink-50"
+                className="flex items-center justify-between border border-ink-300 px-4 py-3 text-[13px] font-medium text-ink-900 transition-colors hover:border-ink-900 dark:border-white/12 dark:text-white dark:hover:border-white"
               >
                 Ver el portafolio completo <span aria-hidden>→</span>
               </Link>
             </aside>
           </div>
 
-          <p className="mt-8 text-app-caption leading-relaxed text-ink-500">
+          <p className="mt-16 max-w-3xl border-t border-ink-300 pt-6 text-[12px] leading-relaxed text-ink-500 dark:border-white/12 dark:text-ink-400">
             Retorno de cada acción desde el primer cierre en o después de la fecha de entrada hasta el último cierre disponible. Rendimiento
             pasado no garantiza resultados futuros. No es asesoría de inversión.
           </p>

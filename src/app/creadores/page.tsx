@@ -8,7 +8,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { communityEnabled } from "@/lib/community";
 import { createClient } from "@/lib/supabase/server";
-import { Avatar, Chip, StatCard } from "@/components/app";
+import { Avatar } from "@/components/app";
 
 export const metadata: Metadata = withSeo("/creadores", {
   title: "Creadores",
@@ -123,80 +123,100 @@ export default async function CreadoresPage() {
   }
 
   const totalCarteras = creators.reduce((s, c) => s + c.carteras, 0);
+  const hasData = !loadError && creators.length > 0;
 
   return (
     <>
       <SiteHeader />
-      <main id="main" className="flex-1 bg-app-canvas">
-        <div className="mx-auto w-full max-w-[1360px] px-4 pb-20 pt-6 sm:px-6 md:px-10 md:pt-12">
-          <section className="app-card p-5 sm:p-7">
-            <div className="flex flex-wrap items-center gap-2">
-              <Chip tone="info">Comunidad</Chip>
-              <Chip>Moderado</Chip>
+      <main id="main" className="flex-1 bg-white dark:bg-ink-950">
+        <div className="container-page pb-24 pt-10 md:pt-14">
+          <header className="border-b border-ink-300 pb-8 dark:border-white/12">
+            <p className="label-line">Comunidad</p>
+            <div className="mt-4 flex flex-wrap items-end justify-between gap-x-12 gap-y-8">
+              <div className="max-w-2xl">
+                <h1 className="type-section text-ink-900 dark:text-white">Creadores.</h1>
+                <p className="type-body mt-5">
+                  Carteras que personas de la comunidad deciden compartir en público. Cada perfil pasa por
+                  moderación antes de aparecer aquí.
+                </p>
+              </div>
+              {hasData ? (
+                <dl className="flex shrink-0 items-end gap-10">
+                  <div>
+                    <dt className="label-line">Creadores verificados</dt>
+                    <dd className="num mt-2 text-[28px] leading-none text-ink-900 dark:text-white">{creators.length}</dd>
+                  </div>
+                  <div>
+                    <dt className="label-line">Carteras publicadas</dt>
+                    <dd className="num mt-2 text-[28px] leading-none text-ink-900 dark:text-white">{totalCarteras}</dd>
+                  </div>
+                </dl>
+              ) : null}
             </div>
-            <h1 className="mt-3 text-app-display font-semibold tracking-tight text-ink-900">Creadores</h1>
-            <p className="mt-2 max-w-2xl text-app-body text-ink-600">
-              Carteras que personas de la comunidad deciden compartir en público. Cada perfil pasa por moderación antes de aparecer aquí.
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:max-w-md">
-              <StatCard label="Creadores verificados" value={loadError ? null : String(creators.length)} />
-              <StatCard label="Carteras publicadas" value={loadError ? null : String(totalCarteras)} />
-            </div>
-          </section>
+          </header>
 
-          <div className="mt-4 rounded-2xl border border-ink-900/80 bg-app-card px-4 py-3 text-[13px] leading-relaxed text-ink-900">
-            <strong className="font-semibold">Contenido de terceros, no asesoría.</strong> Las carteras las publica cada creador y reflejan su
-            opinión, no una recomendación de fraccion.si. No ejecutamos órdenes ni damos asesoría de inversión personalizada.
+          <div className="mt-8 flex flex-col gap-2 border border-ink-900 p-4 dark:border-white/40 sm:flex-row sm:items-baseline sm:gap-4 sm:p-5">
+            <p className="shrink-0 text-[13px] font-medium text-ink-900 dark:text-white">Contenido de terceros, no asesoría.</p>
+            <p className="text-[13px] leading-relaxed text-ink-600 dark:text-ink-400">
+              Las carteras las publica cada creador y reflejan su opinión, no una recomendación de
+              fraccion.si. No ejecutamos órdenes ni damos asesoría de inversión personalizada.
+            </p>
           </div>
 
-          {loadError && (
-            <p role="alert" className="app-card mt-4 p-4 text-sm text-ink-900">
+          {loadError ? (
+            <p role="alert" className="mt-8 border border-ink-900 px-4 py-3 text-[14px] text-ink-900 dark:border-white/40 dark:text-white">
               {loadError}
             </p>
-          )}
+          ) : null}
 
-          {!loadError && creators.length === 0 && (
-            <div className="app-card mt-4 p-8 text-center">
-              <p className="text-app-title font-semibold text-ink-900">Aún no hay creadores</p>
-              <p className="mt-1 text-app-caption text-ink-500">Todavía no hay creadores verificados con carteras publicadas.</p>
+          {!loadError && creators.length === 0 ? (
+            <div className="mt-10 border border-ink-300 px-6 py-16 text-center dark:border-white/12">
+              <p className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">Aún no hay creadores</p>
+              <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
+                Todavía no hay creadores verificados con carteras publicadas.
+              </p>
             </div>
-          )}
+          ) : null}
 
-          {creators.length > 0 && (
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {creators.length > 0 ? (
+            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {creators.map((creator) => (
                 <li key={creator.id}>
                   <Link
                     href={`/creadores/${creator.alias}`}
-                    className="app-card group flex h-full flex-col gap-3 p-4 transition-shadow hover:shadow-app-raised sm:p-5"
+                    className="group flex h-full flex-col gap-4 border border-ink-300 bg-white p-5 transition-colors hover:border-ink-900 dark:border-white/12 dark:bg-ink-950 dark:hover:border-white"
                   >
                     <div className="flex items-center gap-3">
-                      <Avatar name={creator.alias} className="size-11 rounded-2xl text-[14px]" />
+                      <Avatar name={creator.alias} className="size-10 rounded-none bg-ink-900 text-[13px] text-white dark:bg-white dark:text-ink-950" />
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-mono text-[16px] font-semibold text-ink-900">{creator.alias}</p>
-                        <p className="text-app-caption text-positive">✓ Verificado</p>
+                        <p className="truncate font-mono text-[15px] font-medium text-ink-900 dark:text-white">{creator.alias}</p>
+                        <p className="mt-0.5 text-[11px] text-ink-500 dark:text-ink-400">✓ Verificado por moderación</p>
                       </div>
-                      <span aria-hidden className="text-ink-400 transition-transform group-hover:translate-x-0.5">→</span>
+                      <span aria-hidden className="text-ink-400 transition-transform group-hover:translate-x-0.5 dark:text-ink-500">→</span>
                     </div>
-                    <p className="line-clamp-3 text-[14px] leading-relaxed text-ink-600">
+                    <p className="line-clamp-3 text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
                       {creator.bio || "Perfil verificado de la comunidad, sin bio pública."}
                     </p>
-                    <div className="mt-auto flex flex-wrap gap-2">
-                      <Chip>
+                    <div className="mt-auto flex flex-wrap items-center gap-2">
+                      <span className="border border-ink-300 px-2 py-0.5 text-[11px] text-ink-600 dark:border-white/12 dark:text-ink-400">
                         {creator.carteras} {creator.carteras === 1 ? "cartera" : "carteras"}
-                      </Chip>
-                      {creator.conflictoInteres && <Chip tone="sell">Conflicto de interés declarado</Chip>}
+                      </span>
+                      {creator.conflictoInteres ? (
+                        <span className="border border-ink-900 px-2 py-0.5 text-[11px] text-ink-900 dark:border-white/40 dark:text-white">
+                          Conflicto de interés declarado
+                        </span>
+                      ) : null}
                     </div>
-                    {creator.conflictoInteres && (
-                      <p className="text-app-caption leading-relaxed text-ink-500">{creator.conflictoInteres}</p>
-                    )}
+                    {creator.conflictoInteres ? (
+                      <p className="text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">{creator.conflictoInteres}</p>
+                    ) : null}
                   </Link>
                 </li>
               ))}
             </ul>
-          )}
+          ) : null}
 
-          <div className="mt-8 max-w-3xl">
+          <div className="mt-16 max-w-3xl">
             <LegalNotice kind="fintec" />
           </div>
         </div>

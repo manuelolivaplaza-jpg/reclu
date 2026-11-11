@@ -10,6 +10,11 @@ import { clipSeriesForSlug } from "@/lib/card-series";
  * El retorno sale de la serie real de `portfolio_performance` (acumulado
  * desde el primer punto disponible). Sin serie se usa `return_ytd`; sin
  * ninguno de los dos, la tarjeta no se muestra (no se inventan cifras).
+ *
+ * D6: cada tarjeta lleva además la serie real recortada en `series`
+ * (`{ date, value_pct }[]`, formato de `PortfolioCardChart`) para que el
+ * hero tenga gráfico con selector 1M/3M/6M/1A/MAX (1A por defecto) sin
+ * recalcular ni inventar puntos.
  */
 export const FEATURED_HERO_SLUGS = ["berkshire-hathaway", "trump-dice", "ibit"] as const;
 export const FEATURED_CENTER_SLUG = "trump-dice";
@@ -65,19 +70,44 @@ export function sparkline(series: SeriesPointPct[], n = 48): number[] {
   return out;
 }
 
+/**
+ * D6: convierte la serie recortada al formato exacto de `PortfolioCardChart`
+ * (`{ date, value_pct }[]`). Solo puntos con fecha válida y `value_pct`
+ * finito, en orden cronológico: nunca rellena huecos ni inventa valores.
+ */
+export function toCardSeries(
+  series: SeriesPointPct[],
+): { date: string; value_pct: number }[] {
+  return (series ?? [])
+    .filter(
+      (point) =>
+        point &&
+        typeof point.date === "string" &&
+        point.date.length > 0 &&
+        Number.isFinite(point.value),
+    )
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((point) => ({ date: point.date, value_pct: point.value }));
+}
+
 export function buildFeaturedHeroCards(
   portfolios: Portfolio[],
   seriesById: Map<string, SeriesPointPct[]>,
 ): HeroCard[] {
   const cards: HeroCard[] = [];
   for (const slug of FEATURED_HERO_SLUGS) {
-    const p = portfolios.find((item) => item.slug === slug);
+    // D66: si la fila "madre" del catálogo está oculta/redirigida (caso real
+    // berkshire-hathaway -> berkshire-hathaway-13f), la tarjeta se arma con la
+    // fila REAL del alias. Solo se omite si no existe ninguna de las dos.
+    const aliasSlug = FEATURED_SERIES_ALIAS[slug];
+    const p =
+      portfolios.find((item) => item.slug === slug) ??
+      (aliasSlug ? portfolios.find((item) => item.slug === aliasSlug) : undefined);
     if (!p) continue;
     // D40: misma serie y mismo recorte que /trump-dice y el detalle.
     let series = clipSeriesForSlug(p.slug, seriesById.get(p.id) ?? []);
     let cum = cumulativeFromPct(series);
     let linkSlug = p.slug;
-    const aliasSlug = FEATURED_SERIES_ALIAS[slug];
     const alias = aliasSlug ? portfolios.find((item) => item.slug === aliasSlug) : undefined;
     if (cum === null && alias) {
       const aliasSeries = clipSeriesForSlug(alias.slug, seriesById.get(alias.id) ?? []);
@@ -111,10 +141,23 @@ export function buildFeaturedHeroCards(
       portrait_image: p.portrait_image ?? null,
       periodLabel,
       spark: cum !== null ? sparkline(series) : [],
+      series: cum !== null ? toCardSeries(series) : undefined,
       estimated: series.some((pt) => pt.estimated === true),
       featured: slug === FEATURED_CENTER_SLUG,
       asOf: cum !== null ? [...series].sort((a, b) => a.date.localeCompare(b.date)).at(-1)?.date : undefined,
     });
   }
-  return cards;
+  // D6: orden fijo del trío (Berkshire, Trump dice, IBIT) aunque una tarjeta
+  // enlace al slug alias de su serie (p. ej. berkshire-hathaway-13f).
+  const rank = new Map<string, number>();
+  FEATURED_HERO_SLUGS.forEach((slug, index) => {
+    rank.set(slug, index);
+    const aliasSlug = FEATURED_SERIES_ALIAS[slug];
+    if (aliasSlug) rank.set(aliasSlug, index);
+  });
+  return cards.sort(
+    (a, b) =>
+      (rank.get(a.slug) ?? FEATURED_HERO_SLUGS.length) -
+      (rank.get(b.slug) ?? FEATURED_HERO_SLUGS.length),
+  );
 }

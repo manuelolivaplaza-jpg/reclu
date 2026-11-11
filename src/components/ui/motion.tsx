@@ -1,6 +1,6 @@
 "use client";
 
-import { LazyMotion, m, useReducedMotion } from "framer-motion";
+import { LazyMotion, MotionConfig, m, useReducedMotion } from "framer-motion";
 import { loadMotionFeatures } from "@/lib/load-motion-features";
 import { cn } from "@/lib/utils";
 
@@ -8,20 +8,53 @@ import { cn } from "@/lib/utils";
  * Sistema de animación SpaceX × Autopilot.
  * Física contenida, precisa y sobria: revelado al entrar en viewport,
  * staggers cortos y una sola curva — cubic-bezier(0.16, 1, 0.3, 1).
- * Cero sombras, cero color decorativo. Respeta prefers-reduced-motion.
+ * Desplazamientos de 10px como máximo, sin rebotes ni escalados.
+ * Cero sombras, cero color decorativo.
+ *
+ * Con `prefers-reduced-motion: reduce` no hay desplazamiento, ni fundido,
+ * ni stagger: el contenido aparece tal cual y de inmediato. `MotionConfig`
+ * con `reducedMotion="user"` repite la preferencia para cualquier
+ * `motion.*` que viva dentro de estos componentes.
  */
 
-/** La curva del sistema. */
+/** La curva del sistema. Una sola: fuera easings elásticos o "suaves". */
 export const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
+/** Ritmo del sistema: corto y sobrio (nada de animaciones de 800ms). */
+const DURATION = 0.5;
+/** Desplazamiento vertical máximo, en px. */
+const OFFSET = 10;
+/** Desplazamiento de cifras: un punto más discreto. */
+const OFFSET_NUMBER = 8;
+/** Stagger entre hijos de una lista. */
+const STAGGER = 0.05;
+
 export const fadeInVariants = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: { opacity: 0, y: OFFSET },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, ease: EASE },
+    transition: { duration: DURATION, ease: EASE },
   },
 } as const;
+
+/**
+ * Contexto compartido: features de framer-motion en diferido (LazyMotion,
+ * no engordan el bundle inicial) + `reducedMotion="user"` como segunda red
+ * de seguridad para el movimiento de los hijos.
+ */
+function MotionRoot({ children }: { children: React.ReactNode }) {
+  return (
+    <LazyMotion features={loadMotionFeatures}>
+      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+    </LazyMotion>
+  );
+}
+
+/** true solo cuando el usuario pidió explícitamente movimiento reducido. */
+function useStill() {
+  return useReducedMotion() === true;
+}
 
 /**
  * FadeIn — revela el children al entrar en viewport (una sola vez).
@@ -36,36 +69,36 @@ export function FadeIn({
   className?: string;
   delay?: number;
 }) {
-  const reduced = useReducedMotion();
+  const still = useStill();
 
   return (
-    <LazyMotion features={loadMotionFeatures}>
-    <m.div
-      className={className}
-      initial={reduced ? undefined : { opacity: 0, y: 14 }}
-      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.55, ease: EASE, delay: reduced ? 0 : delay }}
-    >
-      {children}
-    </m.div>
-    </LazyMotion>
+    <MotionRoot>
+      <m.div
+        className={className}
+        initial={still ? undefined : { opacity: 0, y: OFFSET }}
+        whileInView={still ? undefined : { opacity: 1, y: 0 }}
+        viewport={still ? undefined : { once: true, margin: "-40px" }}
+        transition={{ duration: DURATION, ease: EASE, delay: still ? 0 : delay }}
+      >
+        {children}
+      </m.div>
+    </MotionRoot>
   );
 }
 
 const listVariants = {
   hidden: {},
   visible: {
-    transition: { staggerChildren: 0.06 },
+    transition: { staggerChildren: STAGGER },
   },
 } as const;
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 14 },
+  hidden: { opacity: 0, y: OFFSET },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.55, ease: EASE },
+    transition: { duration: DURATION, ease: EASE },
   },
 } as const;
 
@@ -83,20 +116,20 @@ export function StaggerList({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const reduced = useReducedMotion();
+  const still = useStill();
   return (
-    <LazyMotion features={loadMotionFeatures}>
-    <m.div
-      className={className}
-      style={style}
-      initial={reduced ? undefined : "hidden"}
-      whileInView={reduced ? undefined : "visible"}
-      viewport={{ once: true, margin: "-40px" }}
-      variants={reduced ? undefined : listVariants}
-    >
-      {children}
-    </m.div>
-    </LazyMotion>
+    <MotionRoot>
+      <m.div
+        className={className}
+        style={style}
+        initial={still ? undefined : "hidden"}
+        whileInView={still ? undefined : "visible"}
+        viewport={still ? undefined : { once: true, margin: "-40px" }}
+        variants={still ? undefined : listVariants}
+      >
+        {children}
+      </m.div>
+    </MotionRoot>
   );
 }
 
@@ -112,17 +145,17 @@ export function StaggerItem({
   className?: string;
   style?: React.CSSProperties;
 }) {
-  const reduced = useReducedMotion();
+  const still = useStill();
   return (
-    <LazyMotion features={loadMotionFeatures}>
-    <m.div
-      className={className}
-      style={style}
-      variants={reduced ? undefined : itemVariants}
-    >
-      {children}
-    </m.div>
-    </LazyMotion>
+    <MotionRoot>
+      <m.div
+        className={className}
+        style={style}
+        variants={still ? undefined : itemVariants}
+      >
+        {children}
+      </m.div>
+    </MotionRoot>
   );
 }
 
@@ -139,19 +172,19 @@ export function AnimatedNumber({
   className?: string;
   format?: (v: number) => string;
 }) {
-  const reduced = useReducedMotion();
+  const still = useStill();
   const display = format ? format(value) : String(value);
   return (
-    <LazyMotion features={loadMotionFeatures}>
-    <m.span
-      className={cn("tabular-nums", className)}
-      initial={reduced ? undefined : { opacity: 0, y: 10 }}
-      whileInView={reduced ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.55, ease: EASE }}
-    >
-      {display}
-    </m.span>
-    </LazyMotion>
+    <MotionRoot>
+      <m.span
+        className={cn("tabular-nums", className)}
+        initial={still ? undefined : { opacity: 0, y: OFFSET_NUMBER }}
+        whileInView={still ? undefined : { opacity: 1, y: 0 }}
+        viewport={still ? undefined : { once: true, margin: "-40px" }}
+        transition={{ duration: DURATION, ease: EASE }}
+      >
+        {display}
+      </m.span>
+    </MotionRoot>
   );
 }

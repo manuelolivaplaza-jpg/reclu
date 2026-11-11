@@ -53,55 +53,71 @@ export async function ExploreHeroSection() {
     .slice(0, TRENDS);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6">
-      <div className="min-h-[520px] min-w-0 lg:min-h-[400px]">
-        <ExploreHeroCarousel slides={slides} isPro={isPro} />
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-300 pb-3 dark:border-white/12">
+        <p className="label-line">Más seguidos</p>
+        <p className="label-line num">
+          {slides.length} {slides.length === 1 ? "portafolio" : "portafolios"}
+        </p>
       </div>
 
-      <aside className="app-card min-h-[380px] rounded-2xl p-4 sm:p-5 lg:min-h-[400px]" aria-labelledby="tendencias-heading">
-        <div className="flex items-center justify-between">
-          <h2 id="tendencias-heading" className="text-[15px] font-semibold text-ink-900">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+        <div className="min-h-[520px] min-w-0 lg:min-h-[420px]">
+          <ExploreHeroCarousel slides={slides} isPro={isPro} />
+        </div>
+
+        <aside
+          aria-labelledby="tendencias-heading"
+          className="min-w-0 border-t border-ink-300 pt-6 dark:border-white/12 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0"
+        >
+          <p className="label-line">Rankings</p>
+          <h2
+            id="tendencias-heading"
+            className="mt-2 text-[17px] font-medium leading-[1.15] tracking-[-0.02em] text-ink-900 dark:text-white"
+          >
             Mejor rendimiento
           </h2>
-          <Link href="/ranking" className="text-[12px] font-medium text-ink-500 hover:text-ink-900">
-            Ranking →
-          </Link>
-        </div>
-        {trends.length === 0 ? (
-          <p className="mt-4 text-[13px] text-ink-500">Sin datos.</p>
-        ) : (
-          <ol className="mt-3 flex flex-col">
-            {trends.map(({ p, s }, i) => (
-              <li key={p.id}>
-                <Link
-                  href={`/portfolio/${canonicalPortfolioSlug(p.slug)}`}
-                  className="group -mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-ink-50"
-                >
-                  <span className="w-4 text-[12px] font-medium tabular-nums text-ink-400">{i + 1}</span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[14px] font-medium text-ink-900">{p.name}</span>
-                    <span className="block text-[11px] text-ink-500">{s!.label}</span>
-                  </span>
-                  <span
-                    className={cn(
-                      "shrink-0 text-[14px] font-semibold tabular-nums",
-                      (s!.pct as number) >= 0 ? "text-positive" : "text-negative",
-                    )}
+          {trends.length === 0 ? (
+            <p className="mt-4 text-[13px] leading-relaxed text-ink-500 dark:text-white/55">
+              Todavía no hay series publicadas para ordenar por rendimiento.
+            </p>
+          ) : (
+            <ol className="mt-3 divide-y divide-ink-300 dark:divide-white/12">
+              {trends.map(({ p, s }, i) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/portfolio/${canonicalPortfolioSlug(p.slug)}`}
+                    className="group -mx-2 flex items-center gap-3 px-2 py-3 transition-colors hover:bg-ink-50 dark:hover:bg-white/[0.04]"
                   >
-                    {formatSignedPct(s!.pct)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ol>
-        )}
-        <Link
-          href="/ranking"
-          className="mt-3 flex h-10 items-center justify-center rounded-full bg-ink-50 text-[13px] font-medium text-ink-900 hover:bg-ink-100"
-        >
-          Ver todos los rankings
-        </Link>
-      </aside>
+                    <span className="num w-4 shrink-0 text-[12px] text-ink-500 dark:text-white/55">{i + 1}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[14px] font-medium text-ink-900 group-hover:underline dark:text-white">
+                        {p.name}
+                      </span>
+                      <span className="block truncate text-[11px] text-ink-500 dark:text-white/55">{s!.label}</span>
+                    </span>
+                    <span
+                      className={cn(
+                        "num shrink-0 text-[14px]",
+                        (s!.pct as number) >= 0 ? "text-positive" : "text-negative",
+                      )}
+                    >
+                      {formatSignedPct(s!.pct)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ol>
+          )}
+          <Link
+            href="/ranking"
+            className="mt-4 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline dark:text-white"
+          >
+            Ver todos los rankings
+            <span aria-hidden="true">→</span>
+          </Link>
+        </aside>
+      </div>
     </div>
   );
 }
@@ -109,9 +125,15 @@ export async function ExploreHeroSection() {
 /** Esqueleto del panel principal: mismas alturas mínimas que el panel real (d62, CLS <= 0,1). */
 export function ExploreHeroSkeleton() {
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-6" aria-hidden="true">
-      <div className="app-card h-[520px] animate-pulse rounded-2xl bg-ink-50 max-sm:-mx-4 max-sm:rounded-none lg:h-[400px]" />
-      <div className="app-card h-[380px] animate-pulse rounded-2xl bg-ink-50 lg:h-[400px]" />
+    <div className="flex flex-col gap-4" aria-hidden="true">
+      <div className="flex items-baseline justify-between gap-4 border-b border-ink-300 pb-3 dark:border-white/12">
+        <span className="h-4 w-24 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+        <span className="h-4 w-20 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+      </div>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">
+        <div className="h-[520px] animate-pulse bg-ink-100 max-sm:-mx-4 motion-reduce:animate-none lg:h-[420px] dark:bg-white/5" />
+        <div className="h-[380px] animate-pulse bg-ink-100 motion-reduce:animate-none lg:h-[420px] dark:bg-white/5" />
+      </div>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { FadeIn, StaggerList, StaggerItem } from "@/components/ui/reveal";
+import { cn } from "@/lib/utils";
 
 const STEPS = [
   {
@@ -21,22 +22,46 @@ const STEPS = [
   },
 ];
 
-/** Ilustraciones SVG propias de cada paso (decorativas, sin datos reales). */
+/**
+ * Ilustraciones SVG propias de cada paso (decorativas, sin datos reales).
+ * Monocromo estricto: filetes de 1px y tinta. El verde y el rojo quedan
+ * reservados a las cifras de rendimiento, así que aquí no aparece ninguno.
+ */
 function StepArt({ step }: { step: string }) {
   if (step === "01") {
     return (
-      <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden>
+      <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden focusable="false">
         {[0, 1, 2].map((i) => (
           <g key={i} transform={`translate(${i * 74} ${i === 1 ? 0 : 10})`}>
-            <rect width="66" height="80" rx="12" fill={i === 1 ? "#0a0a0a" : "#fff"} stroke="#e6e6e6" />
-            <circle cx="16" cy="18" r="7" fill={i === 1 ? "#fff" : "#f0f0f0"} />
-            <rect x="10" y="34" width="40" height="5" rx="2.5" fill={i === 1 ? "rgba(255,255,255,0.5)" : "#e6e6e6"} />
+            <rect
+              width="66"
+              height="80"
+              strokeWidth="1"
+              className={
+                i === 1
+                  ? "fill-ink-900 stroke-ink-900 dark:fill-white dark:stroke-white"
+                  : "fill-transparent stroke-ink-300 dark:stroke-white/25"
+              }
+            />
+            <rect
+              x="10"
+              y="12"
+              width="8"
+              height="8"
+              className={i === 1 ? "fill-white dark:fill-ink-900" : "fill-ink-300 dark:fill-white/30"}
+            />
+            <rect
+              x="10"
+              y="32"
+              width="42"
+              height="4"
+              className={i === 1 ? "fill-white/70 dark:fill-ink-900/70" : "fill-ink-300 dark:fill-white/25"}
+            />
             <path
               d={i === 1 ? "M10,66 L22,60 L34,62 L46,52 L56,48" : "M10,64 L22,62 L34,58 L46,60 L56,54"}
               fill="none"
-              stroke={i === 1 ? "#22c55e" : "#0f7a32"}
-              strokeWidth="2"
-              strokeLinecap="round"
+              strokeWidth="1.5"
+              className={i === 1 ? "stroke-white dark:stroke-ink-900" : "stroke-ink-900 dark:stroke-white"}
             />
           </g>
         ))}
@@ -45,62 +70,100 @@ function StepArt({ step }: { step: string }) {
   }
   if (step === "02") {
     return (
-      <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden>
+      <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden focusable="false">
         {["SEC", "Cámara", "Renta 4"].map((s, i) => (
           <g key={s} transform={`translate(0 ${8 + i * 28})`}>
-            <rect width="74" height="22" rx="11" fill="#fff" stroke="#e6e6e6" />
-            <text x="37" y="15" textAnchor="middle" fontSize="10" fill="#3d3d3d">{s}</text>
-            <path d={`M78,11 C110,11 110,${40 - i * 28 + 8} 140,${40 - i * 28 + 8}`} fill="none" stroke="#c4c4c4" strokeDasharray="3 3" />
+            <rect
+              width="74"
+              height="22"
+              strokeWidth="1"
+              className="fill-transparent stroke-ink-300 dark:stroke-white/25"
+            />
+            <text x="37" y="15" textAnchor="middle" fontSize="10" className="fill-ink-700 dark:fill-neutral-300">
+              {s}
+            </text>
           </g>
         ))}
-        <rect x="140" y="26" width="80" height="44" rx="12" fill="#0a0a0a" />
-        <text x="180" y="45" textAnchor="middle" fontSize="11" fill="#fff" fontWeight="600">fraccion</text>
-        <text x="180" y="59" textAnchor="middle" fontSize="9" fill="rgba(255,255,255,0.6)">normaliza</text>
+        {[0, 1, 2].map((i) => (
+          <path
+            key={i}
+            d={`M78,${19 + i * 28} C110,${19 + i * 28} 110,48 140,48`}
+            fill="none"
+            strokeWidth="1"
+            strokeDasharray="2 3"
+            className="stroke-ink-400 dark:stroke-white/25"
+          />
+        ))}
+
+        <rect x="140" y="26" width="80" height="44" className="fill-ink-900 dark:fill-white" />
+        <text x="180" y="45" textAnchor="middle" fontSize="11" fontWeight="600" className="fill-white dark:fill-ink-900">
+          fraccion
+        </text>
+        <text
+          x="180"
+          y="59"
+          textAnchor="middle"
+          fontSize="9"
+          opacity="0.6"
+          className="fill-white dark:fill-ink-900"
+        >
+          normaliza
+        </text>
       </svg>
     );
   }
   return (
-    <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden>
-      <rect x="20" y="8" width="180" height="80" rx="14" fill="#fff" stroke="#e6e6e6" />
-      <circle cx="42" cy="32" r="10" fill="#0a0a0a" />
-      <rect x="60" y="24" width="70" height="6" rx="3" fill="#0a0a0a" />
-      <rect x="60" y="36" width="100" height="5" rx="2.5" fill="#e6e6e6" />
-      <rect x="34" y="56" width="44" height="18" rx="9" fill="rgba(15,122,50,0.1)" />
-      <text x="56" y="68" textAnchor="middle" fontSize="9" fill="#0f7a32" fontWeight="600">Compra</text>
-      <rect x="84" y="56" width="40" height="18" rx="9" fill="#f6f6f6" />
-      <text x="104" y="68" textAnchor="middle" fontSize="9" fill="#3d3d3d">NVDA</text>
-      <circle cx="190" cy="14" r="8" fill="#c81e1e" />
-      <text x="190" y="17.5" textAnchor="middle" fontSize="9" fill="#fff" fontWeight="700">1</text>
+    <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden focusable="false">
+      <rect x="20" y="8" width="180" height="80" strokeWidth="1" className="fill-transparent stroke-ink-300 dark:stroke-white/25" />
+      <rect x="36" y="22" width="10" height="10" className="fill-ink-900 dark:fill-white" />
+      <rect x="54" y="24" width="64" height="5" className="fill-ink-900 dark:fill-white" />
+      <rect x="54" y="35" width="96" height="3" className="fill-ink-300 dark:fill-white/25" />
+      <line x1="20" y1="52" x2="200" y2="52" strokeWidth="1" className="stroke-ink-200 dark:stroke-white/15" />
+      <rect x="36" y="62" width="46" height="16" strokeWidth="1" className="fill-transparent stroke-ink-900 dark:stroke-white" />
+      <text x="59" y="73" textAnchor="middle" fontSize="9" fontWeight="600" className="fill-ink-900 dark:fill-white">
+        Alerta
+      </text>
+      <rect x="90" y="62" width="46" height="16" className="fill-ink-50 dark:fill-white/10" />
+      <text x="113" y="73" textAnchor="middle" fontSize="9" className="fill-ink-700 dark:fill-neutral-300">
+        NVDA
+      </text>
     </svg>
   );
 }
 
-/** Cómo funciona: tres tarjetas con ilustración propia y chip de etapa. */
+/** Cómo funciona: tres columnas con filetes de 1px, ilustración propia y número. */
 export function HowItWorks() {
   return (
-    <section id="como-funciona" className="pub-canvas py-20 md:py-32">
+    <section id="como-funciona" className="pub-canvas section-y border-t border-ink-300 dark:border-white/12">
       <div className="container-page">
         <FadeIn>
-          <span className="pub-chip">Cómo funciona</span>
-          <h2 className="type-section mt-4 text-ink-900">Tres pasos.</h2>
+          <p className="label-line">Cómo funciona</p>
+          <h2 className="type-section mt-4 text-ink-900 dark:text-white">Tres pasos.</h2>
         </FadeIn>
 
-        <StaggerList className="mt-10 grid grid-cols-1 gap-4 md:mt-14 lg:grid-cols-3">
-          {STEPS.map((step) => (
-            <StaggerItem key={step.n} className="pub-card flex flex-col overflow-hidden">
-              <div className="border-b border-ink-200 bg-ink-50/60 p-5">
+        <StaggerList className="mt-12 grid grid-cols-1 gap-10 md:mt-16 md:gap-12 lg:grid-cols-3 lg:gap-0">
+          {STEPS.map((step, i) => (
+            <StaggerItem
+              key={step.n}
+              className={cn(
+                "border-t border-ink-300 pt-8 dark:border-white/12 lg:border-t-0 lg:pt-0",
+                i > 0 && "lg:border-l lg:pl-10",
+                i < STEPS.length - 1 && "lg:pr-10",
+              )}
+            >
+              <div className="flex items-baseline gap-4">
+                <span className="num text-[13px] leading-none text-ink-500 dark:text-neutral-400">{step.n}</span>
+                <span className="label-line">{step.chip}</span>
+              </div>
+
+              <div className="mt-8">
                 <StepArt step={step.n} />
               </div>
-              <div className="p-5 md:p-6">
-                <div className="flex items-center gap-2">
-                  <span className="num flex size-7 items-center justify-center rounded-lg bg-ink-900 text-[12px] text-white">
-                    {step.n}
-                  </span>
-                  <span className="pub-chip">{step.chip}</span>
-                </div>
-                <h3 className="mt-4 text-[24px] font-medium tracking-[-0.03em] text-ink-900">{step.title}</h3>
-                <p className="mt-2 text-[15px] leading-[1.6] text-ink-500">{step.body}</p>
-              </div>
+
+              <h3 className="mt-8 text-[28px] font-medium leading-[1.05] tracking-[-0.03em] text-ink-900 dark:text-white">
+                {step.title}
+              </h3>
+              <p className="type-body mt-3">{step.body}</p>
             </StaggerItem>
           ))}
         </StaggerList>

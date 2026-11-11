@@ -23,6 +23,10 @@ export interface ExploreSearchParams {
 /**
  * d47: contenido de Explorar, compartido por /explore (público, SEO) y
  * /app/explorar (dentro del dashboard, sin SiteHeader ni SiteFooter).
+ *
+ * D10: este componente no pinta el <h1>. En /explore el titular editorial
+ * (label-line + type-section) vive en el shell estático de `explore/page.tsx`,
+ * así que hay exactamente un <h1> visible y ninguno duplicado.
  */
 export async function ExploreView({
   params,
@@ -60,30 +64,39 @@ export async function ExploreView({
   const filtering = category !== "all" || Boolean(search.trim()) || Boolean(symbol);
 
   // d54: panel principal (carrusel de los más seguidos) arriba; buscador y
-  // filtros discretos; todo lo demás en tarjetas. Sin título gigante.
+  // filtros discretos; todo lo demás en tarjetas. Sin título gigante: el h1
+  // vive en el shell estático de `src/app/explore/page.tsx` (uno solo).
   const content = (
-    <div className="flex flex-col gap-6 sm:gap-8">
-      {chrome ? <h1 className="sr-only">Explorar portafolios</h1> : null}
-
+    <div className="flex flex-col gap-10 sm:gap-12">
       {!filtering ? (
         <Suspense fallback={<ExploreHeroSkeleton />}>
           <ExploreHeroSection />
         </Suspense>
       ) : null}
 
-      <section aria-labelledby="todos-heading" className="flex flex-col gap-4">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 id="todos-heading" className="text-[17px] font-semibold tracking-tight text-ink-900">
-            {filtering ? "Resultados" : "Todos los portafolios"}
-          </h2>
-          <span className="text-[12px] tabular-nums text-ink-500">{portfolios.length}</span>
+      <section aria-labelledby="todos-heading" className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ink-300 pb-4 dark:border-white/12">
+          <div className="min-w-0">
+            <p className="label-line">{filtering ? "Filtros activos" : "Catálogo"}</p>
+            <h2
+              id="todos-heading"
+              className="mt-2 text-[clamp(1.375rem,2.4vw,1.875rem)] font-medium leading-[1.1] tracking-[-0.03em] text-ink-900 dark:text-white"
+            >
+              {filtering ? "Resultados" : "Todos los portafolios"}
+            </h2>
+          </div>
+          {portfolios.length > 0 ? (
+            <p className="num shrink-0 text-[13px] text-ink-500 dark:text-white/55">
+              {portfolios.length} {portfolios.length === 1 ? "portafolio" : "portafolios"}
+            </p>
+          ) : null}
         </div>
         <ExploreToolbar categories={pills} activeCategory={category} basePath={inApp ? "/app/explorar" : "/explore"} />
 
         {portfolios.length === 0 ? (
-          <div className="app-card rounded-2xl px-6 py-12 text-center">
-            <p className="text-[15px] font-medium text-ink-900">Sin resultados</p>
-            <p className="mt-1 text-[13px] text-ink-500">Prueba con otra búsqueda o vuelve a “Todos”.</p>
+          <div className="border border-ink-300 px-6 py-14 text-center dark:border-white/12">
+            <p className="text-[15px] font-medium text-ink-900 dark:text-white">Sin resultados</p>
+            <p className="type-body mx-auto mt-2 max-w-sm">Prueba con otra búsqueda o vuelve a “Todos”.</p>
           </div>
         ) : (
           <PortfolioGrid
@@ -107,8 +120,8 @@ export async function ExploreView({
   return (
     <>
       <SiteHeader />
-      <main id="main" className="bg-app-canvas">
-        <div className="container-page py-6 md:py-10">{content}</div>
+      <main id="main" className="bg-white dark:bg-ink-950">
+        <div className="container-page py-8 md:py-12">{content}</div>
       </main>
       <SiteFooter />
     </>

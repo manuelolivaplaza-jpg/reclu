@@ -21,10 +21,10 @@ describe("pickHeroPortfolios", () => {
     expect(out.map((c) => c.slug)).toEqual(["d", "a"]);
     expect(out.every((c) => !c.isExample)).toBe(true);
   });
-  it("completa con ejemplos marcados cuando faltan datos reales", () => {
+  it("no inyecta ejemplos inventados cuando hay menos de 3 portafolios reales", () => {
     const out = buildHeroCards([p({ slug: "a" })]);
-    expect(out).toHaveLength(3);
+    expect(out).toHaveLength(1);
+    expect(out[0].slug).toBe("a");
     expect(out[0].isExample).toBe(false);
-    expect(out.slice(1).every((c) => c.isExample)).toBe(true);
   });
 });
