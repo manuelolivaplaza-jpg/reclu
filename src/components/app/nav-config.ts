@@ -40,10 +40,10 @@ export const NAV_EXPLORAR: AppNavItem = {
 export const NAV_SEGUIMIENTO: AppNavItem = { href: "/app/seguimiento", label: "Seguimiento", icon: "Star" };
 export const NAV_CHAT: AppNavItem = { href: "/app/chat", label: "Pregúntale a Fraccion", short: "Chat", icon: "MessageCircle" };
 export const NAV_ALERTAS: AppNavItem = { href: "/alerts", label: "Alertas", icon: "BellRing" };
-export const NAV_MI_PORTAFOLIO: AppNavItem = { href: "/mi-portafolio", label: "Mi portafolio", icon: "Wallet" };
+export const NAV_MI_PORTAFOLIO: AppNavItem = { href: "/mi-portafolio", label: "Mi portafolio", short: "Portafolio", icon: "Wallet" };
 export const NAV_COMPARAR: AppNavItem = { href: "/compare", label: "Comparar", short: "Cartera", icon: "PieChart" };
 export const NAV_AJUSTES: AppNavItem = { href: "/settings", label: "Ajustes", icon: "Settings" };
-export const NAV_PLAN: AppNavItem = { href: "/upgrade", label: "Plan", icon: "Sparkles" };
+export const NAV_PLAN: AppNavItem = { href: "/upgrade", label: "Suscripción", short: "Plan", icon: "Sparkles" };
 
 export function navSections(myPortfolio: boolean): AppNavSection[] {
   return [
@@ -69,10 +69,13 @@ export function moreItems(myPortfolio: boolean): AppNavItem[] {
   return myPortfolio ? [NAV_CHAT, NAV_SEGUIMIENTO, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN] : [NAV_CHAT, NAV_SEGUIMIENTO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
 }
 
-/** Título para la topbar según la ruta. */
+/** Título para la topbar según la ruta (incluye subrutas y fichas). */
 export function titleFor(pathname: string): string {
+  if (pathname === "/settings/api" || pathname.startsWith("/settings/api/")) return "API";
+  if (pathname.startsWith("/app/portafolio")) return "Ficha de portafolio";
+  if (pathname === "/mi-portafolio" || pathname.startsWith("/mi-portafolio/")) return "Mi portafolio";
+  if (pathname === "/upgrade" || pathname.startsWith("/upgrade/")) return "Suscripción";
   const all = [NAV_RESUMEN, NAV_SEGUIMIENTO, NAV_CHAT, NAV_EXPLORAR, NAV_ALERTAS, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
-  if (pathname.startsWith("/app/portafolio")) return "Portafolio";
   const hit = all.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
   return hit?.label ?? "Fraccion";
 }

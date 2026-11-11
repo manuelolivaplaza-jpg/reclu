@@ -32,9 +32,10 @@ import { PortfolioRelated } from "@/components/portfolio-related";
 import { CATEGORY_META, isPaidPlan, isElitePlan } from "@/lib/types";
 import { roleFor, holdingLimitFor } from "@/lib/access";
 import { buildComposition } from "@/lib/composition";
+import { PortfolioXray } from "@/components/portfolio/portfolio-xray";
 import { absoluteUrl, siteUrl } from "@/lib/site";
 import { BRAND_NAME } from "@/lib/brand";
-import { timeAgo, formatSignedPct, formatPctPlain, formatDecimal } from "@/lib/utils";
+import { timeAgo, formatSignedPct, formatPctPlain, formatDecimal, formatShortDate } from "@/lib/utils";
 import { lagDays, latestDisclosureStamp, publishedAtFromPayload } from "@/lib/disclosure-lag";
 import { TrumpMentionsList } from "@/components/trump-mentions-list";
 import { OgeTradesPanel } from "@/components/oge-trades-panel";
@@ -91,6 +92,12 @@ function isSupabaseLive(): boolean {
 export async function PortfolioView({ slug, inApp = false }: { slug: string; inApp?: boolean }) {
   await connection();
   const base = inApp ? "/app/portafolio" : "/portfolio";
+  // d80: dentro de AppShell el shell ya aplica su gutter (px-4/sm:px-6/lg:px-8) y
+  // un ancho máximo de 1400px. Sumarle container-page duplicaba el padding-inline
+  // y ensanchaba la ficha más que el resto de la app; en público el lienzo sigue
+  // siendo container-page.
+  const gutter = inApp ? "w-full" : "container-page";
+  const blockPad = inApp ? "py-8" : "py-10";
   const portfolio = await getPortfolioBySlug(slug);
   if (!portfolio) {
     // Portafolio oculto con reemplazo real -> 308 a la versión real.
@@ -229,6 +236,9 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
   const holdingLimit = holdingLimitFor(role, portfolio);
   // D55: posiciones solo para planes pagados, salvo corredoras y declaraciones oficiales.
   const holdingsLocked = holdingLimit === 0;
+  // Si la lista visible topa justo con el límite del plan, la lectura de
+  // concentración corresponde al top visible y no a la cartera completa.
+  const isPartialTop = holdingLimit > 0 && holdingsTable.length >= holdingLimit;
   const composition = buildComposition(holdings, {
     complete: !Number.isFinite(holdingLimit) || holdings.length < holdingLimit,
   }).map((slice) => ({ ...slice, symbol: displaySymbol(slice.symbol) }));
@@ -254,6 +264,44 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
   const toolReturnYtd =
     seriesYtd !== null ? seriesYtd : holdingsTable.length > 0 ? portfolioYtd : null;
   const publication = latestDisclosureStamp(alerts);
+  // Corte real de la tabla: el as_of más nuevo que ya traen los holdings (la
+  // misma fecha que usa get_portfolio_holdings). En demo no se muestra: esas
+  // posiciones son ilustrativas y no cuentan como dato.
+  const corteVisible = isDemoData
+    ? ""
+    : holdings.reduce((latest, holding) => {
+        const day = holding.as_of ? String(holding.as_of).slice(0, 10) : "";
+        return day > latest ? day : latest;
+      }, "");
+  const corteLabel = corteVisible ? formatShortDate(corteVisible) : "";
+  // d80: segunda línea de la sección Composición (corte, alcance del plan y
+  // comparación). Solo piezas con dato real: nada de "0 activos" ni relleno.
+  const compositionMeta = [
+    esAfpModelo && fechaAfp
+      ? `Corte al ${fechaAfp}`
+      : corteLabel
+        ? `Corte al ${corteLabel}`
+        : null,
+    esAgregado
+      ? holdings.length > 0
+        ? `${holdings.length} ${holdings.length === 1 ? "emisora" : "emisoras"}`
+        : null
+      : holdings.length > 0
+        ? Number.isFinite(holdingLimit)
+          ? `Top ${holdings.length} por peso`
+          : `${holdings.length} activos por peso`
+        : null,
+    !esAgregado && holdingsLocked ? "Solo suscriptores" : null,
+    !esAgregado && !holdingsLocked && hasChangeData ? "Comparado con el corte anterior" : null,
+  ]
+    .filter((part): part is string => !!part)
+    .join(" · ");
+  // Escala de la micro-barra de peso: relativa a la mayor posición de la tabla.
+  const maxTableWeight =
+    holdingsTable.reduce(
+      (max, h) => (Number.isFinite(h.weight) && h.weight > max ? h.weight : max),
+      0,
+    ) || 1;
 
   // Serie del hero: la MISMA que ya usa la página y que el servidor recortó
   // según el plan (queries.ts / getPerformance). Nunca se lee la tabla
@@ -334,59 +382,65 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
       {inApp ? null : <SiteHeader />}
 
       <main className="flex-1">
-        <div className="container-page pt-6">
+        <div className={gutter + " pt-6"}>
           <Link
             href={inApp ? "/app/explorar" : "/explore"}
-            className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-500 hover:text-neutral-950"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-500 transition-colors hover:text-ink-900"
           >
             <ArrowLeft className="size-4" />
             Volver a explorar
           </Link>
         </div>
 
-        {/* Hero: nombre, variación del período y simulación de inversión */}
-        <PortfolioHero
-          name={portfolio.name}
-          avatar={
-            <>
-              <PortfolioAvatar portfolio={portfolio} size={96} />
-              {portfolio.portrait_image && !slugImage(portfolio.slug) ? (
-                <PortraitCredit
-                  portraitSource={portfolio.portrait_source}
-                  portraitLicense={portfolio.portrait_license}
-                  portraitAuthor={portfolio.portrait_author}
-                  className="mt-2"
+        {/* Hero: nombre, variación del período y simulación de inversión.
+            Dentro de la app el hero no vuelve a abrir lienzo: AppShell ya puso
+            el gutter, así que se anulan sus container-page internos (el `!`
+            hace falta porque el gutter de container-page en md+ vive en una
+            regla sin @layer en globals.css). */}
+        <div className={inApp ? "[&_.container-page]:max-w-none [&_.container-page]:px-0!" : undefined}>
+          <PortfolioHero
+            name={portfolio.name}
+            avatar={
+              <>
+                <PortfolioAvatar portfolio={portfolio} size={96} />
+                {portfolio.portrait_image && !slugImage(portfolio.slug) ? (
+                  <PortraitCredit
+                    portraitSource={portfolio.portrait_source}
+                    portraitLicense={portfolio.portrait_license}
+                    portraitAuthor={portfolio.portrait_author}
+                    className="mt-2"
+                  />
+                ) : null}
+              </>
+            }
+            series={heroSeries}
+            headline={heroHeadline}
+            followers={portfolio.followers}
+            demo={heroDemo}
+            action={
+              <>
+                <FollowButton
+                  portfolioId={portfolio.id}
+                  initialFollowing={following}
+                  initialIsPro={isPro}
+                  portfolioPremium={portfolio.premium}
+                  variant="page"
                 />
-              ) : null}
-            </>
-          }
-          series={heroSeries}
-          headline={heroHeadline}
-          followers={portfolio.followers}
-          demo={heroDemo}
-          action={
-            <>
-              <FollowButton
-                portfolioId={portfolio.id}
-                initialFollowing={following}
-                initialIsPro={isPro}
-                portfolioPremium={portfolio.premium}
-                variant="page"
-              />
-              <p className="mt-3 text-[13px] text-neutral-500">
-                {following
-                  ? "Recibirás alertas por email de este portafolio."
-                  : "Sigue este portafolio para recibir alertas."}
-              </p>
-            </>
-          }
-        />
+                <p className="mt-3 text-[13px] text-ink-500">
+                  {following
+                    ? "Recibirás alertas por email de este portafolio."
+                    : "Sigue este portafolio para recibir alertas."}
+                </p>
+              </>
+            }
+          />
+        </div>
 
         {inApp ? <PortfolioSectionTabs /> : null}
 
         {/* Portfolio header */}
         <div id="resumen" className="scroll-mt-28 bg-white">
-          <div className="container-page py-10">
+          <div className={gutter + " " + blockPad}>
             <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-2xl">
                 <p className="label-line">
@@ -479,7 +533,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
           </div>
         </div>
 
-        <div className="container-page py-10">
+        <div className={gutter + " " + blockPad}>
           {mentionsPromise ? (
             <TrumpMentionsList
               mentions={mentionsPromise}
@@ -533,7 +587,7 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
           ) : null}
 
           {showComposition && !esAgregado ? (
-            <div className="mb-12 rounded-2xl bg-white p-5 shadow-app-raised sm:p-7">
+            <div className="mb-12 rounded-none border border-ink-200 bg-white p-5 sm:p-7">
               <ChartSection>
                 <PortfolioDetailCharts composition={composition} />
               </ChartSection>
@@ -562,22 +616,29 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             slug={portfolio.slug}
           />
 
+          {/* Radiografía (d80): concentración visible y movimientos del último
+              corte. Solo con holdings que el rol ya puede ver — nunca en el
+              agregado de InfoProbidad ni con las posiciones bloqueadas. */}
+          {!esAgregado && !holdingsLocked && holdingsTable.length > 0 && (hasWeightData || hasChangeData) ? (
+            <PortfolioXray
+              holdingsTable={holdingsTable}
+              source={portfolio.source}
+              hasWeightData={hasWeightData}
+              hasChangeData={hasChangeData}
+              isPartialTop={isPartialTop}
+              totalVisible={holdingsTable.length}
+            />
+          ) : null}
+
           <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr]">
             {/* Holdings — censurados sin cuenta */}
-            <section id="posiciones" className="scroll-mt-28 rounded-2xl bg-white p-5 shadow-app-raised sm:p-7">
+            <section id="posiciones" className="min-w-0 scroll-mt-28 rounded-none border border-ink-200 bg-white p-5 sm:p-7">
               <h2 className="text-[15px] font-medium text-ink-900">
-                {esAgregado
-                  ? holdings.length > 0
-                    ? `Emisoras cotizadas (${holdings.length})`
-                    : "Emisoras cotizadas"
-                  : `Composición${fechaAfp ? ` al ${fechaAfp}` : ""}${
-                      holdingsLocked
-                        ? " (solo suscriptores)"
-                        : holdings.length > 0
-                          ? ` (${Number.isFinite(holdingLimit) ? `top ${holdings.length}` : `${holdings.length} activos`})`
-                          : ""
-                    }`}
+                {esAgregado ? "Emisoras cotizadas" : "Composición"}
               </h2>
+              {compositionMeta ? (
+                <p className="mt-1 text-[12px] text-ink-500">{compositionMeta}</p>
+              ) : null}
               {esAgregado ? (
                 <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
                   El peso es proporcional al número de autoridades que declaran la
@@ -589,73 +650,125 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
 
               <PaywallGate locked={holdingsLocked} mode={role === "anon" ? "signup" : "upgrade"} label="las posiciones" className="mt-4">
                 {holdingsTable.length > 0 ? (
-                  <table className="w-full text-[15px]">
-                    <thead>
-                      <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
-                        <th className="py-3 font-normal">Activo</th>
-                        {hasWeightData ? <th className="py-3 text-right font-normal">Peso</th> : null}
-                        {hasChangeData ? <th className="py-3 text-right font-normal">Cambio</th> : null}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {holdingsTable.map((h) => {
-                        const delta =
-                          h.previous_weight !== null ? h.weight - h.previous_weight : null;
-                        return (
-                          <tr key={h.id} className="border-b border-ink-200">
-                            <td className="py-3.5">
-                              <div className="flex items-baseline gap-2">
-                                <Link
-                                  href={`/accion/${encodeURIComponent(h.symbol.toLowerCase())}`}
-                                  className="font-medium text-ink-900 underline-offset-4 hover:underline"
-                                >
-                                  {h.displaySymbol}
-                                </Link>
-                                {!esAgregado && h.return_pct !== null && (
-                                  <span
-                                    className={
-                                      "num text-xs " +
-                                      (h.return_pct >= 0 ? "text-positive" : "text-negative")
-                                    }
-                                    title="Retorno desde declaración"
-                                  >
-                                    {h.return_pct >= 0 ? "+" : ""}
-                                    {formatPctPlain(h.return_pct, 1)}
-                                  </span>
-                                )}
-                              </div>
-                              {h.name && h.name.trim().toUpperCase() !== h.symbol.toUpperCase() ? (
-                                <div className="text-[13px] text-ink-500">{h.name}</div>
-                              ) : null}
-                            </td>
+                  <>
+                    <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+                      <table className="w-full text-[15px]">
+                        <thead>
+                          <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
+                            <th className="py-2.5 font-normal">Activo</th>
                             {hasWeightData ? (
-                              <td className="py-3.5 text-right font-medium tabular-nums text-ink-900">
-                                {formatPctPlain(h.weight, 1)}
-                              </td>
+                              <th className="py-2.5 pl-6 text-right font-normal">Peso</th>
                             ) : null}
                             {hasChangeData ? (
-                              <td className="py-3.5 text-right tabular-nums">
-                                {delta === null ? null : (
-                                  <span
-                                    className={
-                                      delta === 0
-                                        ? "text-ink-500"
-                                        : delta > 0
-                                          ? "text-positive"
-                                          : "text-negative"
-                                    }
-                                  >
-                                    {delta > 0 ? "+" : ""}
-                                    {formatDecimal(delta, 1)} pp
-                                  </span>
-                                )}
-                              </td>
+                              <th className="py-2.5 pl-4 text-right font-normal">Cambio</th>
                             ) : null}
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {holdingsTable.map((h) => {
+                            // Variación de peso en el corte, redondeada a 0,1 pp:
+                            // sin comparación previa no hay cifra que mostrar.
+                            const delta =
+                              h.previous_weight === null
+                                ? null
+                                : Math.round((h.weight - h.previous_weight) * 10) / 10;
+                            const hasWeight = Number.isFinite(h.weight) && h.weight > 0;
+                            return (
+                              <tr key={h.id} className="border-b border-ink-200 last:border-b-0">
+                                <td className="py-3.5 pr-3">
+                                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                                    <Link
+                                      href={`/accion/${encodeURIComponent(h.symbol.toLowerCase())}`}
+                                      className="whitespace-nowrap font-medium text-ink-900 underline-offset-4 hover:underline"
+                                    >
+                                      {h.displaySymbol}
+                                    </Link>
+                                    {!esAgregado && h.return_pct !== null && (
+                                      <span
+                                        className={
+                                          "num whitespace-nowrap text-xs " +
+                                          (h.return_pct >= 0 ? "text-positive" : "text-negative")
+                                        }
+                                        title="Retorno desde la declaración"
+                                      >
+                                        {h.return_pct >= 0 ? "+" : ""}
+                                        {formatPctPlain(h.return_pct, 1)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {h.name && h.name.trim().toUpperCase() !== h.symbol.toUpperCase() ? (
+                                    <div className="mt-0.5 text-[13px] leading-snug text-ink-500">
+                                      {h.name}
+                                    </div>
+                                  ) : null}
+                                </td>
+                                {hasWeightData ? (
+                                  <td className="py-3.5 pl-6 text-right align-middle">
+                                    {hasWeight ? (
+                                      <>
+                                        <span className="num block whitespace-nowrap text-[15px] font-medium text-ink-900">
+                                          {formatPctPlain(h.weight, 1)}
+                                        </span>
+                                        {/* Micro-barra: proporción frente a la mayor
+                                            posición de la tabla, no frente a 100%. */}
+                                        <span
+                                          aria-hidden="true"
+                                          className="mt-1.5 ml-auto block h-1 w-14 bg-ink-100"
+                                        >
+                                          <span
+                                            className="block h-full bg-ink-900"
+                                            style={{
+                                              width: `${Math.max(
+                                                2,
+                                                Math.round((h.weight / maxTableWeight) * 100),
+                                              )}%`,
+                                            }}
+                                          />
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <span className="whitespace-nowrap text-[12px] text-ink-500">
+                                        sin peso
+                                      </span>
+                                    )}
+                                  </td>
+                                ) : null}
+                                {hasChangeData ? (
+                                  <td className="py-3.5 pl-4 text-right align-middle">
+                                    {delta === null ? (
+                                      <span className="whitespace-nowrap text-[12px] text-ink-500">
+                                        sin corte previo
+                                      </span>
+                                    ) : delta === 0 ? (
+                                      <span className="whitespace-nowrap text-[12px] text-ink-500">
+                                        sin cambio
+                                      </span>
+                                    ) : (
+                                      <span
+                                        className={
+                                          "num whitespace-nowrap text-[15px] " +
+                                          (delta > 0 ? "text-positive" : "text-negative")
+                                        }
+                                      >
+                                        {delta > 0 ? "+" : ""}
+                                        {formatDecimal(delta, 1)} pp
+                                      </span>
+                                    )}
+                                  </td>
+                                ) : null}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {hasWeightData ? (
+                      <p className="mt-3 text-[12px] text-ink-500">
+                        La barra bajo cada peso es proporcional a la mayor posición de la
+                        tabla.
+                      </p>
+                    ) : null}
+                  </>
                 ) : (
                   <p className="mt-4 text-[15px] text-ink-500">
                     {esAgregado
@@ -667,25 +780,42 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
             </section>
 
             {/* Recent alerts — censuradas sin cuenta */}
-            <section id="movimientos" className="scroll-mt-28 rounded-2xl bg-white p-5 shadow-app-raised sm:p-7">
-              <h2 className="text-[15px] font-medium text-ink-900">Alertas recientes</h2>
+            <section id="movimientos" className="min-w-0 scroll-mt-28 rounded-none border border-ink-200 bg-white p-5 sm:p-7">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                <h2 className="text-[15px] font-medium text-ink-900">Alertas recientes</h2>
+                {alerts.length > 0 ? (
+                  <span className="text-[12px] text-ink-500">
+                    {alerts.length === 1 ? "1 alerta" : `${alerts.length} alertas`}
+                  </span>
+                ) : null}
+              </div>
               <PaywallGate locked={locked} label="historial de alertas" className="mt-4">
                 {alerts.length > 0 ? (
-                  <div className="flex flex-col gap-4">
+                  <ol className="flex flex-col gap-5">
                     {alerts.map((alert) => {
                       const fuenteAlerta = enlaceSpensiones(alert.payload?.source_url);
+                      const fecha = formatShortDate(alert.created_at);
+                      const relativa = timeAgo(alert.created_at);
                       return (
-                        <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
-                          <p className="text-[13px] text-ink-500">{timeAgo(alert.created_at)}</p>
-                          <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                            <h3 className="text-[15px] font-medium text-ink-900">{alert.title}</h3>
-                            <LagBadge
-                              publishedAt={publishedAtFromPayload(alert.payload)}
-                              recordedAt={alert.created_at}
-                              lagDays={lagDays(alert.payload)}
-                              className="font-normal leading-snug text-[#6b6b6b]"
-                            />
+                        <li key={alert.id} className="border-l-2 border-ink-900 pl-4">
+                          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 text-[12px] text-ink-500">
+                            {fecha ? (
+                              <time dateTime={alert.created_at} className="tabular-nums">
+                                {fecha}
+                              </time>
+                            ) : null}
+                            {fecha && relativa ? <span aria-hidden="true">·</span> : null}
+                            {relativa ? <span>{relativa}</span> : null}
                           </div>
+                          <h3 className="mt-1 text-[15px] font-medium leading-snug text-ink-900">
+                            {alert.title}
+                          </h3>
+                          <LagBadge
+                            publishedAt={publishedAtFromPayload(alert.payload)}
+                            recordedAt={alert.created_at}
+                            lagDays={lagDays(alert.payload)}
+                            className="mt-1 block text-[11px] font-normal leading-snug text-ink-500"
+                          />
                           {alert.summary ? (
                             <p className="mt-1.5 line-clamp-3 text-[13px] leading-relaxed text-ink-500">
                               {alert.summary}
@@ -698,19 +828,25 @@ export async function PortfolioView({ slug, inApp = false }: { slug: string; inA
                           {fuenteAlerta ? (
                             <a
                               href={fuenteAlerta}
-                              className="mt-1.5 inline-block text-[13px] text-ink-900 underline-offset-4 hover:underline"
+                              className="mt-2 inline-block text-[13px] text-ink-900 underline-offset-4 hover:underline"
                               rel="noreferrer"
                               target="_blank"
                             >
                               Fuente: Superintendencia de Pensiones
                             </a>
                           ) : null}
-                        </div>
+                        </li>
                       );
                     })}
-                  </div>
+                  </ol>
                 ) : (
-                  <p className="mt-4 text-[15px] text-ink-500">Sin alertas registradas aún.</p>
+                  <div>
+                    <p className="text-[15px] text-ink-900">Sin alertas por ahora.</p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
+                      Cuando la fuente registre un cambio de peso o una nueva
+                      declaración, aparecerá acá.
+                    </p>
+                  </div>
                 )}
               </PaywallGate>
             </section>

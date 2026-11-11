@@ -1,4 +1,6 @@
 import { connection } from "next/server";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import { aiEnabled } from "@/lib/ai-flags";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -14,7 +16,6 @@ import { valuatePortfolio } from "@/lib/portfolio-valuation";
 import { loadImpactFeed } from "@/lib/news-feed";
 import type { ImpactFeedEntry } from "@/lib/impact-feed";
 import { ImpactFeed } from "@/components/impact-feed";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const metadata = { title: "Mi portafolio" };
 // Ruta protegida por auth y detrás de MY_PORTFOLIO_ENABLED.
@@ -240,15 +241,47 @@ export default async function MyPortfolioPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
-          Mi portafolio
-        </h1>
-        <p className="mt-1.5 text-[15px] leading-relaxed text-ink-500">
-          Tus posiciones valorizadas con el cierre más reciente. Solo tú las ves
-          y puedes borrarlas cuando quieras.
-        </p>
-      </div>
+      <header className="border-b border-ink-200 pb-6 sm:pb-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[13px] font-normal text-ink-500">
+              Cartera personal · Plan {planName}
+            </p>
+            <h1 className="mt-3 text-[34px] font-medium leading-[1.02] tracking-[-0.04em] text-ink-900 sm:text-[44px]">
+              Mi portafolio
+            </h1>
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
+              Tus posiciones valorizadas con el cierre más reciente. Solo tú las ves
+              y puedes borrarlas cuando quieras.
+            </p>
+          </div>
+          <nav
+            aria-label="Accesos rápidos"
+            className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:shrink-0 lg:justify-end lg:pb-1"
+          >
+            <Link
+              href="/compare"
+              className="group inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900"
+            >
+              Cruzar con portafolios
+              <ArrowRight
+                className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={1.5}
+              />
+            </Link>
+            <Link
+              href="/settings"
+              className="group inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900"
+            >
+              Configurar alertas
+              <ArrowRight
+                className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={1.5}
+              />
+            </Link>
+          </nav>
+        </div>
+      </header>
 
       {consentAt ? (
         <PortfolioEditor
@@ -259,23 +292,25 @@ export default async function MyPortfolioPage() {
           imageImportEnabled={isPortfolioImageImportEnabled()}
         />
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Antes de empezar: consentimiento</CardTitle>
-            <CardDescription>
+        <section className="border border-ink-200 bg-white">
+          <div className="border-b border-ink-200 p-5 sm:p-7">
+            <h2 className="text-[17px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
+              Antes de empezar: consentimiento
+            </h2>
+            <p className="mt-2 max-w-2xl text-[14px] leading-relaxed text-ink-500">
               Para guardar y valorizar tu cartera necesitamos tu consentimiento
               explícito. Sin él no leemos ni tratamos tus posiciones y esta
               página no muestra la tabla editable.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </p>
+          </div>
+          <div className="p-5 sm:p-7">
             <PortfolioConsent
               consentAt={storedConsentAt}
               consentVersion={storedConsentVersion}
               model={aiModel}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       )}
 
       {consentAt && newsImpactEnabled && (

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Plus, Save, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PositionsTable } from "@/components/my-portfolio/positions-table";
 import { ExportCsvButton } from "@/components/my-portfolio/export-csv-button";
@@ -32,6 +31,9 @@ import {
 import { saveHoldingsByMode } from "@/app/actions/holdings-entry";
 
 const SYMBOL_PATTERN = /^[A-Z0-9.\-]{1,20}$/;
+
+/** Rótulo de KPI: 13px gris de apoyo, sin mayúsculas forzadas (diseño). */
+const KPI_LABEL = "text-[13px] font-normal leading-none text-ink-500";
 
 interface DraftForm {
   symbol: string;
@@ -377,34 +379,105 @@ export function PortfolioEditor({
     router.refresh();
   }
 
+  const usesFx = mode === "shares";
+
   return (
     <div className="flex flex-col gap-6">
-      {/* Tope del plan y acciones */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-[13px] text-ink-500">
-          <span className="font-medium text-ink-900">
-            {positions.length} de {maxPositions} posiciones
-          </span>{" "}
-          · plan {planName}
-        </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/compare"
-            className="inline-flex items-center gap-2 text-[13px] text-ink-900 underline underline-offset-4"
-          >
-            <Upload className="size-4" strokeWidth={1.5} />
-            Importar CSV
-          </Link>
-          <ExportCsvButton rows={rows} enabled={canExportCsv} />
+      {/* Valorización: una tira de KPIs con filetes de 1px. */}
+      <section aria-label="Valorización de la cartera" className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
+          <h2 className="text-[13px] font-normal leading-none text-ink-500">
+            Valorización
+          </h2>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link
+              href="/compare"
+              className="inline-flex items-center gap-1.5 text-[13px] text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
+            >
+              <Upload className="size-3.5" strokeWidth={1.5} />
+              Importar CSV
+            </Link>
+            <ExportCsvButton rows={rows} enabled={canExportCsv} />
+          </div>
         </div>
-      </div>
+
+        <div className="border border-ink-200 bg-white">
+          <div className="flex flex-col divide-y divide-ink-200 sm:flex-row sm:divide-x sm:divide-y-0">
+            {valuation.totals.length === 0 ? (
+              <div className="min-w-0 flex-1 p-4 sm:p-5">
+                <p className={KPI_LABEL}>Valor total</p>
+                <p className="mt-2 text-[13px] text-ink-400">
+                  Sin posiciones valorizadas todavía
+                </p>
+                <p className="mt-1 text-[12px] leading-relaxed text-ink-500">
+                  Agrega una posición para ver su valor y su P&amp;L.
+                </p>
+              </div>
+            ) : (
+              valuation.totals.map((total) => {
+                const pnlClass =
+                  total.pnl === 0
+                    ? "text-ink-900"
+                    : total.pnl > 0
+                      ? "text-positive"
+                      : "text-negative";
+                return (
+                  <div key={total.currency} className="min-w-0 flex-1 p-4 sm:p-5">
+                    <p className={KPI_LABEL}>Valor total · {total.currency}</p>
+                    {total.pricedPositions === 0 ? (
+                      <p className="mt-2 text-[13px] text-ink-400">Sin precios disponibles</p>
+                    ) : (
+                      <p className="num mt-2 text-[24px] leading-none tracking-[-0.02em] text-ink-900">
+                        {formatMoney(total.totalValue, total.currency)}
+                      </p>
+                    )}
+                    <p className="mt-3 flex flex-wrap items-baseline gap-x-1.5 text-[12px] text-ink-500">
+                      <span>P&amp;L acumulado</span>
+                      {total.pnl === 0 && total.pnlPct === null ? (
+                        <span className="text-ink-400">Sin base de costo</span>
+                      ) : (
+                        <>
+                          <span className={`num font-medium ${pnlClass}`}>
+                            {formatMoney(total.pnl, total.currency)}
+                          </span>
+                          {total.pnlPct !== null && (
+                            <span className={`num font-medium ${pnlClass}`}>
+                              {formatPercent(total.pnlPct, true)}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </p>
+                    <p className="mt-1 text-[11px] text-ink-400">
+                      {total.pricedPositions} con precio · {total.missingPrices} sin precio
+                    </p>
+                  </div>
+                );
+              })
+            )}
+
+            <div className="min-w-0 p-4 sm:w-[220px] sm:shrink-0 sm:p-5">
+              <p className={KPI_LABEL}>Posiciones</p>
+              <p className="num mt-2 text-[24px] leading-none tracking-[-0.02em] text-ink-900">
+                {positions.length}
+                <span className="text-[15px] text-ink-400"> / {maxPositions}</span>
+              </p>
+              <p className="mt-3 text-[12px] text-ink-500">
+                Tu plan {planName} permite hasta {maxPositions}.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {message && (
         <p
           role={message.type === "error" ? "alert" : "status"}
           className={
-            "text-sm font-medium " +
-            (message.type === "error" ? "text-negative" : "text-positive")
+            "border-l border-ink-900 pl-3 text-[13px] font-medium " +
+            (message.type === "error"
+              ? "border-negative text-negative"
+              : "border-ink-900 text-ink-900")
           }
         >
           {message.text}
@@ -413,23 +486,6 @@ export function PortfolioEditor({
 
       {/* Modo de ingreso (F78): un solo modo por cartera */}
       <EntryModeSelector mode={mode} onChange={setMode} disabled={pending} />
-
-      {mode === "shares" && (
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="portfolio-fx" className="text-[13px] font-normal text-ink-500">
-            Tipo de cambio (CLP por USD) — solo si mezclas USD y CLP
-          </label>
-          <input
-            id="portfolio-fx"
-            type="number"
-            min={0}
-            step={1}
-            value={fx}
-            onChange={(event) => setFx(event.target.value)}
-            className="h-11 w-40 border border-ink-200 bg-white px-3 num text-[15px] text-ink-900 focus:border-ink-900 focus:outline-none"
-          />
-        </div>
-      )}
 
       {/* F79: importación desde una captura de la corredora (detrás de flag). */}
       {imageImportEnabled && (
@@ -440,51 +496,59 @@ export function PortfolioEditor({
       )}
 
       {/* Alta / edición */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{editingSymbol ? `Editar ${editingSymbol}` : "Agregar posición"}</CardTitle>
-          <CardDescription>
+      <section className="border border-ink-200 bg-white">
+        <div className="border-b border-ink-200 p-5 sm:p-6">
+          <h2 className="text-[15px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
+            {editingSymbol ? `Editar ${editingSymbol}` : "Agregar posición"}
+          </h2>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500">
             {editingSymbol
               ? "Cambia cantidad, costo, moneda o mercado y guarda la cartera."
               : "Ticker, cantidad, costo promedio, moneda y mercado. El peso se calcula al guardar."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-              <Input
-                label="Ticker"
-                name="symbol"
-                value={form.symbol}
-                onChange={(event) => updateField("symbol", event.target.value)}
-                placeholder="AAPL"
-                maxLength={20}
-                autoComplete="off"
-                required
-              />
-              <Input
-                label={VALUE_LABEL[mode]}
-                name="quantity"
-                type="number"
-                inputMode="decimal"
-                step="any"
-                min="0"
-                value={form.quantity}
-                onChange={(event) => updateField("quantity", event.target.value)}
-                placeholder={VALUE_PLACEHOLDER[mode]}
-              />
-              <Input
-                label="Costo promedio"
-                name="avg_cost"
-                type="number"
-                inputMode="decimal"
-                step="any"
-                min="0"
-                value={form.cost}
-                onChange={(event) => updateField("cost", event.target.value)}
-                placeholder="150.50"
-              />
-              <div className="flex flex-col gap-1.5">
+          </p>
+        </div>
+        <div className="p-5 sm:p-6">
+          <form onSubmit={handleSubmit} className="flex min-w-0 flex-col gap-5">
+            <div className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="min-w-0">
+                <Input
+                  label="Ticker"
+                  name="symbol"
+                  value={form.symbol}
+                  onChange={(event) => updateField("symbol", event.target.value)}
+                  placeholder="AAPL"
+                  maxLength={20}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+              <div className="min-w-0">
+                <Input
+                  label={VALUE_LABEL[mode]}
+                  name="quantity"
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  value={form.quantity}
+                  onChange={(event) => updateField("quantity", event.target.value)}
+                  placeholder={VALUE_PLACEHOLDER[mode]}
+                />
+              </div>
+              <div className="min-w-0">
+                <Input
+                  label="Costo promedio"
+                  name="avg_cost"
+                  type="number"
+                  inputMode="decimal"
+                  step="any"
+                  min="0"
+                  value={form.cost}
+                  onChange={(event) => updateField("cost", event.target.value)}
+                  placeholder="150.50"
+                />
+              </div>
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="currency" className="text-sm font-medium text-ink-900">
                   Moneda
                 </label>
@@ -495,13 +559,13 @@ export function PortfolioEditor({
                   onChange={(event) =>
                     updateField("currency", event.target.value as "USD" | "CLP")
                   }
-                  className="h-11 w-full border border-ink-200 bg-white px-3 text-[15px] text-ink-900 focus:border-ink-900 focus:outline-none"
+                  className="h-11 w-full min-w-0 border border-ink-200 bg-white px-3 text-[15px] text-ink-900 transition-colors hover:border-ink-400 focus:border-ink-900 focus:outline-none"
                 >
                   <option value="USD">USD</option>
                   <option value="CLP">CLP</option>
                 </select>
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex min-w-0 flex-col gap-1.5">
                 <label htmlFor="market" className="text-sm font-medium text-ink-900">
                   Mercado
                 </label>
@@ -512,16 +576,39 @@ export function PortfolioEditor({
                   onChange={(event) =>
                     updateField("market", event.target.value as DraftForm["market"])
                   }
-                  className="h-11 w-full border border-ink-200 bg-white px-3 text-[15px] text-ink-900 focus:border-ink-900 focus:outline-none"
+                  className="h-11 w-full min-w-0 border border-ink-200 bg-white px-3 text-[15px] text-ink-900 transition-colors hover:border-ink-400 focus:border-ink-900 focus:outline-none"
                 >
                   <option value="">Sin definir</option>
                   <option value="US">US</option>
                   <option value="CL">CL</option>
                 </select>
               </div>
+              {usesFx && (
+                <div className="flex min-w-0 flex-col gap-1.5">
+                  <label
+                    htmlFor="portfolio-fx"
+                    className="text-sm font-medium text-ink-900"
+                  >
+                    Tipo de cambio
+                  </label>
+                  <input
+                    id="portfolio-fx"
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={fx}
+                    onChange={(event) => setFx(event.target.value)}
+                    placeholder="950"
+                    className="h-11 w-full min-w-0 border border-ink-200 bg-white px-3 num text-[15px] text-ink-900 transition-colors hover:border-ink-400 focus:border-ink-900 focus:outline-none"
+                  />
+                  <p className="text-xs leading-relaxed text-ink-500">
+                    CLP por USD. Solo si mezclas ambas monedas.
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-ink-200 pt-4">
               <Button type="submit" size="sm" variant={editingSymbol ? "outline" : "primary"}>
                 <Plus className="size-4" strokeWidth={1.5} />
                 {editingSymbol ? "Aplicar cambio" : "Agregar"}
@@ -536,45 +623,49 @@ export function PortfolioEditor({
               </span>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
+
+      {/* Barra de cambios sin guardar: visible en escritorio y móvil. */}
+      {dirty && (
+        <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 flex flex-col gap-3 border border-ink-900 bg-white p-3 sm:flex-row sm:items-center sm:justify-between sm:px-4 lg:bottom-4">
+          <p className="text-[13px] leading-relaxed text-ink-700">
+            <span className="font-medium text-ink-900">Cambios sin guardar.</span>{" "}
+            {positions.length === 0
+              ? "Guardar deja tu cartera sin posiciones."
+              : "Se aplican a tu cartera completa."}
+          </p>
+          <Button
+            type="button"
+            onClick={handleSave}
+            loading={pending}
+            size="md"
+            className="w-full sm:w-auto"
+          >
+            <Save className="size-4" strokeWidth={1.5} />
+            {positions.length === 0 ? "Borrar cartera" : "Guardar cambios"}
+          </Button>
+        </div>
+      )}
 
       {/* Tabla */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <CardTitle>Posiciones</CardTitle>
-              <CardDescription>
-                Valor y P&amp;L por moneda; CLP y USD no se convierten y el peso
-                se calcula dentro de cada moneda.
-              </CardDescription>
-            </div>
-            <Button
-              type="button"
-              onClick={handleSave}
-              loading={pending}
-              size="sm"
-              disabled={!dirty && positions.length > 0}
-            >
-              <Save className="size-4" strokeWidth={1.5} />
-              {positions.length === 0 ? "Borrar cartera" : "Guardar cartera"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
+      <section className="border border-ink-200 bg-white">
+        <div className="flex flex-col gap-1 border-b border-ink-200 p-5 sm:p-6">
+          <h2 className="text-[15px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
+            Posiciones
+          </h2>
+          <p className="text-[13px] leading-relaxed text-ink-500">
+            Valor y P&amp;L por moneda; CLP y USD no se convierten y el peso se
+            calcula dentro de cada moneda.
+          </p>
+        </div>
+        <div className="flex flex-col gap-4 p-5 sm:p-6">
           <PositionsTable
             rows={rows}
             disabled={pending}
             onEdit={startEdit}
             onRemove={handleRemove}
           />
-
-          {dirty && (
-            <p className="text-[12px] text-ink-500">
-              Tienes cambios sin guardar. Se aplican a tu cartera completa.
-            </p>
-          )}
 
           {missingPrices > 0 && (
             <p className="text-[12px] leading-relaxed text-ink-500">
@@ -584,44 +675,8 @@ export function PortfolioEditor({
               . Su valor y P&amp;L quedan fuera hasta que exista un cierre.
             </p>
           )}
-
-          {valuation.totals.length > 0 && (
-            <div className="grid gap-px border border-ink-200 bg-ink-200 sm:grid-cols-2">
-              {valuation.totals.map((total) => {
-                const pnlClass =
-                  total.pnl === 0
-                    ? "text-ink-900"
-                    : total.pnl > 0
-                      ? "text-positive"
-                      : "text-negative";
-                return (
-                  <div key={total.currency} className="bg-white p-4">
-                    <p className="text-[12px] uppercase tracking-wide text-ink-500">
-                      Total {total.currency}
-                    </p>
-                    {total.pricedPositions === 0 ? (
-                      <p className="num mt-1 text-[22px] leading-none text-ink-500">
-                        Sin precios
-                      </p>
-                    ) : (
-                      <p className="num mt-1 text-[22px] leading-none text-ink-900">
-                        {formatMoney(total.totalValue, total.currency)}
-                      </p>
-                    )}
-                    <p className={`mt-2 text-[13px] tabular-nums ${pnlClass}`}>
-                      {formatMoney(total.pnl, total.currency)} ·{" "}
-                      {formatPercent(total.pnlPct, true)}
-                    </p>
-                    <p className="mt-1 text-[12px] text-ink-500">
-                      {total.pricedPositions} con precio · {total.missingPrices} sin precio
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
     </div>
   );
 }

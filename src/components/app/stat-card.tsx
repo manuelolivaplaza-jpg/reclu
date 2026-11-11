@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
 
 /**
- * KPI con delta opcional y mini sparkline SVG propia (sin librerías).
- * No inventa cifras: si value es null muestra "—".
+ * KPI editorial: filete de 1px, radio 0, sin sombra.
+ * No inventa cifras: si no hay dato muestra "Sin datos" (nunca "—").
  */
 export function StatCard({
   label,
@@ -23,26 +23,35 @@ export function StatCard({
   className?: string;
 }) {
   const up = (delta ?? 0) >= 0;
+  const text = typeof value === "string" ? value.trim() : "";
+  const hasValue = value != null && text !== "" && !/^[—–-]$/.test(text);
   return (
-    <div className={cn("app-card flex flex-col gap-2 p-4", className)}>
-      <p className="text-app-caption font-medium text-ink-500">{label}</p>
+    <div className={cn("flex flex-col gap-2 rounded-none border border-ink-200 bg-white p-4 sm:p-5", className)}>
+      <p className="text-[12px] font-medium leading-none text-ink-500">{label}</p>
       <div className="flex items-end justify-between gap-3">
-        <p className="text-[24px] font-semibold leading-none tracking-tight text-ink-900 tabular-nums">{value ?? "—"}</p>
-        {points && points.length > 1 ? <MiniSpark points={points} positive={up} /> : null}
+        {hasValue ? (
+          <p className="text-[26px] font-medium leading-none tracking-[-0.03em] text-ink-900 tabular-nums sm:text-[28px]">
+            {value}
+          </p>
+        ) : (
+          <span className="text-[15px] font-normal leading-none text-ink-400">Sin datos</span>
+        )}
+        {points && points.length > 1 ? <MiniSpark points={points} /> : null}
       </div>
       {delta != null && Number.isFinite(delta) ? (
-        <p className={cn("text-app-caption font-medium tabular-nums", up ? "text-positive" : "text-negative")}>
+        <p className={cn("text-[12px] font-medium tabular-nums", up ? "text-positive" : "text-negative")}>
           {up ? "+" : ""}
           {delta.toFixed(2)}%{deltaLabel ? <span className="ml-1 font-normal text-ink-500">{deltaLabel}</span> : null}
         </p>
       ) : hint ? (
-        <p className="text-app-caption text-ink-500">{hint}</p>
+        <p className="text-[12px] text-ink-500">{hint}</p>
       ) : null}
     </div>
   );
 }
 
-function MiniSpark({ points, positive }: { points: number[]; positive: boolean }) {
+/** Trazo negro editorial: el color queda solo en la cifra del delta. */
+function MiniSpark({ points }: { points: number[] }) {
   const w = 72;
   const h = 28;
   const min = Math.min(...points);
@@ -52,7 +61,7 @@ function MiniSpark({ points, positive }: { points: number[]; positive: boolean }
     .map((p, i) => `${i === 0 ? "M" : "L"}${((i / (points.length - 1)) * w).toFixed(1)},${(h - ((p - min) / span) * h).toFixed(1)}`)
     .join(" ");
   return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className={positive ? "text-positive" : "text-negative"}>
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden className="shrink-0 text-ink-900">
       <path d={d} fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );

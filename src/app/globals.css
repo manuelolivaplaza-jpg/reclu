@@ -292,17 +292,21 @@ details[open] > summary ~ * {
 /* ==== d47: tokens SOLO de la app (dashboard). Prefijo app-, no tocan la web pública. ==== */
 @theme {
   /* Superficies y filetes de la app: salen del esquema (se emiten como
-     variables porque hay SVG que las consume con `var()`). */
-  --color-app-canvas: var(--surface);
+     variables porque hay SVG que las consume con `var()`). El lienzo interno
+     es blanco editorial puro (#ffffff), no el gris de superficie. */
+  --color-app-canvas: var(--canvas);
   --color-app-card: var(--panel);
   --color-app-border: var(--line);
-  --radius-app: 12px;
-  --radius-app-control: 8px;
-  /* Sin sombras: la separación es el filete de 1px (diseño Autopilot × SpaceX). */
+  /* Geometría: radio 0 en toda la plataforma interna. La separación la hacen
+     el filete de 1px y el aire, nunca la elevación. */
+  --radius-app: 0px;
+  --radius-app-control: 0px;
+  /* Sin sombras (diseño Autopilot × SpaceX). */
   --shadow-app: none;
   --shadow-app-raised: none;
+  /* Escala interna: display 28px móvil / 34px desktop, interlineado 1.08. */
   --text-app-display: 28px;
-  --text-app-display--line-height: 1.15;
+  --text-app-display--line-height: 1.08;
   --text-app-title: 18px;
   --text-app-title--line-height: 1.3;
   --text-app-body: 15px;
@@ -313,16 +317,54 @@ details[open] > summary ~ * {
 
 @media (min-width: 1024px) {
   .app-root {
-    --text-app-display: 32px;
+    --text-app-display: 34px;
     --text-app-title: 20px;
   }
 }
 
+/* Panel interno: fondo panel, filete 1px, radio 0, sin sombra. */
+@utility app-panel {
+  background-color: var(--color-app-card);
+  border: 1px solid var(--color-app-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Tarjeta interna. Misma geometría que app-panel: el filete de 1px es el
+   único separador. En enlaces, el filete sube a `--line-strong` al pasar el
+   cursor (transición sutil, sin mover ni elevar nada). */
 @utility app-card {
   background-color: var(--color-app-card);
   border: 1px solid var(--color-app-border);
-  border-radius: var(--radius-app);
-  box-shadow: var(--shadow-app);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+a.app-card {
+  transition: border-color 150ms ease;
+}
+
+a.app-card:hover {
+  border-color: var(--line-strong);
+}
+
+/* Banda de KPIs: celdas separadas por un filete de 1px (el gap deja ver el
+   color del borde del contenedor). Sin tarjetas sueltas ni sombras; las
+   columnas se reparten solas según el ancho disponible. */
+@utility app-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background-color: var(--color-app-border);
+  border: 1px solid var(--color-app-border);
+  border-radius: 0;
+  box-shadow: none;
+
+  & > * {
+    min-width: 0;
+    background-color: var(--color-app-card);
+    padding: 14px 16px;
+  }
 }
 
 /* Espacio para la tab bar móvil fija (64px + safe-area). */

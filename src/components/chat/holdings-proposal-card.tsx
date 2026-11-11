@@ -7,6 +7,7 @@
  * (sesión + RLS + consentimiento + tope del plan + zod).
  */
 import { useState } from "react";
+import { X } from "lucide-react";
 import { saveHoldingsByMode } from "@/app/actions/holdings-entry";
 import type { HoldingsProposal } from "@/lib/chat-ia/tools";
 
@@ -35,24 +36,32 @@ export function HoldingsProposalCard({ proposal }: { proposal: HoldingsProposal 
   }
 
   return (
-    <div className="rounded-2xl border border-emerald-400/30 bg-emerald-400/[0.06] p-4">
-      <p className="text-sm font-medium text-white">Revisa antes de agregar a Mi portafolio</p>
-      <p className="mt-0.5 text-xs text-zinc-400">
-        Datos leídos automáticamente: pueden tener errores. Edita lo que haga falta. No se guarda nada sin tu confirmación.
-      </p>
-      <div className="mt-3 max-h-64 overflow-y-auto rounded-xl border border-white/10">
+    <div className="border border-ink-900 bg-white p-4 sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium text-ink-900">Revisa antes de agregar a Mi portafolio</p>
+          <p className="mt-1 max-w-lg text-xs leading-relaxed text-ink-500">
+            Datos leídos automáticamente: pueden tener errores. Edita lo que haga falta. No se guarda nada sin tu confirmación.
+          </p>
+        </div>
+        <span className="shrink-0 border border-ink-200 px-2 py-1 text-[10px] font-medium uppercase tracking-[0.12em] text-ink-500">
+          {proposal.mode === "shares" ? "Acciones" : "Pesos"}
+        </span>
+      </div>
+
+      <div className="mt-4 max-h-64 overflow-y-auto border border-ink-200">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-zinc-900 text-xs text-zinc-400">
+          <thead className="sticky top-0 bg-ink-50 text-[11px] uppercase tracking-[0.1em] text-ink-500">
             <tr>
-              <th className="px-3 py-2 text-left font-normal">Activo</th>
-              <th className="px-3 py-2 text-right font-normal">{proposal.mode === "shares" ? "Cantidad" : "Peso (%)"}</th>
-              <th className="w-8" />
+              <th className="px-3 py-2 text-left font-medium">Activo</th>
+              <th className="px-3 py-2 text-right font-medium">{proposal.mode === "shares" ? "Cantidad" : "Peso (%)"}</th>
+              <th className="w-10" />
             </tr>
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <tr key={r.symbol} className="border-t border-white/5">
-                <td className="px-3 py-1.5 font-mono text-white">{r.symbol}</td>
+              <tr key={r.symbol} className="border-t border-ink-200">
+                <td className="px-3 py-1.5 font-mono text-[13px] text-ink-900">{r.symbol}</td>
                 <td className="px-3 py-1.5 text-right">
                   <input
                     type="number"
@@ -65,7 +74,7 @@ export function HoldingsProposalCard({ proposal }: { proposal: HoldingsProposal 
                     onChange={(e) =>
                       setRows((prev) => prev.map((x, j) => (j === i ? { ...x, value: Number(e.target.value) || 0 } : x)))
                     }
-                    className="w-24 rounded-md bg-white/5 px-2 py-1 text-right tabular-nums text-white outline-none focus:ring-1 focus:ring-emerald-400"
+                    className="w-24 border border-ink-200 bg-white px-2 py-1 text-right text-[13px] tabular-nums text-ink-900 outline-none transition-colors focus-visible:border-ink-900 disabled:text-ink-400"
                   />
                 </td>
                 <td className="pr-2 text-right">
@@ -74,9 +83,9 @@ export function HoldingsProposalCard({ proposal }: { proposal: HoldingsProposal 
                       type="button"
                       aria-label={`Quitar ${r.symbol}`}
                       onClick={() => setRows((prev) => prev.filter((_, j) => j !== i))}
-                      className="text-zinc-500 hover:text-red-400"
+                      className="grid h-8 w-8 place-items-center text-ink-400 transition-colors hover:text-ink-900"
                     >
-                      ×
+                      <X className="h-3.5 w-3.5" strokeWidth={1.5} aria-hidden="true" />
                     </button>
                   )}
                 </td>
@@ -85,14 +94,16 @@ export function HoldingsProposalCard({ proposal }: { proposal: HoldingsProposal 
           </tbody>
         </table>
       </div>
-      {message && <p className={`mt-2 text-xs ${state === "saved" ? "text-emerald-300" : "text-red-300"}`}>{message}</p>}
+
+      {message && <p className={`mt-3 text-xs leading-relaxed ${state === "saved" ? "text-ink-900" : "text-negative"}`}>{message}</p>}
+
       {state === "pending" || state === "saving" ? (
-        <div className="mt-3 flex gap-2">
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
           <button
             type="button"
             disabled={state === "saving" || rows.length === 0}
             onClick={confirm}
-            className="flex-1 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-black transition hover:bg-emerald-400 disabled:opacity-50"
+            className="inline-flex h-10 flex-1 items-center justify-center rounded-full bg-ink-900 px-4 text-sm font-medium text-white transition-colors hover:bg-black disabled:opacity-35"
           >
             {state === "saving" ? "Guardando…" : `Confirmar y agregar (${rows.length})`}
           </button>
@@ -100,13 +111,13 @@ export function HoldingsProposalCard({ proposal }: { proposal: HoldingsProposal 
             type="button"
             disabled={state === "saving"}
             onClick={() => setState("cancelled")}
-            className="rounded-xl border border-white/15 px-4 py-2.5 text-sm text-zinc-300 hover:bg-white/5"
+            className="inline-flex h-10 items-center justify-center rounded-full border border-ink-200 px-4 text-sm text-ink-700 transition-colors hover:border-ink-900 hover:text-ink-900 disabled:opacity-35"
           >
             Cancelar
           </button>
         </div>
       ) : state === "cancelled" ? (
-        <p className="mt-2 text-xs text-zinc-400">Cancelado. No se guardó nada.</p>
+        <p className="mt-3 text-xs text-ink-500">Cancelado. No se guardó nada.</p>
       ) : null}
     </div>
   );

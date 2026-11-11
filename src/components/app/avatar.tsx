@@ -9,12 +9,12 @@ export function Avatar({ name, className }: { name: string; className?: string }
       .filter(Boolean)
       .slice(0, 2)
       .map((w) => w[0]?.toUpperCase())
-      .join("") || "R";
+      .join("") || "F";
   return (
     <span
       aria-hidden
       className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full bg-ink-900 text-[12px] font-semibold text-white",
+        "flex size-8 shrink-0 select-none items-center justify-center rounded-full bg-ink-900 text-[12px] font-medium leading-none text-white",
         className,
       )}
     >

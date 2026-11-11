@@ -13,5 +13,9 @@ export default async function ChatPage() {
   if (!user) redirect("/login?next=/app/chat");
   const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string };
   const firstName = (meta.full_name ?? meta.name ?? "").split(" ")[0] || null;
-  return <ChatShell firstName={firstName} />;
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-white">
+      <ChatShell firstName={firstName} />
+    </div>
+  );
 }

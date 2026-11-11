@@ -17,8 +17,7 @@ export default async function UpgradeExitoPage({
 }) {
   await connection();
   const [params, profile] = await Promise.all([searchParams, getProfile()]);
-  const planName =
-    profile?.plan === "elite" ? "Elite" : profile?.plan === "pro" ? "Pro" : "Pro";
+  const planName = profile?.plan === "elite" ? "Elite" : "Pro";
   return (
     <UpgradeSuccess
       planName={planName}

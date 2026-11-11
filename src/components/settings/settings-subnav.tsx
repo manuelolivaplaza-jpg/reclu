@@ -9,7 +9,7 @@ export interface SettingsSection {
   /** Ancla (#cuenta) o ruta (/settings/api). */
   href: string;
   label: string;
-  /** Texto secundario en la lista móvil. */
+  /** Texto secundario de la sección. */
   hint?: string;
 }
 
@@ -23,9 +23,9 @@ export const DEFAULT_SETTINGS_SECTIONS: SettingsSection[] = [
 ];
 
 /**
- * Subnavegación de Ajustes (P5): pestañas en escritorio y lista estilo iOS
- * en móvil. Solo strings como props (sin íconos ni funciones desde el
- * servidor). Las anclas marcan la sección visible.
+ * Subnavegación de Ajustes (P5): riel lateral adhesivo en escritorio y tira
+ * horizontal deslizable en móvil. Solo strings como props (sin íconos ni
+ * funciones desde el servidor). Las anclas marcan la sección visible.
  */
 export function SettingsSubnav({
   sections = DEFAULT_SETTINGS_SECTIONS,
@@ -57,58 +57,74 @@ export function SettingsSubnav({
   const isActive = (href: string) =>
     href.startsWith("#") ? pathname === "/settings" && hash === href : pathname.startsWith(href);
 
+  // Desde otra ruta de Ajustes, un ancla vuelve a /settings con la sección.
+  const hrefFor = (href: string) =>
+    href.startsWith("#") && pathname !== "/settings" ? `/settings${href}` : href;
+
   return (
     <>
-      {/* Escritorio: pestañas */}
-      <nav aria-label="Secciones de ajustes" className="hidden border-b border-ink-200 md:block">
-        <ul className="flex gap-6">
-          {sections.map((s) => {
-            const active = isActive(s.href);
-            const href = s.href.startsWith("#") && pathname !== "/settings" ? `/settings${s.href}` : s.href;
-            return (
-              <li key={s.href}>
-                <Link
-                  href={href}
-                  onClick={() => s.href.startsWith("#") && setHash(s.href)}
-                  aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "relative inline-flex h-11 items-center text-[14px] font-medium transition-colors",
-                    active ? "text-ink-900" : "text-ink-500 hover:text-ink-900",
-                  )}
-                >
-                  {s.label}
-                  <span
-                    aria-hidden="true"
-                    className={cn("absolute inset-x-0 -bottom-px h-0.5 rounded-full", active ? "bg-ink-900" : "bg-transparent")}
-                  />
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Escritorio: riel adhesivo con indicador vertical de 2px */}
+      <nav aria-label="Secciones de ajustes" className="hidden lg:block">
+        <div className="sticky top-20">
+          <p className="pl-4 text-[12px] leading-none text-ink-500">En esta página</p>
+          <ul className="mt-3 flex flex-col border-t border-ink-200">
+            {sections.map((s) => {
+              const active = isActive(s.href);
+              return (
+                <li key={s.href} className="border-b border-ink-200">
+                  <Link
+                    href={hrefFor(s.href)}
+                    onClick={() => s.href.startsWith("#") && setHash(s.href)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex min-h-11 items-center border-l-2 pl-4 pr-3 text-[14px] transition-colors",
+                      active
+                        ? "border-ink-900 font-medium text-ink-900"
+                        : "border-transparent text-ink-500 hover:border-ink-300 hover:text-ink-900",
+                    )}
+                  >
+                    {s.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </nav>
 
-      {/* Móvil: lista agrupada estilo iOS */}
-      <nav aria-label="Secciones de ajustes" className="md:hidden">
-        <ul className="divide-y divide-ink-100 overflow-hidden rounded-2xl border border-ink-200 bg-white">
-          {sections.map((s) => {
-            const href = s.href.startsWith("#") && pathname !== "/settings" ? `/settings${s.href}` : s.href;
-            return (
-              <li key={s.href}>
-                <Link
-                  href={href}
-                  className="flex min-h-14 items-center justify-between gap-3 px-4 py-3 active:bg-ink-50"
-                >
-                  <span className="min-w-0">
-                    <span className="block text-[15px] font-medium text-ink-900">{s.label}</span>
-                    {s.hint ? <span className="block truncate text-[12px] text-ink-500">{s.hint}</span> : null}
-                  </span>
-                  <span aria-hidden="true" className="text-[18px] leading-none text-ink-400">›</span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+      {/* Móvil: tira horizontal deslizable, sin barra visible */}
+      <nav aria-label="Secciones de ajustes" className="lg:hidden">
+        <div className="overflow-x-auto no-scrollbar border-b border-ink-200">
+          <ul className="-ml-3 flex w-max min-w-full items-stretch">
+            {sections.map((s) => {
+              const active = isActive(s.href);
+              return (
+                <li key={s.href}>
+                  <Link
+                    href={hrefFor(s.href)}
+                    onClick={() => s.href.startsWith("#") && setHash(s.href)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "relative flex min-h-11 items-center whitespace-nowrap px-3 text-[14px] transition-colors",
+                      active
+                        ? "font-medium text-ink-900"
+                        : "text-ink-500 hover:text-ink-900 active:text-ink-900",
+                    )}
+                  >
+                    {s.label}
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "absolute inset-x-3 bottom-0 h-0.5",
+                        active ? "bg-ink-900" : "bg-transparent",
+                      )}
+                    />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </nav>
     </>
   );
