@@ -25,6 +25,10 @@ Una etapa que falla no corta las demás; solo las críticas cambian el código d
 - Secrets del repo (Settings → Secrets → Actions): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`, `APP_URL`.
 - Senado (efdsearch) responde 403 desde Chile y desde el box; desde runners de GitHub (EE.UU.) puede funcionar. Si falla, la etapa termina con "BLOQUEADO" y no corta la corrida.
 
+## Feed privado para Maverlang (vía B)
+
+Al final del workflow, si `FRACCION_FEED_EXPORT_ENABLED=true`, se corre `scrapers/export_maverlang_feed.py`: escribe un índice firmado (Ed25519), el detalle de cada portafolio 13F/ETF (slugs canónicos, sin PTR, OGE, políticos ni serie de Yahoo), un `status.json` y, si está configurado, hace ping a Maverlang. El flag va apagado por defecto. Las claves y las URLs las configura Andamio con el sí de Manu. El formato está en el documento de contrato del feed (fuera de este repo).
+
 ## Tareas que NO van en el diario
 
 - `resolve_tickers.py` (nombres → tickers): a mano o semanal, con `--plan-sql` para fusiones revisables.

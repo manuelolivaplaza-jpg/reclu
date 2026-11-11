@@ -17,9 +17,10 @@ import { WIDGET_META } from "@/lib/widgets";
  *    verde o rojo se rechaza y cae al negro del sistema.
  *  - El acento además tiene que tener contraste suficiente sobre blanco
  *    (WCAG AA, 4.5:1) para poder usarse como texto.
- *  - Nada de esto crea un muro: las páginas /p/* son públicas. Los datos
- *    de funcionarios de EE.UU. van gratis y fuera del muro
- *    (5 U.S.C. § 13107, src/lib/public-disclosure.ts).
+ *  - Nada de esto crea un muro de acceso a la página: las rutas /p/* son
+ *    públicas. En fraccion.si, las posiciones reconstruidas de
+ *    funcionarios de EE.UU. son para suscriptores; los informes oficiales
+ *    siguen públicos en los sitios del gobierno (5 U.S.C. § 13107).
  *  - Datos personales: aquí solo hay datos de una empresa (nombre, logo,
  *    slug). Leyes 19.628 y 21.719 — mínima collecting.
  *

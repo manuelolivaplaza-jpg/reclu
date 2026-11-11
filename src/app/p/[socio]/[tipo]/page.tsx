@@ -30,8 +30,10 @@ import {
  *  - "Datos de reclu.cl" siempre visible, más el aviso legal (Fintec).
  *  - El acento es decorativo: verde y rojo quedan reservados para las
  *    cifras de rendimiento, y el contraste se valida antes de usarlo.
- *  - Nada de muro: la página es pública y sin sesión. Los datos de
- *    funcionarios de EE.UU. van gratis y fuera del muro (5 U.S.C. § 13107).
+ *  - La página del socio es pública y sin sesión. En fraccion.si, las
+ *    posiciones reconstruidas de funcionarios de EE.UU. son para
+ *    suscriptores; los informes oficiales siguen públicos en los sitios
+ *    del gobierno (5 U.S.C. § 13107).
  *  - Sin datos personales de InfoProbidad ni recomendaciones (Leyes
  *    19.628, 21.719 y Fintec 21.521).
  */
