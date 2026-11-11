@@ -75,8 +75,7 @@ export function UpgradeSuccess({
           Listo. Plan {planName} activo.
         </h1>
         <p className="mt-1.5 text-[15px] text-ink-500">
-          Ya puedes seguir portafolios premium, recibir alertas en tiempo real y usar
-          los resúmenes AI completos.
+          Ya puedes seguir portafolios premium y recibir alertas en tiempo real.
         </p>
       </div>
 
@@ -95,7 +94,7 @@ export function UpgradeSuccess({
       <ul className="flex flex-col divide-y divide-ink-100 rounded-xl border border-ink-200 px-4">
         {[
           "Acceso completo al catálogo premium",
-          "Alertas en tiempo real con resúmenes AI",
+          "Alertas en tiempo real apenas se detecta un cambio",
           "Sin permanencia: cancela cuando quieras desde Ajustes",
         ].map((line) => (
           <li

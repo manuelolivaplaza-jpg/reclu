@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { aiEnabled } from "@/lib/ai-flags";
+import { BRAND_NAME } from "@/lib/brand";
 import { withSeo } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -33,8 +35,8 @@ export default function PlanesPage() {
     <>
       <SiteHeader />
       <main id="main">
-        <h1 className="sr-only">Planes y precios de reclu.cl</h1>
-        <Pricing />
+        <h1 className="sr-only">Planes y precios de {BRAND_NAME}</h1>
+        <Pricing aiOn={aiEnabled()} />
         <FAQ />
       </main>
       <SiteFooter />
@@ -42,7 +44,7 @@ export default function PlanesPage() {
         data={{
           "@context": "https://schema.org",
           "@type": "OfferCatalog",
-          name: "Planes de reclu.cl",
+          name: `Planes de ${BRAND_NAME}`,
           url: absoluteUrl("/planes"),
           itemListElement: [
             { "@type": "Offer", name: "Gratis", price: 0, priceCurrency: "CLP", url: absoluteUrl("/signup") },

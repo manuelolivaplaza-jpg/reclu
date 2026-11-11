@@ -22,6 +22,8 @@ import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 import { hasCurrentPortfolioConsent, portfolioAlertChannelsFor } from "@/lib/portfolio-consent";
 import { referralsEnabled } from "@/lib/referrals";
 import { isPaidPlan } from "@/lib/types";
+import { aiEnabled } from "@/lib/ai-flags";
+import { BRAND_WORDMARK } from "@/lib/brand";
 import { SettingsSubnav, DEFAULT_SETTINGS_SECTIONS } from "@/components/settings/settings-subnav";
 
 export const metadata = { title: "Ajustes" };
@@ -58,6 +60,8 @@ export default async function SettingsPage() {
   const profile = await getProfile();
   if (!profile) return null;
   const isPro = isPaidPlan(profile.plan);
+  // La IA solo se vende en el copy si hay clave y modelo configurados.
+  const aiOn = aiEnabled();
 
   // Suscripción y reglas son lecturas independientes (RLS: solo lo propio).
   const supabase = await createClient();
@@ -127,6 +131,17 @@ export default async function SettingsPage() {
   const planName =
     profile.plan === "elite" ? "Elite" : profile.plan === "pro" ? "Pro" : "Gratis";
 
+  const planDescription =
+    profile.plan === "elite"
+      ? aiOn
+        ? "Portafolios ilimitados, Fondos 13F institucionales, Radar de Consenso, asistente ilimitado y exportación CSV."
+        : "Portafolios ilimitados, Fondos 13F institucionales, Radar de Consenso y exportación CSV."
+      : profile.plan === "pro"
+        ? aiOn
+          ? "Hasta 15 portafolios, resúmenes AI completos y alertas en tiempo real."
+          : "Hasta 15 portafolios y alertas en tiempo real."
+        : "El plan gratuito solo incluye las carteras recomendadas de corredoras.";
+
   // Referidos: apagado por defecto; sólo aparece con el flag y un código real
   // de la tabla `referral_codes` (la 009 lo genera al registrarse).
   if (referralResult.error) {
@@ -175,13 +190,7 @@ export default async function SettingsPage() {
             <CardTitle>Tu plan</CardTitle>
             <span className="text-[13px] text-ink-900">{planName}</span>
           </div>
-          <CardDescription>
-            {profile.plan === "elite"
-              ? "Portafolios ilimitados, Fondos 13F institucionales, Radar de Consenso, asistente ilimitado y exportación CSV."
-              : profile.plan === "pro"
-                ? "Hasta 15 portafolios, resúmenes AI completos y alertas en tiempo real."
-                : "El plan gratuito solo incluye las carteras recomendadas de corredoras."}
-          </CardDescription>
+          <CardDescription>{planDescription}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-6">
@@ -190,12 +199,16 @@ export default async function SettingsPage() {
               {[
                 {
                   name: "Gratis — $0",
-                  desc: "Carteras de corredoras · alertas diarias · 2 consultas de prueba al asistente",
+                  desc: aiOn
+                    ? "Carteras de corredoras · alertas diarias · 2 consultas de prueba al asistente"
+                    : "Carteras de corredoras · alertas diarias",
                   current: profile.plan === "free",
                 },
                 {
                   name: "Pro — $12.990 CLP/mes",
-                  desc: "15 portafolios · tiempo real · resúmenes AI · 50 consultas semanales",
+                  desc: aiOn
+                    ? "15 portafolios · tiempo real · resúmenes AI · 50 consultas semanales"
+                    : "15 portafolios · tiempo real",
                   current: profile.plan === "pro",
                 },
                 {
@@ -245,7 +258,7 @@ export default async function SettingsPage() {
                 cancelAtPeriodEnd={Boolean(activeSubscription?.cancel_at_period_end)}
                 providerLabel={SUBSCRIPTION_PROVIDER_LABELS[
                   activeSubscription?.provider ?? "mock"
-                ] ?? "reclu"}
+                ] ?? BRAND_WORDMARK}
               />
             )}
           </div>

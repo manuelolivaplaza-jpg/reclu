@@ -10,6 +10,11 @@ expandidas: NATL -> NATIONAL, MGMT -> MANAGEMENT, MATLS -> MATERIALS...).
 Funciones puras (sin red): expand_abbrev, name_tokens, name_score,
 best_quote. `resolve_issuer` y `resolve_foreign_ticker` usan una función
 `search(query) -> quotes` inyectable (Yahoo en producción, falsa en tests).
+
+D75: best_quote descarta siempre futuros (=F), índices (^XXX), plazas
+secundarias alemanas (.F, .DU, .SG, .BE, .MU, .HM, .HA, .IL) y líneas IOB de
+Londres (0QZ4.L), y prefiere el listado de EE.UU. sobre el extranjero aunque
+el extranjero tenga mejor score.
 """
 
 from __future__ import annotations
@@ -124,18 +129,44 @@ def _quote_name(q: dict) -> str:
     return str(q.get("longname") or q.get("shortname") or "")
 
 
+# Listados que Yahoo mezcla con la acción de EE.UU. y que no sirven como
+# ticker de precio: plazas secundarias alemanas (Frankfurt .F, Düsseldorf
+# .DU, Stuttgart .SG, Berlín .BE, Múnich .MU, Hamburgo .HM, Hannover .HA) y
+# la línea internacional (.IL).
+_UNPRICEABLE_SUFFIXES = (".F", ".DU", ".SG", ".BE", ".MU", ".HM", ".HA", ".IL")
+# Línea IOB de Londres: código de 3-4 caracteres que empieza con 0 (0QZ4.L
+# es Delta Air Lines en el segmento internacional de la LSE, no la acción).
+_IOB_LSE = re.compile(r"^0[A-Z0-9]{2,}\.L$")
+
+
+def _unpriceable(sym: str) -> bool:
+    """True si el símbolo NUNCA sirve como ticker de precio: futuro (SLLY0=F),
+    índice (^HERO), plaza secundaria alemana (TEVA.F, .DU, .SG...) o línea
+    IOB de Londres (0QZ4.L)."""
+    return (sym.startswith("^") or "=" in sym
+            or sym.endswith(_UNPRICEABLE_SUFFIXES) or bool(_IOB_LSE.fullmatch(sym)))
+
+
 def best_quote(issuer: str, quotes: Iterable[dict], us_only: bool = True,
                min_score: float = 0.5) -> tuple[str | None, float]:
-    best: tuple[float, int, str] | None = None
+    """Mejor quote por nombre. Descarta futuros, índices y listados
+    extranjeros secundarios (_unpriceable). Si dos quotes coinciden por
+    nombre gana SIEMPRE el listado de EE.UU., aunque el extranjero tenga
+    mejor score (Delta: DAL, no 0QZ4.L; Eli Lilly: LLY, no SLLY0=F)."""
+    us_best: tuple[float, float, str] | None = None
+    foreign_best: tuple[float, float, str] | None = None
     for q in quotes or []:
         if not isinstance(q, dict):
             continue
         if str(q.get("quoteType") or "").upper() not in {"EQUITY", "ETF"}:
             continue
-        sym = str(q.get("symbol") or "").upper()
-        if not sym:
+        sym = str(q.get("symbol") or "").strip().upper()
+        if not sym or _unpriceable(sym):
             continue
-        us = str(q.get("exchange") or "").upper() in _US_EXCH or "." not in sym
+        # .F/.DU/0XXX.L ya quedaron fuera: un símbolo sin punto, sin '=' y
+        # sin '^' es un ticker de EE.UU. aunque Yahoo no informe el exchange.
+        us = (str(q.get("exchange") or "").upper() in _US_EXCH
+              or ("." not in sym and "=" not in sym and not sym.startswith("^")))
         if us_only and not us:
             continue
         if not us and not sym.endswith(FOREIGN_SUFFIXES):
@@ -146,10 +177,14 @@ def best_quote(issuer: str, quotes: Iterable[dict], us_only: bool = True,
             continue
         # Desempate: coincidencia sin expandir (TETRA TECH -> Tetra Tech, no TETRA Technologies).
         raw = max(name_score(issuer, n, expand=False) for n in names)
-        key = (score, raw, 1 if us else 0, sym)
-        if best is None or key[:3] > best[:3]:
-            best = key
-    return (best[3], best[0]) if best else (None, 0.0)
+        key = (score, raw, sym)
+        if us:
+            if us_best is None or key > us_best:
+                us_best = key
+        elif foreign_best is None or key > foreign_best:  # el extranjero nunca le gana al de EE.UU.
+            foreign_best = key
+    best = us_best or foreign_best
+    return (best[2], best[0]) if best else (None, 0.0)
 
 
 def queries_for(issuer: str) -> list[str]:
@@ -193,7 +228,9 @@ def resolve_issuer(issuer: str, search: Callable[[str], list[dict]],
         raise errors[-1]
     if allow_foreign:
         t, s = best_quote(issuer, seen, us_only=False, min_score=max(min_score, 0.6))
-        if t:
+        # best_quote ya descarta futuros/índices; el guardia es la última
+        # barrera para que este camino nunca devuelva SLLY0=F ni ^HERO.
+        if t and not _unpriceable(t):
             return t, s, "extranjero"
     return None, 0.0, "sin coincidencia de nombre"
 

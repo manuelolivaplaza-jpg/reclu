@@ -5,7 +5,7 @@ import { Check, Lock, Minus, Sparkles } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { FadeIn } from "@/components/ui/reveal";
 import { track } from "@/lib/analytics";
-import { PLANS, followLimitLabel, formatClp } from "@/lib/plans";
+import { PLANS, followLimitLabel, formatClp, planFeatures } from "@/lib/plans";
 
 type Billing = "monthly" | "annual";
 
@@ -15,26 +15,24 @@ type Billing = "monthly" | "annual";
  * Gratis se muestran aquí (no en `lib/plans.ts`) para no pisar el cambio del
  * muro de pago que vive en otra rama.
  */
-const FREE_FEATURES = [
-  "Carteras recomendadas de corredoras (Renta 4, BTG y más) con todas sus acciones",
-  "Explorador público y retorno YTD de cada portafolio",
-  "Resumen semanal «Lo que movieron los grandes»",
-  "Alertas por email con resumen diario",
-  "5 consultas diarias al asistente IA",
+const FREE_FEATURES: { text: string; ai?: boolean }[] = [
+  { text: "Carteras recomendadas de corredoras (Renta 4, BTG y más) con todas sus acciones" },
+  { text: "Explorador público y retorno YTD de cada portafolio" },
+  { text: "Resumen semanal «Lo que movieron los grandes»" },
+  { text: "Alertas por email con resumen diario" },
+  { text: "5 consultas diarias al asistente IA", ai: true },
 ];
 
-const PRO_FEATURES = [
-  "Seguir portafolios y ver todas sus acciones",
-  ...PLANS.pro.features,
-];
+/** Primer bullet de Pro, propio de esta sección (no vive en `lib/plans.ts`). */
+const PRO_HEADLINE = "Seguir portafolios y ver todas sus acciones";
 
-const COMPARISON: { label: string; free: string; pro: string; elite: string }[] = [
+const COMPARISON: { label: string; free: string; pro: string; elite: string; ai?: boolean }[] = [
   { label: "Carteras recomendadas de corredoras", free: "Incluido", pro: "Incluido", elite: "Incluido" },
   { label: "Seguir portafolios", free: "-", pro: followLimitLabel("pro"), elite: followLimitLabel("elite") },
   { label: "Ver todas las acciones de cada portafolio", free: "Solo corredoras", pro: "Incluido", elite: "Incluido" },
   { label: "Frecuencia de alertas", free: "Diaria", pro: "Tiempo real", elite: "Prioritaria instantánea" },
   { label: "Fondos 13F y carteras Premium", free: "-", pro: "Parcial", elite: "Acceso total" },
-  { label: "Asistente Fraccion AI", free: "5 por día", pro: "50 por semana", elite: "Ilimitado" },
+  { label: "Asistente Fraccion AI", free: "5 por día", pro: "50 por semana", elite: "Ilimitado", ai: true },
   { label: "Exportación CSV y Cruce Multi-cartera", free: "-", pro: "-", elite: "Incluido" },
 ];
 
@@ -67,9 +65,15 @@ function FeatureList({ items, dark = false }: { items: string[]; dark?: boolean 
 }
 
 /** Precios: tarjetas con jerarquía (Pro destacado), regla de acceso y comparación. */
-export function Pricing() {
+export function Pricing({ aiOn = false }: { aiOn?: boolean }) {
   const [billing, setBilling] = useState<Billing>("monthly");
   const annual = billing === "annual";
+
+  // IA apagada (default del lanzamiento): ni un bullet ni una fila con IA.
+  const freeFeatures = FREE_FEATURES.filter((f) => aiOn || f.ai !== true).map((f) => f.text);
+  const proFeatures = [PRO_HEADLINE, ...planFeatures("pro", aiOn)];
+  const eliteFeatures = planFeatures("elite", aiOn);
+  const comparison = COMPARISON.filter((row) => aiOn || row.ai !== true);
 
   useEffect(() => {
     track("pricing_view", { billing });
@@ -156,7 +160,7 @@ export function Pricing() {
               </div>
               <p className="num mt-6 text-[44px] leading-none text-ink-900">$0</p>
               <p className="mt-2 text-[13px] text-ink-500">Sin tarjeta</p>
-              <FeatureList items={FREE_FEATURES} />
+              <FeatureList items={freeFeatures} />
               <ButtonLink href="/signup" variant="outline" size="lg" className="mt-8 w-full">
                 Crear cuenta
               </ButtonLink>
@@ -177,7 +181,7 @@ export function Pricing() {
                 <span className="text-[13px] text-ink-500">CLP {suffix}</span>
               </p>
               <p className="mt-2 text-[13px] text-positive">7 días de prueba en cuentas nuevas</p>
-              <FeatureList items={PRO_FEATURES} />
+              <FeatureList items={proFeatures} />
               <ButtonLink
                 href="/signup?plan=pro"
                 size="lg"
@@ -199,7 +203,7 @@ export function Pricing() {
                 <span className="text-[13px] text-white/60">CLP {suffix}</span>
               </p>
               <p className="mt-2 text-[13px] text-white/60">Todo Pro, sin límites</p>
-              <FeatureList items={PLANS.elite.features} dark />
+              <FeatureList items={eliteFeatures} dark />
               <ButtonLink
                 href="/signup?plan=elite"
                 size="lg"
@@ -217,7 +221,7 @@ export function Pricing() {
           <h3 className="text-[18px] font-semibold tracking-[-0.02em] text-ink-900">Comparación rápida</h3>
 
           <div className="mt-4 flex flex-col gap-3 md:hidden">
-            {COMPARISON.map((row) => (
+            {comparison.map((row) => (
               <div key={row.label} className="pub-card p-4">
                 <p className="text-[14px] font-medium text-ink-900">{row.label}</p>
                 <dl className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
@@ -251,7 +255,7 @@ export function Pricing() {
                 </tr>
               </thead>
               <tbody>
-                {COMPARISON.map((row) => (
+                {comparison.map((row) => (
                   <tr key={row.label} className="border-t border-ink-200">
                     <td className="px-5 py-3.5 text-ink-900">{row.label}</td>
                     <td className="px-5 py-3.5 text-ink-500"><Cell value={row.free} /></td>

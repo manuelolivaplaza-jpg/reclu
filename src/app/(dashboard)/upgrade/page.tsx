@@ -2,6 +2,7 @@ import { connection } from "next/server";
 import { getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
 import { getPaymentsAvailability } from "@/lib/billing";
+import { aiEnabled } from "@/lib/ai-flags";
 import {
   UpgradeCheckout,
   type BillingCycle,
@@ -48,6 +49,9 @@ export default async function UpgradePage({ searchParams }: UpgradePageProps) {
   // con un aviso y el checkout queda deshabilitado. getPaymentsAvailability
   // nunca cae a mock por falta de claves (fail closed).
   const payments = getPaymentsAvailability();
+  // IA apagada en el lanzamiento: el checkout solo vende IA si el flag
+  // server-side está activo (clave + modelo de OpenRouter).
+  const aiOn = aiEnabled();
 
   return (
     <UpgradeCheckout
@@ -57,6 +61,7 @@ export default async function UpgradePage({ searchParams }: UpgradePageProps) {
       userEmail={profile?.email ?? user?.email ?? ""}
       isTestMode={payments.available && payments.isTestMode}
       paymentsAvailable={payments.available}
+      aiOn={aiOn}
     />
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { formatPctPlain } from "@/lib/utils";
+import { BRAND_NAME } from "@/lib/brand";
 
 import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
@@ -257,7 +258,7 @@ export function PortfolioManager({
               : "border-transparent text-ink-500 hover:text-ink-900")
           }
         >
-          Cruzar dos carteras de reclu
+          Cruzar dos carteras de {BRAND_NAME}
         </button>
       </div>
 

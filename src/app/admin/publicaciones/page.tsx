@@ -63,7 +63,7 @@ function DraftPreview({ draft }: { draft: Draft }) {
           <div className="size-9 shrink-0 rounded-full bg-ink-900" aria-hidden />
           <div className="min-w-0">
             <p className="text-sm font-medium text-ink-900">
-              fraccion.si <span className="font-normal text-ink-500">@reclu_cl</span>
+              fraccion.si
             </p>
             <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-ink-900">
               {draft.body}

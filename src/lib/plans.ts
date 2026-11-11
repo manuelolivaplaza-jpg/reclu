@@ -52,6 +52,15 @@ export interface PortfolioLimits {
   exportCsv: boolean;
 }
 
+/** Bullet de las tarjetas de precios; `ai` marca los que dependen de la IA. */
+export interface PlanFeature {
+  text: string;
+  /** Feature de IA: se omite cuando `aiOn` es false. */
+  ai?: boolean;
+  /** Variante del texto sin mención de IA (se usa cuando `aiOn` es false). */
+  noAiText?: string;
+}
+
 export interface PlanConfig {
   id: Plan;
   /** Nombre visible: "Gratis" | "Pro" | "Elite". */
@@ -88,7 +97,12 @@ export interface PlanConfig {
   autoAlertsMaxPerDay: number;
   /** Exportación CSV de Mi portafolio (solo Elite). */
   portfolioExportCsv: boolean;
-  /** Bullets de la página de precios. */
+  /** Bullets de la página de precios, con la marca de IA de cada uno. */
+  featureItems: PlanFeature[];
+  /**
+   * Los mismos bullets ya resueltos a texto, incluidas las features de IA.
+   * Se deriva de `featureItems`; para filtrar por IA usa `planFeatures()`.
+   */
   features: string[];
 }
 
@@ -112,9 +126,13 @@ function buildPlan(
   name: string,
   tagline: string,
   monthlyPrice: number,
-  rest: Omit<PlanConfig, "id" | "name" | "tagline" | "monthlyPrice" | "annualMonthlyPrice" | "annualTotalPrice">,
+  rest: Omit<
+    PlanConfig,
+    "id" | "name" | "tagline" | "monthlyPrice" | "annualMonthlyPrice" | "annualTotalPrice" | "features"
+  >,
 ): PlanConfig {
   const annualMonthlyPrice = annualMonthlyFrom(monthlyPrice);
+  const { featureItems, ...config } = rest;
   return {
     id,
     name,
@@ -122,7 +140,9 @@ function buildPlan(
     monthlyPrice,
     annualMonthlyPrice,
     annualTotalPrice: annualMonthlyPrice * 12,
-    ...rest,
+    ...config,
+    featureItems,
+    features: featureItems.map((feature) => feature.text),
   };
 }
 
@@ -143,12 +163,12 @@ export const PLANS: Record<Plan, PlanConfig> = {
       autoAlerts: "none",
       autoAlertsMaxPerDay: 0,
       portfolioExportCsv: false,
-      features: [
-        "Solo incluye las carteras recomendadas de corredoras",
-        "Alertas por email con resumen diario",
-        "Resumen semanal «Lo que movieron los grandes»",
-        "Explorador público y retorno YTD",
-        "5 consultas diarias al asistente IA",
+      featureItems: [
+        { text: "Solo incluye las carteras recomendadas de corredoras" },
+        { text: "Alertas por email con resumen diario" },
+        { text: "Resumen semanal «Lo que movieron los grandes»" },
+        { text: "Explorador público y retorno YTD" },
+        { text: "5 consultas diarias al asistente IA", ai: true },
       ],
     }),
   },
@@ -166,14 +186,14 @@ export const PLANS: Record<Plan, PlanConfig> = {
       autoAlerts: "daily_digest",
       autoAlertsMaxPerDay: 1,
       portfolioExportCsv: false,
-      features: [
-        "Seguir hasta 15 portafolios (Políticos EE.UU. y Corredoras Chile)",
-        "Alertas en tiempo real apenas se publica el filing",
-        "Resúmenes AI ejecutivos en cada movimiento",
-        "Asistente Fraccion AI (50 consultas por semana)",
-        "Comparador de cartera completo y detector de solapamiento",
-        "Medidor de desfase de divulgación (Disclosure Lag)",
-        "Alertas por Telegram además del correo",
+      featureItems: [
+        { text: "Seguir hasta 15 portafolios (Políticos EE.UU. y Corredoras Chile)" },
+        { text: "Alertas en tiempo real apenas se publica el filing" },
+        { text: "Resúmenes AI ejecutivos en cada movimiento", ai: true },
+        { text: "Asistente Fraccion AI (50 consultas por semana)", ai: true },
+        { text: "Comparador de cartera completo y detector de solapamiento" },
+        { text: "Medidor de desfase de divulgación (Disclosure Lag)" },
+        { text: "Alertas por Telegram además del correo" },
       ],
     }),
   },
@@ -191,15 +211,18 @@ export const PLANS: Record<Plan, PlanConfig> = {
       autoAlerts: "realtime",
       autoAlertsMaxPerDay: 20,
       portfolioExportCsv: true,
-      features: [
-        "Portafolios ilimitados en todas las categorías",
-        "Acceso total a Fondos 13F Institucionales, Soberanos y Tesis AI",
-        "Radar de Consenso (detecta compras simultáneas de múltiples ballenas)",
-        "Asistente Fraccion AI ilimitado con cruce profundo de carteras",
-        "Comparador multi-cartera (Fondos vs. Políticos vs. Tu cartera)",
-        "Exportación de composiciones e historial en CSV",
-        "Alertas por Telegram además del correo",
-        "Soporte prioritario y acceso anticipado a nuevas fuentes",
+      featureItems: [
+        { text: "Portafolios ilimitados en todas las categorías" },
+        {
+          text: "Acceso total a Fondos 13F Institucionales, Soberanos y Tesis AI",
+          noAiText: "Acceso total a Fondos 13F Institucionales y Soberanos",
+        },
+        { text: "Radar de Consenso (detecta compras simultáneas de múltiples ballenas)" },
+        { text: "Asistente Fraccion AI ilimitado con cruce profundo de carteras", ai: true },
+        { text: "Comparador multi-cartera (Fondos vs. Políticos vs. Tu cartera)" },
+        { text: "Exportación de composiciones e historial en CSV" },
+        { text: "Alertas por Telegram además del correo" },
+        { text: "Soporte prioritario y acceso anticipado a nuevas fuentes" },
       ],
     }),
   },
@@ -211,6 +234,22 @@ export const PLANS: Record<Plan, PlanConfig> = {
 export function getPlan(plan?: string | null): PlanConfig {
   if (plan === "pro" || plan === "elite" || plan === "free") return PLANS[plan];
   return PLANS.free;
+}
+
+/**
+ * Bullets del plan listos para pintar. Con `aiOn` false (IA apagada, el
+ * default del lanzamiento) se omiten las features de IA, y las que mencionan
+ * IA solo de pasada usan su variante `noAiText`.
+ */
+export function planFeatures(planId?: string | null, aiOn: boolean = false): string[] {
+  return getPlan(planId).featureItems
+    .filter((feature) => aiOn || feature.ai !== true)
+    .map((feature) => (aiOn ? feature.text : (feature.noAiText ?? feature.text)));
+}
+
+/** Todos los bullets del plan, incluidas las features de IA (compatibilidad). */
+export function allPlanFeatures(planId?: string | null): string[] {
+  return [...getPlan(planId).features];
 }
 
 /** Límite de portafolios seguidos (Infinity = ilimitado). */

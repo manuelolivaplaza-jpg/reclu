@@ -1,7 +1,7 @@
 import { JsonLd } from "@/components/json-ld";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import { DeferredAiChatWidget, DeferredSpeedInsights } from "@/components/deferred-widgets";
 import { PwaRegister } from "@/components/pwa-register";
 import { siteUrl } from "@/lib/site";
@@ -10,14 +10,30 @@ import { aiEnabled } from "@/lib/ai-flags";
 import "./globals.css";
 
 /**
- * Fuente global: Inter (next/font/google, sin instalar nada).
+ * Fuente global: Inter variable, self-hosteada con `next/font/local`.
+ * Proviene de `@fontsource-variable/inter` (subconjunto latin, eje wght
+ * 100–900 en un único archivo). Se evita `next/font/google` para que el
+ * build no dependa de fonts.googleapis.com.
  * La variable CSS es `--font-sans` y la consume el tema de Tailwind
- * (ver `src/app/globals.css`). Pesos variables 100–900 en un solo archivo.
+ * (ver `src/app/globals.css`).
  */
-const inter = Inter({
+const inter = localFont({
+  src: "./fonts/inter-latin-wght-normal.woff2",
   variable: "--font-sans",
-  subsets: ["latin"],
   display: "swap",
+  weight: "100 900",
+  style: "normal",
+  fallback: [
+    "Inter",
+    "ui-sans-serif",
+    "system-ui",
+    "-apple-system",
+    "Segoe UI",
+    "Roboto",
+    "Helvetica Neue",
+    "Arial",
+    "sans-serif",
+  ],
 });
 
 const SITE = siteUrl();
@@ -29,7 +45,7 @@ export const metadata: Metadata = {
     template: "%s · fraccion.si",
   },
   description:
-    "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email con análisis AI cuando hay cambios.",
+    "Sigue los portafolios de políticos de EE.UU., corredoras chilenas y fondos. Recibe alertas por email cuando hay cambios.",
   keywords: [
     "portafolios",
     "trading",
@@ -50,7 +66,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "fraccion.si — Seguimiento de portafolios y alertas inteligentes",
     description:
-      "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
+      "Sigue los portafolios que mueven el mercado. Alertas por email cuando hay cambios.",
     siteName: "fraccion.si",
     locale: "es_CL",
     type: "website",
@@ -59,7 +75,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "fraccion.si — Seguimiento de portafolios y alertas inteligentes",
     description:
-      "Sigue los portafolios que mueven el mercado. Alertas por email con análisis AI.",
+      "Sigue los portafolios que mueven el mercado. Alertas por email cuando hay cambios.",
   },
 };
 

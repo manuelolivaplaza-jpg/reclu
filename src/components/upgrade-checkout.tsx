@@ -25,6 +25,11 @@ export interface UpgradeCheckoutProps {
    * botón de pago queda deshabilitado.
    */
   paymentsAvailable?: boolean;
+  /**
+   * IA apagada en el lanzamiento: con false (por defecto) no se venden
+   * funcionalidades ni beneficios de IA. La página servidor pasa aiEnabled().
+   */
+  aiOn?: boolean;
 }
 
 const PLAN_DETAILS: Record<
@@ -32,24 +37,30 @@ const PLAN_DETAILS: Record<
   {
     name: string;
     tagline: string;
+    /** Variante sin mención de IA, para cuando la IA está apagada. */
+    taglineNoAi?: string;
     monthlyPrice: string;
     annualMonthlyPrice: string;
     annualTotal: string;
-    features: string[];
+    features: { text: string; ai?: boolean }[];
   }
 > = {
   pro: {
     name: "Plan Pro",
     tagline: "Seguimiento activo en tiempo real con contexto AI en cada movimiento.",
+    taglineNoAi: "Seguimiento activo en tiempo real con contexto en cada movimiento.",
     monthlyPrice: "$12.990",
     annualMonthlyPrice: "$10.390",
     annualTotal: "$124.680",
     features: [
-      "Hasta 15 portafolios seguidos en simultáneo",
-      "Alertas en tiempo real apenas se detecta un filing o cambio",
-      "Resúmenes AI completos explicando la tesis de cada movimiento",
-      "Acceso completo a carteras temáticas y portafolios premium",
-      "50 consultas semanales al asistente Fraccion AI",
+      { text: "Hasta 15 portafolios seguidos en simultáneo" },
+      { text: "Alertas en tiempo real apenas se detecta un filing o cambio" },
+      {
+        text: "Resúmenes AI completos explicando la tesis de cada movimiento",
+        ai: true,
+      },
+      { text: "Acceso completo a carteras temáticas y portafolios premium" },
+      { text: "50 consultas semanales al asistente Fraccion AI", ai: true },
     ],
   },
   elite: {
@@ -59,11 +70,13 @@ const PLAN_DETAILS: Record<
     annualMonthlyPrice: "$13.590",
     annualTotal: "$163.080",
     features: [
-      "Portafolios ilimitados",
-      "Fondos 13F institucionales y soberanos (Buffett, Burry, Druckenmiller, Ackman, PIF)",
-      "Radar de menciones de Trump y políticos en tiempo real",
-      "Asistente Fraccion AI ilimitado",
-      "Comparador multi-cartera y exportación CSV",
+      { text: "Portafolios ilimitados" },
+      {
+        text: "Fondos 13F institucionales y soberanos (Buffett, Burry, Druckenmiller, Ackman, PIF)",
+      },
+      { text: "Radar de menciones de Trump y políticos en tiempo real" },
+      { text: "Asistente Fraccion AI ilimitado", ai: true },
+      { text: "Comparador multi-cartera y exportación CSV" },
     ],
   },
 };
@@ -97,6 +110,7 @@ export function UpgradeCheckout({
   userEmail = "",
   isTestMode = false,
   paymentsAvailable = true,
+  aiOn = false,
 }: UpgradeCheckoutProps) {
   const [selectedPlan, setSelectedPlan] = useState<UpgradePlanChoice>(initialSelectedPlan);
   const [billing, setBilling] = useState<BillingCycle>(initialBilling);
@@ -105,6 +119,9 @@ export function UpgradeCheckout({
   const [submitting, setSubmitting] = useState(false);
 
   const plan = PLAN_DETAILS[selectedPlan];
+  // Con la IA apagada no se listan features de IA: la lista queda solo con
+  // los beneficios no-IA, sin espacios ni elementos vacíos.
+  const planFeatures = plan.features.filter((feature) => aiOn || !feature.ai);
   const displayMonthly =
     billing === "annual" ? plan.annualMonthlyPrice : plan.monthlyPrice;
   const totalDueNow = billing === "annual" ? plan.annualTotal : plan.monthlyPrice;
@@ -306,7 +323,7 @@ export function UpgradeCheckout({
                         isSelected ? "text-white/80" : "text-ink-500"
                       }`}
                     >
-                      {tier.tagline}
+                      {aiOn ? tier.tagline : (tier.taglineNoAi ?? tier.tagline)}
                     </p>
                   </button>
                 );
@@ -417,13 +434,13 @@ export function UpgradeCheckout({
             </p>
 
             <ul className="mt-3 flex flex-col border-t border-ink-200">
-              {plan.features.map((feature) => (
+              {planFeatures.map((feature) => (
                 <li
-                  key={feature}
+                  key={feature.text}
                   className="flex items-start gap-2.5 border-b border-ink-200 py-3 text-[14px] text-ink-900"
                 >
                   <Check className="mt-0.5 size-4 shrink-0 text-ink-900" strokeWidth={1.5} />
-                  <span>{feature}</span>
+                  <span>{feature.text}</span>
                 </li>
               ))}
             </ul>
