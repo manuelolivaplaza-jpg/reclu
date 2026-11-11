@@ -145,6 +145,26 @@ jobs:
             echo "::warning::/api/revalidate respondió $code"
           fi
 
+      - name: Exportar feed privado Maverlang (vía B)
+        # Apagado por defecto. El script también exige el valor exacto
+        # "true" en FRACCION_FEED_EXPORT_ENABLED. No se sube el feed como
+        # artifact (es privado). Si falla la subida, no se hace ping.
+        if: ${{ !cancelled() && inputs.dry_run != true }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          FRACCION_FEED_EXPORT_ENABLED: ${{ secrets.FRACCION_FEED_EXPORT_ENABLED }}
+          FRACCION_FEED_SIGNING_KEY: ${{ secrets.FRACCION_FEED_SIGNING_KEY }}
+          FRACCION_FEED_KEY_ID: ${{ secrets.FRACCION_FEED_KEY_ID }}
+          FRACCION_FEED_OUTPUT_DIR: ${{ secrets.FRACCION_FEED_OUTPUT_DIR }}
+          FRACCION_FEED_UPLOAD_URL: ${{ secrets.FRACCION_FEED_UPLOAD_URL }}
+          FRACCION_FEED_UPLOAD_TOKEN: ${{ secrets.FRACCION_FEED_UPLOAD_TOKEN }}
+          MAVERLANG_REVALIDATE_URL: ${{ secrets.MAVERLANG_REVALIDATE_URL }}
+          MAVERLANG_REVALIDATE_SECRET: ${{ secrets.MAVERLANG_REVALIDATE_SECRET }}
+        run: |
+          cd scrapers
+          python export_maverlang_feed.py 2>&1 | tee -a ../scraper-run.log
+
       - name: Upload pipeline response
         if: always()
         uses: actions/upload-artifact@v4

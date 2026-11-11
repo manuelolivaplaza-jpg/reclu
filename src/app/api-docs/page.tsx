@@ -255,8 +255,10 @@ export default function ApiDocsPage() {
             </h2>
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600">
               Las declaraciones patrimoniales de funcionarios de EE.UU. no se
-              venden ni se ponen detrás de una clave. Siguen gratis y fuera de
-              cualquier muro en el sitio, conforme a 5 U.S.C. § 13107.
+              redistribuyen por la API ni se venden como dataset. En
+              fraccion.si, las posiciones reconstruidas son para suscriptores.
+              Los informes oficiales siguen públicos y gratis en los sitios de
+              la Cámara, el Senado y la OGE, conforme a 5 U.S.C. § 13107.
             </p>
             <ul className="mt-5 border-t border-ink-200">
               {excluded.map(([slug, item]) => (

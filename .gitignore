@@ -17,3 +17,5 @@ scrapers/tests/fixtures/*.pdf
 scrapers/resolve_tickers_cache.json
 
 scrapers/data/afp_cuadro14/
+
+scrapers/data/maverlang-feed/

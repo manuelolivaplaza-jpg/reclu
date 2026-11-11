@@ -8,7 +8,7 @@ import { Chip } from "@/components/app";
 export const metadata: Metadata = withSeo("/metodologia", {
   title: "Metodología",
   description:
-    "Cómo calcula fraccion.si el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, el ranking honesto, el muro de 90 días, los datos públicos de funcionarios y la anonimización de personas naturales.",
+    "Cómo calcula fraccion.si el rendimiento de los portafolios: precios de cierre, ventanas de retorno, Sharpe, máxima caída, comparación contra S&P 500 e IPSA, el ranking honesto, el muro de 90 días, las posiciones de funcionarios para suscriptores y la anonimización de personas naturales.",
 });
 
 const SECTIONS = [
@@ -342,9 +342,9 @@ export default function MetodologiaPage() {
                 entrega solo a Pro y Elite.
               </p>
               <p>
-                Los datos de declaraciones de funcionarios de EE.UU. son la
-                excepción: nunca se recortan ni se cobran (ver la sección
-                siguiente).
+                Las posiciones reconstruidas de funcionarios de EE.UU. son
+                para suscriptores, como el resto de los portafolios que no
+                son de corredoras chilenas (ver la sección siguiente).
               </p>
             </div>
           </section>
@@ -352,23 +352,29 @@ export default function MetodologiaPage() {
           <section id="funcionarios" className="app-card scroll-mt-28 p-5 sm:p-7">
             <h2 className="flex items-center gap-3 text-app-title font-semibold tracking-tight text-ink-900">
               <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-ink-900 text-[13px] font-bold text-white tabular-nums">9</span>
-              Datos públicos de funcionarios, fuera del muro
+              Posiciones de funcionarios, para suscriptores
             </h2>
             <div className="mt-4 space-y-4 text-[15px] leading-relaxed text-ink-600">
               <p>
                 Las declaraciones financieras de funcionarios de EE.UU. —PTR de
-                la Cámara, PTR del Senado y formularios OGE 278-T— son públicas
-                por mandato legal. La{" "}
-                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">5 U.S.C. § 13107</span> exige que los
-                informes de divulgación financiera estén disponibles para
-                consulta pública. Por eso esas series se entregan completas,
-                gratis y sin muro, también para visitantes anónimos.
+                la Cámara, PTR del Senado y formularios OGE 278-T— son informes
+                públicos por mandato legal. La{" "}
+                <span className="num rounded-md bg-ink-100 px-1.5 py-0.5 text-[14px] text-ink-900">5 U.S.C. § 13107</span> exige que esos
+                informes estén disponibles para consulta pública en los sitios
+                oficiales de la Cámara, el Senado y la OGE, donde siguen
+                gratis.
+              </p>
+              <p>
+                En fraccion.si, las posiciones reconstruidas a partir de esas
+                declaraciones son para suscriptores (planes Pro y Elite), igual
+                que las de los demás portafolios que no son de corredoras
+                chilenas. El muro de posiciones no cambió: no se muestran
+                holdings a visitantes anónimos ni a la cuenta Gratis.
               </p>
               <p>
                 La API pública tampoco redistribuye esas fuentes: los datasets
                 de funcionarios quedan excluidos de las claves y de cualquier
-                plan. Son información para leer en el sitio, no un producto que
-                Fraccion revenda.
+                plan.
               </p>
               <p>
                 Los montos siguen siendo rangos y llegan con retraso de

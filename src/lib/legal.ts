@@ -9,9 +9,9 @@ export const FINTEC_NOTICE =
 export const SIMULATION_NOTICE =
   "Simulación histórica con fines informativos. No es recomendación de inversión.";
 
-/** Gratis y fuera de cualquier muro. 5 U.S.C. § 13107 exige disponibilidad pública. */
+/** Informes oficiales: públicos en el gobierno. En el sitio, las posiciones reconstruidas son para suscriptores. */
 export const US_DISCLOSURE_NOTICE =
-  "Las declaraciones patrimoniales de funcionarios de Estados Unidos se muestran gratis, sin muro de pago, conforme a 5 U.S.C. § 13107.";
+  "Los informes oficiales de funcionarios de Estados Unidos siguen públicos y gratis en los sitios de la Cámara, el Senado y la OGE, conforme a 5 U.S.C. § 13107. En fraccion.si, las posiciones reconstruidas de esas declaraciones son para suscriptores.";
 
 export const US_DISCLOSURE_SOURCES = [
   {

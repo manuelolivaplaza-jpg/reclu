@@ -4,10 +4,11 @@
  * Solo entran fuentes públicas que podemos redistribuir. La lista blanca es
  * cerrada: cualquier slug fuera de `API_DATASETS` responde 404. En particular
  * **no** se exponen las declaraciones patrimoniales de funcionarios de EE.UU.
- * (`house_ptr`, `senate_ptr`, `oge_278t`) ni `nport_subversive`: 5 U.S.C.
- * § 13107 exige que esos datos sigan disponibles gratis y fuera de un muro,
- * y la API es un producto con clave/plan. Tampoco se expone `house_ptr` en
- * ninguna forma agregada.
+ * (`house_ptr`, `senate_ptr`, `oge_278t`) ni `nport_subversive`. Los
+ * informes oficiales siguen públicos en los sitios del gobierno
+ * (5 U.S.C. § 13107). En fraccion.si, las posiciones reconstruidas son
+ * para suscriptores. La API no las redistribuye. Tampoco se expone
+ * `house_ptr` en ninguna forma agregada.
  *
  * InfoProbidad es la única fuente con licencia explícita de reutilización
  * (CC BY 4.0). Se entrega solo el agregado por empresa: nunca nombres,
@@ -120,17 +121,17 @@ export type ApiDatasetSlug = keyof typeof API_DATASETS;
 export const EXCLUDED_API_DATASETS = {
   house_ptr: {
     reason:
-      "Declaraciones patrimoniales de funcionarios de EE.UU. Deben seguir gratis y fuera de un muro de pago.",
+      "No se redistribuyen por API. En el sitio, las posiciones reconstruidas son para suscriptores. Los informes oficiales siguen públicos en los sitios del gobierno.",
     law: "5 U.S.C. § 13107",
   },
   senate_ptr: {
     reason:
-      "Declaraciones patrimoniales de funcionarios de EE.UU. Deben seguir gratis y fuera de un muro de pago.",
+      "No se redistribuyen por API. En el sitio, las posiciones reconstruidas son para suscriptores. Los informes oficiales siguen públicos en los sitios del gobierno.",
     law: "5 U.S.C. § 13107",
   },
   oge_278t: {
     reason:
-      "Declaraciones patrimoniales de funcionarios de EE.UU. Deben seguir gratis y fuera de un muro de pago.",
+      "No se redistribuyen por API. En el sitio, las posiciones reconstruidas son para suscriptores. Los informes oficiales siguen públicos en los sitios del gobierno.",
     law: "5 U.S.C. § 13107",
   },
   nport_subversive: {

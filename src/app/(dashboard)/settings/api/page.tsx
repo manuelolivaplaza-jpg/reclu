@@ -241,8 +241,11 @@ export default async function ApiSettingsPage() {
       <div className="flex flex-col gap-4">
         <LegalNotice kind="fintec" />
         <p className="text-[12px] leading-relaxed text-ink-500">
-          Las declaraciones patrimoniales de funcionarios de Estados Unidos se
-          ofrecen gratis y fuera de cualquier muro, conforme a 5 U.S.C. § 13107.
+          Las declaraciones patrimoniales de funcionarios de Estados Unidos no
+          se redistribuyen por la API. En fraccion.si, las posiciones
+          reconstruidas son para suscriptores. Los informes oficiales siguen
+          públicos y gratis en los sitios de la Cámara, el Senado y la OGE,
+          conforme a 5 U.S.C. § 13107.
           La API entrega información pública: no ejecuta órdenes ni entrega
           recomendaciones personalizadas.
         </p>

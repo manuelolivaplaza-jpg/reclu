@@ -33,10 +33,10 @@ describe("descargos legales", () => {
     );
   });
 
-  it("deja las declaraciones de EE.UU. gratis y enlaza la fuente oficial", () => {
+  it("separa los informes oficiales de las posiciones reconstruidas en el sitio", () => {
     expect(US_DISCLOSURE_NOTICE).toContain("gratis");
     expect(US_DISCLOSURE_NOTICE).toContain("5 U.S.C. § 13107");
-    expect(US_DISCLOSURE_NOTICE.toLowerCase()).not.toContain("suscri");
+    expect(US_DISCLOSURE_NOTICE.toLowerCase()).toContain("suscriptores");
     expect(US_DISCLOSURE_SOURCES.map((source) => source.href)).toEqual([
       "https://disclosures-clerk.house.gov/",
       "https://efdsearch.senate.gov/",
