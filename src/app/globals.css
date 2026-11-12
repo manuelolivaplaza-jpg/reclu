@@ -33,7 +33,10 @@
   --color-accent-600: #0a0a0a;
   --color-accent-700: #000000;
 
-  /* --- Neutros --- */
+  /* --- Neutros ---
+     50 es el gris de superficie; 100 es un paso más oscuro y se reserva a
+     pistas de controles segmentados, tablas y hover de controles (si fuera
+     #f6f6f6 desaparecerían sobre blanco). 200/300 son el filete. */
   --color-ink-50: #f6f6f6;
   --color-ink-100: #f0f0f0;
   --color-ink-200: #e6e6e6;
@@ -49,6 +52,8 @@
   /* --- Semánticos: verde y rojo SOLO en cifras de rendimiento --- */
   --color-positive: #0f7a32;
   --color-negative: #c81e1e;
+  /* Sin color de advertencia: una advertencia se escribe en tinta. El token
+     queda en negro para que cualquier uso rezagado no introduzca color. */
   --color-warning: #0a0a0a;
   /* positive-bg / negative-bg eliminados del diseño a propósito */
 
@@ -57,8 +62,8 @@
      ninguna clase. --- */
 
   /* --- Tipografía ---
-     La fuente global es Inter y la expone `src/app/layout.tsx` (next/font)
-     en la variable CSS `--font-sans` (aplicada al <html>). */
+     Fuente global: Inter variable, self-hosteada con `next/font/local` y
+     expuesta como `--font-sans` por `src/app/layout.tsx` (aplicada al <html>). */
   --font-mono: ui-monospace, "SF Mono", Menlo, monospace;
 
   /* --- Radios a cero --- */
@@ -147,7 +152,10 @@
   html {
     overflow-x: clip;
     scroll-behavior: smooth;
+    /* El header es sticky (64px): un ancla aterriza con aire, no debajo. */
+    scroll-padding-top: 5rem;
     -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
     background-color: var(--canvas);
   }
 
@@ -175,14 +183,11 @@
     outline-offset: 3px;
   }
 
-  /* Sobre superficies invertidas el filete se invierte para no desaparecer. */
-  .pub-card-dark :focus-visible,
-  footer :focus-visible {
+  /* Sobre la banda de marca (negra en ambos esquemas) el filete de foco se
+     invierte para no desaparecer. No se aplica a cualquier `<footer>`: hay
+     pies de tarjeta sobre blanco donde un outline blanco sería invisible. */
+  .pub-card-dark :focus-visible {
     outline-color: var(--inverse-text);
-  }
-
-  .dark footer :focus-visible {
-    outline-color: #ffffff;
   }
 }
 
@@ -211,6 +216,8 @@
   letter-spacing: -0.006em;
   color: var(--text-muted);
   text-wrap: pretty;
+  /* Sin `max-width` aquí a propósito: el consumidor fija la medida (42rem
+     para un párrafo suelto) con `max-w-*`, y así no choca con `max-w-sm`. */
 }
 
 /* Cifras de rendimiento: tabulares estrictas para que no bailen al actualizar */
@@ -221,11 +228,12 @@
   font-weight: 500;
 }
 
-/* Etiqueta fina de sección (no uppercase, no tracking-widest) */
+/* Etiqueta fina de sección: 13px gris, peso 400, sin mayúsculas forzadas
+   y sin tracking positivo (el sistema no espacia letras). */
 @utility label-line {
   font-size: 13px;
   line-height: 1.35;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
   color: var(--text-muted);
   font-weight: 400;
 }
@@ -370,6 +378,41 @@ a.app-card:hover {
 /* Espacio para la tab bar móvil fija (64px + safe-area). */
 @utility pb-tabbar {
   padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
+}
+
+/* Enlace "Saltar al contenido" (layout raíz). Se oculta recortando la caja,
+   no con `display:none`: sigue en el orden de tabulación y aparece al primer
+   Tab, fijo arriba a la izquierda, en la banda negra del sistema. */
+@utility skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border-radius: 0;
+  background-color: var(--inverse);
+  color: var(--inverse-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+
+  &:focus-visible {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    height: 44px;
+    padding-inline: 1.125rem;
+    overflow: visible;
+    clip-path: none;
+  }
 }
 /* ==== d58: estilos de páginas públicas (legal, auth, precios, FAQ, errores).
    Prefijo pub-. Solo blanco/negro y filetes de 1px: sin halos radiales, sin

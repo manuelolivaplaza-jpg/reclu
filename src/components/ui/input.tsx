@@ -8,9 +8,9 @@ interface InputProps extends React.ComponentProps<"input"> {
 }
 
 /**
- * Input — filete 1px (#e6e6e6 en reposo), radio 0, fondo blanco (negro en
- * dark) y altura táctil de 44px. Foco: el filete pasa a tinta #0a0a0a con un
- * outline de 1px pegado al borde; nunca anillo azul.
+ * Input — filete 1px del sistema en reposo, radio 0, fondo del lienzo y altura
+ * táctil de 44px. Foco: el filete pasa a tinta #0a0a0a y el outline de 1px del
+ * sistema (offset 3px) queda como indicador; nunca un anillo azul.
  * `aria-invalid` se activa con `error` (o si lo pasa el consumidor); el
  * mensaje se asocia con `aria-describedby` y el hint se oculta si hay error.
  */
@@ -53,16 +53,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           aria-invalid={invalid || undefined}
           aria-describedby={describedBy}
           className={cn(
-            "h-11 min-h-11 w-full rounded-none border border-ink-200 bg-white px-3 text-[15px] text-ink-900 shadow-none",
-            "placeholder:text-ink-400",
+            "h-11 min-h-11 w-full rounded-none border border-line bg-canvas px-3 text-[15px] text-ink-900 shadow-none",
+            "placeholder:text-ink-500",
             "transition-colors duration-150",
             "hover:border-ink-400",
-            "focus-visible:border-ink-900 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-0 focus-visible:outline-ink-900",
-            "disabled:cursor-not-allowed disabled:border-ink-200 disabled:bg-ink-50 disabled:text-ink-500",
-            "aria-invalid:border-negative aria-invalid:focus-visible:outline-negative",
+            "focus-visible:border-ink-900",
+            "disabled:cursor-not-allowed disabled:border-line disabled:bg-ink-50 disabled:text-ink-500",
+            "aria-invalid:border-negative",
             "dark:border-neutral-800 dark:bg-neutral-950 dark:text-neutral-100 dark:placeholder:text-neutral-500",
             "dark:hover:border-neutral-700",
-            "dark:focus-visible:border-white dark:focus-visible:outline-white",
+            "dark:focus-visible:border-white",
             "dark:disabled:border-neutral-800 dark:disabled:bg-neutral-900 dark:disabled:text-neutral-500",
             className,
           )}

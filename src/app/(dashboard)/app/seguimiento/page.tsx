@@ -7,6 +7,7 @@ import { FREE_PLAN_FOLLOW_LIMIT, PRO_PLAN_FOLLOW_LIMIT, isPaidPlan } from "@/lib
 import { cn, formatSignedPct } from "@/lib/utils";
 import { SeguimientoList, type SeguimientoItem } from "@/components/dashboard/resumen/seguimiento-list";
 import { periodChanges } from "@/components/dashboard/resumen/periods";
+import { PageHeader } from "@/components/app/page-header";
 
 export const metadata = { title: "Seguimiento", robots: { index: false } };
 export const instant = false;
@@ -58,22 +59,25 @@ export default async function SeguimientoPage() {
   const avgYtd = ytds.length > 0 ? ytds.reduce((sum, value) => sum + value, 0) / ytds.length : null;
   const avgTone = avgYtd === null || avgYtd === 0 ? "text-ink-900" : avgYtd > 0 ? "text-positive" : "text-negative";
 
+  const countLabel =
+    used === 0
+      ? "Sin portafolios por ahora."
+      : used === 1
+        ? "1 portafolio que sigues."
+        : `${used} portafolios que sigues.`;
+
   return (
-    <div className="flex flex-col gap-4 sm:gap-6">
-      <header>
-        <h1 className="text-app-display font-semibold tracking-tight text-ink-900">Seguimiento</h1>
-        <p className="mt-1 text-app-caption text-ink-500">
-          {used === 0
-            ? "Sin portafolios por ahora"
-            : used === 1
-              ? "1 portafolio que sigues"
-              : `${used} portafolios que sigues`}
-        </p>
-      </header>
+    <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+      <PageHeader
+        eyebrow="Tus portafolios"
+        title="Seguimiento"
+        subtitle={countLabel}
+        className="mb-0 lg:mb-0"
+      />
 
       <section
         aria-labelledby="capacidad-plan"
-        className="grid gap-4 border-y border-ink-200 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-10 sm:py-5"
+        className="grid gap-4 border-y border-app-border py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-10 sm:py-5"
       >
         <div className="min-w-0">
           <h2 id="capacidad-plan" className="sr-only">
@@ -83,14 +87,14 @@ export default async function SeguimientoPage() {
             <p className="text-[13px] text-ink-500">
               Plan <span className="font-medium text-ink-900">{planLabel}</span>
             </p>
-            <p className="text-[13px] tabular-nums text-ink-700">
-              <span className="font-semibold text-ink-900">{used}</span>
+            <p className="num text-[13px] text-ink-700">
+              <span className="font-medium text-ink-900">{used}</span>
               {limit === null ? " portafolios · sin límite" : ` de ${limit} portafolios`}
             </p>
           </div>
 
           {limit === null ? (
-            <div className="mt-2.5 h-px w-full bg-ink-200" aria-hidden="true" />
+            <div className="mt-2.5 h-px w-full bg-app-border" aria-hidden="true" />
           ) : (
             <div
               role="progressbar"
@@ -99,7 +103,7 @@ export default async function SeguimientoPage() {
               aria-valuenow={Math.min(used, limit)}
               aria-valuetext={`${used} de ${limit} portafolios`}
               aria-label={`Uso del plan ${planLabel}`}
-              className="mt-2.5 h-[3px] w-full bg-ink-100"
+              className="mt-2.5 h-[3px] w-full bg-line"
             >
               <div className="h-full bg-ink-900 transition-[width] duration-500" style={{ width: `${usedPct}%` }} />
             </div>
@@ -127,12 +131,12 @@ export default async function SeguimientoPage() {
 
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4 sm:justify-end">
           {avgYtd !== null ? (
-            <div className="sm:border-l sm:border-ink-200 sm:pl-8">
-              <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">Promedio YTD</p>
-              <p className={cn("mt-1 text-[24px] font-semibold leading-none tabular-nums tracking-[-0.02em]", avgTone)}>
+            <div className="sm:border-l sm:border-app-border sm:pl-8">
+              <p className="label-line">Promedio YTD</p>
+              <p className={cn("num mt-1 text-[26px] leading-none", avgTone)}>
                 {formatSignedPct(avgYtd, 1)}
               </p>
-              <p className="mt-1 text-[10px] text-ink-500">
+              <p className="mt-1.5 text-[12px] text-ink-500">
                 {ytds.length} de {used} con dato
               </p>
             </div>
@@ -162,10 +166,10 @@ export default async function SeguimientoPage() {
       ) : (
         <section aria-labelledby="seguimiento-vacio" className="py-12 sm:py-16">
           <div className="mx-auto max-w-xl text-center">
-            <p className="text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">Tu seguimiento</p>
+            <p className="label-line">Tu seguimiento</p>
             <h2
               id="seguimiento-vacio"
-              className="mt-3 text-[24px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[28px]"
+              className="mt-2 text-[24px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[28px]"
             >
               Aún no sigues portafolios
             </h2>
@@ -175,10 +179,10 @@ export default async function SeguimientoPage() {
             </p>
           </div>
 
-          <ol className="mx-auto mt-10 grid max-w-3xl gap-6 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-ink-200">
+          <ol className="mx-auto mt-10 grid max-w-3xl gap-6 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-app-border">
             {STEPS.map((step, index) => (
               <li key={step.title} className="sm:px-5">
-                <p className="text-[11px] tabular-nums text-ink-400">0{index + 1}</p>
+                <p className="num text-[12px] text-ink-500">0{index + 1}</p>
                 <p className="mt-1.5 text-[14px] font-medium text-ink-900">{step.title}</p>
                 <p className="mt-1 text-[12.5px] leading-relaxed text-ink-500">{step.description}</p>
               </li>
@@ -188,11 +192,11 @@ export default async function SeguimientoPage() {
           <div className="mt-10 text-center">
             <Link
               href="/app/explorar"
-              className="inline-flex h-11 items-center justify-center rounded-full bg-ink-900 px-5 text-[14px] font-medium text-white transition-colors hover:bg-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900"
+              className="inline-flex h-11 items-center justify-center rounded-full bg-ink-900 px-5 text-[14px] font-medium text-white transition-colors hover:bg-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900"
             >
               Explorar portafolios
             </Link>
-            <p className="mt-3 text-[12px] text-ink-400">Puedes dejar de seguir un portafolio cuando quieras.</p>
+            <p className="mt-3 text-[12px] text-ink-500">Puedes dejar de seguir un portafolio cuando quieras.</p>
           </div>
         </section>
       )}

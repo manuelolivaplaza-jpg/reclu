@@ -20,7 +20,7 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center rounded-none border border-ink-200 bg-white px-6 py-12 text-center sm:py-14",
+        "app-panel flex flex-col items-center px-6 py-12 text-center sm:py-14",
         className,
       )}
     >
@@ -33,7 +33,7 @@ export function EmptyState({
       >
         {title}
       </p>
-      {description ? <p className="mt-2 max-w-md text-[14px] leading-relaxed text-ink-500">{description}</p> : null}
+      {description ? <p className="mt-2 max-w-md text-[15px] leading-relaxed text-ink-500">{description}</p> : null}
       {ctaHref && ctaLabel ? (
         <Link
           href={ctaHref}

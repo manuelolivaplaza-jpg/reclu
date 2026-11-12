@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useMemo, useRef, useState, type CSSProperties } from "react";
-import { formatSignedPct } from "@/lib/utils";
+import { cn, formatSignedPct } from "@/lib/utils";
 import type { SeriesPt } from "./periods";
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -30,11 +30,13 @@ function fmtTick(t: number) {
 
 /**
  * Gráfico SVG propio: retorno acumulado (%) desde el primer punto visible.
- * Curva negra de 1.5px, eje % en HTML, meses abajo y tooltip con cruz.
+ * Curva negra de 1.5px, sin relleno, eje % en HTML, meses abajo y tooltip con cruz.
  * Sin librerías y sin desbordes en móvil.
  */
 export function PerformanceChart({ points, className }: { points: SeriesPt[]; className?: string }) {
-  const gid = useId().replace(/:/g, "");
+  const uid = useId().replace(/:/g, "");
+  const titleId = `chart-title-${uid}`;
+  const descId = `chart-desc-${uid}`;
   const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
 
@@ -56,7 +58,6 @@ export function PerformanceChart({ points, className }: { points: SeriesPt[]; cl
     const x = (i: number) => PAD.l + (i / (points.length - 1)) * iw;
     const y = (v: number) => PAD.t + (1 - (v - min) / (max - min)) * ih;
     const line = ys.map((v, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
-    const area = `${line} L${x(points.length - 1).toFixed(1)},${(H - PAD.b).toFixed(1)} L${x(0).toFixed(1)},${(H - PAD.b).toFixed(1)} Z`;
     const ticks: number[] = [];
     for (let v = min; v <= max + step / 2; v += step) ticks.push(Math.round(v * 100) / 100);
     // Meses: primer punto de cada mes; se ralea para no saturar.
@@ -71,13 +72,24 @@ export function PerformanceChart({ points, className }: { points: SeriesPt[]; cl
     });
     const every = Math.max(1, Math.ceil(months.length / 7));
     const shown = months.filter((_, j) => j % every === 0);
-    return { ys, x, y, line, area, ticks, shown };
+    return {
+      ys,
+      x,
+      y,
+      line,
+      ticks,
+      shown,
+      first: points[0].date,
+      last: points[points.length - 1].date,
+      lastValue: ys[ys.length - 1],
+    };
   }, [points]);
 
   if (!model) {
     return (
-      <div className={`flex items-center justify-center text-[11.5px] text-ink-400 ${className ?? ""}`}>
-        Sin serie real todavía
+      <div className={cn("flex h-full flex-col items-center justify-center gap-1 px-3 text-center", className)}>
+        <p className="text-[12px] text-ink-500">Sin serie todavía</p>
+        <p className="text-[11px] leading-snug text-ink-500">Cuando haya cierres, aquí verás el retorno acumulado.</p>
       </div>
     );
   }
@@ -97,7 +109,7 @@ export function PerformanceChart({ points, className }: { points: SeriesPt[]; cl
     tipPct < 30 ? { left: 0 } : tipPct > 70 ? { right: 0 } : { left: `${tipPct}%`, transform: "translateX(-50%)" };
 
   return (
-    <div className={`relative flex ${className ?? ""}`}>
+    <div className={cn("relative flex", className)}>
       <div className="relative min-w-0 flex-1">
         <svg
           ref={svgRef}
@@ -105,18 +117,16 @@ export function PerformanceChart({ points, className }: { points: SeriesPt[]; cl
           preserveAspectRatio="none"
           className="h-full w-full touch-pan-y select-none"
           role="img"
-          aria-label="Rendimiento acumulado"
+          aria-labelledby={`${titleId} ${descId}`}
           onPointerMove={(e) => onMove(e.clientX)}
           onPointerDown={(e) => onMove(e.clientX)}
           onPointerLeave={() => setHover(null)}
           onPointerCancel={() => setHover(null)}
         >
-          <defs>
-            <linearGradient id={`g${gid}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0a0a0a" stopOpacity="0.06" />
-              <stop offset="100%" stopColor="#0a0a0a" stopOpacity="0" />
-            </linearGradient>
-          </defs>
+          <title id={titleId}>Rendimiento acumulado</title>
+          <desc id={descId}>
+            {`Serie de ${points.length} cierres, del ${fmtDate(model.first)} al ${fmtDate(model.last)}. Variación acumulada ${formatSignedPct(model.lastValue, 2)} desde el primer punto visible.`}
+          </desc>
           {model.ticks.map((t) => (
             <line
               key={t}
@@ -124,34 +134,29 @@ export function PerformanceChart({ points, className }: { points: SeriesPt[]; cl
               x2={W - PAD.r}
               y1={model.y(t)}
               y2={model.y(t)}
-              stroke={t === 0 ? "var(--color-ink-300)" : "var(--color-ink-100)"}
+              stroke={t === 0 ? "var(--text-faint)" : "var(--line)"}
               strokeDasharray={t === 0 ? undefined : "2 5"}
               vectorEffect="non-scaling-stroke"
             />
           ))}
-          <path d={model.area} fill={`url(#g${gid})`} />
           <path
             d={model.line}
             fill="none"
-            stroke="#0a0a0a"
+            stroke="var(--text)"
             strokeWidth={1.5}
             strokeLinejoin="round"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
           />
-          <circle cx={model.x(points.length - 1)} cy={model.y(model.ys[model.ys.length - 1])} r={2.5} fill="#0a0a0a" />
           {hover !== null && hv !== null && (
-            <g>
-              <line
-                x1={hx}
-                x2={hx}
-                y1={PAD.t}
-                y2={H - PAD.b}
-                stroke="var(--color-ink-300)"
-                vectorEffect="non-scaling-stroke"
-              />
-              <circle cx={hx} cy={model.y(hv)} r={3} fill="white" stroke="#0a0a0a" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
-            </g>
+            <line
+              x1={hx}
+              x2={hx}
+              y1={PAD.t}
+              y2={H - PAD.b}
+              stroke="var(--text-faint)"
+              vectorEffect="non-scaling-stroke"
+            />
           )}
         </svg>
 
@@ -159,8 +164,8 @@ export function PerformanceChart({ points, className }: { points: SeriesPt[]; cl
           <span
             key={m.i}
             aria-hidden="true"
-            className="absolute bottom-0 -translate-x-1/2 text-[10px] text-ink-500"
-            style={{ left: `${(model.x(m.i) / W) * 100}%` }}
+            className="absolute bottom-0 -translate-x-1/2 text-[11px] text-ink-500"
+            style={{ left: `${Math.min(94, Math.max(6, (model.x(m.i) / W) * 100))}%` }}
           >
             {m.label}
           </span>
@@ -168,21 +173,21 @@ export function PerformanceChart({ points, className }: { points: SeriesPt[]; cl
 
         {hover !== null && hv !== null && (
           <div
-            className="pointer-events-none absolute top-0 z-10 rounded-[6px] border border-ink-200 bg-white px-2.5 py-1 text-[11px] whitespace-nowrap text-ink-900"
+            className="pointer-events-none absolute top-0 z-10 border border-line bg-app-card px-2 py-1 text-[11px] whitespace-nowrap text-ink-900"
             style={tipStyle}
           >
             <span className="text-ink-500">{fmtDate(points[hover].date)}</span>
-            <span className="mx-1.5 text-ink-300">·</span>
-            <span className="font-semibold tabular-nums">{formatSignedPct(hv, 2)}</span>
+            <span className="mx-1.5 text-ink-500">·</span>
+            <span className="num">{formatSignedPct(hv, 2)}</span>
           </div>
         )}
       </div>
 
-      <div className="relative w-10 shrink-0" aria-hidden="true">
+      <div className="relative w-11 shrink-0" aria-hidden="true">
         {model.ticks.map((t) => (
           <span
             key={t}
-            className="absolute right-0 -translate-y-1/2 text-[10px] text-ink-500 tabular-nums"
+            className="num absolute right-0 -translate-y-1/2 text-[11px] leading-none text-ink-500"
             style={{ top: `${Math.min(96, Math.max(4, (model.y(t) / H) * 100))}%` }}
           >
             {fmtTick(t)}

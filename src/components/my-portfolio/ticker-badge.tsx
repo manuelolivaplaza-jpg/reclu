@@ -23,7 +23,7 @@ export function TickerBadge({
     <span
       aria-hidden="true"
       className={cn(
-        "inline-flex size-10 shrink-0 select-none items-center justify-center border border-ink-200 bg-ink-50 font-medium tracking-[0.06em] text-ink-900",
+        "inline-flex size-10 shrink-0 select-none items-center justify-center border border-ink-200 bg-ink-50 font-medium text-ink-900",
         label.length >= 4 ? "text-[10px]" : "text-[11px]",
         className,
       )}

@@ -4,12 +4,13 @@ export type ChipTone = "neutral" | "buy" | "sell" | "info";
 
 /**
  * Tonos editoriales: blanco, negro y filetes de 1px, radio 0.
- * El verde y el rojo quedan reservados a las cifras de rendimiento.
+ * El verde y el rojo quedan reservados a las cifras de rendimiento: un cambio
+ * de compra o venta se distingue por el filete, no por el color.
  */
 const TONES: Record<ChipTone, string> = {
-  neutral: "border border-ink-200 bg-white text-ink-600",
-  buy: "border border-ink-900 bg-white text-ink-900",
-  sell: "border border-ink-300 bg-ink-50 text-ink-800",
+  neutral: "border border-line bg-transparent text-ink-500",
+  buy: "border border-ink-900 bg-transparent text-ink-900",
+  sell: "border border-line bg-ink-50 text-ink-900",
   info: "border border-ink-900 bg-ink-900 text-white",
 };
 

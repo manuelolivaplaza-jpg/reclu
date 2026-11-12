@@ -9,7 +9,7 @@ export type AppIconName =
   | "PieChart"
   | "Wallet"
   | "Settings"
-  | "Sparkles"
+  | "CreditCard"
   | "Menu"
   | "LogOut"
   | "Star"
@@ -41,9 +41,9 @@ export const NAV_SEGUIMIENTO: AppNavItem = { href: "/app/seguimiento", label: "S
 export const NAV_CHAT: AppNavItem = { href: "/app/chat", label: "Pregúntale a Fraccion", short: "Chat", icon: "MessageCircle" };
 export const NAV_ALERTAS: AppNavItem = { href: "/alerts", label: "Alertas", icon: "BellRing" };
 export const NAV_MI_PORTAFOLIO: AppNavItem = { href: "/mi-portafolio", label: "Mi portafolio", short: "Portafolio", icon: "Wallet" };
-export const NAV_COMPARAR: AppNavItem = { href: "/compare", label: "Comparar", short: "Cartera", icon: "PieChart" };
+export const NAV_COMPARAR: AppNavItem = { href: "/compare", label: "Comparar", short: "Comparar", icon: "PieChart" };
 export const NAV_AJUSTES: AppNavItem = { href: "/settings", label: "Ajustes", icon: "Settings" };
-export const NAV_PLAN: AppNavItem = { href: "/upgrade", label: "Suscripción", short: "Plan", icon: "Sparkles" };
+export const NAV_PLAN: AppNavItem = { href: "/upgrade", label: "Suscripción", short: "Plan", icon: "CreditCard" };
 
 export function navSections(myPortfolio: boolean): AppNavSection[] {
   return [
@@ -55,18 +55,21 @@ export function navSections(myPortfolio: boolean): AppNavSection[] {
   ];
 }
 
-/** 4 pestañas fijas en móvil; el resto vive en "Más". */
+/**
+ * 4 pestañas fijas en móvil; el resto vive en "Más". La cuarta pestaña es el
+ * portafolio propio cuando está habilitado y, si no, la comparación.
+ */
 export function mobileTabs(myPortfolio: boolean): AppNavItem[] {
-  return [
-    NAV_RESUMEN,
-    NAV_EXPLORAR,
-    NAV_ALERTAS,
-    { ...NAV_COMPARAR, label: "Cartera", match: myPortfolio ? ["/mi-portafolio"] : [] },
-  ];
+  return [NAV_RESUMEN, NAV_EXPLORAR, NAV_ALERTAS, myPortfolio ? NAV_MI_PORTAFOLIO : NAV_COMPARAR];
 }
 
+/** Ítems de "Más", sin repetir lo que ya está en la barra inferior. */
 export function moreItems(myPortfolio: boolean): AppNavItem[] {
-  return myPortfolio ? [NAV_CHAT, NAV_SEGUIMIENTO, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN] : [NAV_CHAT, NAV_SEGUIMIENTO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
+  const visible = new Set(mobileTabs(myPortfolio).map((item) => item.href));
+  const all = myPortfolio
+    ? [NAV_CHAT, NAV_SEGUIMIENTO, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN]
+    : [NAV_CHAT, NAV_SEGUIMIENTO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
+  return all.filter((item) => !visible.has(item.href));
 }
 
 /** Título para la topbar según la ruta (incluye subrutas y fichas). */
@@ -77,5 +80,5 @@ export function titleFor(pathname: string): string {
   if (pathname === "/upgrade" || pathname.startsWith("/upgrade/")) return "Suscripción";
   const all = [NAV_RESUMEN, NAV_SEGUIMIENTO, NAV_CHAT, NAV_EXPLORAR, NAV_ALERTAS, NAV_MI_PORTAFOLIO, NAV_COMPARAR, NAV_AJUSTES, NAV_PLAN];
   const hit = all.find((i) => pathname === i.href || pathname.startsWith(`${i.href}/`));
-  return hit?.label ?? "Fraccion";
+  return hit?.short ?? hit?.label ?? "Fraccion";
 }

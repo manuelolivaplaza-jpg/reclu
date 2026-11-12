@@ -44,8 +44,8 @@ function fmtUsd(value: number): string {
 }
 
 /**
- * Bloque de rendimiento tipo broker: retorno grande, selector 1M/3M/1A/Máx y
- * gráfico SVG propio a todo el ancho. Solo recibe datos planos (nada de
+ * Bloque de rendimiento tipo broker: retorno grande, selector 1D/1S/1M/3M/1A/Máx
+ * y gráfico SVG propio a todo el ancho. Solo recibe datos planos (nada de
  * funciones ni componentes desde el servidor). Los rangos sin al menos 2
  * puntos se deshabilitan: nunca se inventa un retorno.
  */
@@ -85,35 +85,25 @@ export function PortfolioRangeChart({
   const sim = current.length >= 2 ? simulateInvestment(current, amount) : null;
   const positive = (sim?.gainPct ?? 0) >= 0;
 
-  if (sorted.length < 2) return null;
+  if (sorted.length < 2 || !sim) {
+    return <p className="label-line">Sin serie suficiente para graficar el rango.</p>;
+  }
 
   return (
     <div className="min-w-0">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p
-            className={cn(
-              "num text-[clamp(2rem,6vw,2.75rem)] font-semibold leading-none tracking-tight tabular-nums",
-              positive ? "text-positive" : "text-negative",
-            )}
+            className={cn("num text-[clamp(2rem,6vw,2.75rem)] leading-none", positive ? "text-positive" : "text-negative")}
+            aria-live="polite"
           >
-            {sim ? fmtPct(sim.gainPct) : "—"}
+            {fmtPct(sim.gainPct)}
           </p>
-          <p className="mt-2 text-[13px] text-ink-500">
-            Retorno {RANGE_TEXT[range]}
-            {demo ? (
-              <span className="ml-2 rounded-full bg-ink-100 px-2 py-0.5 text-[11px] font-medium text-ink-700">
-                Ejemplo
-              </span>
-            ) : null}
-          </p>
+          <p className="label-line mt-2">Retorno {RANGE_TEXT[range]}</p>
+          {demo ? <p className="label-line mt-1">Serie ilustrativa</p> : null}
         </div>
 
-        <div
-          role="tablist"
-          aria-label="Rango del gráfico"
-          className="inline-flex rounded-full bg-ink-100 p-1"
-        >
+        <div role="group" aria-label="Rango del gráfico" className="inline-flex border border-line">
           {RANGES.map((r) => {
             const enabled = slices[r.key].length >= 2;
             const active = r.key === range;
@@ -121,13 +111,16 @@ export function PortfolioRangeChart({
               <button
                 key={r.key}
                 type="button"
-                role="tab"
-                aria-selected={active}
+                aria-pressed={active}
                 disabled={!enabled}
                 onClick={() => setRange(r.key)}
                 className={cn(
-                  "min-w-11 rounded-full px-3 py-1.5 text-[13px] font-medium tabular-nums transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900 disabled:cursor-not-allowed disabled:opacity-40",
-                  active ? "bg-white text-ink-900 shadow-sm" : "text-ink-500 hover:text-ink-900",
+                  "inline-flex min-h-10 min-w-11 items-center justify-center border-l border-line px-2.5 text-[13px] tabular-nums transition-colors first:border-l-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
+                  active
+                    ? "bg-ink-900 text-white focus-visible:outline-white"
+                    : enabled
+                      ? "text-ink-500 hover:text-ink-900"
+                      : "cursor-not-allowed text-ink-400",
                 )}
               >
                 {r.label}
@@ -137,38 +130,37 @@ export function PortfolioRangeChart({
         </div>
       </div>
 
-      {sim ? (
-        <div className="-mx-4 mt-5 sm:mx-0">
-          <AreaChart
-            points={sim.points.map((p) => ({ x: p.date, y: p.value }))}
-            positive={positive}
-            height={300}
-            format="usd"
-            ariaLabel={`Evolución de ${fmtUsd(amount)} en el ${RANGE_TEXT[range]}: termina en ${fmtUsd(sim.finalValue)}.`}
-          />
-        </div>
-      ) : null}
+      <div className="mt-5">
+        <AreaChart
+          points={sim.points.map((p) => ({ x: p.date, y: p.value }))}
+          positive={positive}
+          height={260}
+          format="usd"
+          ariaLabel={`${demo ? "Serie ilustrativa. " : ""}Evolución de ${fmtUsd(amount)} en el ${
+            RANGE_TEXT[range]
+          }: termina en ${fmtUsd(sim.finalValue)}.`}
+        />
+      </div>
 
-      {sim ? (
-        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="rounded-xl bg-ink-50 p-3">
-            <dt className="text-[12px] text-ink-500">Si invertías</dt>
-            <dd className="num mt-1 text-[15px] font-medium tabular-nums text-ink-900">{fmtUsd(amount)}</dd>
-          </div>
-          <div className="rounded-xl bg-ink-50 p-3">
-            <dt className="text-[12px] text-ink-500">Hoy tendrías</dt>
-            <dd className="num mt-1 text-[15px] font-medium tabular-nums text-ink-900">{fmtUsd(sim.finalValue)}</dd>
-          </div>
-          <div className="col-span-2 rounded-xl bg-ink-50 p-3 sm:col-span-1">
-            <dt className="text-[12px] text-ink-500">Ganancia</dt>
-            <dd className={cn("num mt-1 text-[15px] font-medium tabular-nums", positive ? "text-positive" : "text-negative")}>
-              {sim.gain >= 0 ? "+" : "\u2212"}
-              {fmtUsd(Math.abs(sim.gain))}
-            </dd>
-          </div>
-        </dl>
-      ) : null}
-      <p className="mt-3 text-[11px] text-ink-500">
+      <dl className="mt-4 grid grid-cols-2 gap-px border border-line bg-line sm:grid-cols-3">
+        <div className="bg-app-card p-3">
+          <dt className="label-line">Si invertías</dt>
+          <dd className="num mt-1 text-[15px] text-ink-900">{fmtUsd(amount)}</dd>
+        </div>
+        <div className="bg-app-card p-3">
+          <dt className="label-line">Hoy tendrías</dt>
+          <dd className="num mt-1 text-[15px] text-ink-900">{fmtUsd(sim.finalValue)}</dd>
+        </div>
+        <div className="col-span-2 bg-app-card p-3 sm:col-span-1">
+          <dt className="label-line">Ganancia</dt>
+          <dd className={cn("num mt-1 text-[15px]", positive ? "text-positive" : "text-negative")}>
+            {sim.gain >= 0 ? "+" : "\u2212"}
+            {fmtUsd(Math.abs(sim.gain))}
+          </dd>
+        </div>
+      </dl>
+
+      <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
         Basado en rendimiento histórico. Rentabilidades pasadas no garantizan resultados futuros.
       </p>
     </div>

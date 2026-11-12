@@ -7,5 +7,5 @@ export default function DashboardError({ error, reset }: { error: Error & { dige
   useEffect(() => {
     console.error("[reclu] dashboard error", error.digest ?? error.message);
   }, [error]);
-  return <ErrorState onRetry={reset} />;
+  return <ErrorState title="No pudimos cargar esta sección" onRetry={reset} />;
 }

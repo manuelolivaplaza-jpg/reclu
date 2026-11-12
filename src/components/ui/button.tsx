@@ -12,7 +12,7 @@ export type ButtonSize = "sm" | "md" | "lg";
  * anillo de color SaaS; en dark se invierte a blanco.
  */
 const baseClasses = cn(
-  "inline-flex select-none items-center justify-center whitespace-nowrap",
+  "relative inline-flex select-none items-center justify-center whitespace-nowrap",
   "rounded-full text-center font-medium leading-none tracking-[-0.01em]",
   "shadow-none transition-colors duration-150",
   "cursor-pointer touch-manipulation",
@@ -35,24 +35,30 @@ const variantClasses: Record<ButtonVariant, string> = {
   // Secundario inevitable: filete de 1px negro (blanco en dark), sin relleno.
   outline: cn(
     "border border-ink-900 bg-transparent text-ink-900",
-    "hover:bg-ink-50 active:bg-ink-100",
+    "hover:bg-ink-50 active:bg-ink-200",
     "dark:border-white dark:text-white dark:hover:bg-neutral-900 dark:active:bg-neutral-800",
   ),
-  // Texto suelto: sin píldora en reposo. El filete transparente mantiene la
-  // misma caja que `outline` para que no salte 1px en filas mixtas.
+  // Texto suelto: sin fondo ni pastilla gris; al pasar el cursor solo baja la
+  // opacidad (ley de diseño). El filete transparente mantiene la misma caja
+  // que `outline` para que no salte 1px en filas mixtas.
   ghost: cn(
-    "border border-transparent text-ink-700",
-    "hover:bg-ink-50 hover:text-ink-900 active:bg-ink-100",
-    "dark:text-neutral-300 dark:hover:bg-neutral-900 dark:hover:text-white dark:active:bg-neutral-800",
+    "border border-transparent text-ink-900",
+    "hover:opacity-60 active:opacity-50",
+    "dark:text-white",
   ),
 };
 
 /**
  * Alturas: sm 36px (filas densas), md 44px (objetivo táctil mínimo), lg 48px
  * (CTA). `md` es el tamaño por defecto y cumple el área táctil de 44px.
+ * En pantallas táctiles, `sm` conserva su altura visual pero suma un área de
+ * toque invisible de 44px (el `::after` crece 4px por lado).
  */
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "h-9 gap-1.5 px-4 text-sm",
+  sm: cn(
+    "h-9 gap-1.5 px-4 text-sm",
+    "pointer-coarse:after:absolute pointer-coarse:after:inset-x-0 pointer-coarse:after:-inset-y-1 pointer-coarse:after:content-['']",
+  ),
   md: "h-11 min-h-11 gap-2 px-5 text-[15px]",
   lg: "h-12 min-h-12 gap-2 px-[22px] text-[15px]",
 };

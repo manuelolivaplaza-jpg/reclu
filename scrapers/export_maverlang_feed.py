@@ -385,6 +385,8 @@ def export_feed(
                 "slug": item["slug"],
                 "aliases": item["aliases"],
                 "name": item["name"],
+                # Mismo campo que el detalle: string o null, sin inventar.
+                "manager": item["manager"],
                 "family": item["family"],
                 "as_of": item["as_of"],
                 "filed_at": item["filed_at"],

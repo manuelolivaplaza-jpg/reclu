@@ -27,7 +27,11 @@ function formatDate(date: string): string {
 function orderPoints(data: EvolutionPoint[]): EvolutionPoint[] {
   const rows = data
     .filter((point) => Number.isFinite(point.value))
-    .map((point, index) => ({ point, index, time: Date.parse(point.date.includes("T") ? point.date : `${point.date}T00:00:00Z`) }));
+    .map((point, index) => ({
+      point,
+      index,
+      time: Date.parse(point.date.includes("T") ? point.date : `${point.date}T00:00:00Z`),
+    }));
   if (rows.length === 0 || rows.some((row) => !Number.isFinite(row.time))) {
     return rows.map((row) => row.point);
   }
@@ -36,21 +40,22 @@ function orderPoints(data: EvolutionPoint[]): EvolutionPoint[] {
     .map((row) => row.point);
 }
 
+function formatValue(value: number): string {
+  return new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 }).format(value);
+}
+
 /**
  * Evolución del valor del portafolio.
  *
- * Mismo lenguaje visual que el hero: área con degradado, línea fina de
- * 1.5px (verde si sube, roja si baja), sin grilla ni ejes numéricos y
- * tooltip mínimo con la fecha y el valor. Los datos no cambian: es la misma
- * serie que antes, con otra pintura.
+ * Mismo lenguaje que el resto de los gráficos: línea negra de 1.5px, grilla de
+ * filetes, sin relleno ni degradado, y tooltip con fecha y valor (también con
+ * teclado). Los datos no cambian: es la misma serie, con otra pintura.
  */
 export function PortfolioEvolution({ data }: PortfolioEvolutionProps) {
   const points = useMemo(() => orderPoints(data), [data]);
 
   if (points.length === 0) {
-    return (
-      <p className="border border-ink-200 px-3 py-10 text-[13px] text-ink-500">Sin serie de valor.</p>
-    );
+    return <p className="label-line py-8">Sin serie de valor.</p>;
   }
 
   const first = points[0];
@@ -63,17 +68,14 @@ export function PortfolioEvolution({ data }: PortfolioEvolutionProps) {
         points={points.map((point) => ({ x: point.date, y: point.value }))}
         positive={positive}
         height={240}
-        formatValue={(value) =>
-          new Intl.NumberFormat("es-CL", { maximumFractionDigits: 2 }).format(value)
-        }
-        ariaLabel={`Evolución del portafolio: de ${first.value} el ${formatDate(
+        formatValue={formatValue}
+        ariaLabel={`Evolución del portafolio: de ${formatValue(first.value)} el ${formatDate(
           first.date,
-        )} a ${last.value} el ${formatDate(last.date)}.`}
+        )} a ${formatValue(last.value)} el ${formatDate(last.date)}.`}
       />
-      <div className="mt-2 flex justify-between gap-3 text-[11px] tabular-nums text-ink-500">
-        <span>{formatDate(first.date)}</span>
-        {first.date !== last.date ? <span>{formatDate(last.date)}</span> : null}
-      </div>
+      <figcaption className="sr-only">
+        Serie de valor del portafolio entre el {formatDate(first.date)} y el {formatDate(last.date)}.
+      </figcaption>
     </figure>
   );
 }

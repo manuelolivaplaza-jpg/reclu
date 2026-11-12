@@ -1,11 +1,12 @@
 import { connection } from "next/server";
+import Link from "next/link";
 import { getPaymentProvider, getPaymentsAvailability } from "@/lib/billing";
 import { PAYMENTS_UNAVAILABLE_MESSAGE } from "@/lib/billing/messages";
 import { ButtonLink } from "@/components/ui/button";
 
 export const metadata = {
   title: "Pago en proceso",
-  description: "Estamos confirmando tu suscripción.",
+  description: "Estamos confirmando tu suscripción en fraccion.si.",
 };
 
 // Ruta dinámica (proveedor por env) — nunca se prerenderiza.
@@ -22,17 +23,17 @@ export default async function UpgradePendientePage() {
   if (!payments.available) {
     return (
       <div className="flex max-w-2xl flex-col gap-8 pb-8">
-        <div className="flex flex-col gap-3">
-          <p className="text-[13px] leading-none text-ink-500">Suscripción</p>
-          <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[36px]">
+        <header className="border-b border-line pb-6">
+          <p className="label-line">Suscripción</p>
+          <h1 className="mt-3 text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
             No pudimos confirmar tu pago.
           </h1>
-          <p className="max-w-xl text-[15px] leading-relaxed text-ink-500">
+          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
             {PAYMENTS_UNAVAILABLE_MESSAGE}
           </p>
-        </div>
+        </header>
 
-        <p className="max-w-xl border-t border-ink-200 pt-5 text-[13px] leading-relaxed text-ink-500">
+        <p className="max-w-xl text-[13px] leading-relaxed text-ink-500">
           Si el cobro ya se hizo, escríbenos a{" "}
           <a
             href="mailto:hola@fraccion.si"
@@ -43,11 +44,14 @@ export default async function UpgradePendientePage() {
           con el comprobante y lo revisamos a mano.
         </p>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-5">
           <ButtonLink href="/upgrade?plan=pro">Volver a los planes</ButtonLink>
-          <ButtonLink href="/settings" variant="outline">
+          <Link
+            href="/settings"
+            className="text-[13px] font-medium text-ink-900 underline underline-offset-4 hover:opacity-60"
+          >
             Ir a Ajustes
-          </ButtonLink>
+          </Link>
         </div>
       </div>
     );
@@ -61,29 +65,29 @@ export default async function UpgradePendientePage() {
 
   return (
     <div className="flex max-w-2xl flex-col gap-8 pb-8">
-      <div className="flex flex-col gap-3">
-        <p className="text-[13px] leading-none text-ink-500">Suscripción</p>
-        <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[36px]">
+      <header className="border-b border-line pb-6">
+        <p className="label-line">Suscripción</p>
+        <h1 className="mt-3 text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
           Estamos confirmando tu pago.
         </h1>
-        <p className="max-w-xl text-[15px] leading-relaxed text-ink-500">
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
           {isMock
-            ? "Modo prueba: tu suscripción se confirma en segundos."
+            ? "Modo prueba: el pago es simulado y no se cobra nada."
             : `Tu pago está en proceso con ${providerLabel}.`}
         </p>
-      </div>
+      </header>
 
       {/* Lo que sigue, sin prometer plazos que no controlamos */}
-      <dl className="grid grid-cols-1 gap-px border-y border-ink-200 bg-ink-200 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
-          <dt className="text-[12px] leading-none text-ink-500">Qué pasa ahora</dt>
-          <dd className="text-[13px] leading-relaxed text-ink-900">
-            Confirmamos el pago y activamos tu plan automáticamente.
+      <dl className="grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+          <dt className="label-line">Qué pasa ahora</dt>
+          <dd className="text-[14px] leading-relaxed text-ink-900">
+            Cuando el proveedor confirme el pago, activamos tu plan.
           </dd>
         </div>
-        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
-          <dt className="text-[12px] leading-none text-ink-500">Qué necesitas hacer</dt>
-          <dd className="text-[13px] leading-relaxed text-ink-900">
+        <div className="flex flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+          <dt className="label-line">Qué necesitas hacer</dt>
+          <dd className="text-[14px] leading-relaxed text-ink-900">
             Nada. Puede tardar unos minutos; no vuelvas a pagar.
           </dd>
         </div>
@@ -97,14 +101,17 @@ export default async function UpgradePendientePage() {
         >
           hola@fraccion.si
         </a>{" "}
-        y lo resolvemos a mano.
+        con el comprobante y lo resolvemos a mano.
       </p>
 
-      <div className="flex flex-wrap gap-3">
-        <ButtonLink href="/dashboard">Ir al dashboard</ButtonLink>
-        <ButtonLink href="/settings" variant="outline">
+      <div className="flex flex-wrap items-center gap-5">
+        <ButtonLink href="/dashboard">Ir a Resumen</ButtonLink>
+        <Link
+          href="/settings"
+          className="text-[13px] font-medium text-ink-900 underline underline-offset-4 hover:opacity-60"
+        >
           Ir a Ajustes
-        </ButtonLink>
+        </Link>
       </div>
     </div>
   );
