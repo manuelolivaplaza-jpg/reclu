@@ -1,4 +1,4 @@
-/** d53: cálculos puros sobre la serie real (value_pct acumulado). Sin datos => null ("—"). */
+/** d53: cálculos puros sobre la serie real (value_pct acumulado). Sin datos => null; la UI escribe "Sin dato". */
 import { compoundReturnPct } from "@/lib/returns";
 
 export interface SeriesPt {

@@ -9,9 +9,9 @@ export function SkeletonStatGrid({ count = 4 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {Array.from({ length: count }, (_, i) => (
-        <div key={i} className="flex flex-col gap-3 rounded-none border border-ink-200 bg-white p-4 sm:p-5">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-6 w-24" />
+        <div key={i} className="app-panel flex flex-col gap-2 p-4 sm:p-5">
+          <Skeleton className="h-[18px] w-20" />
+          <Skeleton className="h-[26px] w-24" />
         </div>
       ))}
     </div>
@@ -20,10 +20,10 @@ export function SkeletonStatGrid({ count = 4 }: { count?: number }) {
 
 export function SkeletonList({ rows = 6 }: { rows?: number }) {
   return (
-    <div className="divide-y divide-ink-200 rounded-none border border-ink-200 bg-white">
+    <div className="divide-y divide-line rounded-none border border-line bg-app-card">
       {Array.from({ length: rows }, (_, i) => (
         <div key={i} className="flex min-h-12 items-center gap-3 px-3 py-3">
-          <Skeleton className="size-9 rounded-full" />
+          <Skeleton className="size-8 rounded-full" />
           <div className="flex-1 space-y-2">
             <Skeleton className="h-3.5 w-1/2" />
             <Skeleton className="h-3 w-1/3" />

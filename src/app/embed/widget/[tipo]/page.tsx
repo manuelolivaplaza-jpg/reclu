@@ -32,10 +32,13 @@ import {
  * ranking honesto. Todos llevan la atribución visible "Datos de reclu.cl".
  * Solo /embed/* puede vivir dentro de un iframe (CSP en next.config.ts).
  *
- * Los widgets con datos de funcionarios de EE.UU. son gratis. Los informes
- * oficiales siguen públicos en los sitios del gobierno (5 U.S.C. § 13107);
- * en fraccion.si, las posiciones reconstruidas son para suscriptores. Ningún widget usa datos personales de
- * InfoProbidad ni entrega recomendaciones personalizadas.
+ * Los widgets publican solo datos agregados (pesos promedio, retornos y
+ * compras de insiders), nunca posiciones individuales. En fraccion.si las
+ * posiciones reconstruidas de fondos, ETF y funcionarios son para
+ * suscriptores; los informes oficiales siguen públicos y gratis en los
+ * sitios de la Cámara, el Senado y la OGE (5 U.S.C. § 13107). Ningún widget
+ * usa datos personales de InfoProbidad ni entrega recomendaciones
+ * personalizadas.
  */
 export const instant = false;
 

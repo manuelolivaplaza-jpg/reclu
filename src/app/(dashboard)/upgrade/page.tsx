@@ -10,9 +10,9 @@ import {
 } from "@/components/upgrade-checkout";
 
 export const metadata = {
-  title: "Activar plan",
+  title: "Activar suscripción",
   description:
-    "Actualiza tu cuenta de fraccion.si al Plan Pro o Plan Elite. Pagos por Mercado Pago.",
+    "Actualiza tu cuenta de fraccion.si a Pro o Elite. Pagos en pesos chilenos con tarjeta, transferencia o Mercado Pago.",
 };
 
 // Ruta protegida por auth: lee cookies y searchParams por request — nunca se prerenderiza.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { formatPercent } from "@/lib/utils";
+import { cn, formatPercent } from "@/lib/utils";
 
 export interface HeatmapMonth {
   month: string;
@@ -48,11 +48,12 @@ function formatMonth(month: string): string {
   }).format(new Date(time));
 }
 
-/** Negro = mejor retorno del tablero. Blanco = peor. */
+/** Negro = mejor retorno del tablero. Gris claro = peor. Escala de grises pura. */
 function shade(returnPct: number, min: number, max: number): string {
-  if (max === min) return "#0a0a0a";
+  if (max === min) return "#8f8f8f";
   const t = (returnPct - min) / (max - min);
-  const channel = Math.round(255 - t * (255 - 10));
+  // El extremo claro baja a #f6f6f6 para no confundirse con una celda vacía.
+  const channel = Math.round(246 - t * (246 - 10));
   const hex = channel.toString(16).padStart(2, "0");
   return `#${hex}${hex}${hex}`;
 }
@@ -70,8 +71,10 @@ function columnOrder(rows: HeatmapRow[]): string[] {
 }
 
 /**
- * Holding × mes. El tono es el retorno real de esa celda.
- * Si el mes no viene en la fila, la celda queda vacía con borde gris.
+ * Holding × mes. El tono de cada celda es el retorno real de ese mes, en
+ * escala de grises (más oscuro = mayor retorno). Si el mes no viene en la
+ * fila, la celda queda vacía con su filete. Cada celda es un botón con
+ * aria-label y foco visible: el detalle también se lee sin puntero.
  */
 export function Heatmap({ rows }: HeatmapProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -103,85 +106,119 @@ export function Heatmap({ rows }: HeatmapProps) {
     });
   }
 
-  if (rows.length === 0 || months.length === 0) {
-    return (
-      <p className="border border-ink-200 px-3 py-10 text-[13px] text-ink-500">
-        Sin retornos mensuales.
-      </p>
-    );
+  if (rows.length === 0 || months.length === 0 || !hasScale) {
+    return <p className="label-line py-8">Sin retornos mensuales.</p>;
   }
 
   const edge = tip ? tip.edge : 0.5;
 
   return (
     <figure className="w-full">
-      <div ref={wrapRef} className="relative" onPointerLeave={() => setTip(null)}>
-        <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-px text-left">
-          <thead>
-            <tr>
-              <th className="sticky left-0 z-10 bg-white" scope="col" />
-              {months.map((month) => (
-                <th
-                  key={month}
-                  scope="col"
-                  className="min-w-9 px-1 pb-2 text-center text-[11px] font-normal whitespace-nowrap tabular-nums text-ink-500"
-                >
-                  {formatMonth(month)}
+      <div
+        ref={wrapRef}
+        className="relative"
+        onPointerLeave={(event) => {
+          if (event.pointerType !== "touch") setTip(null);
+        }}
+      >
+        <div
+          className="overflow-x-auto focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-4 focus-visible:outline-ink-900"
+          role="region"
+          aria-label="Retornos mensuales por activo"
+          tabIndex={0}
+        >
+          <table className="w-full border-separate border-spacing-px text-left">
+            <caption className="sr-only">
+              Retornos mensuales por activo. Escala de grises: más oscuro es mayor retorno.
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col" className="sticky left-0 z-10 bg-app-card">
+                  <span className="sr-only">Activo</span>
                 </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIndex) => {
-              const byMonth = new Map<string, number>();
-              for (const cell of row.monthly) {
-                if (Number.isFinite(cell.returnPct)) byMonth.set(cell.month, cell.returnPct);
-              }
-              return (
-                <tr key={`${row.symbol}-${rowIndex}`}>
+                {months.map((month) => (
                   <th
-                    scope="row"
-                    className="sticky left-0 z-10 bg-white pr-3 text-left text-[13px] font-medium whitespace-nowrap text-ink-900"
+                    key={month}
+                    scope="col"
+                    className="num min-w-9 px-1 pb-2 text-center text-[11px] font-normal whitespace-nowrap text-ink-500"
                   >
-                    {row.symbol}
+                    {formatMonth(month)}
                   </th>
-                  {months.map((month) => {
-                    const returnPct = byMonth.get(month);
-                    if (returnPct === undefined || !hasScale) {
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, rowIndex) => {
+                const byMonth = new Map<string, number>();
+                for (const cell of row.monthly) {
+                  if (Number.isFinite(cell.returnPct)) byMonth.set(cell.month, cell.returnPct);
+                }
+                return (
+                  <tr key={`${row.symbol}-${rowIndex}`}>
+                    <th
+                      scope="row"
+                      className="sticky left-0 z-10 bg-app-card pr-3 text-left text-[13px] font-medium whitespace-nowrap text-ink-900"
+                    >
+                      {row.symbol}
+                    </th>
+                    {months.map((month) => {
+                      const returnPct = byMonth.get(month);
+                      if (returnPct === undefined) {
+                        return (
+                          <td key={month} className="border border-line bg-app-card p-0">
+                            <span className="block h-8 min-w-9" />
+                          </td>
+                        );
+                      }
+                      const tone = max > min ? (returnPct - min) / (max - min) : 0.5;
                       return (
-                        <td key={month} className="border border-ink-200 bg-white p-0">
-                          <span className="block h-8 min-w-9" />
+                        <td key={month} className="p-0">
+                          <button
+                            type="button"
+                            className={cn(
+                              "block h-8 w-full min-w-9 p-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px]",
+                              tone > 0.55 ? "focus-visible:outline-white" : "focus-visible:outline-ink-900",
+                            )}
+                            style={{ backgroundColor: shade(returnPct, min, max) }}
+                            aria-label={`${row.symbol}, ${formatMonth(month)}, ${formatPercent(returnPct)}`}
+                            onPointerEnter={(event) =>
+                              showTip(event.currentTarget, { symbol: row.symbol, month, returnPct })
+                            }
+                            onFocus={(event) => showTip(event.currentTarget, { symbol: row.symbol, month, returnPct })}
+                            onBlur={() => setTip(null)}
+                          />
                         </td>
                       );
-                    }
-                    return (
-                      <td key={month} className="p-0">
-                        <button
-                          type="button"
-                          className="block h-8 w-full min-w-9 p-0"
-                          style={{ backgroundColor: shade(returnPct, min, max) }}
-                          aria-label={`${row.symbol}, ${formatMonth(month)}, ${formatPercent(returnPct)}`}
-                          onPointerEnter={(event) =>
-                            showTip(event.currentTarget, { symbol: row.symbol, month, returnPct })
-                          }
-                          onFocus={(event) =>
-                            showTip(event.currentTarget, { symbol: row.symbol, month, returnPct })
-                          }
-                          onBlur={() => setTip(null)}
-                        />
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
+
+        {max > min ? (
+          <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-500" aria-hidden="true">
+            <span>Menor</span>
+            <span className="num">{formatPercent(min)}</span>
+            <span className="flex gap-px">
+              {[0, 0.25, 0.5, 0.75, 1].map((step) => (
+                <span
+                  key={step}
+                  className="block size-3 border border-line"
+                  style={{ backgroundColor: shade(min + step * (max - min), min, max) }}
+                />
+              ))}
+            </span>
+            <span className="num">{formatPercent(max)}</span>
+            <span>Mayor</span>
+          </div>
+        ) : null}
+
         {tip ? (
           <div
-            className="pointer-events-none absolute z-20 border border-ink-200 bg-white px-2.5 py-1.5"
+            className="pointer-events-none absolute z-20 border border-line bg-app-card px-2.5 py-1.5"
+            aria-hidden="true"
             style={{
               left: tip.x,
               top: tip.y,
@@ -196,7 +233,7 @@ export function Heatmap({ rows }: HeatmapProps) {
             <p className="text-[11px] text-ink-500">
               {tip.symbol} · {formatMonth(tip.month)}
             </p>
-            <p className={"num text-[13px] " + (tip.returnPct >= 0 ? "text-positive" : "text-negative")}>
+            <p className={cn("num text-[13px]", tip.returnPct >= 0 ? "text-positive" : "text-negative")}>
               {formatPercent(tip.returnPct)}
             </p>
           </div>

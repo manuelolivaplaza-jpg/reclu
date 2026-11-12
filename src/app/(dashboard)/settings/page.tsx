@@ -1,8 +1,9 @@
 import { siteUrl as siteUrlFn } from "@/lib/site";
 import { connection } from "next/server";
+import Link from "next/link";
 import { getProfile } from "@/lib/queries";
 import { createClient } from "@/lib/supabase/server";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { SettingsForm } from "@/components/settings-form";
 import { AlertFrequencyForm } from "@/components/alert-frequency-form";
@@ -23,8 +24,7 @@ import { hasCurrentPortfolioConsent, portfolioAlertChannelsFor } from "@/lib/por
 import { referralsEnabled } from "@/lib/referrals";
 import { isPaidPlan } from "@/lib/types";
 import { aiEnabled } from "@/lib/ai-flags";
-import { BRAND_WORDMARK } from "@/lib/brand";
-import { SettingsSubnav, DEFAULT_SETTINGS_SECTIONS } from "@/components/settings/settings-subnav";
+import { SettingsSubnav } from "@/components/settings/settings-subnav";
 
 export const metadata = { title: "Ajustes" };
 // Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
@@ -50,9 +50,10 @@ const ALERT_CHANNEL_LABELS: Record<string, string> = {
 };
 
 // Precios de lista: la fuente es `lib/plans`, nunca esta vista.
-const PRO_MONTHLY_PRICE = `${formatClp(PLANS.pro.monthlyPrice)} CLP/mes`;
-const PRO_ANNUAL_PRICE = `o ${formatClp(PLANS.pro.annualTotalPrice)} al año`;
-const ELITE_MONTHLY_PRICE = `${formatClp(PLANS.elite.monthlyPrice)} CLP/mes`;
+const PRO_MONTHLY = formatClp(PLANS.pro.monthlyPrice);
+const PRO_ANNUAL = formatClp(PLANS.pro.annualTotalPrice);
+const ELITE_MONTHLY = formatClp(PLANS.elite.monthlyPrice);
+const ELITE_ANNUAL = formatClp(PLANS.elite.annualTotalPrice);
 
 interface SubscriptionRow {
   plan: string;
@@ -74,18 +75,78 @@ interface PortfolioSettingsRow {
 interface PlanTier {
   id: "free" | "pro" | "elite";
   name: string;
+  /** Precio en pesos, ya formateado. */
   price: string;
-  priceNote: string;
+  /** Unidad del precio ("CLP / mes"); vacía en el plan gratuito. */
+  unit: string;
+  /** Segunda línea del precio ("o $99.900 al año"). */
+  note: string;
   description: string;
   current: boolean;
   cta?: { href: string; label: string };
+}
+
+/**
+ * Bloque de Ajustes: título, descripción de 13px y contenido separado por un
+ * filete de 1px. Radio 0 y sin sombra: la jerarquía la hace la tipografía.
+ */
+function SettingsSection({
+  id,
+  title,
+  description,
+  action,
+  children,
+}: {
+  id: string;
+  title: string;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} aria-labelledby={`${id}-titulo`} className="scroll-mt-28">
+      <Card>
+        <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between sm:p-6">
+          <div className="min-w-0">
+            <h2
+              id={`${id}-titulo`}
+              className="text-[17px] font-medium leading-snug tracking-[-0.02em] text-ink-900"
+            >
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-ink-500">
+                {description}
+              </p>
+            ) : null}
+          </div>
+          {action ? <div className="shrink-0">{action}</div> : null}
+        </div>
+        <div className="border-t border-line p-5 sm:p-6">{children}</div>
+      </Card>
+    </section>
+  );
 }
 
 export default async function SettingsPage() {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
   const profile = await getProfile();
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="flex max-w-xl flex-col gap-4 pb-8">
+        <h1 className="text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
+          Ajustes
+        </h1>
+        <p className="text-[15px] leading-relaxed text-ink-500">
+          No pudimos cargar tu perfil. Vuelve a intentarlo en unos minutos.
+        </p>
+        <ButtonLink href="/settings" variant="outline" size="sm" className="w-fit">
+          Reintentar
+        </ButtonLink>
+      </div>
+    );
+  }
   const isPro = isPaidPlan(profile.plan);
   // La IA solo se vende en el copy si hay clave y modelo configurados.
   const aiOn = aiEnabled();
@@ -147,6 +208,10 @@ export default async function SettingsPage() {
     tradePrefsPromise,
   ]);
   const activeSubscription = (subscriptionResult.data as SubscriptionRow | null) ?? null;
+  const subscriptionError = "error" in subscriptionResult ? subscriptionResult.error : null;
+  if (subscriptionError) {
+    console.warn("[reclu] subscriptions:", subscriptionError.message);
+  }
   if (rulesResult.error) {
     console.warn("[reclu] alert_rules:", rulesResult.error.message);
   }
@@ -176,7 +241,7 @@ export default async function SettingsPage() {
       ? activeSubscription.period === "anual"
         ? "Suscripción anual"
         : "Suscripción mensual"
-      : "Suscripción activa"
+      : "Sin renovación registrada"
     : trialDays && trialDays > 0
       ? `Prueba Pro · ${trialDays} ${trialDays === 1 ? "día" : "días"}`
       : "Sin costo mensual";
@@ -194,19 +259,20 @@ export default async function SettingsPage() {
     {
       id: "free",
       name: "Gratis",
-      price: "$0",
-      priceNote: "para siempre",
+      price: formatClp(PLANS.free.monthlyPrice),
+      unit: "",
+      note: "Para siempre",
       description: aiOn
         ? "Carteras de corredoras · alertas diarias · 5 consultas diarias al asistente"
         : "Carteras de corredoras · alertas diarias",
       current: profile.plan === "free",
-      cta: { href: "/upgrade?plan=pro", label: "Pasar a Pro" },
     },
     {
       id: "pro",
       name: "Pro",
-      price: PRO_MONTHLY_PRICE,
-      priceNote: PRO_ANNUAL_PRICE,
+      price: PRO_MONTHLY,
+      unit: "CLP / mes",
+      note: `o ${PRO_ANNUAL} al año`,
       description: aiOn
         ? "15 portafolios · tiempo real · resúmenes AI · 50 consultas semanales"
         : "15 portafolios · tiempo real",
@@ -216,8 +282,9 @@ export default async function SettingsPage() {
     {
       id: "elite",
       name: "Elite",
-      price: ELITE_MONTHLY_PRICE,
-      priceNote: "o plan anual con 20% de descuento",
+      price: ELITE_MONTHLY,
+      unit: "CLP / mes",
+      note: `o ${ELITE_ANNUAL} al año`,
       description: "Ilimitados · Fondos 13F y Soberanos · Radar de Consenso · exportación CSV",
       current: profile.plan === "elite",
       cta: { href: "/upgrade?plan=elite", label: "Pasar a Elite" },
@@ -251,61 +318,72 @@ export default async function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-8 pb-8">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
+      <header className="border-b border-line pb-6">
+        <p className="label-line">Cuenta y alertas</p>
+        <h1 className="mt-3 text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
           Ajustes
         </h1>
-        <p className="max-w-2xl text-[15px] leading-relaxed text-ink-500">
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
           Tu cuenta, tu plan y las alertas que recibes. Cada bloque se guarda por
           separado.
         </p>
       </header>
 
-      {/* Resumen ejecutivo de cuenta */}
+      {/* Resumen de la cuenta: cuatro lecturas, separadas por filetes */}
       <section aria-labelledby="resumen-cuenta" className="flex flex-col gap-3">
-        <h2 id="resumen-cuenta" className="text-[13px] font-normal leading-none text-ink-500">
+        <h2 id="resumen-cuenta" className="label-line">
           Resumen de tu cuenta
         </h2>
-        <dl className="grid grid-cols-2 gap-px border-y border-ink-200 bg-ink-200 lg:grid-cols-4">
-          <div className="flex min-w-0 flex-col gap-1.5 bg-white p-4 sm:p-5">
-            <dt className="text-[12px] leading-none text-ink-500">Correo</dt>
+        <dl className="grid grid-cols-2 gap-px border border-line bg-line lg:grid-cols-4">
+          <div className="flex min-w-0 flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+            <dt className="label-line">Correo</dt>
             <dd className="flex min-w-0 flex-col gap-0.5">
               <span className="break-all text-[14px] leading-snug text-ink-900">
                 {profile.email}
               </span>
-              <span className="text-[12px] leading-snug text-ink-500">
+              <span className="text-[13px] leading-snug text-ink-500">
                 Con el que inicias sesión
               </span>
             </dd>
           </div>
-          <div className="flex min-w-0 flex-col gap-1.5 bg-white p-4 sm:p-5">
-            <dt className="text-[12px] leading-none text-ink-500">Plan</dt>
+          <div className="flex min-w-0 flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+            <dt className="label-line">Plan</dt>
             <dd className="flex min-w-0 flex-col gap-0.5">
               <span className="text-[14px] leading-snug text-ink-900">{planName}</span>
-              <span className="text-[12px] leading-snug text-ink-500">{planSummaryNote}</span>
+              <span className="text-[13px] leading-snug text-ink-500">{planSummaryNote}</span>
             </dd>
           </div>
-          <div className="flex min-w-0 flex-col gap-1.5 bg-white p-4 sm:p-5">
-            <dt className="text-[12px] leading-none text-ink-500">Alertas</dt>
+          <div className="flex min-w-0 flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+            <dt className="label-line">Alertas</dt>
             <dd className="flex min-w-0 flex-col gap-0.5">
               <span className="text-[14px] leading-snug text-ink-900">{alertsSummary}</span>
-              <span className="text-[12px] leading-snug text-ink-500">{alertsNote}</span>
+              <span className="text-[13px] leading-snug text-ink-500">{alertsNote}</span>
             </dd>
           </div>
-          <div className="flex min-w-0 flex-col gap-2 bg-white p-4 sm:p-5">
-            <dt className="text-[12px] leading-none text-ink-500">Suscripción</dt>
+          <div className="flex min-w-0 flex-col gap-2 bg-app-card p-4 sm:p-5">
+            <dt className="label-line">Suscripción</dt>
             <dd className="flex flex-col gap-2">
-              <span className="text-[12px] leading-snug text-ink-500">
-                {isPro ? "Cobros, comprobantes y cancelación" : `Desde ${PRO_MONTHLY_PRICE}`}
-              </span>
               {isPro ? (
-                <ButtonLink href="#plan" size="sm" variant="outline" className="w-fit">
-                  Gestionar suscripción
-                </ButtonLink>
+                <>
+                  <span className="text-[13px] leading-snug text-ink-500">
+                    Estado del cobro y cancelación
+                  </span>
+                  <a
+                    href="#plan"
+                    className="w-fit text-[13px] font-medium text-ink-900 underline underline-offset-4 hover:opacity-60"
+                  >
+                    Gestionar suscripción
+                  </a>
+                </>
               ) : (
-                <ButtonLink href="/upgrade?plan=pro" size="sm" className="w-fit">
-                  Pasar a Pro
-                </ButtonLink>
+                <>
+                  <span className="text-[13px] leading-snug text-ink-500">
+                    Desde <span className="num text-ink-900">{PRO_MONTHLY}</span> CLP / mes
+                  </span>
+                  <ButtonLink href="/upgrade?plan=pro" size="sm" className="w-fit">
+                    Pasar a Pro
+                  </ButtonLink>
+                </>
               )}
             </dd>
           </div>
@@ -313,229 +391,220 @@ export default async function SettingsPage() {
       </section>
 
       <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] xl:gap-12">
-        <SettingsSubnav
-          sections={DEFAULT_SETTINGS_SECTIONS.filter((s) => s.href !== "#referidos" || referralsEnabled())}
-        />
+        <SettingsSubnav showReferrals={Boolean(referralCode)} />
 
-        <div className="flex min-w-0 max-w-4xl flex-col gap-6">
-          {/* Cuenta */}
-          <div id="cuenta" className="scroll-mt-28">
-            <Card>
-              <CardHeader>
-                <CardTitle>Perfil</CardTitle>
-                <CardDescription>Nombre y correo de tu cuenta en fraccion.si.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SettingsForm name={profile.full_name ?? ""} email={profile.email} />
-              </CardContent>
-            </Card>
-          </div>
+        <div className="flex min-w-0 max-w-4xl flex-col gap-5">
+          <SettingsSection
+            id="cuenta"
+            title="Cuenta"
+            description="Nombre y correo de tu cuenta en fraccion.si."
+          >
+            <SettingsForm name={profile.full_name ?? ""} email={profile.email} />
+          </SettingsSection>
 
-          {/* Plan */}
-          <div id="plan" className="scroll-mt-28">
-            <Card>
-              <CardHeader>
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <CardTitle>Tu plan</CardTitle>
-                  <p className="text-[12px] text-ink-500">
-                    Plan actual: <span className="text-ink-900">{planName}</span>
+          <SettingsSection
+            id="plan"
+            title="Tu plan"
+            description={planDescription}
+            action={
+              <p className="text-[13px] leading-snug text-ink-500">
+                Plan actual: <span className="text-ink-900">{planName}</span>
+              </p>
+            }
+          >
+            <div className="flex flex-col gap-5">
+              {/* Comparativa de los tres niveles, solo filetes */}
+              <div className="border-t border-line">
+                {tiers.map((tier) => {
+                  const canUpgrade = planRank[tier.id] > currentRank;
+                  return (
+                    <div
+                      key={tier.id}
+                      className="grid grid-cols-1 gap-3 border-b border-line py-4 sm:grid-cols-[minmax(0,1fr)_9.5rem_auto] sm:items-center sm:gap-6"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-[15px] font-medium leading-snug text-ink-900">
+                          {tier.name}
+                        </p>
+                        <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
+                          {tier.description}
+                        </p>
+                      </div>
+                      <div className="sm:text-right">
+                        <p className="num text-[15px] leading-snug text-ink-900">
+                          {tier.price}
+                          {tier.unit ? (
+                            <span className="ml-1 text-[13px] font-normal tracking-normal text-ink-500">
+                              {tier.unit}
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="mt-0.5 text-[13px] leading-snug text-ink-500">
+                          {tier.note}
+                        </p>
+                      </div>
+                      <div className="sm:justify-self-end">
+                        {canUpgrade && tier.cta ? (
+                          <ButtonLink
+                            href={tier.cta.href}
+                            size="sm"
+                            variant="outline"
+                            className="w-fit"
+                          >
+                            {tier.cta.label}
+                          </ButtonLink>
+                        ) : tier.current ? (
+                          <span className="text-[13px] text-ink-500">Activo</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <p className="max-w-2xl text-[13px] leading-relaxed text-ink-500">
+                  Precios en pesos chilenos. Pagos con tarjeta, transferencia bancaria
+                  o Mercado Pago, sin permanencia: si cancelas, mantienes el acceso
+                  hasta el final del período pagado.
+                </p>
+                <p className="max-w-2xl text-[13px] leading-relaxed text-ink-500">
+                  Seguir portafolios y ver sus posiciones de fondos, ETF y políticos
+                  requiere un plan de pago. Las carteras recomendadas de corredoras se
+                  ven completas sin costo.
+                </p>
+                <Link
+                  href="/upgrade"
+                  className="w-fit text-[13px] font-medium text-ink-900 underline underline-offset-4 hover:opacity-60"
+                >
+                  Ver todos los planes
+                </Link>
+              </div>
+
+              {isPro &&
+                (activeSubscription ? (
+                  <BillingStatus
+                    plan={activeSubscription.plan === "elite" ? "elite" : "pro"}
+                    period={(activeSubscription.period as "mensual" | "anual") ?? "mensual"}
+                    status={activeSubscription.status}
+                    currentPeriodEnd={activeSubscription.current_period_end ?? null}
+                    cancelAtPeriodEnd={Boolean(activeSubscription.cancel_at_period_end)}
+                    providerLabel={
+                      SUBSCRIPTION_PROVIDER_LABELS[activeSubscription.provider] ??
+                      "tu proveedor de pagos"
+                    }
+                  />
+                ) : (
+                  <p className="max-w-2xl border-t border-line pt-4 text-[13px] leading-relaxed text-ink-500">
+                    No encontramos una suscripción con cobros activos en esta cuenta.
+                    Si necesitas un comprobante o reactivar el cobro, escríbenos a{" "}
+                    <a
+                      href="mailto:hola@fraccion.si"
+                      className="text-ink-900 underline underline-offset-4"
+                    >
+                      hola@fraccion.si
+                    </a>
+                    .
                   </p>
-                </div>
-                <CardDescription>{planDescription}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col gap-5">
-                  {/* Comparativa de los tres niveles, solo filetes */}
-                  <div className="border-t border-ink-200">
-                    {tiers.map((tier) => {
-                      const canUpgrade = planRank[tier.id] > currentRank;
-                      return (
-                        <div
-                          key={tier.id}
-                          className="grid grid-cols-1 gap-2 border-b border-ink-200 py-4 sm:grid-cols-[minmax(0,1fr)_10rem_auto] sm:items-center sm:gap-6"
-                        >
-                          <div className="min-w-0">
-                            <p className="flex flex-wrap items-baseline gap-x-2 text-[15px] font-medium text-ink-900">
-                              {tier.name}
-                              {tier.current && (
-                                <span className="text-[12px] font-normal text-ink-500">Tu plan</span>
-                              )}
-                            </p>
-                            <p className="mt-0.5 text-[13px] leading-relaxed text-ink-500">
-                              {tier.description}
-                            </p>
-                          </div>
-                          <div className="sm:text-right">
-                            <p className="text-[15px] tabular-nums leading-snug text-ink-900">
-                              {tier.price}
-                            </p>
-                            <p className="text-[12px] leading-snug text-ink-500">{tier.priceNote}</p>
-                          </div>
-                          <div className="sm:justify-self-end">
-                            {canUpgrade && tier.cta ? (
-                              <ButtonLink href={tier.cta.href} size="sm" className="w-fit">
-                                {tier.cta.label}
-                              </ButtonLink>
-                            ) : tier.current ? (
-                              <span className="text-[12px] text-ink-500">Activo</span>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                ))}
+            </div>
+          </SettingsSection>
 
-                  <p className="text-[12px] leading-relaxed text-ink-500">
-                    Precios en pesos chilenos. Pagos por Mercado Pago. Sin permanencia:
-                    si cancelas, mantienes el acceso hasta el final del período pagado.
-                  </p>
+          <SettingsSection
+            id="notificaciones"
+            title="Frecuencia de alertas"
+            description="Cada cuánto te escribimos. Las alertas siempre nacen de datos públicos."
+          >
+            <AlertFrequencyForm current={profile.alert_frequency} isPro={isPro} />
+          </SettingsSection>
 
-                  {!isPro && (
-                    <ButtonLink href="/upgrade?plan=pro" variant="outline" size="sm" className="w-fit">
-                      Ver planes y precios
-                    </ButtonLink>
-                  )}
-
-                  {isPro && (
-                    <BillingStatus
-                      plan={activeSubscription?.plan === "elite" ? "elite" : "pro"}
-                      period={(activeSubscription?.period as "mensual" | "anual") ?? "mensual"}
-                      status={activeSubscription?.status ?? "active"}
-                      currentPeriodEnd={activeSubscription?.current_period_end ?? null}
-                      cancelAtPeriodEnd={Boolean(activeSubscription?.cancel_at_period_end)}
-                      providerLabel={SUBSCRIPTION_PROVIDER_LABELS[
-                        activeSubscription?.provider ?? "mock"
-                      ] ?? BRAND_WORDMARK}
-                    />
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Frecuencia de alertas */}
-          <div id="notificaciones" className="scroll-mt-28">
-            <Card>
-              <CardHeader>
-                <CardTitle>Frecuencia de alertas</CardTitle>
-                <CardDescription>
-                  Cada cuánto te escribimos. Las alertas siempre nacen de datos públicos.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AlertFrequencyForm current={profile.alert_frequency} isPro={isPro} />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div id="telegram" className="scroll-mt-28">
+          {/* Telegram trae su propio panel: aquí solo se ancla la sección. */}
+          <section id="telegram" aria-label="Telegram" className="scroll-mt-28">
             <TelegramConnect profile={profile} />
-          </div>
+          </section>
 
           {myPortfolioEnabled && (
             <>
               {/* F75: consentimiento explícito (Ley 21.719). Va antes de las
                   alertas porque sin consentimiento no se tratan las tenencias. */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Mi portafolio: consentimiento</CardTitle>
-                  <CardDescription>
-                    Tratamos tus tenencias como datos financieros sensibles. Lee la
-                    finalidad antes de aceptar.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PortfolioConsent
-                    consentAt={portfolioRow?.consent_at ?? null}
-                    consentVersion={portfolioRow?.consent_version ?? null}
-                    model={aiModel}
-                  />
-                </CardContent>
-              </Card>
+              <SettingsSection
+                id="mi-cartera-consentimiento"
+                title="Mi portafolio: consentimiento"
+                description="Tratamos tus tenencias como datos financieros sensibles. Lee la finalidad antes de aceptar."
+              >
+                <PortfolioConsent
+                  consentAt={portfolioRow?.consent_at ?? null}
+                  consentVersion={portfolioRow?.consent_version ?? null}
+                  model={aiModel}
+                />
+              </SettingsSection>
 
               {/* F75: alertas automáticas, apagadas por defecto y según plan. */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Alertas automáticas de mi cartera</CardTitle>
-                  <CardDescription>
-                    Avisos cuando una noticia pública supere tu umbral de relevancia.
-                    Este interruptor parte apagado.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <PortfolioAlertSettings
-                    autoAlerts={Boolean(portfolioRow?.auto_alerts)}
-                    minRelevance={portfolioMinRelevance}
-                    alertChannel={portfolioRow?.alert_channel ?? "email"}
-                    planAutoAlerts={portfolioLimits.autoAlerts}
-                    allowedChannels={[...portfolioChannels]}
-                    hasConsent={hasCurrentPortfolioConsent(
-                      portfolioRow?.consent_at ?? null,
-                      portfolioRow?.consent_version ?? null,
-                    )}
-                  />
-                </CardContent>
-              </Card>
+              <SettingsSection
+                id="mi-cartera-alertas"
+                title="Alertas automáticas de mi cartera"
+                description="Avisos cuando una noticia pública supera tu umbral de relevancia."
+              >
+                {portfolioResult.error ? (
+                  <p className="mb-4 text-[13px] leading-relaxed text-ink-500">
+                    No pudimos leer tus preferencias guardadas. Lo que ves corresponde
+                    a la configuración por defecto.
+                  </p>
+                ) : null}
+                <PortfolioAlertSettings
+                  autoAlerts={Boolean(portfolioRow?.auto_alerts)}
+                  minRelevance={portfolioMinRelevance}
+                  alertChannel={portfolioRow?.alert_channel ?? "email"}
+                  planAutoAlerts={portfolioLimits.autoAlerts}
+                  allowedChannels={[...portfolioChannels]}
+                  hasConsent={hasCurrentPortfolioConsent(
+                    portfolioRow?.consent_at ?? null,
+                    portfolioRow?.consent_version ?? null,
+                  )}
+                />
+              </SettingsSection>
 
               {/* F75: derecho de supresión. Solo con el flag encendido. */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Borrar mi cartera</CardTitle>
-                  <CardDescription>
-                    Elimina tus posiciones, el consentimiento y estos ajustes.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <DeletePortfolioForm />
-                </CardContent>
-              </Card>
+              <SettingsSection
+                id="mi-cartera-borrar"
+                title="Borrar mi cartera"
+                description="Elimina tus posiciones, el consentimiento y estos ajustes."
+              >
+                <DeletePortfolioForm />
+              </SettingsSection>
             </>
           )}
 
           {/* D31: email de compras y ventas por portafolio seguido. */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Compras y ventas de lo que sigues</CardTitle>
-              <CardDescription>
-                Te avisamos por email cuando un portafolio que sigues agrega una posición nueva (compra)
-                o cierra una (venta), según el último dato publicado de su fuente. Elige qué avisos quieres en cada uno.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TradeAlertPrefsForm prefs={tradePrefs.prefs} unavailable={tradePrefs.unavailable} />
-            </CardContent>
-          </Card>
+          <SettingsSection
+            id="compras-ventas"
+            title="Compras y ventas de lo que sigues"
+            description="Te avisamos por correo cuando un portafolio que sigues agrega una posición nueva (compra) o cierra una (venta), según el último dato publicado de su fuente. Eliges qué avisos recibir en cada uno."
+          >
+            <TradeAlertPrefsForm prefs={tradePrefs.prefs} unavailable={tradePrefs.unavailable} />
+          </SettingsSection>
 
           {/* Reglas a medida. No esconde datos públicos: solo elige el aviso. */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Mis reglas</CardTitle>
-              <CardDescription>
-                Avisos cuando una fuente pública cumple un criterio que tú defines:
-                un símbolo en cualquier fuente, un portafolio, una fuente o un monto
-                en dólares. Las declaraciones de funcionarios de Estados Unidos siguen
-                siendo públicas; la regla solo elige de qué te avisamos. Guardamos
-                únicamente ese criterio, para enviarte el aviso.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-6">
-                <AlertRulesForm
-                  rules={alertRules}
-                  limit={alertRuleLimitFor(profile.plan, profile.trial_ends_at)}
-                  canUseTelegram={canUseTelegram(profile.plan, profile.trial_ends_at)}
-                  unavailable={rulesUnavailable}
-                />
-                <LegalNotice kind="fintec" />
-              </div>
-            </CardContent>
-          </Card>
+          <SettingsSection
+            id="reglas"
+            title="Mis reglas"
+            description="Avisos cuando una fuente pública cumple un criterio que defines: un símbolo, un portafolio, una fuente o un monto en dólares. Las declaraciones de funcionarios de Estados Unidos siguen siendo públicas; la regla solo elige de qué te avisamos y guardamos únicamente ese criterio."
+          >
+            <AlertRulesForm
+              rules={alertRules}
+              limit={alertRuleLimitFor(profile.plan, profile.trial_ends_at)}
+              canUseTelegram={canUseTelegram(profile.plan, profile.trial_ends_at)}
+              unavailable={rulesUnavailable}
+            />
+          </SettingsSection>
 
           {referralCode && (
-            <div id="referidos" className="scroll-mt-28">
+            <section id="referidos" aria-label="Referidos" className="scroll-mt-28">
               <ReferralCard code={referralCode} siteUrl={siteUrl} />
-            </div>
+            </section>
           )}
+
+          <LegalNotice kind="fintec" />
         </div>
       </div>
     </div>

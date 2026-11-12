@@ -69,7 +69,8 @@ export async function generateMetadata({ params }: PortfolioPageProps): Promise<
   if (!portfolio) notFound();
   const year = new Date().getFullYear();
   const esInfo = portfolio.slug === INFOPROBIDAD_SLUG;
-  const name = String(portfolio.name ?? "").trim();
+  // Sin nombre no se arma un título con doble espacio: cae a "Portafolio".
+  const name = String(portfolio.name ?? "").trim() || "Portafolio";
   const title = portfolioTitle({
     name,
     category: String(portfolio.category ?? ""),
@@ -84,6 +85,10 @@ export async function generateMetadata({ params }: PortfolioPageProps): Promise<
         `Composición, pesos y movimientos de ${name}. ${portfolio.description ?? ""}`,
       );
   const description = rawDescription.length > 0 ? rawDescription : undefined;
+  // Frescura honesta: `dateModified` solo si updated_at es una fecha válida.
+  const updatedTime = Date.parse(String(portfolio.updated_at ?? ""));
+  const modifiedTime =
+    Number.isFinite(updatedTime) ? new Date(updatedTime).toISOString() : null;
   // Palabras clave sin repetir la etiqueta de categoría (misma regla que el JSON-LD).
   const keywords = [
     ...new Set(
@@ -103,6 +108,7 @@ export async function generateMetadata({ params }: PortfolioPageProps): Promise<
       type: "article",
       locale: "es_CL",
       siteName: "fraccion.si",
+      ...(modifiedTime ? { modifiedTime } : {}),
     },
     twitter: {
       card: "summary_large_image",
@@ -112,6 +118,11 @@ export async function generateMetadata({ params }: PortfolioPageProps): Promise<
   });
 }
 
+/**
+ * La página solo aporta metadata y monta la ficha. El H1 y la jerarquía del
+ * retorno viven en PortfolioView (hero + resumen), el mismo componente que usa
+ * /app/portafolio/[slug]: así no se duplica el marcado entre público y app.
+ */
 export default async function PortfolioDetailPage({ params }: PortfolioPageProps) {
   const { slug } = await params;
   return <PortfolioView slug={slug} />;

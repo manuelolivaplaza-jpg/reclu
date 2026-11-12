@@ -34,12 +34,12 @@ export function ListRow({
         {meta ? <span className="mt-0.5 block truncate text-[13px] leading-snug text-ink-500">{meta}</span> : null}
       </span>
       {value != null || valueSub != null ? (
-        <span className="shrink-0 text-right tabular-nums">
-          {value != null ? <span className="block text-[15px] font-medium leading-snug text-ink-900">{value}</span> : null}
+        <span className="shrink-0 text-right">
+          {value != null ? <span className="num block text-[15px] leading-snug text-ink-900">{value}</span> : null}
           {valueSub != null ? (
             <span
               className={cn(
-                "mt-0.5 block text-[13px] font-medium leading-snug",
+                "num mt-0.5 block text-[13px] leading-snug",
                 positive === true ? "text-positive" : positive === false ? "text-negative" : "text-ink-500",
               )}
             >
@@ -50,7 +50,7 @@ export function ListRow({
       ) : null}
     </>
   );
-  const cls = cn("flex min-h-12 items-center gap-3 border-b border-ink-200 px-3 py-3 last:border-b-0", className);
+  const cls = cn("flex min-h-12 items-center gap-3 border-b border-line px-3 py-3 last:border-b-0", className);
   return href ? (
     <Link
       href={href}

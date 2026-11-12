@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Compass } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { holdingLimitFor, roleFor } from "@/lib/access";
 import { clipSeriesForSlug } from "@/lib/card-series";
 import { getAlerts, getFollows, getHoldings, getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
@@ -28,16 +28,16 @@ const ALERTS_FETCH = 25;
 const ALERTS_SHOWN = 6;
 const DAY = 86_400_000;
 
-/** Etiquetas monocromas: filete de 1px, sin fondos verdes ni rojos. */
-const CHIP: Partial<Record<AlertType, { label: string; cls: string }>> = {
-  new_trade: { label: "Compra", cls: "border-ink-900 text-ink-900" },
-  sold_trade: { label: "Venta", cls: "border-ink-300 bg-ink-50 text-ink-700" },
-  weight_change: { label: "Peso", cls: "border-ink-200 text-ink-600" },
-  mention: { label: "Mención", cls: "border-ink-200 text-ink-600" },
-  dividend: { label: "Dividendo", cls: "border-ink-200 text-ink-600" },
-  earnings: { label: "Resultados", cls: "border-ink-200 text-ink-600" },
-  threshold: { label: "Umbral", cls: "border-ink-200 text-ink-600" },
-  "13f_update": { label: "13F", cls: "border-ink-200 text-ink-600" },
+/** Tipo de alerta: una palabra, sin pastilla ni color. */
+const ALERT_LABEL: Partial<Record<AlertType, string>> = {
+  new_trade: "Compra",
+  sold_trade: "Venta",
+  weight_change: "Peso",
+  mention: "Mención",
+  dividend: "Dividendo",
+  earnings: "Resultados",
+  threshold: "Umbral",
+  "13f_update": "13F",
 };
 
 const RULES = [
@@ -46,27 +46,24 @@ const RULES = [
   { title: "13F y resultados", body: "Cuando se publica un trimestre o un reporte nuevo." },
 ];
 
-/** KPI ancho, filete limpio y cifras tabulares. */
+/** Verde y rojo solo en cifras; cero y sin dato quedan en tinta neutra. */
+const changeTone = (v: number | null) =>
+  v === null ? "text-ink-500" : v > 0 ? "text-positive" : v < 0 ? "text-negative" : "text-ink-900";
+
+/** KPI de la banda superior: etiqueta fina y cifra tabular. */
 function Kpi({ label, value, hint, valueClass }: { label: string; value: string; hint: string; valueClass?: string }) {
   return (
-    <div className="flex min-w-0 flex-col justify-between gap-3 bg-white px-4 py-4 sm:px-5">
-      <p className="text-[10px] font-medium tracking-[0.12em] text-ink-500 uppercase">{label}</p>
+    <div className="flex min-w-0 flex-col justify-between gap-3 bg-app-card p-4 lg:p-5">
+      <p className="label-line">{label}</p>
       <div className="min-w-0">
-        <p
-          className={cn(
-            "truncate text-[24px] leading-none font-semibold tracking-tight text-ink-900 tabular-nums sm:text-[28px]",
-            valueClass,
-          )}
-        >
-          {value}
-        </p>
-        <p className="mt-1.5 truncate text-[11px] text-ink-500">{hint}</p>
+        <p className={cn("num truncate text-[26px] leading-none text-ink-900 lg:text-[30px]", valueClass)}>{value}</p>
+        <p className="mt-1.5 truncate text-[12px] text-ink-500">{hint}</p>
       </div>
     </div>
   );
 }
 
-/** d80: Resumen editorial. Carrusel + Mi portafolio, KPIs, Pulso/Consenso y alertas. */
+/** d80: Resumen editorial. KPIs, carrusel + Mi portafolio, Pulso/Consenso y alertas. */
 export async function ResumenView() {
   const supabase = await createClient();
   const [
@@ -134,7 +131,7 @@ export async function ResumenView() {
       subtitle: [CATEGORY_META[p.category].label, p.manager].filter(Boolean).join(" · "),
       changes: changesById.get(p.id)!,
       points: downsample(s.pts, 160),
-      asOf: s.pts.length ? s.pts[s.pts.length - 1].date.split("-").reverse().join("-") : null,
+      asOf: s.pts.length ? s.pts[s.pts.length - 1].date : null,
       estimated: s.estimated,
       top,
       holdingsLocked: isLocked(p),
@@ -188,7 +185,11 @@ export async function ResumenView() {
   const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
   const avgYtd = avg(ytds);
   const avgDay = avg(days);
-  const alerts7d = followedAlerts.filter((a) => Date.now() - new Date(a.created_at).getTime() <= 7 * DAY).length;
+  // Server Component: el corte "últimos 7 días" se calcula una vez por request,
+  // así que `Date.now()` no rompe idempotencia de render en el cliente.
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
+  const alerts7d = followedAlerts.filter((a) => now - new Date(a.created_at).getTime() <= 7 * DAY).length;
   const limit =
     profile?.plan === "elite" ? null : profile?.plan === "pro" ? PRO_PLAN_FOLLOW_LIMIT : FREE_PLAN_FOLLOW_LIMIT;
   const byId = new Map(all.map((p) => [p.id, p]));
@@ -201,51 +202,79 @@ export async function ResumenView() {
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      <header className="flex flex-col gap-4 border-b border-ink-200 pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
+      <header className="flex flex-col gap-4 border-b border-line pb-5 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="min-w-0">
-          {firstName && <p className="text-[12px] text-ink-500">Hola, {firstName}</p>}
-          <h1 className="mt-1 text-[34px] leading-[0.95] font-semibold tracking-[-0.04em] text-ink-900 sm:text-[42px]">
-            Resumen
-          </h1>
-          <p className="mt-2 max-w-md text-[13px] leading-relaxed text-ink-500">
+          {firstName && <p className="label-line">Hola, {firstName}</p>}
+          <h1 className="mt-1 text-app-display font-medium tracking-[-0.035em] text-ink-900">Resumen</h1>
+          <p className="mt-2 max-w-md text-[15px] leading-relaxed text-ink-500">
             Lo que movieron las carteras que sigues, en una sola vista.
           </p>
         </div>
-        <nav aria-label="Accesos rápidos" className="flex flex-wrap items-center gap-2">
+        <nav aria-label="Accesos rápidos" className="flex flex-wrap items-center gap-x-5 gap-y-2">
           <Link
             href="/app/explorar"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full border border-ink-200 px-3.5 text-[12px] font-medium text-ink-700 hover:border-ink-900 hover:text-ink-900"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
           >
             Explorar
-            <ArrowRight className="size-3.5" />
+            <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
           </Link>
           <Link
             href="/app/seguimiento"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ink-900 px-3.5 text-[12px] font-semibold text-white hover:bg-black"
+            className="inline-flex h-10 items-center gap-1.5 rounded-full bg-ink-900 px-4 text-[13px] font-medium text-white transition-colors hover:bg-black"
           >
             Seguimiento
-            <ArrowRight className="size-3.5" />
+            <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
           </Link>
         </nav>
       </header>
+
+      {followed.length > 0 && (
+        <section
+          aria-label="Indicadores de tus seguidos"
+          className="grid grid-cols-2 gap-px overflow-hidden border border-line bg-line sm:grid-cols-4"
+        >
+          <Kpi
+            label="Seguidos"
+            value={String(followed.length)}
+            hint={limit === null ? "Elite · sin límite" : `de ${limit} en tu plan`}
+          />
+          <Kpi
+            label="Promedio hoy"
+            value={avgDay === null ? "Sin dato" : formatSignedPct(avgDay, 2)}
+            hint={days.length ? `${days.length} de ${slides.length} con serie` : "Sin serie todavía"}
+            valueClass={changeTone(avgDay)}
+          />
+          <Kpi
+            label="Promedio YTD"
+            value={avgYtd === null ? "Sin dato" : formatSignedPct(avgYtd, 1)}
+            hint={ytds.length ? `${ytds.length} de ${slides.length} con serie` : "Sin serie todavía"}
+            valueClass={changeTone(avgYtd)}
+          />
+          <Kpi
+            label="Alertas 7 días"
+            value={String(alerts7d)}
+            hint="de tus seguidos"
+          />
+        </section>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6">
         {slides.length > 0 ? (
           <FollowedCarousel slides={slides} />
         ) : (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-app border border-ink-200 bg-white p-8 text-center">
-            <span className="flex size-12 items-center justify-center rounded-full border border-ink-200">
-              <Compass className="size-5 text-ink-700" strokeWidth={1.75} />
-            </span>
-            <p className="text-[17px] font-semibold text-ink-900">Sigue tu primer portafolio</p>
-            <p className="max-w-sm text-[12.5px] text-ink-500">
-              Aquí verás su gráfico, variación y principales posiciones.
+          <div className="app-panel flex flex-col justify-center gap-3 p-6 sm:p-8">
+            <p className="label-line">Tu seguimiento</p>
+            <h2 className="text-[20px] font-medium tracking-[-0.025em] text-ink-900">Sigue tu primer portafolio</h2>
+            <p className="max-w-md text-[13px] leading-relaxed text-ink-500">
+              Aquí verás su serie, su variación y sus principales posiciones. Con dos carteras empieza el cruce de
+              consenso.
             </p>
             <Link
               href="/app/explorar"
-              className="inline-flex h-10 items-center rounded-full bg-ink-900 px-4 text-[13px] font-semibold text-white hover:bg-black"
+              className="mt-1 inline-flex h-10 w-fit items-center gap-1.5 rounded-full bg-ink-900 px-4 text-[13px] font-medium text-white transition-colors hover:bg-black"
             >
               Explorar portafolios
+              <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
             </Link>
           </div>
         )}
@@ -253,31 +282,6 @@ export async function ResumenView() {
       </div>
 
       {onboarding.length > 0 && <OnboardingSuggestions suggestions={onboarding} isPro={isPro} />}
-
-      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-app border border-ink-200 bg-ink-200 lg:grid-cols-4">
-        <Kpi
-          label="Seguidos"
-          value={String(followed.length)}
-          hint={limit === null ? "Elite · sin límite" : `de ${limit} en tu plan`}
-        />
-        <Kpi
-          label="Promedio hoy"
-          value={avgDay === null ? "Sin dato" : formatSignedPct(avgDay, 2)}
-          hint={days.length ? `${days.length} de ${slides.length} con serie` : "Sin serie todavía"}
-          valueClass={avgDay === null ? "text-ink-400" : avgDay >= 0 ? "text-positive" : "text-negative"}
-        />
-        <Kpi
-          label="Promedio YTD"
-          value={avgYtd === null ? "Sin dato" : formatSignedPct(avgYtd, 1)}
-          hint={ytds.length ? `${ytds.length} de ${slides.length} con serie` : "Sin serie todavía"}
-          valueClass={avgYtd === null ? "text-ink-400" : avgYtd >= 0 ? "text-positive" : "text-negative"}
-        />
-        <Kpi
-          label="Alertas 7 días"
-          value={String(alerts7d)}
-          hint={followed.length ? "de tus seguidos" : "sin carteras seguidas"}
-        />
-      </div>
 
       {followed.length > 0 && (
         <FollowedPulse
@@ -289,74 +293,93 @@ export async function ResumenView() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6">
-        <section className="overflow-hidden rounded-app border border-ink-200 bg-white">
-          <div className="flex items-center justify-between gap-3 border-b border-ink-200 px-4 py-3.5 sm:px-5">
-            <h2 className="text-[17px] font-semibold tracking-tight text-ink-900">Últimas alertas</h2>
-            <Link href="/alerts" className="text-[12px] font-medium text-ink-700 hover:text-ink-900 hover:underline">
-              Ver todas
-            </Link>
+        <section className="app-panel overflow-hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-line px-4 py-3.5 sm:px-5">
+            <h2 className="text-[17px] font-medium tracking-[-0.02em] text-ink-900">Últimas alertas</h2>
+            {followedAlerts.length > 0 && (
+              <Link
+                href="/alerts"
+                className="text-[12px] font-medium text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
+              >
+                Ver todas
+              </Link>
+            )}
           </div>
           {followedAlerts.length > 0 ? (
-            <ul className="divide-y divide-ink-200">
+            <ul className="divide-y divide-line">
               {followedAlerts.slice(0, ALERTS_SHOWN).map((a) => {
                 const p = byId.get(a.portfolio_id);
-                const chip = CHIP[a.type];
+                const typeLabel = ALERT_LABEL[a.type];
                 return (
                   <li key={a.id}>
                     <Link
                       href={p ? `/app/portafolio/${p.slug}` : "/alerts"}
-                      className="block px-4 py-3 hover:bg-ink-50 sm:px-5"
+                      className="block px-4 py-3.5 transition-colors hover:bg-ink-50 sm:px-5"
                     >
-                      <div className="flex items-center gap-2 text-[11px] text-ink-500">
-                        {chip && (
-                          <span
-                            className={cn(
-                              "inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold tracking-wide uppercase",
-                              chip.cls,
-                            )}
-                          >
-                            {chip.label}
-                          </span>
+                      <div className="flex items-baseline gap-2 text-[11.5px] text-ink-500">
+                        {typeLabel && (
+                          <>
+                            <span className="shrink-0">{typeLabel}</span>
+                            <span aria-hidden="true" className="shrink-0 text-ink-500">
+                              ·
+                            </span>
+                          </>
                         )}
                         <span className="min-w-0 truncate font-medium text-ink-700">
                           {a.portfolio?.name ?? p?.name ?? "Portafolio"}
                         </span>
-                        <span className="ml-auto shrink-0 tabular-nums">{timeAgo(a.created_at)}</span>
+                        <span className="ml-auto shrink-0 text-ink-500 tabular-nums">{timeAgo(a.created_at)}</span>
                       </div>
-                      <p className="mt-1.5 line-clamp-1 text-[13.5px] font-medium text-ink-900">{a.title}</p>
+                      <p className="mt-1.5 line-clamp-2 text-[14px] leading-snug text-ink-900">{a.title}</p>
                     </Link>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="px-4 py-5 text-[12px] text-ink-500 sm:px-5">Sin alertas de tus seguidos todavía.</p>
+            <div className="px-4 py-6 sm:px-5">
+              <p className="text-[14px] font-medium text-ink-900">
+                {followed.length > 0 ? "Sin movimientos en tus seguidos" : "Todavía no sigues carteras"}
+              </p>
+              <p className="mt-1 max-w-md text-[13px] leading-relaxed text-ink-500">
+                {followed.length > 0
+                  ? "Cuando detectemos una compra, una venta o un cambio de peso en una cartera que sigues, aparecerá aquí y te llegará por correo."
+                  : "Sigue un portafolio y sus movimientos aparecerán aquí, con su tipo y su fecha."}
+              </p>
+              <Link
+                href={followed.length > 0 ? "/app/seguimiento" : "/app/explorar"}
+                className="mt-3 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-900 underline-offset-4 hover:underline"
+              >
+                {followed.length > 0 ? "Ver mis seguidos" : "Explorar portafolios"}
+                <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
+              </Link>
+            </div>
           )}
         </section>
 
-        <aside className="flex flex-col overflow-hidden rounded-app border border-ink-200 bg-white">
-          <div className="border-b border-ink-200 px-5 py-4">
-            <p className="text-[10px] font-medium tracking-[0.14em] text-ink-500 uppercase">Reglas de alerta</p>
-            <p className="mt-1 text-[17px] font-semibold tracking-tight text-ink-900">Qué te avisamos</p>
+        <aside className="app-panel flex flex-col overflow-hidden">
+          <div className="border-b border-line px-4 py-4 sm:px-5">
+            <p className="label-line">Reglas de alerta</p>
+            <h2 className="mt-1 text-[17px] font-medium tracking-[-0.02em] text-ink-900">Qué te avisamos</h2>
           </div>
-          <ul className="divide-y divide-ink-200">
+          <ul className="divide-y divide-line">
             {RULES.map((r, i) => (
-              <li key={r.title} className="flex gap-3 px-5 py-3">
-                <span className="mt-0.5 shrink-0 text-[10px] text-ink-400 tabular-nums">0{i + 1}</span>
+              <li key={r.title} className="flex gap-3 px-4 py-3 sm:px-5">
+                <span className="num mt-0.5 shrink-0 text-[11px] text-ink-500">0{i + 1}</span>
                 <div className="min-w-0">
-                  <p className="text-[12.5px] font-medium text-ink-900">{r.title}</p>
-                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-ink-500">{r.body}</p>
+                  <p className="text-[13px] font-medium text-ink-900">{r.title}</p>
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-ink-500">{r.body}</p>
                 </div>
               </li>
             ))}
           </ul>
-          <div className="mt-auto border-t border-ink-200 px-5 py-3">
+          <div className="mt-auto border-t border-line px-4 py-3 sm:px-5">
             <Link
               href="/settings"
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-ink-900 hover:underline"
+              className="inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-900 underline-offset-4 hover:underline"
             >
               Configurar reglas
-              <ArrowRight className="size-3.5" />
+              <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
             </Link>
           </div>
         </aside>

@@ -1,6 +1,7 @@
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { getHoldings, getPortfolioBySlug } from "@/lib/queries";
 import type { Holding } from "@/lib/types";
+import { formatShortDate } from "@/lib/utils";
 import type { SourcePanelProps } from "@/components/source-panels";
 
 type Cartera = {
@@ -121,12 +122,6 @@ function pesosDe(holdings: Holding[], respaldo: Record<string, number>) {
   );
 }
 
-function fechaCorta(fecha: string): string {
-  const [anio, mes, dia] = fecha.split("-");
-  if (!anio || !mes || !dia) return fecha;
-  return `${dia}-${mes}-${anio}`;
-}
-
 function porcentaje(peso: number | undefined): string {
   if (peso === undefined) return "—";
   return `${peso.toFixed(2).replace(".", ",")}%`;
@@ -158,103 +153,136 @@ export async function CorredorasClPanel({ slug }: SourcePanelProps) {
   ).sort((a, b) => (consenso[b] ?? 0) - (consenso[a] ?? 0) || a.localeCompare(b));
 
   return (
-    <section
-      id={`panel-${slug}`}
-      className="border-t border-ink-200 pt-8"
-    >
-      <div className="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 className="text-[15px] font-medium text-ink-900">
+    <section id={`panel-${slug}`} className="border-t border-line pt-8">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <h2 className="text-[20px] font-medium tracking-[-0.02em] text-ink-900">
           Consenso de corredoras
         </h2>
-        <p className="text-[12px] text-ink-500">
+        <p className="text-[13px] text-ink-500">
           Carteras completas al corte. Pesos publicados, sin renormalizar.
         </p>
       </div>
 
-      <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[680px] border-collapse text-[13px]">
-          <thead>
-            <tr className="border-b border-ink-900 text-left">
-              <th className="py-2 pr-4 font-normal text-ink-500">Acción</th>
-              {carteras.map((cartera) => (
-                <th
-                  key={cartera.slug}
-                  className="px-3 py-2 text-right font-normal text-ink-900"
-                >
-                  <span className="block">{cartera.corredora}</span>
-                  <span className="mt-0.5 block text-[11px] font-normal text-ink-500">
-                    {fechaCorta(cartera.fecha)} ·{" "}
-                    <a
-                      href={cartera.pdf}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-4"
-                    >
-                      PDF
-                    </a>
-                  </span>
-                </th>
-              ))}
-              <th className="px-3 py-2 text-right font-normal text-ink-900">
-                <span className="block">Consenso</span>
-                <span className="mt-0.5 block text-[11px] font-normal text-ink-500">
-                  promedio BICE + MBI
-                </span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {simbolos.map((symbol) => (
-              <tr key={symbol} className="border-b border-ink-100">
-                <th scope="row" className="py-2 pr-4 text-left font-normal">
-                  <span className="block text-ink-900">{symbol}</span>
-                  <span className="block text-[11px] text-ink-500">
-                    {NOMBRES[symbol] ?? symbol}
-                  </span>
-                </th>
-                {carteras.map((cartera) => (
-                  <td
-                    key={cartera.slug}
-                    className="px-3 py-2 text-right tabular-nums text-ink-900"
+      {simbolos.length === 0 ? (
+        <p className="mt-6 border-t border-line pt-4 text-[15px] leading-relaxed text-ink-500">
+          Todavía no hay carteras publicadas para este corte.
+        </p>
+      ) : (
+        <>
+          <div
+            className="mt-6 overflow-x-auto"
+            role="region"
+            aria-label="Pesos por corredora"
+            tabIndex={0}
+          >
+            <table className="w-full min-w-[34rem] border-collapse text-left">
+              <caption className="sr-only">
+                Peso de cada acción en la cartera de cada corredora y en el
+                consenso.
+              </caption>
+              <thead>
+                <tr className="border-b border-ink-900">
+                  <th
+                    scope="col"
+                    className="w-[30%] py-2 pr-4 text-[13px] font-normal text-ink-500"
                   >
-                    {porcentaje(cartera.pesos[symbol])}
-                  </td>
+                    Acción
+                  </th>
+                  {carteras.map((cartera) => (
+                    <th
+                      key={cartera.slug}
+                      scope="col"
+                      className="px-3 py-2 text-right align-bottom text-[13px] font-normal text-ink-900"
+                    >
+                      <span className="block">{cartera.corredora}</span>
+                      <span className="mt-0.5 block text-[12px] font-normal text-ink-500">
+                        {formatShortDate(cartera.fecha)} ·{" "}
+                        <a
+                          href={cartera.pdf}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-4"
+                        >
+                          PDF
+                        </a>
+                      </span>
+                    </th>
+                  ))}
+                  <th
+                    scope="col"
+                    className="px-3 py-2 text-right align-bottom text-[13px] font-normal text-ink-900"
+                  >
+                    <span className="block">Consenso</span>
+                    <span className="mt-0.5 block text-[12px] font-normal text-ink-500">
+                      promedio BICE + MBI
+                    </span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {simbolos.map((symbol) => (
+                  <tr key={symbol} className="border-b border-line">
+                    <th scope="row" className="py-2.5 pr-4 text-left font-normal">
+                      <span className="block text-[14px] text-ink-900">{symbol}</span>
+                      <span className="block text-[13px] text-ink-500">
+                        {NOMBRES[symbol] ?? symbol}
+                      </span>
+                    </th>
+                    {carteras.map((cartera) => (
+                      <td
+                        key={cartera.slug}
+                        className={
+                          "num whitespace-nowrap px-3 py-2.5 text-right text-[14px] " +
+                          (cartera.pesos[symbol] === undefined
+                            ? "text-ink-500"
+                            : "text-ink-900")
+                        }
+                      >
+                        {porcentaje(cartera.pesos[symbol])}
+                      </td>
+                    ))}
+                    <td className="num whitespace-nowrap px-3 py-2.5 text-right text-[14px] font-medium text-ink-900">
+                      {porcentaje(consenso[symbol])}
+                    </td>
+                  </tr>
                 ))}
-                <td className="px-3 py-2 text-right font-medium tabular-nums text-ink-900">
-                  {porcentaje(consenso[symbol])}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-[13px] text-ink-500 sm:hidden">
+            Desliza la tabla para ver todas las corredoras.
+          </p>
+        </>
+      )}
 
-      <div className="mt-8 border-t border-ink-200 pt-4">
-        <h3 className="text-[13px] font-medium text-ink-900">
+      <div className="mt-8 border-t border-line pt-4">
+        <h3 className="text-[15px] font-medium text-ink-900">
           Referencia: carteras parciales (no entran al consenso)
         </h3>
-        <p className="mt-1 text-[12px] leading-relaxed text-ink-500">
+        <p className="mt-1 text-[13px] leading-relaxed text-ink-500">
           De estas corredoras solo se conocen algunos pesos por prensa. No se
           promedian hasta tener el PDF original con la cartera completa.
         </p>
-        <ul className="mt-3 space-y-3">
+        <ul className="mt-4 border-t border-line">
           {PARCIALES.map((parcial) => (
             <li
               key={parcial.corredora}
-              className="border-t border-ink-100 pt-3 text-[12px] leading-relaxed"
+              className="border-b border-line py-3 text-[13px] leading-relaxed"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <span className="font-medium text-ink-900">{parcial.corredora}</span>
+                <span className="text-[15px] font-medium text-ink-900">
+                  {parcial.corredora}
+                </span>
                 <a
                   href={parcial.fuente}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ink-500 underline underline-offset-4"
+                  className="text-ink-900 underline underline-offset-4"
                 >
                   Fuente
                 </a>
               </div>
-              <p className="mt-1 tabular-nums text-ink-900">
+              <p className="num mt-1 text-ink-900">
                 {Object.entries(parcial.pesos)
                   .map(([symbol, peso]) => `${symbol} ${porcentaje(peso)}`)
                   .join(" · ")}

@@ -11,15 +11,18 @@ export function formatMoney(value: number | null, currency: string): string {
   const [integer, fraction] = fixed.split(".");
   const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
   const prefix = currency === "USD" ? "US$" : "$";
-  const sign = value < 0 ? "-" : "";
+  // Un valor que redondea a cero no se muestra como negativo ("−$0").
+  const sign = value < 0 && Number(fixed) !== 0 ? "\u2212" : "";
   return `${sign}${prefix}${grouped}${fraction ? `,${fraction}` : ""}`;
 }
 
 /** Porcentaje con un decimal: 12.34 → "12,3%"; con signo → "+12,3%". */
 export function formatPercent(value: number | null, signed = false): string {
   if (value === null || !Number.isFinite(value)) return "—";
-  const rounded = Math.abs(value).toFixed(1).replace(".", ",");
-  const sign = value < 0 ? "\u2212" : signed && value > 0 ? "+" : "";
+  const roundedValue = Number(value.toFixed(1));
+  const rounded = Math.abs(roundedValue).toFixed(1).replace(".", ",");
+  const sign =
+    roundedValue < 0 ? "\u2212" : roundedValue > 0 && signed ? "+" : "";
   return `${sign}${rounded}%`;
 }
 

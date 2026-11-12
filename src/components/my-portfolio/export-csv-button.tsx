@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ValuedPositionRow } from "@/components/my-portfolio/types";
@@ -47,6 +48,14 @@ function buildCsv(rows: ValuedPositionRow[]): string {
   return [header.join(","), ...lines].join("\n");
 }
 
+/** Nombre del archivo con la fecha local, para distinguir exportaciones. */
+function fileNameFor(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `mi-portafolio-${year}-${month}-${day}.csv`;
+}
+
 /**
  * Exportación CSV de Mi portafolio. Solo Elite (`portfolioExportCsv` en
  * plans.ts). Para el resto queda deshabilitado con la razón visible.
@@ -61,43 +70,65 @@ export function ExportCsvButton({
   rows: ValuedPositionRow[];
   enabled: boolean;
 }) {
-  function handleExport() {
-    if (!enabled || rows.length === 0) return;
-    const blob = new Blob([`\uFEFF${buildCsv(rows)}`], {
-      type: "text/csv;charset=utf-8",
+  const [generating, setGenerating] = useState(false);
+  const [status, setStatus] = useState("");
+
+  async function handleExport() {
+    if (!enabled || rows.length === 0 || generating) return;
+    setGenerating(true);
+    setStatus("Generando el CSV…");
+    // Cede un frame para que el estado "Generando" se pinte antes del trabajo.
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
     });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = "mi-portafolio.csv";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    try {
+      const fileName = fileNameFor(new Date());
+      const blob = new Blob([`\uFEFF${buildCsv(rows)}`], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      // Revocar de inmediato puede cancelar la descarga en algunos navegadores.
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setStatus(`Descargamos ${fileName}`);
+    } catch {
+      setStatus("No pudimos generar el archivo. Inténtalo de nuevo.");
+    } finally {
+      setGenerating(false);
+    }
   }
 
+  const blockedReason = !enabled
+    ? "La exportación CSV está disponible en Elite."
+    : rows.length === 0
+      ? "Aún no hay posiciones para exportar."
+      : "";
+
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
       <Button
         type="button"
         variant="outline"
         size="sm"
-        onClick={handleExport}
-        disabled={!enabled || rows.length === 0}
-        title={
-          enabled
-            ? "Descarga tu cartera valorizada en CSV"
-            : "La exportación CSV está disponible en Elite."
-        }
+        onClick={() => void handleExport()}
+        disabled={!enabled || rows.length === 0 || generating}
+        aria-busy={generating || undefined}
+        title={blockedReason || "Descarga tu cartera valorizada en CSV"}
       >
-        <Download className="size-4" strokeWidth={1.5} />
-        Exportar CSV
+        <Download className="size-4" strokeWidth={1.5} aria-hidden />
+        {generating ? "Generando…" : "Exportar CSV"}
       </Button>
-      {!enabled && (
-        <span className="text-[12px] text-ink-500">
-          Disponible en Elite.
-        </span>
+      {blockedReason && (
+        <span className="text-[12px] leading-snug text-ink-500">{blockedReason}</span>
       )}
+      <span role="status" className="text-[12px] leading-snug text-ink-500">
+        {status}
+      </span>
     </div>
   );
 }

@@ -20,7 +20,7 @@ export function PageHeader({
         {eyebrow ? <p className="label-line">{eyebrow}</p> : null}
         <h1
           className={cn(
-            "text-[28px] font-medium leading-[1.06] tracking-[-0.035em] text-ink-900 sm:text-[34px]",
+            "text-app-display font-medium tracking-[-0.04em] text-ink-900",
             eyebrow && "mt-1.5",
           )}
         >

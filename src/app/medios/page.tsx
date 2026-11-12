@@ -25,15 +25,16 @@ export const metadata: Metadata = withSeo("/medios", {
  *
  * Cada widget muestra su código de iframe listo para copiar, una vista
  * previa en vivo y las condiciones de uso. Todos llevan la atribución
- * "Datos de reclu.cl" dentro del propio iframe, así que la atribución
+ * "Datos de fraccion.si" dentro del propio iframe, así que la atribución
  * sobrevive aunque el medio no agregue un crédito aparte.
  *
- * Los widgets con datos de funcionarios de EE.UU. (insiders, ranking) son
- * gratis para cualquier medio. Los informes oficiales siguen públicos en los
- * sitios del gobierno (5 U.S.C. § 13107); en fraccion.si, las posiciones
- * reconstruidas de esas declaraciones son para suscriptores.
- * Ningún widget usa datos personales de InfoProbidad ni da recomendaciones
- * personalizadas (Ley Fintec).
+ * Los widgets muestran solo datos agregados (pesos promedio, retornos y
+ * compras de insiders), no posiciones individuales. En fraccion.si las
+ * posiciones reconstruidas de fondos, ETF y funcionarios son para
+ * suscriptores; los informes oficiales siguen públicos y gratis en los
+ * sitios de la Cámara, el Senado y la OGE. Ningún widget usa datos
+ * personales de InfoProbidad ni da recomendaciones personalizadas (Ley
+ * Fintec).
  */
 export default function MediosPage() {
   const baseUrl = siteUrl();
@@ -55,15 +56,11 @@ export default function MediosPage() {
           </p>
 
           <p className="mt-6 text-[14px] leading-relaxed text-ink-600">
-            Los widgets con datos de funcionarios de EE.UU.{" "}
-            <Link
-              href="/disclaimer"
-              className="text-ink-900 underline underline-offset-4"
-            >
-              son públicos y gratis
-            </Link>
-            . El resto es información pública agregada, no recomendaciones de
-            inversión.
+            Los informes oficiales de EE.UU. son públicos y gratis en los sitios
+            de la Cámara, el Senado y la OGE. En fraccion.si, las posiciones
+            reconstruidas a partir de ellos son para suscriptores: estos widgets
+            muestran datos agregados, no posiciones individuales. El resto es
+            información pública agregada, no recomendaciones de inversión.
           </p>
 
           <ol className="mt-14 space-y-14">
@@ -86,12 +83,14 @@ export default function MediosPage() {
               </p>
               <p>
                 <strong className="font-medium text-ink-900">
-                  Gratuidad de datos de EE.UU.
+                  Datos de EE.UU.
                 </strong>{" "}
-                Los widgets con declaraciones de funcionarios de EE.UU.
-                (insiders, ranking) son gratis para cualquier medio. Los informes
-                oficiales siguen públicos en los sitios del gobierno, conforme a{" "}
-                <span className="num">5 U.S.C. § 13107</span>.
+                Los informes oficiales de la Cámara, el Senado y la OGE son
+                públicos y gratis en sus sitios (
+                <span className="num">5 U.S.C. § 13107</span>). fraccion.si no
+                redistribuye posiciones de funcionarios: en la plataforma son
+                para suscriptores, y los widgets de este catálogo no publican
+                posiciones individuales.
               </p>
               <p>
                 <strong className="font-medium text-ink-900">

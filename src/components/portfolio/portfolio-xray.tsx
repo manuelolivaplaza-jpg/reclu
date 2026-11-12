@@ -48,10 +48,10 @@ export interface PortfolioXrayProps {
 /** Escala de negros para los tramos de la barra (máximo 5 posiciones). */
 const SEGMENT_TONES = [
   "bg-ink-900",
-  "bg-ink-700",
-  "bg-ink-500",
-  "bg-ink-400",
-  "bg-ink-300",
+  "bg-ink-900/80",
+  "bg-ink-900/65",
+  "bg-ink-900/50",
+  "bg-ink-900/35",
 ] as const;
 
 function tickerOf(holding: XrayHolding): string {
@@ -222,11 +222,13 @@ export function PortfolioXray({
   return (
     <section
       id="radiografia"
-      aria-label="Radiografía de concentración y movimientos"
-      className="mb-12 scroll-mt-28 rounded-none border border-ink-200 bg-white p-5 sm:p-7"
+      aria-labelledby="radiografia-title"
+      className="app-panel mb-12 scroll-mt-28 p-5 sm:p-7"
     >
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-200 pb-3">
-        <h2 className="text-[15px] font-medium text-ink-900">Radiografía</h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line pb-3">
+        <h2 id="radiografia-title" className="text-[15px] font-medium text-ink-900">
+          Radiografía
+        </h2>
         <p className="text-[12px] text-ink-500">Concentración y movimientos del último corte</p>
       </div>
 
@@ -248,8 +250,8 @@ export function PortfolioXray({
               </div>
 
               {/* Barra monocroma: un tramo por posición visible (máx. 5). */}
-              <div className="mt-4" aria-hidden="true">
-                <div className="flex h-2.5 w-full overflow-hidden bg-ink-100">
+              <div className="mt-4">
+                <div aria-hidden="true" className="flex h-2.5 w-full overflow-hidden bg-ink-100">
                   {segments.map((segment, index) => (
                     <span
                       key={`${segment.holding.symbol}-${index}`}
@@ -261,7 +263,9 @@ export function PortfolioXray({
                 <p className="mt-2 text-[12px] leading-relaxed text-ink-500">
                   Cada tramo es una posición visible, de mayor a menor peso.
                   {remainder >= 0.5
-                    ? " El tramo claro es lo que la fuente no declara o queda fuera de la vista."
+                    ? isPartialTop
+                      ? " El tramo claro es lo que queda fuera de tu plan o la fuente no declara."
+                      : " El tramo claro es lo que la fuente no declara."
                     : ""}
                 </p>
               </div>
@@ -280,12 +284,12 @@ export function PortfolioXray({
               {top3 !== null || top5 !== null ? (
                 <div
                   className={
-                    "mt-5 grid gap-px border border-ink-200 bg-ink-200 " +
+                    "mt-5 grid gap-px border border-line bg-line " +
                     (top3 !== null && top5 !== null ? "grid-cols-2" : "grid-cols-1")
                   }
                 >
                   {top3 !== null ? (
-                    <div className="bg-white p-3.5">
+                    <div className="bg-app-card p-3.5">
                       <p className="text-[12px] text-ink-500">Top 3 acumulado</p>
                       <p className="num mt-1 text-[17px] leading-none text-ink-900">
                         {formatPctPlain(top3, 1)}
@@ -293,7 +297,7 @@ export function PortfolioXray({
                     </div>
                   ) : null}
                   {top5 !== null ? (
-                    <div className="bg-white p-3.5">
+                    <div className="bg-app-card p-3.5">
                       <p className="text-[12px] text-ink-500">Top 5 acumulado</p>
                       <p className="num mt-1 text-[17px] leading-none text-ink-900">
                         {formatPctPlain(top5, 1)}
@@ -326,10 +330,10 @@ export function PortfolioXray({
             <div className="mt-3 grid gap-6 sm:grid-cols-2">
               {ups.length > 0 ? (
                 <div>
-                  <p className="text-[12px] text-ink-500">Mayores alzas de peso</p>
-                  <ul className="mt-1 border-t border-ink-200">
+                  <h3 className="text-[12px] font-normal text-ink-500">Mayores alzas de peso</h3>
+                  <ul className="mt-1 border-t border-line">
                     {ups.map((move) => (
-                      <li key={`up-${move.holding.symbol}`} className="border-b border-ink-200">
+                      <li key={`up-${move.holding.symbol}`} className="border-b border-line">
                         <MoveRow move={move} tone="text-positive" />
                       </li>
                     ))}
@@ -338,10 +342,10 @@ export function PortfolioXray({
               ) : null}
               {downs.length > 0 ? (
                 <div>
-                  <p className="text-[12px] text-ink-500">Mayores recortes de peso</p>
-                  <ul className="mt-1 border-t border-ink-200">
+                  <h3 className="text-[12px] font-normal text-ink-500">Mayores recortes de peso</h3>
+                  <ul className="mt-1 border-t border-line">
                     {downs.map((move) => (
-                      <li key={`down-${move.holding.symbol}`} className="border-b border-ink-200">
+                      <li key={`down-${move.holding.symbol}`} className="border-b border-line">
                         <MoveRow move={move} tone="text-negative" />
                       </li>
                     ))}
@@ -350,7 +354,7 @@ export function PortfolioXray({
               ) : null}
             </div>
           ) : hasChangeData ? (
-            <div className="mt-3 border-t border-ink-200 pt-3">
+            <div className="mt-3 border-t border-line pt-3">
               <p className="text-[15px] leading-snug text-ink-900">
                 Sin variaciones de peso en este corte.
               </p>
@@ -360,7 +364,7 @@ export function PortfolioXray({
               </p>
             </div>
           ) : (
-            <div className="mt-3 border-t border-ink-200 pt-3">
+            <div className="mt-3 border-t border-line pt-3">
               <p className="text-[15px] leading-snug text-ink-900">
                 Aún no hay un corte anterior con el que comparar.
               </p>
@@ -374,10 +378,9 @@ export function PortfolioXray({
       </div>
 
       {/* 3) Cómo leer esta fuente */}
-      <p className="mt-8 border-t border-ink-200 pt-4 text-[12px] leading-relaxed text-ink-500">
+      <p className="mt-8 border-t border-line pt-4 text-[12px] leading-relaxed text-ink-500">
         <span className="font-medium text-ink-900">Cómo leer esta fuente.</span>{" "}
-        {xraySourceNote(source)} Información pública con fines informativos: no es
-        asesoría de inversión.
+        {xraySourceNote(source)}
       </p>
     </section>
   );
@@ -398,11 +401,11 @@ function MoveRow({
       className="group flex items-center justify-between gap-3 py-2.5"
     >
       <span className="min-w-0">
-        <span className="block truncate text-[14px] font-medium text-ink-900 underline-offset-4 group-hover:underline">
+        <span className="block break-words text-[14px] font-medium text-ink-900 underline-offset-4 group-hover:underline">
           {tickerOf(move.holding)}
         </span>
         {name ? (
-          <span className="block truncate text-[12px] leading-snug text-ink-500">{name}</span>
+          <span className="block line-clamp-2 text-[12px] leading-snug text-ink-500">{name}</span>
         ) : null}
       </span>
       <span className={"num shrink-0 text-[14px] " + tone}>

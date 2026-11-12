@@ -39,7 +39,9 @@ export interface FollowedPulseProps {
   followedCount: number;
 }
 
-const pctTone = (v: number | null) => (v === null ? "text-ink-400" : v >= 0 ? "text-positive" : "text-negative");
+/** Verde y rojo solo en cifras; cero y sin dato quedan en tinta neutra. */
+const pctTone = (v: number | null) =>
+  v === null ? "text-ink-500" : v > 0 ? "text-positive" : v < 0 ? "text-negative" : "text-ink-700";
 
 /**
  * Pulso y Consenso de tus Seguidos.
@@ -75,29 +77,33 @@ export function FollowedPulse({ consensus, movers, unlockedCount, followedCount 
 
   return (
     <section aria-label="Pulso y consenso de tus seguidos" className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-6">
-      <div className="overflow-hidden rounded-app border border-ink-200 bg-white">
-        <header className="flex flex-wrap items-end justify-between gap-x-3 gap-y-1 border-b border-ink-200 px-4 py-4 sm:px-5">
+      <div className="app-panel overflow-hidden">
+        <header className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1.5 border-b border-line px-4 py-4 sm:px-5">
           <div className="min-w-0">
-            <p className="text-[10px] font-medium tracking-[0.14em] text-ink-500 uppercase">Pulso de tus seguidos</p>
-            <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-ink-900 sm:text-[20px]">Consenso</h2>
+            <p className="label-line">Pulso de tus seguidos</p>
+            <h2 className="mt-1 text-[18px] font-medium tracking-[-0.02em] text-ink-900 sm:text-[20px]">Consenso</h2>
           </div>
-          <p className="text-[11px] text-ink-500 tabular-nums">
-            {unlockedCount} de {followedCount} {followedCount === 1 ? "cartera" : "carteras"} con posiciones visibles
+          <p className="text-[12px] text-ink-500 tabular-nums">
+            {unlockedCount === followedCount
+              ? `${followedCount} ${followedCount === 1 ? "cartera" : "carteras"} con posiciones visibles`
+              : `${unlockedCount} de ${followedCount} ${followedCount === 1 ? "cartera" : "carteras"} con posiciones visibles`}
           </p>
         </header>
 
         {consensus.length > 0 ? (
           <>
-            <ol className="divide-y divide-ink-200">
+            <ol className="divide-y divide-line">
               {consensus.map((c, i) => (
                 <li key={c.symbol} className="px-4 py-3.5 sm:px-5">
                   <div className="flex items-start gap-3">
-                    <span className="mt-0.5 w-5 shrink-0 text-[11px] text-ink-400 tabular-nums">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="num mt-0.5 w-5 shrink-0 text-[11px] text-ink-500">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                         <Link
                           href={`/accion/${encodeURIComponent(c.symbol.toLowerCase())}`}
-                          className="text-[14px] font-semibold tracking-tight text-ink-900 hover:underline"
+                          className="text-[14px] font-medium tracking-[-0.01em] text-ink-900 underline-offset-4 hover:underline"
                         >
                           {c.symbol}
                         </Link>
@@ -105,10 +111,13 @@ export function FollowedPulse({ consensus, movers, unlockedCount, followedCount 
                       </div>
 
                       <div className="mt-2 flex items-center gap-2.5">
-                        <div className="h-0.5 min-w-0 flex-1 bg-ink-100" aria-hidden="true">
-                          <div className="h-0.5 bg-ink-900" style={{ width: `${Math.max(1, Math.min(100, c.avgWeight))}%` }} />
+                        <div className="h-px min-w-0 flex-1 bg-ink-100" aria-hidden="true">
+                          <div
+                            className="h-px bg-ink-900"
+                            style={{ width: `${Math.max(1, Math.min(100, c.avgWeight))}%` }}
+                          />
                         </div>
-                        <span className="shrink-0 text-[10px] text-ink-500 tabular-nums">
+                        <span className="shrink-0 text-[11px] text-ink-500 tabular-nums">
                           {c.count} {c.count === 1 ? "cartera" : "carteras"}
                         </span>
                       </div>
@@ -118,10 +127,10 @@ export function FollowedPulse({ consensus, movers, unlockedCount, followedCount 
                           <li key={p.slug} className="min-w-0">
                             <Link
                               href={`/app/portafolio/${p.slug}`}
-                              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-ink-200 px-2 py-0.5 text-[10px] text-ink-600 hover:border-ink-900 hover:text-ink-900"
+                              className="inline-flex max-w-full items-center gap-1.5 border border-line px-2 py-1 text-[11px] text-ink-500 underline-offset-4 transition-colors hover:border-ink-900 hover:text-ink-900"
                             >
                               <span className="min-w-0 truncate">{p.name}</span>
-                              <span className="shrink-0 font-semibold text-ink-900 tabular-nums">{formatPctPlain(p.weight, 1)}</span>
+                              <span className="num shrink-0 text-ink-900">{formatPctPlain(p.weight, 1)}</span>
                             </Link>
                           </li>
                         ))}
@@ -129,14 +138,14 @@ export function FollowedPulse({ consensus, movers, unlockedCount, followedCount 
                     </div>
 
                     <div className="shrink-0 text-right">
-                      <p className="text-[15px] font-semibold text-ink-900 tabular-nums">{formatPctPlain(c.avgWeight, 1)}</p>
-                      <p className="mt-0.5 text-[9px] tracking-wide text-ink-500 uppercase">peso medio</p>
+                      <p className="num text-[15px] text-ink-900">{formatPctPlain(c.avgWeight, 1)}</p>
+                      <p className="mt-0.5 label-line">peso medio</p>
                     </div>
                   </div>
                 </li>
               ))}
             </ol>
-            <p className="border-t border-ink-200 px-4 py-2.5 text-[11px] leading-relaxed text-ink-500 sm:px-5">
+            <p className="border-t border-line px-4 py-2.5 text-[11.5px] leading-relaxed text-ink-500 sm:px-5">
               {unlockedCount > 15
                 ? `Cruce sobre las primeras 15 de ${unlockedCount} carteras con posiciones visibles en tu plan.`
                 : `Cruce sobre ${unlockedCount} ${unlockedCount === 1 ? "cartera" : "carteras"} con posiciones visibles en tu plan.`}
@@ -146,32 +155,32 @@ export function FollowedPulse({ consensus, movers, unlockedCount, followedCount 
         ) : unlockedCount < 2 ? (
           <div className="px-4 py-5 sm:px-5">
             <p className="text-[14px] font-medium text-ink-900">Aún no hay cruce de carteras</p>
-            <p className="mt-1 max-w-xl text-[12.5px] leading-relaxed text-ink-500">
+            <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-ink-500">
               Cuando sigas 2 o más carteras con posiciones abiertas en tu plan, aquí aparece automáticamente el cruce de
               acciones en común, qué carteras coinciden en cada una y su peso medio.
             </p>
-            <p className="mt-2 text-[11px] text-ink-400">
+            <p className="mt-2 text-[12px] text-ink-500 tabular-nums">
               Sigues {followedCount} {followedCount === 1 ? "cartera" : "carteras"}. Con posiciones visibles en tu plan:{" "}
               {unlockedCount}.
             </p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
               <Link
                 href="/app/explorar"
-                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ink-900 px-4 text-[12px] font-semibold text-white hover:bg-black"
+                className="inline-flex h-9 items-center gap-1.5 rounded-full bg-ink-900 px-4 text-[12px] font-medium text-white transition-colors hover:bg-black"
               >
                 Explorar carteras
-                <ArrowRight className="size-3.5" />
+                <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
               </Link>
               <Link
                 href="/compare"
-                className="inline-flex h-9 items-center gap-1.5 rounded-full border border-ink-200 px-4 text-[12px] font-medium text-ink-700 hover:border-ink-900 hover:text-ink-900"
+                className="text-[12px] font-medium text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
               >
                 Comparar carteras
               </Link>
               {unlockedCount < followedCount && (
                 <Link
                   href="/upgrade"
-                  className="inline-flex h-9 items-center rounded-full border border-ink-900 px-4 text-[12px] font-medium text-ink-900 hover:bg-ink-50"
+                  className="text-[12px] font-medium text-ink-700 underline-offset-4 hover:text-ink-900 hover:underline"
                 >
                   Ver planes
                 </Link>
@@ -181,70 +190,109 @@ export function FollowedPulse({ consensus, movers, unlockedCount, followedCount 
         ) : (
           <div className="px-4 py-5 sm:px-5">
             <p className="text-[14px] font-medium text-ink-900">Sin acciones en común</p>
-            <p className="mt-1 max-w-xl text-[12.5px] leading-relaxed text-ink-500">
-              Las {unlockedCount} carteras con posiciones visibles en tu plan no comparten tickers todavía. Cuando dos o
+            <p className="mt-1 max-w-xl text-[13px] leading-relaxed text-ink-500">
+              Las {unlockedCount} carteras con posiciones visibles en tu plan no comparten acciones todavía. Cuando dos o
               más coincidan, el cruce aparece aquí solo.
             </p>
-            <p className="mt-2 text-[11px] text-ink-400">Sin coincidencias entre las posiciones visibles.</p>
+            {unlockedCount < followedCount ? (
+              <p className="mt-2 text-[12px] text-ink-500">Las carteras con posiciones bloqueadas no se incluyen.</p>
+            ) : null}
+            <Link
+              href="/app/explorar"
+              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-900 underline-offset-4 hover:underline"
+            >
+              Explorar más carteras
+              <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
+            </Link>
           </div>
         )}
       </div>
 
-      <div className="overflow-hidden rounded-app border border-ink-200 bg-white">
-        <header className="flex items-end justify-between gap-2 border-b border-ink-200 px-4 py-4">
+      <div className="app-panel overflow-hidden">
+        <header className="flex items-end justify-between gap-2 border-b border-line px-4 py-4">
           <div className="min-w-0">
-            <p className="text-[10px] font-medium tracking-[0.14em] text-ink-500 uppercase">Pulso</p>
-            <h2 className="mt-1 text-[18px] font-semibold tracking-tight text-ink-900 sm:text-[20px]">Mejor y rezagado</h2>
+            <p className="label-line">Pulso</p>
+            <h2 className="mt-1 text-[18px] font-medium tracking-[-0.02em] text-ink-900 sm:text-[20px]">
+              Mejor y rezagado
+            </h2>
           </div>
-          <span className="pb-0.5 text-[11px] text-ink-500 tabular-nums">{movers.length} con serie</span>
+          <span className="pb-0.5 text-[12px] text-ink-500 tabular-nums">{movers.length} con serie</span>
         </header>
 
         {movers.length === 0 ? (
           <div className="px-4 py-5">
-            <p className="text-[13px] text-ink-500">
+            <p className="text-[13px] leading-relaxed text-ink-500">
               Sin serie para tus carteras visibles todavía. Cuando haya cierres, aquí verás el mejor y el más rezagado
               del día y de lo que va del año.
             </p>
-            <p className="mt-2 text-[11px] text-ink-400">Las carteras bloqueadas no se incluyen.</p>
+            {unlockedCount < followedCount ? (
+              <p className="mt-2 text-[12px] text-ink-500">Las carteras bloqueadas no se incluyen.</p>
+            ) : null}
+            <Link
+              href="/app/seguimiento"
+              className="mt-3 inline-flex items-center gap-1.5 text-[12px] font-medium text-ink-900 underline-offset-4 hover:underline"
+            >
+              Ver mis seguidos
+              <ArrowRight aria-hidden="true" className="size-3.5" strokeWidth={1.5} />
+            </Link>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 divide-x divide-ink-200 border-b border-ink-200">
+            <div className="grid grid-cols-2 divide-x divide-line border-b border-line">
               <PulseLead label="Mejor hoy" mover={bestDay} metric="day" />
               <PulseLead label="Rezagado hoy" mover={worstDay} metric="day" />
             </div>
-            <div className="grid grid-cols-2 divide-x divide-ink-200 border-b border-ink-200">
+            <div className="grid grid-cols-2 divide-x divide-line border-b border-line">
               <PulseLead label="Mejor YTD" mover={bestYtd} metric="ytd" />
               <PulseLead label="Rezagado YTD" mover={worstYtd} metric="ytd" />
             </div>
 
-            <div className="flex items-center gap-2 px-4 pt-3 pb-1.5 text-[9px] font-medium tracking-[0.1em] text-ink-400 uppercase">
+            <div
+              aria-hidden="true"
+              className="flex items-center gap-2 px-4 pt-3 pb-1.5 text-[11px] text-ink-500"
+            >
               <span className="w-4 shrink-0">#</span>
               <span className="min-w-0 flex-1">Cartera</span>
               <span className="w-[52px] shrink-0 text-right">1D</span>
               <span className="w-[52px] shrink-0 text-right">YTD</span>
             </div>
-            <ol className="divide-y divide-ink-200">
+            <ol className="divide-y divide-line">
               {shown.map((m, i) => (
                 <li key={m.id}>
-                  <Link href={`/app/portafolio/${m.slug}`} className="flex items-center gap-2 px-4 py-2.5 hover:bg-ink-50">
-                    <span className="w-4 shrink-0 text-[10px] text-ink-400 tabular-nums">{i + 1}</span>
+                  <Link
+                    href={`/app/portafolio/${m.slug}`}
+                    className="flex items-center gap-2 px-4 py-2.5 transition-colors hover:bg-ink-50"
+                  >
+                    <span className="num w-4 shrink-0 text-[11px] text-ink-500">{i + 1}</span>
                     <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium text-ink-900">{m.name}</span>
-                    <span className={cn("w-[52px] shrink-0 text-right text-[11.5px] font-semibold tabular-nums", pctTone(m.day))}>
-                      {m.day === null ? <span className="text-[9px] font-normal">Sin dato</span> : formatSignedPct(m.day, 2)}
+                    <span className={cn("w-[52px] shrink-0 text-right text-[11.5px]", pctTone(m.day))}>
+                      <span className="sr-only">1D: </span>
+                      {m.day === null ? (
+                        <span className="text-[11px]">Sin dato</span>
+                      ) : (
+                        <span className="num">{formatSignedPct(m.day, 2)}</span>
+                      )}
                     </span>
-                    <span className={cn("w-[52px] shrink-0 text-right text-[11.5px] tabular-nums", pctTone(m.ytd))}>
-                      {m.ytd === null ? <span className="text-[9px] text-ink-400">Sin dato</span> : formatSignedPct(m.ytd, 1)}
+                    <span className={cn("w-[52px] shrink-0 text-right text-[11.5px]", pctTone(m.ytd))}>
+                      <span className="sr-only">YTD: </span>
+                      {m.ytd === null ? (
+                        <span className="text-[11px]">Sin dato</span>
+                      ) : (
+                        <span className="num">{formatSignedPct(m.ytd, 1)}</span>
+                      )}
                     </span>
                   </Link>
                 </li>
               ))}
             </ol>
             {rank.length > shown.length && (
-              <div className="border-t border-ink-200 px-4 py-2.5">
-                <Link href="/app/seguimiento" className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-700 hover:text-ink-900">
+              <div className="border-t border-line px-4 py-2.5">
+                <Link
+                  href="/app/seguimiento"
+                  className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 hover:text-ink-900 hover:underline"
+                >
                   Ver los {rank.length} seguidos con serie
-                  <ArrowRight className="size-3" />
+                  <ArrowRight aria-hidden="true" className="size-3" strokeWidth={1.5} />
                 </Link>
               </div>
             )}
@@ -259,21 +307,21 @@ function PulseLead({ label, mover, metric }: { label: string; mover?: PulseMover
   const value = mover ? mover[metric] : null;
   return (
     <div className="min-w-0 px-4 py-3">
-      <p className="text-[9px] font-medium tracking-[0.12em] text-ink-500 uppercase">{label}</p>
+      <p className="text-[11px] text-ink-500">{label}</p>
       {mover && value !== null ? (
         <>
           <Link
             href={`/app/portafolio/${mover.slug}`}
-            className="mt-1 block truncate text-[12px] font-medium text-ink-900 hover:underline"
+            className="mt-1 block truncate text-[12.5px] font-medium text-ink-900 underline-offset-4 hover:underline"
           >
             {mover.name}
           </Link>
-          <p className={cn("mt-0.5 text-[15px] font-semibold tabular-nums", pctTone(value))}>
+          <p className={cn("num mt-0.5 text-[15px]", pctTone(value))}>
             {formatSignedPct(value, metric === "day" ? 2 : 1)}
           </p>
         </>
       ) : (
-        <p className="mt-1 text-[11px] text-ink-400">Sin dato</p>
+        <p className="mt-1 text-[11.5px] text-ink-500">Sin dato</p>
       )}
     </div>
   );

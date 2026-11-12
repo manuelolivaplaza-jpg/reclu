@@ -1,167 +1,27 @@
-"use client";
-
-import { LazyMotion, MotionConfig, m, useReducedMotion } from "framer-motion";
-import { loadMotionFeatures } from "@/lib/load-motion-features";
 import { cn } from "@/lib/utils";
 
 /**
- * Sistema de animación SpaceX × Autopilot.
- * Física contenida, precisa y sobria: revelado al entrar en viewport,
- * staggers cortos y una sola curva — cubic-bezier(0.16, 1, 0.3, 1).
- * Desplazamientos de 10px como máximo, sin rebotes ni escalados.
- * Cero sombras, cero color decorativo.
+ * Alias histórico de `@/components/ui/reveal`.
  *
- * Con `prefers-reduced-motion: reduce` no hay desplazamiento, ni fundido,
- * ni stagger: el contenido aparece tal cual y de inmediato. `MotionConfig`
- * con `reducedMotion="user"` repite la preferencia para cualquier
- * `motion.*` que viva dentro de estos componentes.
+ * El sistema de revelado es CSS puro (scroll-driven) y vive en `reveal.tsx`:
+ * sin framer-motion, sin `"use client"`, sin hidratación y con
+ * `prefers-reduced-motion` respetado tanto en CSS como con las utilidades
+ * `motion-reduce:*`. Este módulo se mantiene para no romper imports antiguos
+ * y no duplica una segunda implementación.
  */
+export { FadeIn, StaggerList, StaggerItem } from "./reveal";
 
-/** La curva del sistema. Una sola: fuera easings elásticos o "suaves". */
+/**
+ * La curva única del sistema (coincide con `reveal-up` y `details-reveal`
+ * en `globals.css`). Se exporta por compatibilidad para estilos inline que
+ * necesiten la misma easing.
+ */
 export const EASE: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
-/** Ritmo del sistema: corto y sobrio (nada de animaciones de 800ms). */
-const DURATION = 0.5;
-/** Desplazamiento vertical máximo, en px. */
-const OFFSET = 10;
-/** Desplazamiento de cifras: un punto más discreto. */
-const OFFSET_NUMBER = 8;
-/** Stagger entre hijos de una lista. */
-const STAGGER = 0.05;
-
-export const fadeInVariants = {
-  hidden: { opacity: 0, y: OFFSET },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: DURATION, ease: EASE },
-  },
-} as const;
-
 /**
- * Contexto compartido: features de framer-motion en diferido (LazyMotion,
- * no engordan el bundle inicial) + `reducedMotion="user"` como segunda red
- * de seguridad para el movimiento de los hijos.
- */
-function MotionRoot({ children }: { children: React.ReactNode }) {
-  return (
-    <LazyMotion features={loadMotionFeatures}>
-      <MotionConfig reducedMotion="user">{children}</MotionConfig>
-    </LazyMotion>
-  );
-}
-
-/** true solo cuando el usuario pidió explícitamente movimiento reducido. */
-function useStill() {
-  return useReducedMotion() === true;
-}
-
-/**
- * FadeIn — revela el children al entrar en viewport (una sola vez).
- * Envuelve en un div neutro; sin padding ni color.
- */
-export function FadeIn({
-  children,
-  className,
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  delay?: number;
-}) {
-  const still = useStill();
-
-  return (
-    <MotionRoot>
-      <m.div
-        className={className}
-        initial={still ? undefined : { opacity: 0, y: OFFSET }}
-        whileInView={still ? undefined : { opacity: 1, y: 0 }}
-        viewport={still ? undefined : { once: true, margin: "-40px" }}
-        transition={{ duration: DURATION, ease: EASE, delay: still ? 0 : delay }}
-      >
-        {children}
-      </m.div>
-    </MotionRoot>
-  );
-}
-
-const listVariants = {
-  hidden: {},
-  visible: {
-    transition: { staggerChildren: STAGGER },
-  },
-} as const;
-
-const itemVariants = {
-  hidden: { opacity: 0, y: OFFSET },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: DURATION, ease: EASE },
-  },
-} as const;
-
-/**
- * StaggerList — contenedor que revela sus StaggerItem uno tras otro.
- * No renderiza un wrapper visual: hereda el layout del children (ul, div...).
- * En reduced-motion no aplica variants y el contenido se muestra directo.
- */
-export function StaggerList({
-  children,
-  className,
-  style,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  const still = useStill();
-  return (
-    <MotionRoot>
-      <m.div
-        className={className}
-        style={style}
-        initial={still ? undefined : "hidden"}
-        whileInView={still ? undefined : "visible"}
-        viewport={still ? undefined : { once: true, margin: "-40px" }}
-        variants={still ? undefined : listVariants}
-      >
-        {children}
-      </m.div>
-    </MotionRoot>
-  );
-}
-
-/**
- * StaggerItem — hijo de StaggerList. Debe ir directamente dentro de él.
- */
-export function StaggerItem({
-  children,
-  className,
-  style,
-}: {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-}) {
-  const still = useStill();
-  return (
-    <MotionRoot>
-      <m.div
-        className={className}
-        style={style}
-        variants={still ? undefined : itemVariants}
-      >
-        {children}
-      </m.div>
-    </MotionRoot>
-  );
-}
-
-/**
- * AnimatedNumber — cifra clave que entra con un leve revelado vertical.
- * Mantiene tabular-nums para que el ancho no salte durante la animación.
+ * Cifra con `num` (tabular, tracking apretado). Conserva el nombre por
+ * compatibilidad: ya no anima — el sistema no mueve cifras, y el revelado del
+ * bloque contenedor lo aporta `FadeIn`/`.reveal`.
  */
 export function AnimatedNumber({
   value,
@@ -172,19 +32,7 @@ export function AnimatedNumber({
   className?: string;
   format?: (v: number) => string;
 }) {
-  const still = useStill();
-  const display = format ? format(value) : String(value);
   return (
-    <MotionRoot>
-      <m.span
-        className={cn("tabular-nums", className)}
-        initial={still ? undefined : { opacity: 0, y: OFFSET_NUMBER }}
-        whileInView={still ? undefined : { opacity: 1, y: 0 }}
-        viewport={still ? undefined : { once: true, margin: "-40px" }}
-        transition={{ duration: DURATION, ease: EASE }}
-      >
-        {display}
-      </m.span>
-    </MotionRoot>
+    <span className={cn("num", className)}>{format ? format(value) : String(value)}</span>
   );
 }

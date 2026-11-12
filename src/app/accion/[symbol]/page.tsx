@@ -4,7 +4,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import {
   getTickerOverview,
   normalizeSymbol,
@@ -17,7 +16,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { AccionPublicSummary } from "@/components/accion-public-summary";
 import { CATEGORY_META } from "@/lib/types";
-import { timeAgo, formatCompact, formatPctPlain } from "@/lib/utils";
+import { timeAgo, formatDecimal, formatPctPlain, formatShortDate } from "@/lib/utils";
 
 interface AccionPageProps {
   params: Promise<{ symbol: string }>;
@@ -79,7 +78,7 @@ export async function generateMetadata({ params }: AccionPageProps): Promise<Met
     title,
     description:
       who > 0
-        ? `${who} ${who === 1 ? "portafolio" : "portafolios"} de Fraccion incluyen ${name} (${symbol}). Ficha pública con datos agregados de fuentes públicas; el detalle de cada cartera es para suscriptores.`
+        ? `${who} ${who === 1 ? "portafolio" : "portafolios"} de Fraccion incluyen ${name} (${symbol}). Datos agregados de fuentes públicas; el detalle de cada cartera es para suscriptores.`
         : `Ficha pública de ${name} (${symbol}) en Fraccion. Datos agregados de fuentes públicas; el detalle de cada cartera es para suscriptores.`,
   });
 }
@@ -105,7 +104,6 @@ export default async function AccionPage({ params }: AccionPageProps) {
   if (!summary && !hasHolders && !hasAlerts) notFound();
 
   const displayName = summary?.name ?? overview.displayName ?? symbol;
-  const totalPortfolios = summary?.portfolioCount ?? holders.length;
   // El rótulo de ejemplo sale del resumen cuando existe: `overview.isDemo` es
   // true también cuando un rol ve 0 carteras en una base real, y ahí no aplica.
   const isDemo = summary ? Boolean(summary.isDemo) : overview.isDemo;
@@ -116,105 +114,155 @@ export default async function AccionPage({ params }: AccionPageProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <SiteHeader />
-      <main id="main" className="flex-1">
+      <main id="main" className="flex-1 bg-canvas">
         <div className="container-page py-10 md:py-14">
           <Link
             href="/explore"
-            className="mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-ink-600 hover:text-ink-900"
+            className="inline-flex items-center gap-1.5 text-[13px] text-ink-600 underline-offset-4 hover:text-ink-900 hover:underline"
           >
-            <ArrowLeft className="size-4" />
+            <span aria-hidden>←</span>
             Volver a explorar
           </Link>
 
           {hasHolders ? (
             /* Encabezado del ticker (carteras visibles para el rol) */
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-              <div>
+            <header className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0">
                 <p className="label-line">Acción · Ticker</p>
                 <h1 className="type-section mt-3 text-ink-900">{symbol}</h1>
                 {displayName !== symbol && (
-                  <p className="type-body mt-2 text-ink-500">{displayName}</p>
+                  <p className="mt-2 text-[17px] leading-snug text-ink-500">{displayName}</p>
                 )}
-                {totalPortfolios > 0 && (
-                  <p className="mt-3 text-[13px] text-ink-500">
-                    Está en {totalPortfolios}{" "}
-                    {totalPortfolios === 1 ? "portafolio" : "portafolios"} de
-                    Fraccion.
-                  </p>
-                )}
-                {isDemo && (
-                  <p className="mt-3 inline-block border border-ink-200 px-2.5 py-1 text-[11px] tracking-[0.08em] text-ink-500 uppercase">
-                    Datos de ejemplo
-                  </p>
-                )}
+                <p className="mt-4 max-w-[40rem] text-[15px] leading-relaxed text-ink-500">
+                  Está en <span className="num text-ink-900">{holders.length}</span>{" "}
+                  {holders.length === 1 ? "portafolio" : "portafolios"} de Fraccion.
+                  Abajo, el peso de cada cartera que la tiene en su último corte.
+                </p>
               </div>
-              <dl className="grid grid-cols-3 gap-px border border-ink-200 bg-ink-200 text-center">
-                <div className="bg-white px-4 py-4 sm:px-6">
-                  <dt className="text-[11px] tracking-[0.08em] text-ink-500 uppercase">Carteras</dt>
-                  <dd className="num mt-1 text-2xl font-medium text-ink-900">{holders.length}</dd>
+              <dl className="grid w-full grid-cols-3 gap-px border border-line bg-line sm:w-auto">
+                <div className="bg-canvas px-4 py-3">
+                  <dt className="text-[13px] leading-tight text-ink-500">Carteras</dt>
+                  <dd className="num mt-1.5 text-[22px] leading-none text-ink-900">
+                    {holders.length}
+                  </dd>
                 </div>
-                <div className="bg-white px-4 py-4 sm:px-6">
-                  <dt className="text-[11px] tracking-[0.08em] text-ink-500 uppercase">Peso medio</dt>
-                  <dd className="num mt-1 text-2xl font-medium text-ink-900">{formatPctPlain(avgWeight, 1)}</dd>
+                <div className="bg-canvas px-4 py-3">
+                  <dt className="text-[13px] leading-tight text-ink-500">Peso medio</dt>
+                  <dd className="num mt-1.5 text-[22px] leading-none text-ink-900">
+                    {formatPctPlain(avgWeight, 1)}
+                  </dd>
                 </div>
-                <div className="bg-white px-4 py-4 sm:px-6">
-                  <dt className="text-[11px] tracking-[0.08em] text-ink-500 uppercase">Máximo</dt>
-                  <dd className="num mt-1 text-2xl font-medium text-ink-900">{formatPctPlain(maxWeight, 1)}</dd>
+                <div className="bg-canvas px-4 py-3">
+                  <dt className="text-[13px] leading-tight text-ink-500">Peso máximo</dt>
+                  <dd className="num mt-1.5 text-[22px] leading-none text-ink-900">
+                    {formatPctPlain(maxWeight, 1)}
+                  </dd>
                 </div>
               </dl>
-            </div>
+            </header>
           ) : summary ? (
             /* Resumen público: símbolo, nombre, sector y número agregado */
-            <div>
+            <div className="mt-8">
               <AccionPublicSummary
                 symbol={symbol}
                 name={displayName}
                 sector={summary.sector}
                 portfolioCount={summary.portfolioCount}
               />
-              {isDemo && (
-                <p className="mt-3 inline-block border border-ink-200 px-2.5 py-1 text-[11px] tracking-[0.08em] text-ink-500 uppercase">
-                  Datos de ejemplo
+              {summary.portfolioCount === 0 ? (
+                <p className="mt-8 max-w-[42rem] text-[15px] leading-relaxed text-ink-500">
+                  Ningún portafolio de Fraccion tiene este símbolo en su último
+                  corte. Puede volver a aparecer cuando una fuente lo declare.
                 </p>
-              )}
+              ) : null}
             </div>
           ) : (
-            <div>
+            <div className="mt-8">
               <p className="label-line">Acción · Ticker</p>
               <h1 className="type-section mt-3 text-ink-900">{symbol}</h1>
               {displayName !== symbol && (
-                <p className="type-body mt-2 text-ink-500">{displayName}</p>
+                <p className="mt-2 text-[17px] leading-snug text-ink-500">{displayName}</p>
               )}
+              {!hasAlerts ? (
+                <p className="mt-6 max-w-[42rem] text-[15px] leading-relaxed text-ink-500">
+                  Todavía no hay datos agregados para este símbolo. Si aparece en
+                  una cartera que seguimos, se publicará en el próximo corte.
+                </p>
+              ) : null}
             </div>
           )}
 
+          {isDemo ? (
+            <p className="mt-4 text-[13px] text-ink-500">
+              Datos de ejemplo: el sitio corre sin la base de datos conectada.
+            </p>
+          ) : null}
+
           {hasHolders && (
-            /* Quiénes la tienen — tabla con scroll horizontal en móvil */
-            <section className="mt-12">
-              <h2 className="text-[15px] font-medium text-ink-900">
+            /* Quiénes la tienen — tabla con filetes */
+            <section
+              aria-labelledby="tenedores-heading"
+              className="mt-12 border-t border-line pt-6"
+            >
+              <h2
+                id="tenedores-heading"
+                className="text-[20px] font-medium tracking-[-0.02em] text-ink-900"
+              >
                 ¿Quién tiene {symbol}?
               </h2>
-              <div className="mt-4 overflow-x-auto no-scrollbar">
-                <table className="w-full min-w-[560px] text-[15px]">
-                  <thead>
-                    <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
-                      <th className="py-3 pr-4 font-normal">Cartera</th>
-                      <th className="py-3 px-4 text-right font-normal">Peso</th>
-                      <th className="py-3 px-4 text-right font-normal">Cambio</th>
-                      <th className="py-3 px-4 text-right font-normal">Desde</th>
-                      <th className="pl-4 py-3 text-right font-normal">Retorno</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {holders.map((holder) => (
-                      <HolderRow key={holder.portfolio.id} holder={holder} />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
-                Peso según la última composición declarada por cada fuente.
-                “Desde” es la primera fecha con el símbolo en la cartera.
+              <p className="mt-2 max-w-[46rem] text-[13px] leading-relaxed text-ink-500">
+                Peso según la última composición declarada por cada fuente. “Desde”
+                es la primera fecha con el símbolo en la cartera.
+              </p>
+              <table className="mt-5 w-full border-collapse text-left">
+                <caption className="sr-only">
+                  Portafolios de Fraccion que incluyen {symbol}, con peso, cambio y
+                  retorno.
+                </caption>
+                <thead>
+                  <tr className="border-b border-line">
+                    <th
+                      scope="col"
+                      className="py-2.5 pr-3 text-[13px] font-normal text-ink-500"
+                    >
+                      Cartera
+                    </th>
+                    <th
+                      scope="col"
+                      className="whitespace-nowrap px-3 py-2.5 text-right text-[13px] font-normal text-ink-500"
+                    >
+                      Peso
+                    </th>
+                    <th
+                      scope="col"
+                      className="whitespace-nowrap px-3 py-2.5 text-right text-[13px] font-normal text-ink-500"
+                    >
+                      Cambio
+                    </th>
+                    <th
+                      scope="col"
+                      className="whitespace-nowrap py-2.5 pl-3 text-right text-[13px] font-normal text-ink-500"
+                    >
+                      Retorno
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {holders.map((holder) => (
+                    <HolderRow key={holder.portfolio.id} holder={holder} />
+                  ))}
+                </tbody>
+              </table>
+              <p className="mt-4 max-w-[46rem] text-[13px] leading-relaxed text-ink-500">
+                Peso declarado por cada fuente en su último corte; no es una cartera
+                ejecutable ni una recomendación. Cómo se calcula:{" "}
+                <Link
+                  href="/metodologia"
+                  className="text-ink-900 underline underline-offset-4"
+                >
+                  Metodología
+                </Link>
+                .
               </p>
             </section>
           )}
@@ -222,11 +270,17 @@ export default async function AccionPage({ params }: AccionPageProps) {
           {/* Movimientos recientes (alertas). En el resumen público no se
               muestran: traen nombres de carteras (decisión 1b). */}
           {hasAlerts && (hasHolders || !summary) && (
-            <section className="mt-12">
-              <h2 className="text-[15px] font-medium text-ink-900">
+            <section
+              aria-labelledby="movimientos-heading"
+              className="mt-12 border-t border-line pt-6"
+            >
+              <h2
+                id="movimientos-heading"
+                className="text-[20px] font-medium tracking-[-0.02em] text-ink-900"
+              >
                 Quién movió {symbol} recientemente
               </h2>
-              <div className="mt-4 flex flex-col gap-4">
+              <div className="mt-5 flex flex-col gap-5">
                 {overview.alerts.slice(0, 8).map((alert) => (
                   <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
                     <Link
@@ -235,7 +289,9 @@ export default async function AccionPage({ params }: AccionPageProps) {
                     >
                       {alert.portfolio?.name ?? "Portafolio"} · {timeAgo(alert.created_at)}
                     </Link>
-                    <p className="mt-1 text-[15px] font-medium text-ink-900">{alert.title}</p>
+                    <p className="mt-1 text-[15px] font-medium leading-snug text-ink-900">
+                      {alert.title}
+                    </p>
                     {alert.summary && (
                       <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
                         {alert.summary}
@@ -249,29 +305,45 @@ export default async function AccionPage({ params }: AccionPageProps) {
 
           {/* Símbolos relacionados (solo con carteras visibles) */}
           {hasHolders && related.length > 0 && (
-            <section className="mt-12">
-              <h2 className="text-[15px] font-medium text-ink-900">Otros símbolos con consenso</h2>
-              <div className="mt-4 flex flex-wrap gap-2">
+            <section
+              aria-labelledby="relacionados-heading"
+              className="mt-12 border-t border-line pt-6"
+            >
+              <h2
+                id="relacionados-heading"
+                className="text-[20px] font-medium tracking-[-0.02em] text-ink-900"
+              >
+                Otros símbolos con consenso
+              </h2>
+              <ul className="mt-4 flex flex-wrap gap-2">
                 {related.map((rel) => (
-                  <Link
-                    key={rel.symbol}
-                    href={`/accion/${rel.symbol.toLowerCase()}`}
-                    className="inline-flex h-11 items-center border border-ink-200 px-4 text-[13px] font-medium text-ink-900 transition-colors hover:border-ink-900"
-                  >
-                    {rel.symbol}
-                    <span className="ml-1.5 text-[12px] font-normal text-ink-500">{rel.count}</span>
-                  </Link>
+                  <li key={rel.symbol}>
+                    <Link
+                      href={`/accion/${rel.symbol.toLowerCase()}`}
+                      aria-label={`${rel.symbol}: ${rel.count} ${
+                        rel.count === 1 ? "portafolio" : "portafolios"
+                      }`}
+                      className="inline-flex h-11 items-center gap-2 border border-line px-4 text-[13px] font-medium text-ink-900 transition-colors hover:border-ink-900"
+                    >
+                      {rel.symbol}
+                      <span aria-hidden className="num font-normal text-ink-500">
+                        {rel.count}
+                      </span>
+                    </Link>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </section>
           )}
 
           {/* Disclaimer */}
-          <p className="mt-12 border-t border-ink-200 pt-8 text-xs leading-relaxed text-ink-500">
+          <p className="mt-12 border-t border-line pt-6 text-[12px] leading-relaxed text-ink-500">
             La información presentada proviene de fuentes públicas (PTR de la
             Cámara, filings 13F, informes de corredoras) y tiene fines
             exclusivamente informativos. No constituye asesoría de inversión ni
-            recomendación de compra o venta.
+            recomendación de compra o venta. Los informes oficiales de EE.UU.
+            siguen públicos y gratis en los sitios de la Cámara, el Senado y la
+            OGE.
           </p>
         </div>
       </main>
@@ -289,72 +361,62 @@ export default async function AccionPage({ params }: AccionPageProps) {
   );
 }
 
+/** Porcentaje con signo explícito solo en positivos; coma decimal es-CL. */
+function signedPct(value: number, digits = 1): string {
+  return `${value > 0 ? "+" : ""}${formatPctPlain(value, digits)}`;
+}
+
 function HolderRow({ holder }: { holder: TickerHolder }) {
   const delta =
     holder.previousWeight !== null ? holder.weight - holder.previousWeight : null;
   const meta = CATEGORY_META[holder.portfolio.category];
   return (
-    <tr className="border-b border-ink-200">
-      <td className="py-3.5 pr-4">
+    <tr className="border-b border-line align-top">
+      <td className="py-3 pr-3">
         <Link
           href={`/portfolio/${holder.portfolio.slug}`}
-          className="font-medium text-ink-900 underline-offset-4 hover:underline"
+          className="text-[15px] font-medium leading-snug text-ink-900 underline-offset-4 hover:underline"
         >
           {holder.portfolio.name}
         </Link>
-        <div className="text-[13px] text-ink-500">
+        <p className="mt-0.5 text-[13px] leading-snug text-ink-500">
           {meta.label}
-          {holder.portfolio.manager ? ` · ${holder.portfolio.manager}` : ""} ·{" "}
-          {formatCompact(holder.portfolio.followers)} seguidores
-        </div>
+          {holder.portfolio.manager ? ` · ${holder.portfolio.manager}` : ""}
+          {holder.firstSeen ? ` · desde ${formatShortDate(holder.firstSeen)}` : ""}
+        </p>
       </td>
-      <td className="px-4 py-3.5 text-right font-medium tabular-nums text-ink-900">
+      <td className="num whitespace-nowrap px-3 py-3 text-right text-[14px] text-ink-900">
         {formatPctPlain(holder.weight, 1)}
       </td>
-      <td className="px-4 py-3.5 text-right tabular-nums">
+      <td className="num whitespace-nowrap px-3 py-3 text-right text-[14px]">
         {delta !== null && delta !== 0 ? (
           <span className={delta > 0 ? "text-positive" : "text-negative"}>
             {delta > 0 ? "+" : ""}
-            {delta.toFixed(1)} pp
+            {formatDecimal(delta, 1)} pp
           </span>
         ) : (
-          <span className="text-ink-400">—</span>
+          <span className="text-ink-500">—</span>
         )}
       </td>
-      <td className="px-4 py-3.5 text-right text-[13px] text-ink-500 tabular-nums">
-        {holder.firstSeen ? formatShortDate(holder.firstSeen) : "—"}
-      </td>
-      <td className="py-3.5 pl-4 text-right tabular-nums">
+      <td className="num whitespace-nowrap py-3 pl-3 text-right text-[14px]">
         {holder.returnPct !== null ? (
           <span className={holder.returnPct >= 0 ? "text-positive" : "text-negative"}>
-            {holder.returnPct >= 0 ? "+" : ""}
-            {formatPctPlain(holder.returnPct, 1)}
+            {signedPct(holder.returnPct, 1)}
           </span>
         ) : (
-          <span className="text-ink-400">—</span>
+          <span className="text-ink-500">—</span>
         )}
       </td>
     </tr>
   );
 }
 
-function formatShortDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00Z`);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("es-CL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
 function tickerJsonLd(symbol: string, name: string, holders: TickerHolder[]) {
   return {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    name: `¿Quién tiene ${symbol}? Políticos y fondos que la compran`,
-    description: `Ficha pública de ${name} (${symbol}) en Fraccion: cuántos portafolios lo incluyen y sus últimos movimientos declarados.`,
+    name: `¿Quién tiene ${symbol}? Datos agregados`,
+    description: `Ficha pública de ${name} (${symbol}) en Fraccion: cuántos portafolios lo incluyen en su último corte. El detalle de cada cartera es para suscriptores.`,
     url: absoluteUrl(`/accion/${symbol.toLowerCase()}`),
     about: { "@type": "Corporation", name, tickerSymbol: symbol },
     ...(holders.length > 0

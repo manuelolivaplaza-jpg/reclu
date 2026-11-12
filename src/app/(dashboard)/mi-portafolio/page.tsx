@@ -6,11 +6,12 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfile } from "@/lib/queries";
 import { isMyPortfolioEnabled, isNewsImpactEnabled, isPortfolioImageImportEnabled } from "@/lib/portfolio-flags";
-import { getPlan, portfolioLimitsFor } from "@/lib/plans";
+import { getPlan, isTrialPro, portfolioLimitsFor } from "@/lib/plans";
 import { PortfolioConsent } from "@/components/portfolio-consent";
 import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
 import { LegalNotice } from "@/components/legal/legal-notice";
 import { PortfolioEditor } from "@/components/my-portfolio/portfolio-editor";
+import { ConcentrationPanel } from "@/components/portfolio/concentration-panel";
 import type { EditablePosition } from "@/components/my-portfolio/types";
 import { valuatePortfolio } from "@/lib/portfolio-valuation";
 import { loadImpactFeed } from "@/lib/news-feed";
@@ -135,14 +136,18 @@ export default async function MyPortfolioPage() {
   const supabase = await createClient();
   const limits = portfolioLimitsFor(profile.plan, profile.trial_ends_at);
   const planName = getPlan(limits.plan).name;
+  // La prueba vigente usa límites Pro: se dice para no aparentar un plan pagado.
+  const trialActive = isTrialPro(profile.plan, profile.trial_ends_at);
 
   const { data: settings, error: settingsError } = await supabase
     .from("user_portfolio_settings")
     .select("consent_at, consent_version")
     .eq("user_id", profile.id)
     .maybeSingle();
+  let settingsFailed = false;
   if (settingsError) {
     console.warn("[reclu] user_portfolio_settings:", settingsError.message);
+    settingsFailed = true;
   }
   const consentRow = settings as
     | { consent_at: string | null; consent_version: string | null }
@@ -156,6 +161,7 @@ export default async function MyPortfolioPage() {
     : null;
 
   let positions: EditablePosition[] = [];
+  let holdingsFailed = false;
 
   // Minimización: sin consentimiento no se leen las tenencias.
   if (consentAt) {
@@ -166,6 +172,7 @@ export default async function MyPortfolioPage() {
       .order("weight", { ascending: false });
     if (holdingsError) {
       console.warn("[reclu] user_holdings:", holdingsError.message);
+      holdingsFailed = true;
     }
 
     const rows = (holdings ?? []) as HoldingRow[];
@@ -216,8 +223,31 @@ export default async function MyPortfolioPage() {
   let feedEntries: ImpactFeedEntry[] = [];
   let feedHasPositions = false;
 
+  // Valorización única: la usan el feed y el panel de concentración.
+  const valuation = valuatePortfolio(positions);
+  const nameBySymbol = new Map(positions.map((position) => [position.symbol, position.name]));
+
+  // Concentración por moneda: `weightPct` se calcula sobre el valor conocido de
+  // su propia moneda, así que mezclar CLP y USD en un solo panel mentiría.
+  const concentrationByCurrency = (["CLP", "USD"] as const)
+    .map((currency) => ({
+      currency,
+      items: valuation.positions
+        .filter(
+          (position): position is typeof position & { weightPct: number } =>
+            position.currency === currency &&
+            typeof position.weightPct === "number" &&
+            position.weightPct > 0,
+        )
+        .map((position) => ({
+          symbol: position.symbol,
+          name: nameBySymbol.get(position.symbol) ?? position.symbol,
+          weight: position.weightPct,
+        })),
+    }))
+    .filter((group) => group.items.length >= 2);
+
   if (consentAt && newsImpactEnabled) {
-    const valuation = valuatePortfolio(positions);
     const weights = valuation.positions
       .filter(
         (position): position is typeof position & { weightPct: number } =>
@@ -246,8 +276,9 @@ export default async function MyPortfolioPage() {
           <div className="min-w-0">
             <p className="text-[13px] font-normal text-ink-500">
               Cartera personal · Plan {planName}
+              {trialActive ? " · En prueba" : ""}
             </p>
-            <h1 className="mt-3 text-[34px] font-medium leading-[1.02] tracking-[-0.04em] text-ink-900 sm:text-[44px]">
+            <h1 className="mt-3 text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
               Mi portafolio
             </h1>
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
@@ -265,8 +296,9 @@ export default async function MyPortfolioPage() {
             >
               Cruzar con portafolios
               <ArrowRight
-                className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                className="size-4 transition-transform group-hover:translate-x-0.5"
                 strokeWidth={1.5}
+                aria-hidden
               />
             </Link>
             <Link
@@ -275,24 +307,57 @@ export default async function MyPortfolioPage() {
             >
               Configurar alertas
               <ArrowRight
-                className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                className="size-4 transition-transform group-hover:translate-x-0.5"
                 strokeWidth={1.5}
+                aria-hidden
               />
             </Link>
           </nav>
         </div>
       </header>
 
-      {consentAt ? (
-        <PortfolioEditor
-          initialPositions={positions}
-          maxPositions={limits.maxPositions}
-          canExportCsv={limits.exportCsv}
-          planName={planName}
-          imageImportEnabled={isPortfolioImageImportEnabled()}
+      {settingsFailed ? (
+        <LoadFailure
+          title="No pudimos verificar tu consentimiento"
+          description="La consulta falló en el servidor. No leímos ni modificamos tus posiciones; recarga para intentar de nuevo."
         />
+      ) : consentAt ? (
+        holdingsFailed ? (
+          <LoadFailure
+            title="No pudimos leer tus posiciones"
+            description="La consulta falló en el servidor. No mostramos una cartera vacía para no confundirla con tus datos reales, y no se modificó nada."
+          />
+        ) : (
+          <>
+            <PortfolioEditor
+              initialPositions={positions}
+              maxPositions={limits.maxPositions}
+              canExportCsv={limits.exportCsv}
+              planName={planName}
+              imageImportEnabled={isPortfolioImageImportEnabled()}
+            />
+            {concentrationByCurrency.length > 0 ? (
+              <div
+                className={
+                  concentrationByCurrency.length > 1
+                    ? "grid gap-6 md:grid-cols-2"
+                    : "grid gap-6"
+                }
+              >
+                {concentrationByCurrency.map((group) => (
+                  <ConcentrationPanel
+                    key={group.currency}
+                    holdings={group.items}
+                    title={`Concentración en ${group.currency}`}
+                    id={`concentracion-${group.currency.toLowerCase()}`}
+                  />
+                ))}
+              </div>
+            ) : null}
+          </>
+        )
       ) : (
-        <section className="border border-ink-200 bg-white">
+        <section className="border border-ink-200 bg-canvas">
           <div className="border-b border-ink-200 p-5 sm:p-7">
             <h2 className="text-[17px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
               Antes de empezar: consentimiento
@@ -313,7 +378,7 @@ export default async function MyPortfolioPage() {
         </section>
       )}
 
-      {consentAt && newsImpactEnabled && (
+      {consentAt && !settingsFailed && !holdingsFailed && newsImpactEnabled && (
         <ImpactFeed
           entries={feedEntries}
           planName={planName}
@@ -326,5 +391,32 @@ export default async function MyPortfolioPage() {
       {/* Descargo general al pie (Fintec / no asesoría). */}
       <LegalNotice kind="fintec" />
     </div>
+  );
+}
+
+/**
+ * Estado de error honesto cuando falla una lectura del servidor: no se pinta
+ * una cartera vacía (se confundiría con datos reales) ni el editor editable.
+ */
+function LoadFailure({ title, description }: { title: string; description: string }) {
+  return (
+    <section className="border border-ink-200 bg-canvas">
+      <div className="border-b border-ink-200 p-5 sm:p-7">
+        <h2 className="text-[17px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
+          {title}
+        </h2>
+        <p className="mt-2 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+          {description}
+        </p>
+      </div>
+      <div className="p-5 sm:p-7">
+        <Link
+          href="/mi-portafolio"
+          className="text-[13px] font-medium text-ink-900 underline decoration-1 underline-offset-4 hover:text-ink-700"
+        >
+          Recargar la página
+        </Link>
+      </div>
+    </section>
   );
 }

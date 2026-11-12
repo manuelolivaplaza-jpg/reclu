@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { ResumenView } from "@/components/dashboard/resumen/resumen-view";
 
-export const metadata = { title: "Resumen" };
+export const metadata = { title: "Resumen", robots: { index: false } };
 // Auth-gated route: reads cookies at request time — never prerendered.
 export const instant = false;
 

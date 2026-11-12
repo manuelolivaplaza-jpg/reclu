@@ -16,11 +16,18 @@ import {
   apiDayKey,
   type ApiKeyFormState,
 } from "@/lib/api-keys";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
+import { ButtonLink } from "@/components/ui/button";
 import { ApiKeysPanel, type ApiKeyListItem } from "@/components/api-keys-panel";
 import { LegalNotice } from "@/components/legal/legal-notice";
+import { SettingsSubnav } from "@/components/settings/settings-subnav";
+import { referralsEnabled } from "@/lib/referrals";
 
-export const metadata = { title: "Claves de API" };
+export const metadata = {
+  title: "Claves de API",
+  description:
+    "Claves personales para consultar los datos públicos de Fraccion desde tus propios sistemas.",
+};
 // Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
 export const instant = false;
 
@@ -156,7 +163,21 @@ export default async function ApiSettingsPage() {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
   await connection();
   const profile = await getProfile();
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="flex max-w-xl flex-col gap-4 pb-8">
+        <h1 className="text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
+          Claves de API
+        </h1>
+        <p className="text-[15px] leading-relaxed text-ink-500">
+          No pudimos cargar tu perfil. Vuelve a intentarlo en unos minutos.
+        </p>
+        <ButtonLink href="/settings/api" variant="outline" size="sm" className="w-fit">
+          Reintentar
+        </ButtonLink>
+      </div>
+    );
+  }
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -168,6 +189,7 @@ export default async function ApiSettingsPage() {
   if (error) {
     console.warn("[reclu] api_keys:", error.message);
   }
+  const keysUnavailable = Boolean(error);
 
   const keys: ApiKeyListItem[] = ((data ?? []) as ApiKeyRow[]).map((row) => ({
     id: row.id,
@@ -196,8 +218,8 @@ export default async function ApiSettingsPage() {
   );
 
   return (
-    <div className="flex max-w-4xl flex-col gap-8 pb-8">
-      <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-8 pb-8">
+      <header className="flex flex-col gap-4 border-b border-line pb-6">
         <Link
           href="/settings"
           className="inline-flex w-fit items-center gap-1.5 text-[13px] text-ink-500 transition-colors hover:text-ink-900"
@@ -206,101 +228,130 @@ export default async function ApiSettingsPage() {
           Volver a Ajustes
         </Link>
         <div>
-          <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
+          <p className="label-line">Integraciones</p>
+          <h1 className="mt-3 text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
             Claves de API
           </h1>
-          <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-ink-500">
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-500">
             Consulta los datos públicos de Fraccion desde tus propios sistemas con
             una clave personal. La clave se muestra una sola vez: guárdala al crearla.
           </p>
         </div>
-      </div>
+      </header>
 
-      {/* Resumen de acceso: cuota y claves activas */}
-      <dl className="grid grid-cols-1 gap-px border-y border-ink-200 bg-ink-200 sm:grid-cols-3">
-        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
-          <dt className="text-[12px] leading-none text-ink-500">Plan de la API</dt>
-          <dd className="flex flex-col gap-0.5">
-            <span className="text-[15px] leading-snug text-ink-900">{apiPlanLabel}</span>
-            <span className="text-[12px] leading-snug text-ink-500">
-              {enabled ? "Habilitada" : "Emisión en pausa"}
-            </span>
-          </dd>
-        </div>
-        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
-          <dt className="text-[12px] leading-none text-ink-500">Cuota diaria</dt>
-          <dd className="flex flex-col gap-0.5">
-            <span className="text-[15px] tabular-nums leading-snug text-ink-900">
-              {limitText} llamadas
-            </span>
-            <span className="text-[12px] leading-snug text-ink-500">
-              Por clave y por día (UTC)
-            </span>
-          </dd>
-        </div>
-        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
-          <dt className="text-[12px] leading-none text-ink-500">Claves activas</dt>
-          <dd className="flex flex-col gap-0.5">
-            <span className="text-[15px] tabular-nums leading-snug text-ink-900">
-              {activeKeysLabel}
-            </span>
-            <span className="text-[12px] leading-snug text-ink-500">
-              {atKeyLimit
-                ? "Tope alcanzado: revoca una antes de crear otra"
-                : "Puedes crear otra cuando quieras"}
-            </span>
-          </dd>
-        </div>
-      </dl>
+      {/* Resumen de acceso: plan, cuota y claves vivas */}
+      <section aria-labelledby="resumen-acceso" className="flex flex-col gap-3">
+        <h2 id="resumen-acceso" className="label-line">
+          Resumen de acceso
+        </h2>
+        <dl className="grid grid-cols-1 gap-px border border-line bg-line sm:grid-cols-3">
+          <div className="flex flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+            <dt className="label-line">Plan de la API</dt>
+            <dd className="flex flex-col gap-0.5">
+              <span className="text-[15px] leading-snug text-ink-900">{apiPlanLabel}</span>
+              <span className="text-[13px] leading-snug text-ink-500">
+                Según el plan de tu cuenta
+              </span>
+            </dd>
+          </div>
+          <div className="flex flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+            <dt className="label-line">Cuota diaria</dt>
+            <dd className="flex flex-col gap-0.5">
+              <span className="num text-[15px] leading-snug text-ink-900">
+                {limitText} llamadas
+              </span>
+              <span className="text-[13px] leading-snug text-ink-500">
+                Por clave y por día (UTC)
+              </span>
+            </dd>
+          </div>
+          <div className="flex flex-col gap-1.5 bg-app-card p-4 sm:p-5">
+            <dt className="label-line">Claves activas</dt>
+            <dd className="flex flex-col gap-0.5">
+              <span className="num text-[15px] leading-snug text-ink-900">
+                {keysUnavailable ? "Sin dato" : activeKeysLabel}
+              </span>
+              <span className="text-[13px] leading-snug text-ink-500">
+                {keysUnavailable
+                  ? "No pudimos leer tus claves"
+                  : atKeyLimit
+                    ? "Tope alcanzado: revoca una antes de crear otra"
+                    : `Puedes tener hasta ${API_MAX_ACTIVE_KEYS} claves activas a la vez`}
+              </span>
+            </dd>
+          </div>
+        </dl>
+      </section>
 
       {!enabled && (
-        <div className="border border-ink-200 px-4 py-3 text-[13px] leading-relaxed text-ink-500">
-          La API pública todavía no está habilitada. Puedes revocar claves
-          existentes, pero crear una nueva y llamar a la API quedará disponible
-          cuando la activemos.
+        <div className="border border-line px-4 py-3">
+          <p className="text-[13px] leading-relaxed text-ink-500">
+            La API pública todavía no está habilitada. Puedes revocar claves
+            existentes, pero crear una nueva y llamar a la API quedará disponible
+            cuando la activemos.
+          </p>
         </div>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Claves y cuota</CardTitle>
-          <CardDescription>
-            {enabled
-              ? `Tu plan permite ${limitText} llamadas por día por clave. Cada clave es personal: no la compartas ni la subas a un repositorio.`
-              : "La emisión de claves está en pausa hasta habilitar la API pública."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ApiKeysPanel
-            enabled={enabled}
-            keys={keys}
-            limitText={limitText}
-            createAction={createApiKeyAction}
-            revokeAction={revokeApiKeyAction}
-            headersPreview={headersPreview}
-          />
-        </CardContent>
-      </Card>
+      <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)] xl:gap-12">
+        <SettingsSubnav showReferrals={referralsEnabled()} />
 
-      <div className="flex flex-col gap-4">
-        <LegalNotice kind="fintec" />
-        <p className="text-[12px] leading-relaxed text-ink-500">
-          Las declaraciones patrimoniales de funcionarios de Estados Unidos no
-          se redistribuyen por la API. En fraccion.si, las posiciones
-          reconstruidas son para suscriptores. Los informes oficiales siguen
-          públicos y gratis en los sitios de la Cámara, el Senado y la OGE,
-          conforme a 5 U.S.C. § 13107.
-          La API entrega información pública: no ejecuta órdenes ni entrega
-          recomendaciones personalizadas.
-        </p>
-        <p className="text-[13px]">
-          <Link
-            href="/api-docs"
-            className="text-ink-900 underline underline-offset-4"
-          >
-            Ver documentación de la API
-          </Link>
-        </p>
+        <div className="flex min-w-0 max-w-4xl flex-col gap-8">
+          {keysUnavailable ? (
+            <Card>
+              <div className="flex flex-col gap-3 p-5 sm:p-6">
+                <h2 className="text-[17px] font-medium leading-snug tracking-[-0.02em] text-ink-900">
+                  No pudimos cargar tus claves
+                </h2>
+                <p className="max-w-xl text-[13px] leading-relaxed text-ink-500">
+                  La lista de claves no está disponible en este momento. No crees ni
+                  revoques claves hasta poder verlas: vuelve a intentarlo en unos
+                  minutos.
+                </p>
+                <ButtonLink
+                  href="/settings/api"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                >
+                  Reintentar
+                </ButtonLink>
+              </div>
+            </Card>
+          ) : (
+            <Card>
+              <div className="p-5 sm:p-6">
+                <ApiKeysPanel
+                  enabled={enabled}
+                  keys={keys}
+                  limitText={limitText}
+                  createAction={createApiKeyAction}
+                  revokeAction={revokeApiKeyAction}
+                  headersPreview={headersPreview}
+                />
+              </div>
+            </Card>
+          )}
+
+          <div className="flex flex-col gap-4">
+            <LegalNotice kind="us_disclosure" />
+            <p className="text-[13px] leading-relaxed text-ink-500">
+              La API entrega información pública agregada. No redistribuye las
+              declaraciones patrimoniales ni entrega las posiciones completas de
+              fondos, ETF y políticos: en fraccion.si esas posiciones son para
+              suscriptores. Tampoco ejecuta órdenes ni entrega recomendaciones
+              personalizadas.
+            </p>
+            <p className="text-[13px]">
+              <Link
+                href="/api-docs"
+                className="text-ink-900 underline underline-offset-4 hover:opacity-60"
+              >
+                Ver documentación de la API
+              </Link>
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

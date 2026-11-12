@@ -11,18 +11,33 @@ import {
   formatQuantity,
 } from "@/components/my-portfolio/format";
 
-const NUMBER_CELL = "py-3 text-right tabular-nums";
+const HEAD = "whitespace-nowrap pb-2.5 text-[13px] font-normal text-ink-500";
+const HEAD_NUM = `${HEAD} pl-4 text-right`;
+const NUM_CELL = "py-3 pl-4 text-right num";
 /** Dato que no existe: se dice con palabras, nunca con un guion suelto. */
-const MUTED = "text-[12px] font-normal text-ink-400";
+const MUTED = "text-[12px] font-normal text-ink-500";
 
 function tickerHref(symbol: string): string {
   return `/accion/${encodeURIComponent(symbol.toLowerCase())}`;
+}
+
+function pnlTone(pnl: number | null): string {
+  return pnl === null
+    ? "text-ink-500"
+    : pnl > 0
+      ? "text-positive"
+      : pnl < 0
+        ? "text-negative"
+        : "text-ink-900";
 }
 
 /**
  * Tabla de posiciones con filetes de 1px. Sin precio se dice "sin precio" y
  * todo dato ausente se nombra ("Sin costo", "Sin valor", "Sin P&L"): nunca se
  * muestra un 0 ni un guion que parezca una cifra real.
+ *
+ * En móvil se usa una lista de filas (sin scroll horizontal); desde `md` la
+ * tabla completa vive en una región desplazable y enfocable con teclado.
  */
 export function PositionsTable({
   rows,
@@ -37,78 +52,72 @@ export function PositionsTable({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 border border-ink-200 bg-white px-6 py-12 text-center">
-        <p className="text-[15px] font-medium text-ink-900">Aún no tienes posiciones</p>
-        <p className="max-w-sm text-sm text-ink-500">
-          Agrega la primera con el formulario o importa un CSV.
+      <div className="py-6 sm:py-8">
+        <p className="text-[15px] font-medium leading-snug text-ink-900">
+          Aún no tienes posiciones
+        </p>
+        <p className="mt-1 max-w-md text-[13px] leading-relaxed text-ink-500">
+          Agrega la primera con el formulario de arriba. Si ya tienes la cartera
+          en una planilla, puedes importarla desde Cruzar con portafolios.
         </p>
       </div>
     );
   }
 
-  const pnlTone = (pnl: number | null) =>
-    pnl === null
-      ? "text-ink-500"
-      : pnl > 0
-        ? "text-positive"
-        : pnl < 0
-          ? "text-negative"
-          : "text-ink-900";
-
   return (
     <>
-      {/* Móvil: filas tipo broker (badge, ticker, valor y P&L). */}
-      <ul className="divide-y divide-ink-200 border-y border-ink-200 md:hidden">
+      {/* Móvil: una fila por posición, sin scroll horizontal. */}
+      <ul className="divide-y divide-ink-200 border-y border-line md:hidden">
         {rows.map((row) => {
           const subline = [row.name, row.market].filter(Boolean).join(" · ");
-          const weightLabel =
-            row.weightPct === null ? (
-              <span className="text-[11px] text-ink-400">Sin peso</span>
-            ) : (
-              <span className="num text-[12px] text-ink-500">
-                {formatPercent(row.weightPct)}
-              </span>
-            );
           return (
-            <li key={row.symbol} className="py-3">
+            <li key={row.symbol} className="py-4">
               <div className="flex items-start gap-3">
-                <Link
-                  href={tickerHref(row.symbol)}
-                  aria-label={`Ver ${row.symbol}`}
-                  className="shrink-0"
-                >
-                  <TickerBadge symbol={row.symbol} />
-                </Link>
+                <TickerBadge symbol={row.symbol} />
+
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline gap-2">
+                  <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
                     <Link
                       href={tickerHref(row.symbol)}
-                      className="truncate font-semibold text-ink-900 underline-offset-4 hover:underline"
+                      className="break-all font-medium text-ink-900 underline-offset-4 hover:underline"
                     >
                       {row.symbol}
                     </Link>
-                    {weightLabel}
+                    {row.weightPct === null ? (
+                      <span className="text-[12px] text-ink-500">Sin peso</span>
+                    ) : (
+                      <span className="num text-[12px] text-ink-500">
+                        {formatPercent(row.weightPct)}
+                      </span>
+                    )}
                   </div>
-                  <p className="num mt-1 text-[15px] leading-none text-ink-900">
+
+                  <p className="num mt-1.5 text-[16px] leading-none text-ink-900">
+                    {row.value !== null && <span className="sr-only">Valor: </span>}
                     {row.value === null ? (
                       <span className={MUTED}>Sin valor</span>
                     ) : (
                       formatMoney(row.value, row.currency)
                     )}
                   </p>
-                  <p className="num mt-1.5 text-[12px] text-ink-500">
+
+                  <p className="num mt-1.5 text-[12px] leading-snug text-ink-500">
+                    <span className="sr-only">Cantidad y precio: </span>
                     {row.quantity === null ? "Sin cantidad" : formatQuantity(row.quantity)}
                     {" · "}
                     {row.price !== null
                       ? formatMoney(row.price, row.currency)
                       : "sin precio"}
                   </p>
+
                   {subline && (
-                    <p className="mt-0.5 truncate text-[11px] text-ink-400">{subline}</p>
+                    <p className="mt-0.5 truncate text-[12px] text-ink-500">{subline}</p>
                   )}
                 </div>
+
                 <div className="shrink-0 text-right">
                   <p className={`num text-[13px] font-medium ${pnlTone(row.pnl)}`}>
+                    {row.pnlPct !== null && <span className="sr-only">P&amp;L: </span>}
                     {row.pnlPct === null ? (
                       <span className={MUTED}>Sin P&amp;L</span>
                     ) : (
@@ -116,32 +125,33 @@ export function PositionsTable({
                     )}
                   </p>
                   <p
-                    className={`num mt-1 text-[11px] ${
-                      row.pnl === null ? "text-ink-400" : pnlTone(row.pnl)
+                    className={`num mt-1 text-[12px] ${
+                      row.pnl === null ? "text-ink-500" : pnlTone(row.pnl)
                     }`}
                   >
                     {row.pnl === null ? "Sin P&L" : formatMoney(row.pnl, row.currency)}
                   </p>
                 </div>
               </div>
+
               <div className="mt-2.5 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => onEdit(row.symbol)}
                   disabled={disabled}
                   aria-label={`Editar ${row.symbol}`}
-                  className="inline-flex size-10 items-center justify-center border border-ink-200 text-ink-600 transition-colors hover:border-ink-900 hover:text-ink-900 disabled:opacity-45"
+                  className="inline-flex size-11 items-center justify-center border border-line text-ink-600 transition-colors hover:border-ink-900 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-45"
                 >
-                  <Pencil className="size-4" strokeWidth={1.5} />
+                  <Pencil className="size-4" strokeWidth={1.5} aria-hidden />
                 </button>
                 <button
                   type="button"
                   onClick={() => onRemove(row.symbol)}
                   disabled={disabled}
                   aria-label={`Quitar ${row.symbol}`}
-                  className="inline-flex size-10 items-center justify-center border border-ink-200 text-ink-600 transition-colors hover:border-ink-900 hover:text-ink-900 disabled:opacity-45"
+                  className="inline-flex size-11 items-center justify-center border border-line text-ink-600 transition-colors hover:border-ink-900 hover:text-ink-900 disabled:pointer-events-none disabled:opacity-45"
                 >
-                  <X className="size-4" strokeWidth={1.5} />
+                  <X className="size-4" strokeWidth={1.5} aria-hidden />
                 </button>
               </div>
             </li>
@@ -149,41 +159,65 @@ export function PositionsTable({
         })}
       </ul>
 
-      {/* Escritorio: tabla densa tipo Koyfin. */}
-      <div className="hidden overflow-x-auto md:block">
-        <table className="w-full min-w-[760px] text-sm">
+      {/* Escritorio: tabla densa en una región desplazable con teclado. */}
+      <div
+        role="region"
+        aria-label="Tabla de posiciones"
+        tabIndex={0}
+        className="hidden overflow-x-auto md:block"
+      >
+        <table className="w-full min-w-[720px] text-sm">
+          <caption className="sr-only">
+            Posiciones de tu cartera con cantidad, costo promedio, último precio,
+            valor, P&amp;L y peso.
+          </caption>
           <thead>
-            <tr className="border-b border-ink-200 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-ink-500">
-              <th className="pb-2.5 pr-3 font-medium">Ticker</th>
-              <th className={`${NUMBER_CELL} pb-2.5 font-medium`}>Cantidad</th>
-              <th className={`${NUMBER_CELL} pb-2.5 font-medium`}>Costo prom.</th>
-              <th className={`${NUMBER_CELL} pb-2.5 font-medium`}>Último precio</th>
-              <th className={`${NUMBER_CELL} pb-2.5 font-medium`}>Valor</th>
-              <th className={`${NUMBER_CELL} pb-2.5 font-medium`}>P&amp;L</th>
-              <th className={`${NUMBER_CELL} pb-2.5 font-medium`}>P&amp;L %</th>
-              <th className={`${NUMBER_CELL} pb-2.5 font-medium`}>Peso</th>
-              <th className="pb-2.5 pl-3 text-right" aria-label="Acciones" />
+            <tr className="border-b border-line">
+              <th scope="col" className={`${HEAD} pr-3 text-left`}>
+                Ticker
+              </th>
+              <th scope="col" className={HEAD_NUM}>
+                Cantidad
+              </th>
+              <th scope="col" className={HEAD_NUM}>
+                Costo prom.
+              </th>
+              <th scope="col" className={HEAD_NUM}>
+                Último precio
+              </th>
+              <th scope="col" className={HEAD_NUM}>
+                Valor
+              </th>
+              <th scope="col" className={HEAD_NUM}>
+                P&amp;L
+              </th>
+              <th scope="col" className={HEAD_NUM}>
+                P&amp;L %
+              </th>
+              <th scope="col" className={HEAD_NUM}>
+                Peso
+              </th>
+              <th scope="col" className="pb-2.5 pl-3 text-right">
+                <span className="sr-only">Acciones</span>
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-ink-200">
             {rows.map((row) => {
-              const priced = row.price !== null;
               const subline = [row.name, row.market].filter(Boolean).join(" · ");
-              const pnlClass = pnlTone(row.pnl);
+              const tone = pnlTone(row.pnl);
               const weightWidth =
                 row.weightPct === null ? 0 : Math.max(0, Math.min(100, row.weightPct));
 
               return (
                 <tr key={row.symbol} className="transition-colors hover:bg-ink-50">
-                  <td className="py-3 pr-3">
+                  <th scope="row" className="py-3 pr-3 text-left font-normal">
                     <div className="flex items-center gap-3">
-                      <Link href={tickerHref(row.symbol)} aria-label={`Ver ${row.symbol}`}>
-                        <TickerBadge symbol={row.symbol} className="size-8 text-[10px]" />
-                      </Link>
+                      <TickerBadge symbol={row.symbol} className="size-8 text-[10px]" />
                       <div className="min-w-0">
                         <Link
                           href={tickerHref(row.symbol)}
-                          className="font-semibold text-ink-900 underline-offset-4 hover:underline"
+                          className="font-medium text-ink-900 underline-offset-4 hover:underline"
                         >
                           {row.symbol}
                         </Link>
@@ -194,59 +228,57 @@ export function PositionsTable({
                         )}
                       </div>
                     </div>
-                  </td>
-                  <td className={`${NUMBER_CELL} text-ink-900`}>
+                  </th>
+                  <td className={`${NUM_CELL} text-ink-900`}>
                     {row.quantity === null ? (
                       <span className={MUTED}>Sin cantidad</span>
                     ) : (
                       formatQuantity(row.quantity)
                     )}
                   </td>
-                  <td className={`${NUMBER_CELL} text-ink-600`}>
+                  <td className={`${NUM_CELL} text-ink-600`}>
                     {row.avgCost === null ? (
-                      <span className="text-xs font-normal text-ink-400">Sin costo</span>
+                      <span className={MUTED}>Sin costo</span>
                     ) : (
                       formatMoney(row.avgCost, row.currency)
                     )}
                   </td>
-                  <td className={`${NUMBER_CELL} text-ink-900`}>
-                    {priced ? (
+                  <td className={`${NUM_CELL} text-ink-900`}>
+                    {row.price !== null ? (
                       <>
                         {formatMoney(row.price, row.currency)}
                         {row.priceDate && (
-                          <span className="mt-0.5 block text-[11px] font-normal text-ink-400">
+                          <span className="mt-0.5 block text-[12px] font-normal tracking-normal text-ink-500">
                             {formatPriceDate(row.priceDate)}
                           </span>
                         )}
                       </>
                     ) : (
-                      <span className="text-[12px] font-normal text-ink-400">
-                        sin precio
-                      </span>
+                      <span className={MUTED}>Sin precio</span>
                     )}
                   </td>
-                  <td className={`${NUMBER_CELL} text-ink-900`}>
+                  <td className={`${NUM_CELL} text-ink-900`}>
                     {row.value === null ? (
                       <span className={MUTED}>Sin valor</span>
                     ) : (
                       formatMoney(row.value, row.currency)
                     )}
                   </td>
-                  <td className={`${NUMBER_CELL} ${pnlClass}`}>
+                  <td className={`${NUM_CELL} ${tone}`}>
                     {row.pnl === null ? (
                       <span className={MUTED}>Sin P&amp;L</span>
                     ) : (
                       formatMoney(row.pnl, row.currency)
                     )}
                   </td>
-                  <td className={`${NUMBER_CELL} ${pnlClass}`}>
+                  <td className={`${NUM_CELL} ${tone}`}>
                     {row.pnlPct === null ? (
                       <span className={MUTED}>Sin P&amp;L</span>
                     ) : (
                       formatPercent(row.pnlPct, true)
                     )}
                   </td>
-                  <td className={`${NUMBER_CELL} text-ink-900`}>
+                  <td className={`${NUM_CELL} text-ink-900`}>
                     {row.weightPct === null ? (
                       <span className={MUTED}>Sin peso</span>
                     ) : (
@@ -271,18 +303,18 @@ export function PositionsTable({
                         onClick={() => onEdit(row.symbol)}
                         disabled={disabled}
                         aria-label={`Editar ${row.symbol}`}
-                        className="inline-flex size-9 items-center justify-center text-ink-500 transition-colors hover:text-ink-900 disabled:opacity-45"
+                        className="inline-flex size-10 items-center justify-center text-ink-500 transition-colors hover:text-ink-900 disabled:pointer-events-none disabled:opacity-45"
                       >
-                        <Pencil className="size-4" strokeWidth={1.5} />
+                        <Pencil className="size-4" strokeWidth={1.5} aria-hidden />
                       </button>
                       <button
                         type="button"
                         onClick={() => onRemove(row.symbol)}
                         disabled={disabled}
                         aria-label={`Quitar ${row.symbol}`}
-                        className="inline-flex size-9 items-center justify-center text-ink-500 transition-colors hover:text-ink-900 disabled:opacity-45"
+                        className="inline-flex size-10 items-center justify-center text-ink-500 transition-colors hover:text-ink-900 disabled:pointer-events-none disabled:opacity-45"
                       >
-                        <X className="size-4" strokeWidth={1.5} />
+                        <X className="size-4" strokeWidth={1.5} aria-hidden />
                       </button>
                     </div>
                   </td>

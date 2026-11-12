@@ -2,12 +2,33 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { PortfolioCardData } from "@/lib/chat-ia/tools";
+import type { Period, PortfolioCardData } from "@/lib/chat-ia/tools";
+import type { PortfolioCategory } from "@/lib/types";
+import { CATEGORY_META } from "@/lib/types";
+import { formatShortDate, formatSignedPct } from "@/lib/utils";
 import { Sparkline } from "@/components/chat/sparkline";
 
-function pct(v: number | null): string | null {
-  if (v === null || !Number.isFinite(v)) return null;
-  return `${v > 0 ? "+" : ""}${v.toFixed(2).replace(".", ",")}%`;
+const PERIOD_LABEL: Record<Period, string> = {
+  "1M": "último mes",
+  "3M": "últimos 3 meses",
+  YTD: "lo que va del año",
+  "1A": "último año",
+  TOTAL: "desde el inicio",
+};
+
+/** Frase completa para lectores de pantalla ("de retorno del último mes"). */
+const PERIOD_PHRASE: Record<Period, string> = {
+  "1M": "del último mes",
+  "3M": "de los últimos 3 meses",
+  YTD: "de lo que va del año",
+  "1A": "del último año",
+  TOTAL: "desde el inicio",
+};
+
+/** Solo etiquetas conocidas: una categoría nueva no se muestra en crudo. */
+function categoryLabel(category: string | null): string | null {
+  if (!category) return null;
+  return CATEGORY_META[category as PortfolioCategory]?.label ?? null;
 }
 
 function Logo({ card }: { card: PortfolioCardData }) {
@@ -15,64 +36,104 @@ function Logo({ card }: { card: PortfolioCardData }) {
   const initials = card.name
     .split(/\s+/)
     .slice(0, 2)
-    .map((w) => w[0])
+    .map((word) => word[0] ?? "")
     .join("")
     .toUpperCase();
+
   if (card.image && !failed) {
-    // eslint-disable-next-line @next/next/no-img-element
     return (
+      // eslint-disable-next-line @next/next/no-img-element
       <img
         src={card.image}
         alt=""
+        width={36}
+        height={36}
+        loading="lazy"
         onError={() => setFailed(true)}
-        className="h-9 w-9 shrink-0 rounded-full border border-ink-200 bg-ink-50 object-cover"
+        className="h-9 w-9 shrink-0 border border-app-border bg-app-card object-cover"
       />
     );
   }
+
   return (
     <span
       aria-hidden="true"
-      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink-900 text-[11px] font-medium tracking-wide text-white"
+      className="grid h-9 w-9 shrink-0 place-items-center bg-ink-900 text-[11px] font-medium text-white"
     >
       {initials}
     </span>
   );
 }
 
+/**
+ * Tarjeta de portafolio dentro del hilo del chat. Un solo enlace, sin
+ * anidamientos: el nombre es el destino y el retorno va en cifras tabulares.
+ */
 export function PortfolioCardWidget({ card }: { card: PortfolioCardData }) {
+  const hasReturn = card.returnPct !== null && Number.isFinite(card.returnPct);
   const positive = (card.returnPct ?? 0) >= 0;
-  const formatted = pct(card.returnPct);
+  const formatted = hasReturn ? formatSignedPct(card.returnPct, 2) : null;
+  const period = card.period ? PERIOD_LABEL[card.period] : null;
+  const periodPhrase = card.period ? PERIOD_PHRASE[card.period] : null;
+  const category = categoryLabel(card.category);
+  const meta = [category, period].filter(Boolean).join(" · ");
+  const asOf = formatShortDate(card.asOf);
+
   return (
     <Link
       href={`/app/portafolio/${encodeURIComponent(card.slug)}`}
-      className="group flex min-w-[248px] snap-start items-center gap-3 border border-ink-200 bg-white p-3.5 transition-colors hover:border-ink-900"
+      className="group flex w-[248px] max-w-full shrink-0 snap-start flex-col justify-between gap-3 border border-app-border bg-app-card p-3.5 transition-colors hover:border-ink-900 sm:w-full"
     >
-      <Logo card={card} />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-ink-900">{card.name}</p>
-        <p className="truncate text-xs text-ink-500">
-          {card.period ?? "Sin métrica"}
-          {card.asOf ? ` · al ${card.asOf}` : ""}
-        </p>
+      <div className="flex min-w-0 items-start gap-2.5">
+        <Logo card={card} />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[14px] font-medium leading-snug tracking-[-0.01em] text-ink-900 group-hover:underline group-hover:underline-offset-2">
+            {card.name}
+          </p>
+          <p className="mt-0.5 truncate text-[12px] leading-snug text-ink-500">
+            {meta || "Cartera pública"}
+          </p>
+        </div>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-1.5">
-        <Sparkline values={card.spark} positive={positive} />
-        {formatted === null ? (
-          <span className="text-xs font-normal text-ink-400">Sin dato</span>
-        ) : (
-          <span className={`text-sm font-medium tabular-nums ${positive ? "text-positive" : "text-negative"}`}>{formatted}</span>
-        )}
+
+      <div className="flex items-end justify-between gap-2">
+        <Sparkline values={card.spark} className="h-8 w-[104px] shrink-0" />
+        <div className="min-w-0 text-right">
+          {formatted === null ? (
+            <span className="text-[12px] leading-tight text-ink-500">Sin retorno</span>
+          ) : (
+            <>
+              <span
+                className={`num block text-[16px] leading-tight ${positive ? "text-positive" : "text-negative"}`}
+              >
+                {formatted}
+              </span>
+              <span className="sr-only"> de retorno {periodPhrase ?? ""}</span>
+              {asOf ? (
+                <span className="mt-0.5 block text-[11px] leading-tight text-ink-500">
+                  Al {asOf}
+                </span>
+              ) : null}
+            </>
+          )}
+        </div>
       </div>
     </Link>
   );
 }
 
+/** Carrusel en el celular, grilla de dos columnas desde `sm`. */
 export function PortfolioCardRail({ cards }: { cards: PortfolioCardData[] }) {
   if (!cards.length) return null;
+
   return (
-    <div className="-mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:grid sm:grid-cols-2 sm:overflow-visible">
-      {cards.map((c) => (
-        <PortfolioCardWidget key={c.slug} card={c} />
+    <div
+      role="group"
+      aria-label={cards.length === 1 ? "Portafolio mencionado" : "Portafolios mencionados"}
+      className="no-scrollbar -mx-1 flex snap-x gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0"
+    >
+      {cards.map((card) => (
+        <PortfolioCardWidget key={card.slug} card={card} />
       ))}
     </div>
   );

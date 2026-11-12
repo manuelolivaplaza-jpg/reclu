@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LogOut, Settings, Sparkles } from "lucide-react";
+import { LogOut, Settings, CreditCard } from "lucide-react";
 import { LogoMark } from "@/components/app/logo-mark";
 import { CommandPalette } from "@/components/command-palette-lazy";
 import { Avatar } from "@/components/app/avatar";
@@ -25,7 +25,9 @@ export function AppTopbar({ user }: { user: AppUser }) {
   const plan = planName(user.planLabel);
   const isFree = plan === "Gratis";
 
-  useEffect(() => setOpen(false), [pathname]);
+  // El menú se cierra al elegir un ítem (onClick del contenedor) y al hacer
+  // clic fuera o Escape. Sin efecto sobre `pathname`: evita un render extra
+  // en cada navegación.
 
   useEffect(() => {
     if (!open) return;
@@ -67,25 +69,26 @@ export function AppTopbar({ user }: { user: AppUser }) {
       nodes[nodes.length - 1].focus();
     } else if (e.key === "Tab") {
       setOpen(false);
+      triggerRef.current?.focus();
     }
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-ink-200 bg-white pt-[env(safe-area-inset-top)]">
+    <header className="sticky top-0 z-30 border-b border-line bg-canvas pt-[env(safe-area-inset-top)]">
       <div className="mx-auto flex h-[52px] w-full max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:h-14 lg:px-8">
         <Link
           href="/dashboard"
-          className="lg:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900"
+          className="inline-flex min-h-11 items-center lg:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900"
           aria-label="Fraccion, ir al resumen"
         >
           <LogoMark />
         </Link>
         <div className="hidden min-w-0 items-center gap-3 lg:flex">
-          <h1 className="truncate text-[15px] font-medium leading-none tracking-[-0.01em] text-ink-900">{titleFor(pathname)}</h1>
-          <span aria-hidden className="h-3.5 w-px shrink-0 bg-ink-200" />
+          <p className="truncate text-[15px] font-medium leading-none tracking-[-0.01em] text-ink-900">{titleFor(pathname)}</p>
+          <span aria-hidden className="h-3.5 w-px shrink-0 bg-line" />
           <Link
             href={isFree ? "/upgrade" : "/settings#plan"}
-            className="inline-flex h-[22px] shrink-0 items-center border border-ink-200 px-2 text-[10.5px] font-medium leading-none text-ink-600 transition-colors hover:border-ink-900 hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900"
+            className="inline-flex h-7 shrink-0 items-center border border-line px-2 text-[11px] font-medium leading-none text-ink-500 transition-colors hover:border-ink-900 hover:text-ink-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900"
           >
             Plan {plan}
           </Link>
@@ -99,52 +102,55 @@ export function AppTopbar({ user }: { user: AppUser }) {
               onClick={() => setOpen((o) => !o)}
               aria-haspopup="menu"
               aria-expanded={open}
+              aria-controls={open ? "app-account-menu" : undefined}
               aria-label="Menú de cuenta"
-              className="flex size-11 items-center justify-center rounded-none transition-colors hover:bg-ink-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink-900 lg:size-10"
+              className="flex size-11 items-center justify-center rounded-none transition-colors hover:bg-ink-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ink-900"
             >
               <Avatar name={user.name || user.email} />
             </button>
             {open && (
               <div
                 ref={menuRef}
+                id="app-account-menu"
                 role="menu"
                 aria-label="Cuenta"
                 onKeyDown={onMenuKeys}
-                className="absolute right-0 top-[calc(100%+10px)] w-[248px] rounded-none border border-ink-200 bg-white"
+                onClick={() => setOpen(false)}
+                className="absolute right-0 top-[calc(100%+10px)] w-[248px] rounded-none border border-line bg-canvas"
               >
-                <div className="border-b border-ink-200 px-3 py-3">
+                <div className="border-b border-line px-4 py-3">
                   <p className="truncate text-[13px] font-medium leading-tight tracking-[-0.01em] text-ink-900">
                     {user.name || "Tu cuenta"}
                   </p>
-                  <p className="mt-0.5 truncate text-[11.5px] leading-tight text-ink-500">{user.email}</p>
-                  <p className="mt-2 text-[10.5px] leading-none text-ink-500">Plan {plan}</p>
+                  <p className="mt-0.5 truncate text-[12px] leading-tight text-ink-500">{user.email}</p>
+                  <p className="label-line mt-1.5">Plan {plan}</p>
                 </div>
-                <div className="divide-y divide-ink-200">
+                <div className="divide-y divide-line">
                   <Link
                     role="menuitem"
                     tabIndex={-1}
                     href="/settings"
-                    className="flex min-h-11 items-center gap-3 px-3 text-[13.5px] text-ink-700 outline-none transition-colors hover:bg-ink-50 hover:text-ink-900 focus:bg-ink-50 focus:text-ink-900"
+                    className="flex min-h-11 items-center gap-3 px-4 text-[13.5px] text-ink-900 transition-colors hover:bg-ink-50 focus:bg-ink-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ink-900"
                   >
-                    <Settings className="size-4 shrink-0 text-ink-500" strokeWidth={1.6} aria-hidden /> Ajustes
+                    <Settings className="size-4 shrink-0 text-ink-500" strokeWidth={1.5} aria-hidden /> Ajustes
                   </Link>
                   <Link
                     role="menuitem"
                     tabIndex={-1}
                     href="/upgrade"
-                    className="flex min-h-11 items-center gap-3 px-3 text-[13.5px] text-ink-700 outline-none transition-colors hover:bg-ink-50 hover:text-ink-900 focus:bg-ink-50 focus:text-ink-900"
+                    className="flex min-h-11 items-center gap-3 px-4 text-[13.5px] text-ink-900 transition-colors hover:bg-ink-50 focus:bg-ink-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ink-900"
                   >
-                    <Sparkles className="size-4 shrink-0 text-ink-500" strokeWidth={1.6} aria-hidden /> Suscripción
+                    <CreditCard className="size-4 shrink-0 text-ink-500" strokeWidth={1.5} aria-hidden /> Suscripción
                   </Link>
                 </div>
-                <form action="/auth/signout" method="post" className="border-t border-ink-200">
+                <form action="/auth/signout" method="post" className="border-t border-line">
                   <button
                     role="menuitem"
                     tabIndex={-1}
                     type="submit"
-                    className="flex min-h-11 w-full items-center gap-3 px-3 text-left text-[13.5px] text-ink-700 outline-none transition-colors hover:bg-ink-50 hover:text-ink-900 focus:bg-ink-50 focus:text-ink-900"
+                    className="flex min-h-11 w-full items-center gap-3 px-4 text-left text-[13.5px] text-ink-900 transition-colors hover:bg-ink-50 focus:bg-ink-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ink-900"
                   >
-                    <LogOut className="size-4 shrink-0 text-ink-500" strokeWidth={1.6} aria-hidden /> Cerrar sesión
+                    <LogOut className="size-4 shrink-0 text-ink-500" strokeWidth={1.5} aria-hidden /> Cerrar sesión
                   </button>
                 </form>
               </div>

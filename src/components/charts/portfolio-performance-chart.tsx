@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState, type KeyboardEvent } from "react";
 import { formatSignedPct } from "@/lib/utils";
 import Link from "next/link";
-import { Lock } from "lucide-react";
 
 export interface ChartPoint {
   date: string;
@@ -17,8 +16,8 @@ export interface PortfolioPerformanceChartProps {
   benchmark?: ChartPoint[];
   benchmarkLabel?: string;
   /**
-   * Plan gratis: periodos con mas dias quedan bloqueados (muro de pago).
-   * null = sin limite. Los periodos sin datos suficientes no se muestran.
+   * Plan gratis: periodos con más días quedan bloqueados (muro de pago).
+   * null = sin límite. Los periodos sin datos suficientes no se muestran.
    */
   maxFreeDays?: number | null;
   /** Última fecha estimada (posiciones actuales); ese tramo va punteado y gris. */
@@ -78,12 +77,19 @@ function fmtPct(v: number | null | undefined): string | null {
 
 function fmtDate(t: number): string {
   try {
-    return new Intl.DateTimeFormat("es-CL", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(t));
+    return new Intl.DateTimeFormat("es-CL", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(
+      new Date(t),
+    );
   } catch {
     return "";
   }
 }
 
+/**
+ * Rendimiento del portafolio por período. Línea negra de 1.5px sobre grilla de
+ * filetes; benchmark en gris punteado y tramo estimado en gris punto. El
+ * selector es rectangular (radio 0) y el lienzo se recorre con el teclado.
+ */
 export function PortfolioPerformanceChart({
   series,
   benchmark,
@@ -91,6 +97,7 @@ export function PortfolioPerformanceChart({
   maxFreeDays = null,
   estimatedUntil = null,
 }: PortfolioPerformanceChartProps) {
+  const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const estT = estimatedUntil ? Date.parse(estimatedUntil) : NaN;
   const port = useMemo(() => clean(series), [series]);
   const bench = useMemo(() => clean(benchmark), [benchmark]);
@@ -112,8 +119,7 @@ export function PortfolioPerformanceChart({
   const [picked, setPicked] = useState<PeriodKey | null>(null);
   // Si el período elegido deja de existir (muro o falta de datos), se cae al
   // período por defecto en vez de pintar un gráfico vacío.
-  const periodKey: PeriodKey =
-    picked !== null && usable.some((p) => p.key === picked) ? picked : defaultKey;
+  const periodKey: PeriodKey = picked !== null && usable.some((p) => p.key === picked) ? picked : defaultKey;
   const period = PERIODS.find((p) => p.key === periodKey) ?? PERIODS[0];
 
   const view = useMemo(() => {
@@ -127,8 +133,10 @@ export function PortfolioPerformanceChart({
     const t0 = pp[0].t;
     const t1 = pp[pp.length - 1].t;
     const all = [...pp.map((x) => x.pct), ...bb.map((x) => x.pct), 0];
-    let lo = Math.min(...all);
-    let hi = Math.max(...all);
+    const yMinRaw = Math.min(...all);
+    const yMaxRaw = Math.max(...all);
+    let lo = yMinRaw;
+    let hi = yMaxRaw;
     if (hi - lo < 0.5) {
       hi += 0.25;
       lo -= 0.25;
@@ -146,19 +154,48 @@ export function PortfolioPerformanceChart({
     const estCount = cut === -1 ? pp.length : cut;
     const estLine = estCount >= 1 ? smoothPath(pxy.slice(0, Math.min(estCount + 1, pxy.length))) : "";
     const realLine = estCount >= 1 ? smoothPath(pxy.slice(Math.max(estCount - 0, 0))) : line;
-    const area = `${line} L ${W} ${H - PAD_B} L 0 ${H - PAD_B} Z`;
-    return { pp, bb, pxy, line, area, estLine, realLine, hasEst: estCount >= 1, bline: smoothPath(bxy), zeroY: y(0), last: pp[pp.length - 1].pct, t0, t1, x, y };
+    return {
+      pp,
+      bb,
+      pxy,
+      line,
+      estLine,
+      realLine,
+      hasEst: estCount >= 1,
+      bline: smoothPath(bxy),
+      zeroY: y(0),
+      last: pp[pp.length - 1].pct,
+      t0,
+      t1,
+      x,
+      y,
+      yMinRaw,
+      yMaxRaw,
+    };
   }, [port, bench, lastT, period.days, estT]);
 
   const [hover, setHover] = useState<number | null>(null);
   // Sin serie utilizable no hay gráfico: ni cifra ni contenedor vacío.
   if (port.length < 2 || usable.length === 0 || !view) return null;
 
-  const positive = view.last >= 0;
-  const color = positive ? "var(--color-positive, #0f7a32)" : "var(--color-negative, #c81e1e)";
-  const gradId = positive ? "rc-grad-pos" : "rc-grad-neg";
+  const hp = hover !== null ? (view.pp[hover] ?? null) : null;
+  const hb =
+    hp && view.bb.length
+      ? view.bb.reduce((a, b) => (Math.abs(b.t - hp.t) < Math.abs(a.t - hp.t) ? b : a))
+      : null;
+  const displayPct = hp ? hp.pct : view.last;
+  const headline = fmtPct(displayPct);
+  const benchPct = view.bb.length ? fmtPct(hb ? hb.pct : view.bb[view.bb.length - 1].pct) : null;
+  const hoverPort = hp ? fmtPct(hp.pct) : null;
+  const hoverBench = hb ? fmtPct(hb.pct) : null;
+  const anyLocked = PERIODS.some((p) => isLocked(p.days));
+  const showZero = view.yMinRaw < -0.05 && view.yMaxRaw > 0.05;
 
-  const onMove = (clientX: number, rect: DOMRect) => {
+  const ticks = [view.yMaxRaw, (view.yMinRaw + view.yMaxRaw) / 2, view.yMinRaw].filter(
+    (value, index, arr) => arr.findIndex((other) => Math.abs(other - value) < 0.05) === index,
+  );
+
+  function onMove(clientX: number, rect: DOMRect) {
     if (!view) return;
     const rel = ((clientX - rect.left) / rect.width) * W;
     let best = 0;
@@ -171,41 +208,56 @@ export function PortfolioPerformanceChart({
       }
     });
     setHover(best);
-  };
+  }
 
-  const hp = hover !== null ? view.pp[hover] : null;
-  const hb =
-    hp && view.bb.length
-      ? view.bb.reduce((a, b) => (Math.abs(b.t - hp.t) < Math.abs(a.t - hp.t) ? b : a))
-      : null;
-  const headline = fmtPct(hp ? hp.pct : view.last);
-  const benchPct = view.bb.length
-    ? fmtPct(hb ? hb.pct : view.bb[view.bb.length - 1].pct)
-    : null;
-  const hoverPort = hp ? fmtPct(hp.pct) : null;
-  const hoverBench = hb ? fmtPct(hb.pct) : null;
-  const anyLocked = PERIODS.some((p) => isLocked(p.days));
+  function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!view) return;
+    const last = view.pxy.length - 1;
+    if (event.key === "ArrowRight" || event.key === "ArrowUp") {
+      event.preventDefault();
+      setHover((h) => Math.min(last, (h ?? -1) + 1));
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowDown") {
+      event.preventDefault();
+      setHover((h) => Math.max(0, (h ?? last + 1) - 1));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      setHover(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      setHover(last);
+    } else if (event.key === "Escape") {
+      setHover(null);
+    }
+  }
+
+  const summary =
+    headline !== null
+      ? `Rendimiento ${period.label}: ${headline}${benchPct !== null ? `, ${benchmarkLabel} ${benchPct}` : ""}.`
+      : `Rendimiento ${period.label}.`;
 
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_rgba(16,24,40,0.08)] sm:p-7">
+    <section className="app-panel p-5 sm:p-7" aria-labelledby={`${id}-label`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[13px] text-ink-500">Rendimiento {"\u00b7"} {period.label}</p>
+        <div className="min-w-0">
+          <p id={`${id}-label`} className="label-line">
+            Rendimiento {"\u00b7"} {period.label}
+          </p>
           {headline !== null ? (
             <p
-              className="num mt-1 text-[2rem] font-semibold leading-none tracking-[-0.02em]"
-              style={{ color }}
+              className={
+                "num mt-1 text-[2rem] leading-none " + (displayPct >= 0 ? "text-positive" : "text-negative")
+              }
             >
               {headline}
             </p>
           ) : null}
           {benchPct !== null ? (
             <p className="mt-2 text-[13px] text-ink-500">
-              {benchmarkLabel}: {benchPct}
+              {benchmarkLabel}: <span className="num">{benchPct}</span>
             </p>
           ) : null}
         </div>
-        <div className="flex gap-1 rounded-full bg-neutral-100 p-1">
+        <div role="group" aria-label="Período del gráfico" className="inline-flex border border-line">
           {shown.map((p) => {
             const locked = isLocked(p.days);
             const active = p.key === periodKey;
@@ -214,22 +266,24 @@ export function PortfolioPerformanceChart({
                 key={p.key}
                 type="button"
                 disabled={locked}
+                aria-pressed={active}
+                aria-label={locked ? `${p.label}, disponible en Pro` : p.label}
+                title={locked ? "Disponible en Pro" : undefined}
                 onClick={() => {
                   setPicked(p.key);
                   setHover(null);
                 }}
-                title={locked ? "Disponible en Pro" : undefined}
                 className={
-                  "inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-medium transition-colors " +
+                  "inline-flex min-h-10 items-center justify-center gap-1.5 border-l border-line px-2.5 text-[13px] tabular-nums transition-colors first:border-l-0 focus-visible:outline-2 focus-visible:outline-offset-[-2px] " +
                   (active
-                    ? "bg-white text-ink-900 shadow-sm"
+                    ? "bg-ink-900 text-white focus-visible:outline-white"
                     : locked
                       ? "cursor-not-allowed text-ink-400"
                       : "text-ink-500 hover:text-ink-900")
                 }
               >
-                {locked ? <Lock className="size-3" strokeWidth={2} aria-hidden /> : null}
                 {p.label}
+                {locked ? <span className="text-[11px] font-normal text-ink-500">Pro</span> : null}
               </button>
             );
           })}
@@ -237,80 +291,180 @@ export function PortfolioPerformanceChart({
       </div>
 
       <div className="mt-6">
-        <div className="relative">
-          <svg
-            viewBox={`0 0 ${W} ${H}`}
-            preserveAspectRatio="none"
-            className="h-56 w-full touch-pan-y sm:h-64"
-            onMouseMove={(e) => onMove(e.clientX, e.currentTarget.getBoundingClientRect())}
-            onMouseLeave={() => setHover(null)}
-            onTouchMove={(e) => e.touches[0] && onMove(e.touches[0].clientX, e.currentTarget.getBoundingClientRect())}
-            onTouchEnd={() => setHover(null)}
-            role="img"
-            aria-label={headline !== null ? `Rendimiento ${period.label}: ${headline}` : `Rendimiento ${period.label}`}
-          >
-            <defs>
-              <linearGradient id={gradId} x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity="0.22" />
-                <stop offset="100%" stopColor={color} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <line x1="0" x2={W} y1={view.zeroY} y2={view.zeroY} stroke="#e5e5e5" strokeDasharray="3 4" vectorEffect="non-scaling-stroke" />
-            <path d={view.area} fill={`url(#${gradId})`} />
-            {view.bb.length ? (
-              <path d={view.bline} fill="none" stroke="#a3a3a3" strokeWidth="1.5" strokeDasharray="5 5" vectorEffect="non-scaling-stroke" />
-            ) : null}
-            {view.hasEst ? (
-              <path d={view.estLine} fill="none" stroke="#a3a3a3" strokeWidth="2" strokeDasharray="4 4" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
-            ) : null}
-            <path d={view.realLine} fill="none" stroke={color} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-            {hover !== null && view.pxy[hover] ? (
-              <line x1={view.pxy[hover].x} x2={view.pxy[hover].x} y1={PAD_T} y2={H - PAD_B} stroke="#d4d4d4" vectorEffect="non-scaling-stroke" />
-            ) : null}
-          </svg>
-          {hover !== null && view.pxy[hover] && hp ? (
-            <>
+        <div className="grid grid-cols-1 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:gap-x-3">
+          <div className="relative hidden h-56 sm:block sm:h-64" aria-hidden="true">
+            {ticks.map((tick, index) => (
               <span
-                className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow"
-                style={{ left: `${(view.pxy[hover].x / W) * 100}%`, top: `${(view.pxy[hover].y / H) * 100}%`, background: color }}
-              />
-              <div
-                className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 rounded-xl bg-ink-900 px-3 py-2 text-[12px] text-white shadow-lg"
-                style={{ left: `${Math.min(85, Math.max(15, (view.pxy[hover].x / W) * 100))}%` }}
+                key={index}
+                className="num absolute right-0 whitespace-nowrap text-[11px] text-ink-500"
+                style={{
+                  top: `${(view.y(tick) / H) * 100}%`,
+                  transform: index === 0 ? "translateY(0)" : index === ticks.length - 1 ? "translateY(-100%)" : "translateY(-50%)",
+                }}
               >
-                <p className="text-white/70">{fmtDate(hp.t)}</p>
-                {hoverPort !== null ? <p className="num font-medium">Portafolio {hoverPort}</p> : null}
-                {hoverBench !== null ? <p className="num text-white/80">{benchmarkLabel} {hoverBench}</p> : null}
-              </div>
-            </>
-          ) : null}
+                {formatSignedPct(tick, 1)}
+              </span>
+            ))}
+          </div>
+
+          <div
+            className="relative h-56 touch-pan-y sm:h-64"
+            tabIndex={0}
+            role="group"
+            aria-label="Gráfico de rendimiento"
+            aria-describedby={`${id}-hint`}
+            onPointerMove={(e) => onMove(e.clientX, e.currentTarget.getBoundingClientRect())}
+            onPointerDown={(e) => onMove(e.clientX, e.currentTarget.getBoundingClientRect())}
+            onPointerLeave={(event) => {
+              if (event.pointerType !== "touch") setHover(null);
+            }}
+            onKeyDown={handleKeyDown}
+            onBlur={() => setHover(null)}
+          >
+            <svg
+              viewBox={`0 0 ${W} ${H}`}
+              preserveAspectRatio="none"
+              className="h-full w-full"
+              role="img"
+              aria-labelledby={`${id}-title ${id}-desc`}
+            >
+              <title id={`${id}-title`}>Rendimiento del portafolio, {period.label}</title>
+              <desc id={`${id}-desc`}>{summary}</desc>
+
+              {ticks.map((tick, index) => (
+                <line
+                  key={index}
+                  x1="0"
+                  x2={W}
+                  y1={view.y(tick)}
+                  y2={view.y(tick)}
+                  className="stroke-line"
+                  strokeWidth={1}
+                  vectorEffect="non-scaling-stroke"
+                />
+              ))}
+              {showZero ? (
+                <line
+                  x1="0"
+                  x2={W}
+                  y1={view.zeroY}
+                  y2={view.zeroY}
+                  className="stroke-ink-400"
+                  strokeWidth={1}
+                  strokeDasharray="2 4"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ) : null}
+              {view.bb.length ? (
+                <path
+                  d={view.bline}
+                  fill="none"
+                  className="stroke-ink-500"
+                  strokeWidth={1}
+                  strokeDasharray="4 3"
+                  strokeLinejoin="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ) : null}
+              {view.hasEst ? (
+                <path
+                  d={view.estLine}
+                  fill="none"
+                  className="stroke-ink-400"
+                  strokeWidth={1.5}
+                  strokeDasharray="2 3"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+              ) : null}
+              <path
+                d={view.realLine}
+                fill="none"
+                className="stroke-line-strong"
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+              {hover !== null && view.pxy[hover] ? (
+                <line
+                  x1={view.pxy[hover].x}
+                  x2={view.pxy[hover].x}
+                  y1={PAD_T}
+                  y2={H - PAD_B}
+                  className="stroke-ink-300"
+                  strokeWidth={1}
+                  vectorEffect="non-scaling-stroke"
+                />
+              ) : null}
+            </svg>
+
+            {hover !== null && view.pxy[hover] && hp ? (
+              <>
+                <span
+                  className="pointer-events-none absolute size-3 -translate-x-1/2 -translate-y-1/2 border border-app-card bg-ink-900"
+                  style={{ left: `${(view.pxy[hover].x / W) * 100}%`, top: `${(view.pxy[hover].y / H) * 100}%` }}
+                />
+                <div
+                  className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 border border-line bg-app-card px-2.5 py-1.5 text-[12px]"
+                  aria-hidden="true"
+                  style={{ left: `${Math.min(85, Math.max(15, (view.pxy[hover].x / W) * 100))}%` }}
+                >
+                  <p className="text-[11px] text-ink-500">{fmtDate(hp.t)}</p>
+                  {hoverPort !== null ? (
+                    <p className="text-[12px] text-ink-900">
+                      Portafolio <span className={"num " + (hp.pct >= 0 ? "text-positive" : "text-negative")}>{hoverPort}</span>
+                    </p>
+                  ) : null}
+                  {hoverBench !== null ? (
+                    <p className="num text-ink-500">
+                      {benchmarkLabel} {hoverBench}
+                    </p>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+          </div>
+
+          <div className="hidden sm:block" aria-hidden="true" />
+          <div className="num mt-2 flex justify-between gap-3 text-[11px] text-ink-500">
+            <span>{fmtDate(view.t0)}</span>
+            <span>{fmtDate(view.t1)}</span>
+          </div>
         </div>
-        <div className="mt-2 flex justify-between text-[12px] text-ink-400">
-          <span>{fmtDate(view.t0)}</span>
-          <span>{fmtDate(view.t1)}</span>
-        </div>
+
         {view.bb.length || view.hasEst ? (
-          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-500">
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px] text-ink-500">
             {view.hasEst ? (
               <span className="inline-flex items-center gap-1.5">
-                <span className="h-0 w-4 border-t-2 border-dotted border-neutral-400" /> Estimado con posiciones actuales
+                <span className="h-0 w-4 border-t border-dotted border-ink-400" aria-hidden="true" />
+                Estimado con posiciones actuales
               </span>
             ) : null}
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-0.5 w-4 rounded-full" style={{ background: color }} /> Portafolio
+              <span className="h-px w-4 bg-ink-900" aria-hidden="true" />
+              Portafolio
             </span>
             {view.bb.length ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-0 w-4 border-t-2 border-dashed border-neutral-400" /> {benchmarkLabel}
-            </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-0 w-4 border-t border-dashed border-ink-500" aria-hidden="true" />
+                {benchmarkLabel}
+              </span>
             ) : null}
           </div>
         ) : null}
       </div>
 
+      <p id={`${id}-hint`} className="sr-only">
+        Gráfico interactivo. Usa las flechas izquierda y derecha para recorrer las fechas y Esc para salir.
+      </p>
+      <p className="sr-only" aria-live="polite">
+        {hp ? `${fmtDate(hp.t)}: portafolio ${hoverPort ?? "sin dato"}.` : ""}
+        {hb && hoverBench ? ` ${benchmarkLabel} ${hoverBench}.` : ""}
+      </p>
+
       {anyLocked ? (
         <p className="mt-4 text-[13px] text-ink-500">
-          <Lock className="mr-1 inline size-3" strokeWidth={2} aria-hidden />
           El plan gratis muestra hasta 3 meses.{" "}
           <Link href="/upgrade" className="font-medium text-ink-900 underline-offset-4 hover:underline">
             Desbloquear con Pro

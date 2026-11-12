@@ -251,6 +251,37 @@ def test_export_writes_only_canonical_slugs_and_no_performance(tmp_path: Path):
     assert brk["generated_at"] == "2020-05-01T00:00:00Z"
 
 
+def test_index_carries_manager_same_as_detail(tmp_path: Path):
+    """d94: el índice expone `manager` con el mismo valor que el detalle."""
+    pem, public, key_id = _keypair()
+    holdings = {
+        "berkshire-hathaway-13f": BRK_ROWS,
+        "arkk": ARKK_ROWS,
+    }
+    export_feed(
+        tmp_path,
+        holdings_by_slug=holdings,
+        env=_env(tmp_path, pem, key_id),
+        generated_at="2020-05-01T00:00:00Z",
+        do_ping=False,
+        do_upload=False,
+    )
+    index = json.loads((tmp_path / "index.json").read_text(encoding="utf-8"))
+    assert verify_index(index, public) is True
+    assert index["portfolios"], "el índice debe traer al menos un portafolio"
+    for item in index["portfolios"]:
+        assert "manager" in item
+        expected = CANONICAL_BY_SLUG[item["slug"]].get("manager")
+        assert item["manager"] == expected
+        detail = json.loads(
+            (tmp_path / item["detail_path"]).read_text(encoding="utf-8")
+        )
+        assert detail["manager"] == item["manager"]
+    manager_by_slug = {item["slug"]: item["manager"] for item in index["portfolios"]}
+    assert manager_by_slug["berkshire-hathaway-13f"] == "Warren Buffett"
+    assert manager_by_slug["arkk"] == "Cathie Wood"
+
+
 def test_version_id_stable_across_reexport_with_new_generated_at(tmp_path: Path):
     pem, public, key_id = _keypair()
     env = _env(tmp_path / "a", pem, key_id)

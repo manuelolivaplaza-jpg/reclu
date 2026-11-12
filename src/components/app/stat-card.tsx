@@ -26,20 +26,18 @@ export function StatCard({
   const text = typeof value === "string" ? value.trim() : "";
   const hasValue = value != null && text !== "" && !/^[—–-]$/.test(text);
   return (
-    <div className={cn("flex flex-col gap-2 rounded-none border border-ink-200 bg-white p-4 sm:p-5", className)}>
-      <p className="text-[12px] font-medium leading-none text-ink-500">{label}</p>
+    <div className={cn("app-panel flex flex-col gap-2 p-4 sm:p-5", className)}>
+      <p className="label-line">{label}</p>
       <div className="flex items-end justify-between gap-3">
         {hasValue ? (
-          <p className="text-[26px] font-medium leading-none tracking-[-0.03em] text-ink-900 tabular-nums sm:text-[28px]">
-            {value}
-          </p>
+          <p className="num text-[26px] leading-none text-ink-900 sm:text-[28px]">{value}</p>
         ) : (
-          <span className="text-[15px] font-normal leading-none text-ink-400">Sin datos</span>
+          <span className="text-[13px] font-normal leading-none text-ink-500">Sin datos</span>
         )}
         {points && points.length > 1 ? <MiniSpark points={points} /> : null}
       </div>
       {delta != null && Number.isFinite(delta) ? (
-        <p className={cn("text-[12px] font-medium tabular-nums", up ? "text-positive" : "text-negative")}>
+        <p className={cn("num text-[12px]", up ? "text-positive" : "text-negative")}>
           {up ? "+" : ""}
           {delta.toFixed(2)}%{deltaLabel ? <span className="ml-1 font-normal text-ink-500">{deltaLabel}</span> : null}
         </p>

@@ -67,18 +67,14 @@ function compareNumbers(a: number | null, b: number | null): number {
 /** Cifra de periodo: verde/rojo solo si hay dato real; si no, "Sin dato". */
 function PeriodValue({ value }: { value: number | null }) {
   if (value === null) {
-    return <span className="text-[12px] font-normal text-ink-400">Sin dato</span>;
+    return <span className="text-[12px] text-ink-500">Sin dato</span>;
   }
-  return (
-    <span className={cn("text-[12px] font-medium tabular-nums", tone(value))}>
-      {formatSignedPct(value, 2)}
-    </span>
-  );
+  return <span className={cn("num text-[12px]", tone(value))}>{formatSignedPct(value, 2)}</span>;
 }
 
 function Spark({ data, className }: { data: number[]; className: string }) {
   if (data.length < 2) {
-    return <span className="text-[11px] font-normal text-ink-400">Sin serie</span>;
+    return <span className="text-[11px] text-ink-500">Sin serie</span>;
   }
   return <Sparkline data={data} className={className} stroke="#0a0a0a" strokeWidth={1.5} />;
 }
@@ -152,8 +148,8 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
       ) : null}
 
       {visible.length === 0 ? (
-        <div className="border border-ink-200 px-4 py-14 text-center">
-          <p className="text-[15px] font-medium text-ink-900">Sin coincidencias</p>
+        <div className="app-card px-6 py-14 text-center">
+          <p className="text-[17px] font-medium tracking-[-0.02em] text-ink-900">Sin coincidencias</p>
           <p className="mx-auto mt-1.5 max-w-sm text-[13px] leading-relaxed text-ink-500">
             {trimmedQuery && countryLabel
               ? `Ningún portafolio de ${countryLabel} coincide con «${trimmedQuery}».`
@@ -164,7 +160,7 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
           <button
             type="button"
             onClick={clearFilters}
-            className="mt-5 inline-flex h-9 items-center rounded-full bg-ink-900 px-4 text-[13px] font-medium text-white transition-colors hover:bg-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900"
+            className="mt-5 inline-flex h-10 items-center rounded-full bg-ink-900 px-4 text-[13px] font-medium text-white transition-colors hover:bg-black"
           >
             Limpiar filtros
           </button>
@@ -172,18 +168,15 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
       ) : shownView === "rows" ? (
         <div>
           <div className={cn("hidden items-center gap-3 pb-2 lg:grid", COLS)} aria-hidden="true">
-            <span className="text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">Portafolio</span>
-            <span className="text-right text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">Serie</span>
+            <span className="text-[11px] text-ink-500">Portafolio</span>
+            <span className="text-right text-[11px] text-ink-500">Serie</span>
             {PERIODS.map((period) => (
-              <span
-                key={period.key}
-                className="text-right text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400"
-              >
+              <span key={period.key} className="text-right text-[11px] text-ink-500">
                 {period.label}
               </span>
             ))}
-            <span className="text-right text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">Retorno</span>
-            <span className="sr-only">Acciones</span>
+            <span className="text-right text-[11px] text-ink-500">Retorno</span>
+            <span />
           </div>
 
           <ul>
@@ -192,7 +185,7 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
               const href = `/app/portafolio/${p.slug}`;
 
               return (
-                <li key={p.id} className="border-t border-ink-200 transition-colors last:border-b hover:bg-ink-50/60">
+                <li key={p.id} className="border-t border-line transition-colors last:border-b hover:bg-ink-50/60">
                   {/* Escritorio: fila tipográfica ancha. */}
                   <div className={cn("hidden items-center gap-3 py-5 lg:grid", COLS)}>
                     <div className="flex min-w-0 items-center gap-3">
@@ -204,12 +197,11 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                         >
                           {p.name}
                         </Link>
-                        <p className="mt-0.5 truncate text-[11px] text-ink-500">{meta}</p>
+                        <p className="mt-0.5 truncate text-[11.5px] text-ink-500">{meta}</p>
                       </div>
                     </div>
 
                     <div className="flex justify-end">
-                      <span className="sr-only">Serie: </span>
                       <Spark data={spark} className="h-9 w-14" />
                     </div>
 
@@ -223,19 +215,16 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                     <div className="min-w-0 text-right">
                       <span className="sr-only">Retorno: </span>
                       {total === null ? (
-                        <span className="text-[12px] font-normal text-ink-400">Sin dato</span>
+                        <span className="text-[12px] text-ink-500">Sin dato</span>
                       ) : (
                         <>
                           <p
-                            className={cn(
-                              "text-[20px] font-semibold leading-none tabular-nums tracking-[-0.02em] xl:text-[22px]",
-                              tone(total),
-                            )}
+                            className={cn("num text-[20px] leading-none xl:text-[22px]", tone(total))}
                           >
                             {formatSignedPct(total, 1)}
                           </p>
                           {totalLabel ? (
-                            <p className="mt-1 truncate text-[10px] text-ink-400" title={totalLabel}>
+                            <p className="mt-1 truncate text-[11px] text-ink-500" title={totalLabel}>
                               {totalLabel}
                             </p>
                           ) : null}
@@ -252,10 +241,10 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                       />
                       <Link
                         href={href}
-                        className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 transition-colors hover:text-ink-900"
+                        className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 transition-colors hover:text-ink-900 hover:underline hover:underline-offset-4"
                       >
                         Ver ficha
-                        <ArrowRight aria-hidden="true" className="size-3" strokeWidth={1.75} />
+                        <ArrowRight aria-hidden="true" className="size-3" strokeWidth={1.5} />
                       </Link>
                     </div>
                   </div>
@@ -271,19 +260,19 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                         >
                           {p.name}
                         </Link>
-                        <p className="mt-0.5 truncate text-[11px] text-ink-500">{meta}</p>
+                        <p className="mt-0.5 truncate text-[11.5px] text-ink-500">{meta}</p>
                       </div>
                       <div className="max-w-[128px] shrink-0 text-right">
                         <span className="sr-only">Retorno: </span>
                         {total === null ? (
-                          <span className="text-[12px] font-normal text-ink-400">Sin dato</span>
+                          <span className="text-[12px] text-ink-500">Sin dato</span>
                         ) : (
                           <>
-                            <p className={cn("text-[20px] font-semibold leading-none tabular-nums", tone(total))}>
+                            <p className={cn("num text-[20px] leading-none", tone(total))}>
                               {formatSignedPct(total, 1)}
                             </p>
                             {totalLabel ? (
-                              <p className="mt-1 truncate text-[10px] text-ink-400" title={totalLabel}>
+                              <p className="mt-1 truncate text-[11px] text-ink-500" title={totalLabel}>
                                 {totalLabel}
                               </p>
                             ) : null}
@@ -297,9 +286,7 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                     <dl className="grid grid-cols-3 gap-3">
                       {PERIODS.map((period) => (
                         <div key={period.key} className="min-w-0">
-                          <dt className="text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">
-                            {period.label}
-                          </dt>
+                          <dt className="text-[11px] text-ink-500">{period.label}</dt>
                           <dd className="mt-1">
                             <PeriodValue value={changes[period.key]} />
                           </dd>
@@ -307,13 +294,13 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                       ))}
                     </dl>
 
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-ink-200 pt-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
                       <Link
                         href={href}
-                        className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 transition-colors hover:text-ink-900"
+                        className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 transition-colors hover:text-ink-900 hover:underline hover:underline-offset-4"
                       >
                         Ver ficha
-                        <ArrowRight aria-hidden="true" className="size-3" strokeWidth={1.75} />
+                        <ArrowRight aria-hidden="true" className="size-3" strokeWidth={1.5} />
                       </Link>
                       <FollowButton
                         portfolioId={p.id}
@@ -335,7 +322,7 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
             const href = `/app/portafolio/${p.slug}`;
 
             return (
-              <li key={p.id} className="flex flex-col rounded-none border border-ink-200 bg-white p-4 sm:p-5">
+              <li key={p.id} className="app-card flex flex-col p-4 sm:p-5">
                 <div className="flex items-start gap-3">
                   <PortfolioAvatar portfolio={p} size={40} />
                   <div className="min-w-0 flex-1">
@@ -345,19 +332,17 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                     >
                       {p.name}
                     </Link>
-                    <p className="mt-0.5 truncate text-[11px] text-ink-500">{meta}</p>
+                    <p className="mt-0.5 truncate text-[11.5px] text-ink-500">{meta}</p>
                   </div>
                   <div className="max-w-[112px] shrink-0 text-right">
                     <span className="sr-only">Retorno: </span>
                     {total === null ? (
-                      <span className="text-[12px] font-normal text-ink-400">Sin dato</span>
+                      <span className="text-[12px] text-ink-500">Sin dato</span>
                     ) : (
                       <>
-                        <p className={cn("text-[22px] font-semibold leading-none tabular-nums", tone(total))}>
-                          {formatSignedPct(total, 1)}
-                        </p>
+                        <p className={cn("num text-[22px] leading-none", tone(total))}>{formatSignedPct(total, 1)}</p>
                         {totalLabel ? (
-                          <p className="mt-1 truncate text-[10px] text-ink-400" title={totalLabel}>
+                          <p className="mt-1 truncate text-[11px] text-ink-500" title={totalLabel}>
                             {totalLabel}
                           </p>
                         ) : null}
@@ -370,12 +355,10 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                   <Spark data={spark} className="h-10 w-full" />
                 </div>
 
-                <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-ink-200 pt-3">
+                <dl className="mt-4 grid grid-cols-3 gap-3 border-t border-line pt-3">
                   {PERIODS.map((period) => (
                     <div key={period.key}>
-                      <dt className="text-[10px] font-medium uppercase tracking-[0.08em] text-ink-400">
-                        {period.label}
-                      </dt>
+                      <dt className="text-[11px] text-ink-500">{period.label}</dt>
                       <dd className="mt-1">
                         <PeriodValue value={changes[period.key]} />
                       </dd>
@@ -383,13 +366,13 @@ export function SeguimientoList({ items, isPro }: { items: SeguimientoItem[]; is
                   ))}
                 </dl>
 
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-ink-200 pt-3">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
                   <Link
                     href={href}
-                    className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 transition-colors hover:text-ink-900"
+                    className="inline-flex items-center gap-1 text-[12px] font-medium text-ink-700 transition-colors hover:text-ink-900 hover:underline hover:underline-offset-4"
                   >
                     Ver ficha
-                    <ArrowRight aria-hidden="true" className="size-3" strokeWidth={1.75} />
+                    <ArrowRight aria-hidden="true" className="size-3" strokeWidth={1.5} />
                   </Link>
                   <FollowButton
                     portfolioId={p.id}

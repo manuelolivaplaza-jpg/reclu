@@ -2,7 +2,7 @@ import { UpgradeFailure } from "@/components/upgrade-result";
 
 export const metadata = {
   title: "Pago no concretado",
-  description: "No se realizó ningún cobro.",
+  description: "El pago no se completó y tu plan no cambió.",
 };
 
 export default function UpgradeErrorPage() {

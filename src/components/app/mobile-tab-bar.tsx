@@ -29,7 +29,7 @@ export function MobileTabBar({ myPortfolio }: { myPortfolio: boolean }) {
     <>
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
         <ul className="grid h-16 grid-cols-5">
           {tabs.map((t) => {
@@ -42,7 +42,7 @@ export function MobileTabBar({ myPortfolio }: { myPortfolio: boolean }) {
                   className={cn(cell, active ? "font-medium text-ink-900" : "font-normal text-ink-500")}
                 >
                   {active && <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] bg-ink-900" />}
-                  <AppIcon name={t.icon} className="size-[20px] shrink-0" strokeWidth={active ? 1.9 : 1.6} />
+                  <AppIcon name={t.icon} className="size-5 shrink-0" />
                   <span className="max-w-full truncate">{t.short ?? t.label}</span>
                 </Link>
               </li>
@@ -54,11 +54,11 @@ export function MobileTabBar({ myPortfolio }: { myPortfolio: boolean }) {
               onClick={() => setMoreOpen(true)}
               aria-haspopup="dialog"
               aria-expanded={moreOpen}
-              aria-current={moreActive ? "page" : undefined}
+              aria-controls={moreOpen ? "more-sheet" : undefined}
               className={cn(cell, moreActive ? "font-medium text-ink-900" : "font-normal text-ink-500")}
             >
               {moreActive && <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] bg-ink-900" />}
-              <AppIcon name="Menu" className="size-[20px] shrink-0" strokeWidth={moreActive ? 1.9 : 1.6} />
+              <AppIcon name="Menu" className="size-5 shrink-0" />
               <span className="max-w-full truncate">Más</span>
             </button>
           </li>
