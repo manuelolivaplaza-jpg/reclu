@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { timed } from "@/lib/timing";
 import { getFollows, getProfile } from "@/lib/queries";
 import { PortfolioGrid } from "@/components/explore/portfolio-grid";
@@ -26,7 +27,8 @@ export interface ExploreSearchParams {
  *
  * D10: este componente no pinta el <h1>. En /explore el titular editorial
  * (label-line + type-section) vive en el shell estático de `explore/page.tsx`,
- * así que hay exactamente un <h1> visible y ninguno duplicado.
+ * así que hay exactamente un <h1> visible y ninguno duplicado. Las tarjetas
+ * usan <h3> y cada bloque <h2>, sin saltos de nivel.
  */
 export async function ExploreView({
   params,
@@ -62,6 +64,8 @@ export async function ExploreView({
 
   const pills = categories.map(([value, meta]) => ({ value, label: meta.label }));
   const filtering = category !== "all" || Boolean(search.trim()) || Boolean(symbol);
+  const term = symbol || search.trim();
+  const basePath = inApp ? "/app/explorar" : "/explore";
 
   // d54: panel principal (carrusel de los más seguidos) arriba; buscador y
   // filtros discretos; todo lo demás en tarjetas. Sin título gigante: el h1
@@ -91,12 +95,38 @@ export async function ExploreView({
             </p>
           ) : null}
         </div>
-        <ExploreToolbar categories={pills} activeCategory={category} basePath={inApp ? "/app/explorar" : "/explore"} />
+        <ExploreToolbar categories={pills} activeCategory={category} basePath={basePath} />
 
         {portfolios.length === 0 ? (
           <div className="border border-ink-300 px-6 py-14 text-center dark:border-white/12">
-            <p className="text-[15px] font-medium text-ink-900 dark:text-white">Sin resultados</p>
-            <p className="type-body mx-auto mt-2 max-w-sm">Prueba con otra búsqueda o vuelve a “Todos”.</p>
+            <p className="text-[15px] font-medium text-ink-900 dark:text-white">
+              {filtering ? "Sin resultados" : "Catálogo vacío"}
+            </p>
+            {filtering ? (
+              <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-ink-500 dark:text-white/55">
+                {term ? (
+                  <>
+                    No encontramos coincidencias para{" "}
+                    <span className="text-ink-900 dark:text-white">“{term}”</span>. Prueba con otro
+                    nombre, gestor o símbolo.
+                  </>
+                ) : (
+                  "No hay portafolios en esta categoría. Prueba con otra o vuelve a “Todos”."
+                )}
+              </p>
+            ) : (
+              <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-ink-500 dark:text-white/55">
+                Todavía no hay portafolios publicados. Vuelve a revisar en unos días.
+              </p>
+            )}
+            {filtering ? (
+              <Link
+                href={basePath}
+                className="mt-6 inline-flex h-11 items-center justify-center rounded-full bg-ink-900 px-5 text-[14px] font-medium text-white transition-colors hover:bg-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900 dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100 dark:focus-visible:outline-white"
+              >
+                Ver todos los portafolios
+              </Link>
+            ) : null}
           </div>
         ) : (
           <PortfolioGrid
@@ -127,4 +157,3 @@ export async function ExploreView({
     </>
   );
 }
-

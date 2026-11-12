@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FadeIn, StaggerList } from "@/components/ui/reveal";
+import { cn } from "@/lib/utils";
 import { ShowcaseList } from "./showcase-list";
 import { STAGE_PORTFOLIOS } from "./portfolio-data";
 
@@ -12,16 +13,25 @@ const textLink =
  */
 export function PortfolioStage() {
   return (
-    <section id="portafolios" className="pub-canvas section-y">
+    <section
+      id="portafolios"
+      aria-labelledby="portafolios-title"
+      className="pub-canvas section-y border-t border-ink-300 dark:border-white/12"
+    >
       <div className="container-page">
         <FadeIn>
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between md:gap-10">
-            <div>
+            <div className="min-w-0">
               <p className="label-line">Esta semana</p>
-              <h2 className="type-section mt-4 text-ink-900 dark:text-white">Lo que está moviéndose.</h2>
+              <h2 id="portafolios-title" className="type-section mt-4 text-ink-900 dark:text-white">
+                Lo que está moviéndose.
+              </h2>
             </div>
-            <Link href="/explore" className={"hidden shrink-0 items-center gap-1 md:inline-flex md:pb-3 " + textLink}>
-              Ver todos <span aria-hidden>→</span>
+            <Link
+              href="/explore"
+              className={cn("hidden shrink-0 items-center gap-1 md:inline-flex md:pb-3", textLink)}
+            >
+              Ver todos <span aria-hidden="true">→</span>
             </Link>
           </div>
         </FadeIn>
@@ -30,8 +40,11 @@ export function PortfolioStage() {
           <ShowcaseList portfolios={STAGE_PORTFOLIOS} />
         </StaggerList>
 
-        <Link href="/explore" className={"mt-8 inline-flex items-center gap-1 md:hidden " + textLink}>
-          Ver todos <span aria-hidden>→</span>
+        <Link
+          href="/explore"
+          className={cn("mt-8 inline-flex min-h-11 items-center gap-1 md:hidden", textLink)}
+        >
+          Ver todos <span aria-hidden="true">→</span>
         </Link>
       </div>
     </section>

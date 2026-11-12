@@ -18,7 +18,7 @@ import { absoluteUrl } from "@/lib/site";
  */
 export const metadata: Metadata = withSeo("/planes", {
   title: "Planes y precios",
-  description: `Carteras de corredoras gratis. Pro desde ${formatClp(PLANS.pro.monthlyPrice)} al mes o ${formatClp(PLANS.pro.annualTotalPrice)} al año; Elite desde ${formatClp(PLANS.elite.monthlyPrice)} al mes para seguir portafolios y ver todas sus acciones.`,
+  description: `Carteras de corredoras gratis. Pro por ${formatClp(PLANS.pro.monthlyPrice)} al mes o ${formatClp(PLANS.pro.annualTotalPrice)} al año; Elite por ${formatClp(PLANS.elite.monthlyPrice)} al mes. Sigue portafolios de políticos, fondos y ETFs. Consulta todas sus posiciones.`,
 });
 
 function offer(plan: "pro" | "elite") {
@@ -36,8 +36,8 @@ export default function PlanesPage() {
     <>
       <SiteHeader />
       <main id="main" className="bg-white dark:bg-ink-950">
-        <div className="container-page">
-          <nav aria-label="Migas de pan" className="py-4">
+        <header className="container-page pb-5 pt-6 md:pb-8 md:pt-10">
+          <nav aria-label="Migas de pan">
             <ol className="flex flex-wrap items-center gap-2 text-[12px] text-ink-500 dark:text-neutral-400">
               <li>
                 <Link
@@ -47,7 +47,7 @@ export default function PlanesPage() {
                   Inicio
                 </Link>
               </li>
-              <li aria-hidden className="text-ink-400 dark:text-neutral-600">
+              <li aria-hidden className="text-ink-400 dark:text-neutral-500">
                 /
               </li>
               <li aria-current="page" className="text-ink-900 dark:text-white">
@@ -55,7 +55,7 @@ export default function PlanesPage() {
               </li>
             </ol>
           </nav>
-        </div>
+        </header>
 
         {/* Único h1 de /planes: la sección de precios lo emite como tal. */}
         <Pricing aiOn={aiEnabled()} titleAs="h1" />
@@ -63,9 +63,9 @@ export default function PlanesPage() {
         <FAQ />
 
         <div className="container-page">
-          <p className="border-t border-ink-300 py-8 text-[12px] leading-relaxed text-ink-500 dark:border-white/12 dark:text-neutral-400">
-            Precios en pesos chilenos (CLP). El ciclo anual se paga por 12 meses. {BRAND_NAME} no
-            ejecuta órdenes ni entrega asesoría de inversión.
+          <p className="border-t border-ink-300 pt-8 pb-12 text-[12px] leading-relaxed text-ink-500 dark:border-white/12 dark:text-neutral-400 md:pb-16">
+            Precios en pesos chilenos (CLP). El plan anual se paga una vez y cubre 12 meses.{" "}
+            {BRAND_NAME} no ejecuta órdenes ni entrega asesoría de inversión.
           </p>
         </div>
       </main>

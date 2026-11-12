@@ -19,11 +19,11 @@ export interface FeaturedSlide {
   premium: boolean;
   followers: number;
   isFollowing: boolean;
-  /** Retornos reales por período; null = sin dato ("—"). */
+  /** Retornos reales por período; null = sin cifra (no se dibuja un cero). */
   returns: Record<HeroPeriod, number | null>;
-  /** d68: serie por período (rebasada al primer punto). Ausente = sin datos o bloqueado. */
+  /** d68: serie por período (rebasada al primer punto). Ausente = sin serie suficiente. */
   charts: Partial<Record<HeroPeriod, ChartPoint[]>>;
-  /** Períodos cerrados por el muro de pago (Free ve hasta 3M). */
+  /** Períodos cerrados por el muro de pago. Hoy el rendimiento es público: queda vacío. */
   lockedPeriods: HeroPeriod[];
   /** Período inicial: 1A si existe, si no el más largo disponible. */
   defaultPeriod: HeroPeriod;
@@ -75,9 +75,10 @@ export function periodChart(pts: Pt[], period: HeroPeriod): ChartPoint[] | null 
 }
 
 /**
- * Arma una diapositiva solo con datos reales. El gráfico respeta el muro:
- * Free ve hasta 3M; 1A y Máx quedan para planes pagados. Nunca se envía la
- * serie completa a quien no tiene acceso.
+ * Arma una diapositiva solo con datos reales: si no hay serie, no hay
+ * gráfico. El rendimiento es público, así que ningún período del gráfico
+ * queda bloqueado (`lockedPeriods` se mantiene vacío a propósito; lo pagado
+ * hoy son las posiciones, no las series).
  */
 export function buildSlide(
   p: Portfolio,

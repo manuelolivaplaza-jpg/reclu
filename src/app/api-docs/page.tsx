@@ -1,10 +1,15 @@
 import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ButtonLink } from "@/components/ui/button";
-import { LegalNotice } from "@/components/legal/legal-notice";
+import {
+  LEGAL_NOTICES,
+  LEGAL_PAGE_LINKS,
+  US_DISCLOSURE_SOURCES,
+} from "@/lib/legal";
 import {
   API_BASE_PATH,
   API_DATASETS,
@@ -16,6 +21,16 @@ export const metadata: Metadata = withSeo("/api-docs", {
   description:
     "API pública de datos chilenos de fraccion.si: AFP, corredoras, InfoProbidad, dividendos, hechos esenciales e insiders. JSON paginado con licencia y atribución.",
 });
+
+/** Secciones con ancla. El índice solo aparece si hay 4 o más. */
+const SECTIONS = [
+  { id: "autenticacion", label: "Autenticación" },
+  { id: "datasets", label: "Datasets" },
+  { id: "paginacion", label: "Paginación" },
+  { id: "errores", label: "Errores" },
+  { id: "fuera-de-la-api", label: "Fuera de la API" },
+  { id: "licencia", label: "Licencia y datos personales" },
+] as const;
 
 const EXAMPLE_RESPONSE = `{
   "dataset": "dividendos",
@@ -64,6 +79,34 @@ const STATUS_ROWS = [
   },
 ] as const;
 
+/** Código en línea: fondo tenue del esquema, legible en claro y en oscuro. */
+function Code({ children }: { children: ReactNode }) {
+  return (
+    <code className="break-words bg-ink-100 px-1 py-0.5 font-mono text-[0.875em] text-ink-900 dark:bg-white/10 dark:text-white">
+      {children}
+    </code>
+  );
+}
+
+/** Bloque de código con etiqueta, scroll horizontal contenido y foco visible. */
+function CodeBlock({ label, code }: { label: string; code: string }) {
+  return (
+    <figure className="mt-5 border border-ink-300 dark:border-white/12">
+      <figcaption className="label-line border-b border-ink-300 px-4 py-2 dark:border-white/12">
+        {label}
+      </figcaption>
+      <pre
+        tabIndex={0}
+        role="region"
+        aria-label={`${label}: código con desplazamiento horizontal`}
+        className="overflow-x-auto bg-ink-50 p-4 font-mono text-[12.5px] leading-[1.7] text-ink-900 sm:text-[13px] dark:bg-white/[0.04] dark:text-ink-100"
+      >
+        <code>{code}</code>
+      </pre>
+    </figure>
+  );
+}
+
 export default function ApiDocsPage() {
   const datasets = Object.values(API_DATASETS);
   const excluded = Object.entries(EXCLUDED_API_DATASETS);
@@ -71,126 +114,196 @@ export default function ApiDocsPage() {
   return (
     <>
       <SiteHeader />
-      <main id="main" className="flex-1">
-        <div className="container-page py-16 md:py-20">
-          <p className="text-[11px] tracking-[0.08em] text-ink-500 uppercase">
-            API v1
-          </p>
-          <h1 className="type-section mt-3 text-ink-900">API.</h1>
-          <p className="mt-6 max-w-2xl text-[17px] leading-relaxed text-ink-600">
-            Datos públicos chilenos en JSON, con licencia y atribución en cada
-            respuesta. Sin ejecutar órdenes, sin enrutarlas y sin
-            recomendaciones personalizadas.
-          </p>
+      <main id="main" className="bg-white dark:bg-ink-950">
+        <div className="container-page pb-24 pt-10 md:pt-14">
+          <header className="border-b border-ink-300 pb-10 dark:border-white/12 md:pb-12">
+            <p className="label-line">API v1</p>
+            <h1 className="type-section mt-4 text-ink-900 dark:text-white">
+              API.
+            </h1>
+            <p className="type-body mt-6 max-w-2xl">
+              Datos públicos chilenos en JSON, con licencia y atribución en cada
+              respuesta. Sin ejecutar órdenes, sin enrutarlas y sin
+              recomendaciones personalizadas.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+              <ButtonLink href="/settings/api" size="lg">
+                Crear una clave
+              </ButtonLink>
+              <Link
+                href="/disclaimer"
+                className="inline-flex items-center border-b border-ink-900 pb-0.5 text-[14px] font-medium text-ink-900 transition-colors hover:text-ink-600 dark:border-white dark:text-white dark:hover:text-ink-300"
+              >
+                Leer el disclaimer
+              </Link>
+            </div>
+          </header>
 
-          <div className="mt-8 flex flex-wrap items-center gap-5">
-            <ButtonLink href="/settings/api" size="lg">
-              Crear una clave
-            </ButtonLink>
-            <Link
-              href="/disclaimer"
-              className="text-[15px] text-ink-900 underline-offset-4 hover:underline"
-            >
-              Leer el disclaimer
-            </Link>
-          </div>
+          <nav aria-label="En esta página" className="mt-10">
+            <p className="label-line">En esta página</p>
+            <ol className="mt-3 grid gap-px border border-ink-300 bg-ink-300 sm:grid-cols-2 lg:grid-cols-3 dark:border-white/12 dark:bg-white/12">
+              {SECTIONS.map((section, index) => (
+                <li key={section.id} className="bg-white dark:bg-ink-950">
+                  <a
+                    href={`#${section.id}`}
+                    className="flex items-baseline gap-3 px-4 py-3.5 transition-colors hover:bg-ink-50 dark:hover:bg-white/[0.06]"
+                  >
+                    <span
+                      aria-hidden
+                      className="num text-[12px] text-ink-400 dark:text-ink-500"
+                    >
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                    <span className="text-[14px] font-medium text-ink-900 dark:text-white">
+                      {section.label}
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ol>
+          </nav>
 
-          <section className="mt-16 border-t border-ink-200 pt-8">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+          <section
+            id="autenticacion"
+            className="mt-14 scroll-mt-28 border-t border-ink-300 pt-8 dark:border-white/12"
+          >
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">
               Autenticación
             </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600">
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">
               Crea una clave en{" "}
               <Link
                 href="/settings/api"
-                className="text-ink-900 underline underline-offset-4"
+                className="text-ink-900 underline underline-offset-4 dark:text-white"
               >
                 Ajustes → API
               </Link>
               . Viaja en la cabecera{" "}
-              <code className="text-[13px] text-ink-900">
-                Authorization: Bearer rcl_…
-              </code>
-              . La clave es personal: no la compartas ni la subas a un
-              repositorio.
+              <Code>Authorization: Bearer rcl_…</Code>. La clave es personal: no
+              la compartas ni la subas a un repositorio.
             </p>
 
-            <pre className="mt-5 overflow-x-auto border border-ink-200 p-4 text-[12px] leading-relaxed text-ink-900">
-              <code>{`curl -H "Authorization: Bearer rcl_..." \\
-  "https://fraccion.si${API_BASE_PATH}/dividendos?page=1&per_page=50"`}</code>
-            </pre>
+            <CodeBlock
+              label="Solicitud"
+              code={`curl -H "Authorization: Bearer rcl_…" \\
+  "https://fraccion.si${API_BASE_PATH}/dividendos?page=1&per_page=50"`}
+            />
 
-            <p className="mt-4 text-[13px] leading-relaxed text-ink-500">
+            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">
               Todo el acceso está apagado mientras{" "}
-              <code className="text-[12px] text-ink-900">
-                API_PUBLIC_ENABLED
-              </code>{" "}
-              no sea exactamente{" "}
-              <code className="text-[12px] text-ink-900">true</code>. El límite
-              diario depende del plan vigente del dueño de la clave: Gratis
-              100, Pro 1.000 y Elite 10.000 llamadas por día (UTC). Cada
-              respuesta incluye las cabeceras{" "}
-              <code className="text-[12px] text-ink-900">X-RateLimit-*</code>.
+              <Code>API_PUBLIC_ENABLED</Code> no sea exactamente{" "}
+              <Code>true</Code>.
+            </p>
+
+            <h3 className="mt-8 text-[16px] font-medium tracking-[-0.02em] text-ink-900 dark:text-white">
+              Cuota diaria
+            </h3>
+            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">
+              El límite diario depende del plan vigente del dueño de la clave:
+              Gratis 100, Pro 1.000 y Elite 10.000 llamadas por día (UTC). Las
+              respuestas con datos y los 429 incluyen las cabeceras{" "}
+              <Code>X-RateLimit-*</Code>.
             </p>
           </section>
 
-          <section className="mt-14 border-t border-ink-200 pt-8">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+          <section
+            id="datasets"
+            className="mt-14 scroll-mt-28 border-t border-ink-300 pt-8 dark:border-white/12"
+          >
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">
               Datasets
             </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600">
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">
               La lista es cerrada. Cada endpoint responde con{" "}
-              <code className="text-[13px] text-ink-900">license</code>,{" "}
-              <code className="text-[13px] text-ink-900">attribution</code>,{" "}
-              <code className="text-[13px] text-ink-900">source_url</code> y
-              paginación.
+              <Code>license</Code>, <Code>attribution</Code>,{" "}
+              <Code>source_url</Code> y paginación.
+            </p>
+            <p className="mt-2 text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">
+              Los enlaces con ↗ abren el sitio de la fuente en una pestaña
+              nueva.
             </p>
 
-            <div className="mt-6 overflow-x-auto">
+            <div
+              role="region"
+              aria-label="Tabla de datasets: desplazable en horizontal"
+              tabIndex={0}
+              className="mt-6 overflow-x-auto overscroll-x-contain"
+            >
               <table className="w-full min-w-[720px] border-collapse text-left">
+                <caption className="sr-only">
+                  Datasets de la API v1: qué entrega cada uno, su licencia y
+                  atribución, y los filtros que acepta.
+                </caption>
                 <thead>
-                  <tr className="border-y border-ink-200 text-[12px] tracking-[0.04em] text-ink-500 uppercase">
-                    <th className="py-3 pr-4 font-medium">Dataset</th>
-                    <th className="py-3 pr-4 font-medium">Qué entrega</th>
-                    <th className="py-3 pr-4 font-medium">
+                  <tr className="border-y border-ink-300 dark:border-white/12">
+                    <th
+                      scope="col"
+                      className="py-3 pr-6 text-[12px] font-medium tracking-[0.04em] text-ink-500 uppercase dark:text-ink-400"
+                    >
+                      Dataset
+                    </th>
+                    <th
+                      scope="col"
+                      className="py-3 pr-6 text-[12px] font-medium tracking-[0.04em] text-ink-500 uppercase dark:text-ink-400"
+                    >
+                      Qué entrega
+                    </th>
+                    <th
+                      scope="col"
+                      className="py-3 pr-6 text-[12px] font-medium tracking-[0.04em] text-ink-500 uppercase dark:text-ink-400"
+                    >
                       Licencia y atribución
                     </th>
-                    <th className="py-3 font-medium">Filtros</th>
+                    <th
+                      scope="col"
+                      className="py-3 text-[12px] font-medium tracking-[0.04em] text-ink-500 uppercase dark:text-ink-400"
+                    >
+                      Filtros
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {datasets.map((dataset) => (
                     <tr
                       key={dataset.slug}
-                      className="border-b border-ink-200 align-top"
+                      className="border-b border-ink-300 align-top dark:border-white/12"
                     >
-                      <td className="py-4 pr-4">
+                      <th
+                        scope="row"
+                        className="py-4 pr-6 text-left align-top font-normal"
+                      >
                         <Link
                           href={`${API_BASE_PATH}/${dataset.slug}`}
-                          className="text-[15px] font-medium text-ink-900 underline-offset-4 hover:underline"
+                          className="text-[15px] font-medium text-ink-900 underline-offset-4 hover:underline dark:text-white"
                         >
                           {dataset.label}
                         </Link>
-                        <p className="mt-1 font-mono text-[12px] text-ink-500">
+                        <p className="mt-1 font-mono text-[12px] text-ink-500 dark:text-ink-400">
                           {API_BASE_PATH}/{dataset.slug}
                         </p>
-                      </td>
-                      <td className="max-w-sm py-4 pr-4 text-[13px] leading-relaxed text-ink-600">
+                      </th>
+                      <td className="max-w-sm py-4 pr-6 text-[13px] leading-relaxed text-ink-600 dark:text-ink-400">
                         {dataset.description}
                       </td>
-                      <td className="max-w-xs py-4 pr-4 text-[13px] leading-relaxed text-ink-600">
-                        <p className="text-ink-900">{dataset.license}</p>
+                      <td className="max-w-xs py-4 pr-6 text-[13px] leading-relaxed text-ink-600 dark:text-ink-400">
+                        <p className="text-ink-900 dark:text-white">
+                          {dataset.license}
+                        </p>
                         <p className="mt-1">{dataset.attribution}</p>
                         <a
                           href={dataset.licenseUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="mt-1 inline-block text-[12px] text-ink-900 underline underline-offset-4"
+                          className="mt-1 inline-block text-[12px] text-ink-900 underline underline-offset-4 dark:text-white"
                         >
-                          Ver términos
+                          Ver términos <span aria-hidden>↗</span>
+                          <span className="sr-only">
+                            {" "}
+                            (abre fuera de fraccion.si)
+                          </span>
                         </a>
                       </td>
-                      <td className="py-4 font-mono text-[12px] leading-relaxed text-ink-500">
+                      <td className="py-4 font-mono text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">
                         {dataset.filters.join(" · ")}
                       </td>
                     </tr>
@@ -200,38 +313,72 @@ export default function ApiDocsPage() {
             </div>
           </section>
 
-          <section className="mt-14 border-t border-ink-200 pt-8">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
-              Paginación y forma de la respuesta
+          <section
+            id="paginacion"
+            className="mt-14 scroll-mt-28 border-t border-ink-300 pt-8 dark:border-white/12"
+          >
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">
+              Paginación
             </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600">
-              Usa{" "}
-              <code className="text-[13px] text-ink-900">page</code> (desde 1)
-              y{" "}
-              <code className="text-[13px] text-ink-900">per_page</code> (máximo
-              100; por defecto 50). También se aceptan{" "}
-              <code className="text-[13px] text-ink-900">offset</code> y{" "}
-              <code className="text-[13px] text-ink-900">limit</code>.
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">
+              Usa <Code>page</Code> (desde 1) y <Code>per_page</Code> (máximo
+              100; por defecto 50). También se aceptan <Code>offset</Code> y{" "}
+              <Code>limit</Code>.
             </p>
 
-            <pre className="mt-5 overflow-x-auto border border-ink-200 p-4 text-[12px] leading-relaxed text-ink-900">
-              <code>{EXAMPLE_RESPONSE}</code>
-            </pre>
+            <h3 className="mt-8 text-[16px] font-medium tracking-[-0.02em] text-ink-900 dark:text-white">
+              Forma de la respuesta
+            </h3>
+            <CodeBlock label="Respuesta de ejemplo" code={EXAMPLE_RESPONSE} />
           </section>
 
-          <section className="mt-14 border-t border-ink-200 pt-8">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+          <section
+            id="errores"
+            className="mt-14 scroll-mt-28 border-t border-ink-300 pt-8 dark:border-white/12"
+          >
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">
               Errores
             </h2>
-            <div className="mt-5 overflow-x-auto">
-              <table className="w-full min-w-[520px] border-collapse text-left">
+
+            <div
+              role="region"
+              aria-label="Tabla de códigos de error: desplazable en horizontal"
+              tabIndex={0}
+              className="mt-5 overflow-x-auto overscroll-x-contain"
+            >
+              <table className="w-full min-w-[420px] border-collapse text-left">
+                <caption className="sr-only">
+                  Códigos de error HTTP de la API v1 y qué significa cada uno.
+                </caption>
+                <thead>
+                  <tr className="border-y border-ink-300 dark:border-white/12">
+                    <th
+                      scope="col"
+                      className="w-24 py-3 pr-6 text-[12px] font-medium tracking-[0.04em] text-ink-500 uppercase dark:text-ink-400"
+                    >
+                      Código
+                    </th>
+                    <th
+                      scope="col"
+                      className="py-3 text-[12px] font-medium tracking-[0.04em] text-ink-500 uppercase dark:text-ink-400"
+                    >
+                      Qué significa
+                    </th>
+                  </tr>
+                </thead>
                 <tbody>
                   {STATUS_ROWS.map((row) => (
-                    <tr key={row.code} className="border-b border-ink-200">
-                      <td className="w-20 py-3 pr-4 font-mono text-[13px] text-ink-900">
+                    <tr
+                      key={row.code}
+                      className="border-b border-ink-300 align-top dark:border-white/12"
+                    >
+                      <th
+                        scope="row"
+                        className="w-24 py-3 pr-6 text-left font-mono text-[13px] font-normal text-ink-900 dark:text-white"
+                      >
                         {row.code}
-                      </td>
-                      <td className="py-3 text-[13px] leading-relaxed text-ink-600">
+                      </th>
+                      <td className="py-3 text-[13px] leading-relaxed text-ink-600 dark:text-ink-400">
                         {row.meaning}
                       </td>
                     </tr>
@@ -239,37 +386,37 @@ export default function ApiDocsPage() {
                 </tbody>
               </table>
             </div>
-            <p className="mt-4 text-[12px] leading-relaxed text-ink-500">
+
+            <p className="mt-4 max-w-2xl text-[13px] leading-relaxed text-ink-600 dark:text-ink-400">
               Los errores devuelven{" "}
-              <code className="text-[12px] text-ink-900">
-                {`{ "error": "…", "status": 404 }`}
-              </code>
-              . Las claves revocadas, inexistentes y mal formadas comparten el
-              mismo 401 para no filtrar si una clave existe.
+              <Code>{`{ "error": "…", "status": 404 }`}</Code>. Las claves
+              revocadas, inexistentes y mal formadas comparten el mismo 401 para
+              no filtrar si una clave existe.
             </p>
           </section>
 
-          <section className="mt-14 border-t border-ink-200 pt-8">
-            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900">
+          <section
+            id="fuera-de-la-api"
+            className="mt-14 scroll-mt-28 border-t border-ink-300 pt-8 dark:border-white/12"
+          >
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">
               Fuera de la API
             </h2>
-            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600">
+            <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">
               Las declaraciones patrimoniales de funcionarios de EE.UU. no se
               redistribuyen por la API ni se venden como dataset. En
               fraccion.si, las posiciones reconstruidas son para suscriptores.
               Los informes oficiales siguen públicos y gratis en los sitios de
               la Cámara, el Senado y la OGE, conforme a 5 U.S.C. § 13107.
             </p>
-            <ul className="mt-5 border-t border-ink-200">
+            <ul className="mt-5 border-t border-ink-300 dark:border-white/12">
               {excluded.map(([slug, item]) => (
                 <li
                   key={slug}
-                  className="flex flex-col gap-1 border-b border-ink-200 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
+                  className="flex flex-col gap-1 border-b border-ink-300 py-3 dark:border-white/12 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6"
                 >
-                  <code className="font-mono text-[13px] text-ink-900">
-                    {slug}
-                  </code>
-                  <span className="max-w-xl text-[12px] leading-relaxed text-ink-500">
+                  <Code>{slug}</Code>
+                  <span className="max-w-xl text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">
                     {item.reason} ({item.law})
                   </span>
                 </li>
@@ -277,16 +424,58 @@ export default function ApiDocsPage() {
             </ul>
           </section>
 
-          <div className="mt-14 flex flex-col gap-4">
-            <LegalNotice kind="fintec" />
-            <LegalNotice kind="us_disclosure" />
-            <p className="text-[12px] leading-relaxed text-ink-500">
-              Solo entregamos el agregado por empresa de InfoProbidad (CC BY
-              4.0): nunca nombres, cargos ni datos de familiares. La API no
-              guarda IP ni user-agent; solo el contador diario por clave, en
-              línea con las Leyes 19.628 y 21.719.
-            </p>
-          </div>
+          <section
+            id="licencia"
+            className="mt-14 scroll-mt-28 border-t border-ink-300 pt-8 dark:border-white/12"
+          >
+            <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">
+              Licencia y datos personales
+            </h2>
+            {/* Mismo copy de src/lib/legal.ts que usa <LegalNotice>, con variantes dark. */}
+            <div className="mt-3 max-w-[70ch] space-y-3 text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">
+              <p>
+                Solo entregamos el agregado por empresa de InfoProbidad (CC BY
+                4.0): nunca nombres, cargos ni datos de familiares. La API no
+                guarda IP ni user-agent; solo el contador diario por clave, en
+                línea con las Leyes 19.628 y 21.719.
+              </p>
+              <p>{LEGAL_NOTICES.fintec}</p>
+              <p>
+                {LEGAL_NOTICES.us_disclosure} Fuente oficial:{" "}
+                {US_DISCLOSURE_SOURCES.map((source, index) => (
+                  <span key={source.href}>
+                    {index > 0 ? " · " : null}
+                    <a
+                      href={source.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-ink-900 underline underline-offset-4 dark:text-white"
+                    >
+                      {source.label} <span aria-hidden>↗</span>
+                      <span className="sr-only">
+                        {" "}
+                        (abre fuera de fraccion.si)
+                      </span>
+                    </a>
+                  </span>
+                ))}
+                .
+              </p>
+              <p className="text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">
+                {LEGAL_PAGE_LINKS.map((link, index) => (
+                  <span key={link.href}>
+                    {index > 0 ? " · " : null}
+                    <Link
+                      href={link.href}
+                      className="text-ink-900 underline underline-offset-4 dark:text-white"
+                    >
+                      {link.label}
+                    </Link>
+                  </span>
+                ))}
+              </p>
+            </div>
+          </section>
         </div>
       </main>
       <SiteFooter />

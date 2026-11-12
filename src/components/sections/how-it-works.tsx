@@ -6,13 +6,13 @@ const STEPS = [
     n: "01",
     title: "Elige.",
     chip: "Explorar",
-    body: "Explora políticos de EE.UU., carteras de Renta 4 y tesis temáticas. Las carteras de corredoras son gratis; seguir portafolios es parte de Pro.",
+    body: "Explora políticos de EE.UU., carteras de corredoras chilenas y tesis temáticas. Las carteras de corredoras son gratis; seguir portafolios es parte de Pro y Elite.",
   },
   {
     n: "02",
     title: "Vigilamos.",
     chip: "Fuentes públicas",
-    body: "Revisamos Capitol Trades, las corredoras y los filings, y normalizamos cada cambio.",
+    body: "Revisamos las divulgaciones de la Cámara de Representantes de EE.UU., los filings 13F de la SEC y las carteras públicas de corredoras chilenas como Renta 4 y BTG Pactual. Normalizamos cada cambio.",
   },
   {
     n: "03",
@@ -30,7 +30,7 @@ const STEPS = [
 function StepArt({ step }: { step: string }) {
   if (step === "01") {
     return (
-      <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden focusable="false">
+      <svg viewBox="0 0 220 96" className="h-auto w-full max-w-[360px]" aria-hidden="true" focusable="false">
         {[0, 1, 2].map((i) => (
           <g key={i} transform={`translate(${i * 74} ${i === 1 ? 0 : 10})`}>
             <rect
@@ -70,8 +70,8 @@ function StepArt({ step }: { step: string }) {
   }
   if (step === "02") {
     return (
-      <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden focusable="false">
-        {["SEC", "Cámara", "Renta 4"].map((s, i) => (
+      <svg viewBox="0 0 220 96" className="h-auto w-full max-w-[360px]" aria-hidden="true" focusable="false">
+        {["SEC", "Cámara EE.UU.", "Renta 4"].map((s, i) => (
           <g key={s} transform={`translate(0 ${8 + i * 28})`}>
             <rect
               width="74"
@@ -79,7 +79,7 @@ function StepArt({ step }: { step: string }) {
               strokeWidth="1"
               className="fill-transparent stroke-ink-300 dark:stroke-white/25"
             />
-            <text x="37" y="15" textAnchor="middle" fontSize="10" className="fill-ink-700 dark:fill-neutral-300">
+            <text x="37" y="15" textAnchor="middle" fontSize="10" className="fill-ink-700 dark:fill-ink-300">
               {s}
             </text>
           </g>
@@ -113,7 +113,7 @@ function StepArt({ step }: { step: string }) {
     );
   }
   return (
-    <svg viewBox="0 0 220 96" className="h-auto w-full" aria-hidden focusable="false">
+    <svg viewBox="0 0 220 96" className="h-auto w-full max-w-[360px]" aria-hidden="true" focusable="false">
       <rect x="20" y="8" width="180" height="80" strokeWidth="1" className="fill-transparent stroke-ink-300 dark:stroke-white/25" />
       <rect x="36" y="22" width="10" height="10" className="fill-ink-900 dark:fill-white" />
       <rect x="54" y="24" width="64" height="5" className="fill-ink-900 dark:fill-white" />
@@ -124,7 +124,7 @@ function StepArt({ step }: { step: string }) {
         Alerta
       </text>
       <rect x="90" y="62" width="46" height="16" className="fill-ink-50 dark:fill-white/10" />
-      <text x="113" y="73" textAnchor="middle" fontSize="9" className="fill-ink-700 dark:fill-neutral-300">
+      <text x="113" y="73" textAnchor="middle" fontSize="9" className="fill-ink-700 dark:fill-ink-300">
         NVDA
       </text>
     </svg>
@@ -134,11 +134,17 @@ function StepArt({ step }: { step: string }) {
 /** Cómo funciona: tres columnas con filetes de 1px, ilustración propia y número. */
 export function HowItWorks() {
   return (
-    <section id="como-funciona" className="pub-canvas section-y border-t border-ink-300 dark:border-white/12">
+    <section
+      id="como-funciona"
+      aria-labelledby="como-funciona-title"
+      className="pub-canvas section-y border-t border-ink-300 dark:border-white/12"
+    >
       <div className="container-page">
         <FadeIn>
           <p className="label-line">Cómo funciona</p>
-          <h2 className="type-section mt-4 text-ink-900 dark:text-white">Tres pasos.</h2>
+          <h2 id="como-funciona-title" className="type-section mt-4 text-ink-900 dark:text-white">
+            Tres pasos.
+          </h2>
         </FadeIn>
 
         <StaggerList className="mt-12 grid grid-cols-1 gap-10 md:mt-16 md:gap-12 lg:grid-cols-3 lg:gap-0">
@@ -146,13 +152,13 @@ export function HowItWorks() {
             <StaggerItem
               key={step.n}
               className={cn(
-                "border-t border-ink-300 pt-8 dark:border-white/12 lg:border-t-0 lg:pt-0",
+                "min-w-0 border-t border-ink-300 pt-8 dark:border-white/12 lg:border-t-0 lg:pt-0",
                 i > 0 && "lg:border-l lg:pl-10",
                 i < STEPS.length - 1 && "lg:pr-10",
               )}
             >
               <div className="flex items-baseline gap-4">
-                <span className="num text-[13px] leading-none text-ink-500 dark:text-neutral-400">{step.n}</span>
+                <span className="num text-[13px] leading-none text-ink-500 dark:text-ink-400">{step.n}</span>
                 <span className="label-line">{step.chip}</span>
               </div>
 
@@ -163,7 +169,7 @@ export function HowItWorks() {
               <h3 className="mt-8 text-[28px] font-medium leading-[1.05] tracking-[-0.03em] text-ink-900 dark:text-white">
                 {step.title}
               </h3>
-              <p className="type-body mt-3">{step.body}</p>
+              <p className="mt-3 text-[15px] leading-relaxed text-ink-600 dark:text-ink-400">{step.body}</p>
             </StaggerItem>
           ))}
         </StaggerList>

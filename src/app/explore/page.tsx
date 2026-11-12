@@ -26,15 +26,16 @@ export default function ExplorePage({ searchParams }: { searchParams: Promise<Ex
     <>
       <ExploreJsonLd />
       <SiteHeader />
-      <main id="main" className="bg-white dark:bg-ink-950">
+      <main id="main" className="flex-1 bg-white dark:bg-ink-950">
         <div className="container-page pb-16 pt-8 md:pb-24 md:pt-12">
           <header className="max-w-3xl">
             <p className="label-line">Catálogo público</p>
             <h1 className="type-section mt-3 text-ink-900 dark:text-white">Explorar portafolios</h1>
             <p className="type-body mt-5 max-w-2xl">
-              Carteras públicas —políticos de EE.UU., corredoras chilenas, fondos 13F y
-              temáticas— ordenadas por seguidores. Solo series reales: si un portafolio
-              todavía no tiene historial, la tarjeta lo dice y no muestra una cifra.
+              Carteras públicas de políticos de EE.UU., corredoras chilenas,
+              fondos 13F y temáticas, ordenadas por seguidores. Solo series
+              reales: si un portafolio todavía no tiene historial, la tarjeta lo
+              dice y no muestra una cifra.
             </p>
           </header>
           <div className="mt-8 border-t border-ink-300 pt-8 md:mt-10 md:pt-10 dark:border-white/12">
@@ -54,11 +55,48 @@ async function ExploreBody({ searchParams }: { searchParams: Promise<ExploreSear
   return <ExploreView params={params} chrome={false} />;
 }
 
+/**
+ * El esqueleto usa los componentes compartidos (`ExploreHeroSkeleton` y
+ * `GridSkeleton`), que ya replican la retícula y el modo oscuro: no se
+ * sobreescriben sus clases internas.
+ */
 function ExploreBodySkeleton() {
   return (
-    <div className="flex flex-col gap-10 sm:gap-12" aria-busy="true">
+    <div className="flex flex-col gap-10 sm:gap-12">
+      <p role="status" className="sr-only">
+        Cargando portafolios…
+      </p>
+
       <ExploreHeroSkeleton />
-      <GridSkeleton />
+
+      <div aria-hidden="true" className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-ink-300 pb-4 dark:border-white/12">
+          <div className="space-y-2">
+            <div className="h-3.5 w-24 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+            <div className="h-7 w-56 max-w-[70vw] animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+          </div>
+          <div className="h-3.5 w-16 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="h-11 w-full animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex gap-1.5 overflow-hidden">
+              {Array.from({ length: 4 }, (_, i) => (
+                <div
+                  key={i}
+                  className="h-10 w-20 shrink-0 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5"
+                />
+              ))}
+            </div>
+            <div className="hidden h-3.5 w-28 shrink-0 animate-pulse bg-ink-100 motion-reduce:animate-none sm:block dark:bg-white/5" />
+          </div>
+        </div>
+
+        <div>
+          <GridSkeleton />
+        </div>
+      </div>
     </div>
   );
 }
