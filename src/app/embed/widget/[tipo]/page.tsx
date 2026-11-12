@@ -32,8 +32,9 @@ import {
  * ranking honesto. Todos llevan la atribución visible "Datos de reclu.cl".
  * Solo /embed/* puede vivir dentro de un iframe (CSP en next.config.ts).
  *
- * Los datos de funcionarios de EE.UU. son públicos y gratis: 5 U.S.C. § 13107
- * exige disponibilidad sin muro. Ningún widget usa datos personales de
+ * Los widgets con datos de funcionarios de EE.UU. son gratis. Los informes
+ * oficiales siguen públicos en los sitios del gobierno (5 U.S.C. § 13107);
+ * en fraccion.si, las posiciones reconstruidas son para suscriptores. Ningún widget usa datos personales de
  * InfoProbidad ni entrega recomendaciones personalizadas.
  */
 export const instant = false;

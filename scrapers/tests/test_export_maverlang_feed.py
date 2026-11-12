@@ -240,6 +240,10 @@ def test_export_writes_only_canonical_slugs_and_no_performance(tmp_path: Path):
     assert "performance" not in index
     for item in index["portfolios"]:
         assert "performance" not in item
+        assert "manager" in item
+        assert item["manager"] is None or isinstance(item["manager"], str)
+    brk_index = next(i for i in index["portfolios"] if i["slug"] == "berkshire-hathaway-13f")
+    assert brk_index["manager"] == "Warren Buffett"
 
     brk = json.loads((tmp_path / "portfolios/berkshire-hathaway-13f.json").read_text(encoding="utf-8"))
     assert "performance" not in brk

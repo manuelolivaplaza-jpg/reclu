@@ -29,7 +29,9 @@ export const metadata: Metadata = withSeo("/medios", {
  * sobrevive aunque el medio no agregue un crédito aparte.
  *
  * Los widgets con datos de funcionarios de EE.UU. (insiders, ranking) son
- * gratis: 5 U.S.C. § 13107 exige que esos datos estén disponibles sin muro.
+ * gratis para cualquier medio. Los informes oficiales siguen públicos en los
+ * sitios del gobierno (5 U.S.C. § 13107); en fraccion.si, las posiciones
+ * reconstruidas de esas declaraciones son para suscriptores.
  * Ningún widget usa datos personales de InfoProbidad ni da recomendaciones
  * personalizadas (Ley Fintec).
  */
@@ -87,9 +89,9 @@ export default function MediosPage() {
                   Gratuidad de datos de EE.UU.
                 </strong>{" "}
                 Los widgets con declaraciones de funcionarios de EE.UU.
-                (insiders, ranking) son gratis para cualquier medio, conforme a{" "}
-                <span className="num">5 U.S.C. § 13107</span>: esos datos deben
-                estar disponibles sin muro de pago.
+                (insiders, ranking) son gratis para cualquier medio. Los informes
+                oficiales siguen públicos en los sitios del gobierno, conforme a{" "}
+                <span className="num">5 U.S.C. § 13107</span>.
               </p>
               <p>
                 <strong className="font-medium text-ink-900">

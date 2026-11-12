@@ -5,8 +5,10 @@
  * importarlo sin depender de una ruta de Next. Las páginas solo exportan lo
  * que Next permite (default, metadata, instant).
  *
- * Los widgets con datos de funcionarios de EE.UU. son gratis: 5 U.S.C.
- * § 13107 exige que esos datos estén disponibles sin muro de pago. Ningún
+ * Los widgets con datos de funcionarios de EE.UU. son gratis para cualquier
+ * medio. Los informes oficiales siguen públicos en los sitios del gobierno
+ * (5 U.S.C. § 13107); en fraccion.si, las posiciones reconstruidas de esas
+ * declaraciones son para suscriptores. Ningún
  * widget usa datos personales de InfoProbidad ni entrega recomendaciones
  * personalizadas.
  */
