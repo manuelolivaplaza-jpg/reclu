@@ -14,8 +14,9 @@
  *   Return y su píldora se deshabilita en la UI.
  *
  * La lógica pura de este archivo no toca red: `periodReturn`, `topByReturn`,
- * `topByFollowers`, `filterPremium` y `formatReturnPct` son funciones puras
- * y están cubiertas en `tests/portfolio-rankings.test.ts`.
+ * `topByReturnDiverse`, `pickDefaultRankingsPeriod`, `topByFollowers`,
+ * `filterPremium` y `formatReturnPct` son funciones puras y están cubiertas
+ * en `tests/portfolio-rankings.test.ts` y `tests/d67-rankings-diverse.test.ts`.
  */
 
 import { getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
@@ -39,6 +40,14 @@ export const RANKING_CANDIDATES = 500;
 /** D67: maximo por familia/gestora y por categoria en "Mejor rendimiento". */
 export const MAX_PER_FAMILY = 1;
 export const MAX_PER_CATEGORY = 2;
+
+/**
+ * D7: tope del primer pase de "Mejor rendimiento". Con 1 por categoria se
+ * garantiza la mezcla real (13F, ETF, corredoras, AFP/declaraciones,
+ * tematicas/Trump dice) antes de relajar a `MAX_PER_CATEGORY` y, si aun
+ * faltan filas, al pase sin tope de categoria. La familia nunca se relaja.
+ */
+export const MAX_PER_CATEGORY_STRICT = 1;
 
 /** Puntos de serie pedidos por portafolio (cubre 2 años calendario). */
 const MAX_SERIES_POINTS = 800;
@@ -67,6 +76,67 @@ export const RANKING_PERIODS: readonly RankingPeriod[] = [
   { id: "1A", label: "1A", days: 365 },
   { id: "2A", label: "2A", days: 730 },
 ] as const;
+
+/**
+ * D7: período con el que abre la sección. Manu eligió `1A`: es el horizonte
+ * que se puede leer como "rendimiento real" sin caer en el ruido de 1S/1M.
+ */
+export const DEFAULT_RANKINGS_PERIOD: RankingPeriodId = "1A";
+
+/** D7: etiqueta legible de cada período (para el ganador y los rótulos). */
+export const RANKING_PERIOD_LONG_LABELS: Readonly<Record<RankingPeriodId, string>> = {
+  "1S": "1 semana",
+  "1M": "1 mes",
+  "3M": "3 meses",
+  "6M": "6 meses",
+  "1A": "1 año",
+  "2A": "2 años",
+};
+
+/** D7: etiqueta larga de un período; si la clave es desconocida, la devuelve tal cual. */
+export function periodLongLabel(id: string): string {
+  return RANKING_PERIOD_LONG_LABELS[id as RankingPeriodId] ?? id;
+}
+
+/**
+ * D7: orden de preferencia del período inicial. Primero `1A`; si el ranking
+ * no lo cubre, el más largo disponible del selector (`2A` → `6M` → `3M` →
+ * `1M` → `1S`) y, al final, las claves que usan otras vistas del producto
+ * (`MAX`, `YTD`) para no inventar un período que no exista.
+ */
+const RANKINGS_PERIOD_PREFERENCE: readonly string[] = [
+  DEFAULT_RANKINGS_PERIOD,
+  "2A",
+  "MAX",
+  "YTD",
+  "6M",
+  "3M",
+  "1M",
+  "1S",
+  "1D",
+  "1W",
+];
+
+/**
+ * D7: período inicial a partir de las claves realmente disponibles.
+ *
+ * Devuelve la clave original (no la normalizada) para que sirva de índice en
+ * `best`/`winnerByPeriod`, o `null` si no hay ninguna conocida: nunca se
+ * inventa un período sin datos. Pura.
+ */
+export function pickDefaultRankingsPeriod(availableKeys: readonly string[]): string | null {
+  const original = new Map<string, string>();
+  for (const key of availableKeys ?? []) {
+    const normalized = String(key ?? "").trim().toUpperCase();
+    if (!normalized || original.has(normalized)) continue;
+    original.set(normalized, key);
+  }
+  for (const candidate of RANKINGS_PERIOD_PREFERENCE) {
+    const hit = original.get(candidate);
+    if (hit !== undefined) return hit;
+  }
+  return null;
+}
 
 // ---- Tipos puros ----
 
@@ -183,9 +253,59 @@ export function familyOf(entry: { slug: string; name: string; manager: string | 
 }
 
 /**
- * D67: top N por retorno con diversidad: max. `perFamily` por familia y
- * `perCategory` por categoria. Si no alcanza, se relaja solo la categoria
- * (la familia nunca supera su limite). El #1 siempre es el mejor real.
+ * Un pase de selección: recorre la lista ya ordenada por retorno y agrega
+ * filas mientras la familia y la categoría no superen sus topes. `seed` son
+ * las filas elegidas en un pase anterior: sus conteos se arrastran para que
+ * relajar la categoría no vuelva a llenar el top con la misma familia.
+ */
+function fillRankingPass(
+  ordered: RankingEntry[],
+  seed: RankingEntry[],
+  size: number,
+  famLimit: number,
+  catLimit: number,
+): RankingEntry[] {
+  const out = [...seed];
+  const families = new Map<string, number>();
+  const categories = new Map<string, number>();
+  const seen = new Set<string>();
+  const bump = (map: Map<string, number>, key: string) => map.set(key, (map.get(key) ?? 0) + 1);
+
+  for (const entry of out) {
+    bump(families, familyOf(entry));
+    bump(categories, entry.category ?? "");
+    seen.add(entry.slug);
+  }
+
+  for (const entry of ordered) {
+    if (out.length >= size) break;
+    if (seen.has(entry.slug)) continue;
+    const family = familyOf(entry);
+    const category = entry.category ?? "";
+    if ((families.get(family) ?? 0) >= famLimit) continue;
+    if ((categories.get(category) ?? 0) >= catLimit) continue;
+    out.push(entry);
+    seen.add(entry.slug);
+    bump(families, family);
+    bump(categories, category);
+  }
+
+  return out;
+}
+
+/**
+ * D67/D7: top N por retorno con diversidad real de categorías.
+ *
+ * Tres pases sobre la lista ordenada por retorno descendente (el #1 absoluto
+ * siempre entra primero, así que queda en la posición 0):
+ *  1. estricto: máx. `MAX_PER_CATEGORY_STRICT` (1) por categoría y
+ *     `perFamily` (1) por familia => hasta 5 filas de 5 categorías
+ *     distintas cuando el catálogo las tiene con retorno real finito;
+ *  2. si faltan filas, la categoría se relaja a `perCategory` (2);
+ *  3. si aún faltan, la categoría deja de limitar. La familia NUNCA se
+ *     relaja: el top no se llena con cinco ETFs de la misma gestora.
+ *
+ * Pura. `perFamily`/`perCategory` siguen como overrides compatibles.
  */
 export function topByReturnDiverse(
   entries: RankingEntry[],
@@ -193,32 +313,32 @@ export function topByReturnDiverse(
   perFamily = MAX_PER_FAMILY,
   perCategory = MAX_PER_CATEGORY,
 ): RankingEntry[] {
+  const size = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 5;
+  if (size === 0) return [];
+
+  const famLimit =
+    Number.isFinite(perFamily) && perFamily >= 1 ? Math.floor(perFamily) : MAX_PER_FAMILY;
+  const relaxedCatLimit =
+    Number.isFinite(perCategory) && perCategory >= 1 ? Math.floor(perCategory) : MAX_PER_CATEGORY;
+
+  // Pases de categoría, sin repetir topes: estricto -> relajado -> sin tope.
+  const catLimits: number[] = [];
+  for (const value of [
+    MAX_PER_CATEGORY_STRICT,
+    Math.max(MAX_PER_CATEGORY_STRICT, relaxedCatLimit),
+    Number.MAX_SAFE_INTEGER,
+  ]) {
+    if (!catLimits.includes(value)) catLimits.push(value);
+  }
+
   const ordered = topByReturn(entries, Number.MAX_SAFE_INTEGER);
-  const pick = (catLimit: number, seed: RankingEntry[]): RankingEntry[] => {
-    const out = [...seed];
-    const fam = new Map<string, number>();
-    const cat = new Map<string, number>();
-    const bump = (m: Map<string, number>, k: string) => m.set(k, (m.get(k) ?? 0) + 1);
-    for (const e of out) {
-      bump(fam, familyOf(e));
-      bump(cat, e.category ?? "");
-    }
-    for (const e of ordered) {
-      if (out.length >= limit) break;
-      if (out.includes(e)) continue;
-      const f = familyOf(e);
-      const c = e.category ?? "";
-      if ((fam.get(f) ?? 0) >= perFamily) continue;
-      if ((cat.get(c) ?? 0) >= catLimit) continue;
-      out.push(e);
-      bump(fam, f);
-      bump(cat, c);
-    }
-    return out;
-  };
-  const strict = pick(perCategory, []);
-  const filled = strict.length < limit ? pick(Number.MAX_SAFE_INTEGER, strict) : strict;
-  return filled.sort((a, b) => (b.returnPct as number) - (a.returnPct as number));
+  let picked: RankingEntry[] = [];
+  for (const catLimit of catLimits) {
+    picked = fillRankingPass(ordered, picked, size, famLimit, catLimit);
+    if (picked.length >= size) break;
+  }
+
+  return picked.sort((a, b) => (b.returnPct as number) - (a.returnPct as number));
 }
 
 /**
@@ -288,6 +408,13 @@ export interface RankingsPayload {
   /** Top 5 por período, indexado por id de período. */
   best: Record<string, RankingsBestRow[]>;
   popular: RankingsPopularRow[];
+  /**
+   * D7: ganador real de cada período — el portafolio con mayor retorno
+   * finito y sin tramos estimados — junto con la etiqueta legible del
+   * período (`"1 año"`, `"6 meses"`). `null` cuando ese período no tiene
+   * filas válidas. Aditivo: una UI que lo ignore sigue funcionando igual.
+   */
+  winnerByPeriod?: Record<string, (RankingsBestRow & { periodLabel: string }) | null>;
   /** D29: fecha (ISO) del último dato de rendimiento entre los portafolios rankeados. */
   updatedAt?: string | null;
   /** true => los datos vienen del catálogo de ejemplo (sin Supabase). */
@@ -409,6 +536,7 @@ async function getPortfolioRankingsCached(paid: boolean): Promise<RankingsPayloa
   }
 
   const best: Record<string, RankingsBestRow[]> = {};
+  const winnerByPeriod: NonNullable<RankingsPayload["winnerByPeriod"]> = {};
   const periods: RankingsPeriodOption[] = [];
 
   for (const period of RANKING_PERIODS) {
@@ -426,6 +554,19 @@ async function getPortfolioRankingsCached(paid: boolean): Promise<RankingsPayloa
       returnLabel: formatReturnPct(entry.returnPct),
       estimated: isEstimated(entry.slug, period.days),
     }));
+    // D7: el #1 del período es el ganador real — `topByReturnDiverse` ordena
+    // por retorno descendente y ya dejó fuera los tramos estimados. Se
+    // publica con su período escrito ("1 año"); sin filas válidas, null.
+    const champion = top[0];
+    winnerByPeriod[period.id] = champion
+      ? {
+          ...toRow(champion),
+          returnPct: champion.returnPct,
+          returnLabel: formatReturnPct(champion.returnPct),
+          estimated: false,
+          periodLabel: periodLongLabel(period.id),
+        }
+      : null;
     periods.push({
       id: period.id,
       label: period.label,
@@ -457,5 +598,5 @@ async function getPortfolioRankingsCached(paid: boolean): Promise<RankingsPayloa
   });
 
   const updatedAt = [...lastDate.values()].sort().at(-1) ?? null;
-  return { periods, best, popular, updatedAt, demo: !live };
+  return { periods, best, popular, winnerByPeriod, updatedAt, demo: !live };
 }

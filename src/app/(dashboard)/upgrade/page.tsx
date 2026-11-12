@@ -11,7 +11,8 @@ import {
 
 export const metadata = {
   title: "Activar plan",
-  description: "Actualiza tu cuenta de fraccion.si a Plan Pro o Plan Elite.",
+  description:
+    "Actualiza tu cuenta de fraccion.si al Plan Pro o Plan Elite. Pagos por Mercado Pago.",
 };
 
 // Ruta protegida por auth: lee cookies y searchParams por request — nunca se prerenderiza.

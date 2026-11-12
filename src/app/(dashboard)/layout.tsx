@@ -7,8 +7,9 @@ import { isPaidPlan, isElitePlan } from "@/lib/types";
 import { isMyPortfolioEnabled } from "@/lib/portfolio-flags";
 
 /**
- * d47: shell de la app (sidebar + topbar en escritorio, tab bar en móvil).
+ * d80: shell de la app (sidebar + topbar en escritorio, tab bar sólida en móvil).
  * Solo pasa strings/booleans al cliente (nunca componentes ni íconos: bug d46).
+ * La etiqueta del plan viaja en español: "Gratis" | "Pro" | "Elite".
  */
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   // Marca la ruta como dinámica (lee cookies de auth) bajo cacheComponents.
@@ -21,7 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .select("plan, full_name")
     .eq("id", user.id)
     .single();
-  const planLabel = isElitePlan(profile?.plan) ? "Elite" : isPaidPlan(profile?.plan) ? "Pro" : "Free";
+  const planLabel = isElitePlan(profile?.plan) ? "Elite" : isPaidPlan(profile?.plan) ? "Pro" : "Gratis";
 
   return (
     <AppShell

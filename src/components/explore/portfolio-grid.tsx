@@ -17,6 +17,12 @@ export interface PortfolioGridPage {
  * Grilla con carga progresiva (d62, P2): el HTML trae solo la primera
  * página; las siguientes se piden a /api/explore/cards con "Cargar más" o
  * automáticamente al acercarse al final (IntersectionObserver).
+ *
+ * D9: retícula editorial 1 / 2 / 3 columnas para el lienzo de 1560px
+ * (`container-page`). A 3 columnas la tarjeta nueva (gráfico de 148px con
+ * selector de período) respira sin apretar la cifra; la tarjeta actual
+ * hereda el mismo ancho. El estado "Sin resultados" no vive aquí: lo pinta
+ * `explore-view.tsx` antes de montar la grilla.
  */
 export function PortfolioGrid({
   initial,
@@ -83,9 +89,15 @@ export function PortfolioGrid({
 
   return (
     <>
-      <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-4">
+      <ul
+        role="list"
+        className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5 xl:grid-cols-3"
+      >
         {items.map((portfolio) => (
-          <li key={portfolio.id} className="[contain-intrinsic-size:auto_212px] [content-visibility:auto]">
+          <li
+            key={portfolio.id}
+            className="min-w-0 [contain-intrinsic-size:auto_480px] [content-visibility:auto]"
+          >
             <ExploreCard
               portfolio={portfolio}
               isFollowing={followed.has(portfolio.id)}
@@ -96,24 +108,31 @@ export function PortfolioGrid({
           </li>
         ))}
       </ul>
-      <div className="mt-8 flex min-h-[76px] flex-col items-center gap-3">
-        <p aria-live="polite" className="text-[13px] text-ink-500">
-          Mostrando {shown} de {total}
-          {error ? " · no se pudieron cargar más" : ""}
-        </p>
-        {more ? (
-          <>
-            <div ref={sentinel} aria-hidden="true" className="h-px w-full" />
+      {/* D9: centinela invisible para la carga automática (600px de margen). */}
+      <div ref={sentinel} aria-hidden="true" className="h-px w-full" />
+
+      <div className="mt-6 border-t border-ink-300 pt-5 dark:border-white/12">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <p
+            role="status"
+            className="text-[13px] leading-snug tabular-nums text-ink-500 dark:text-white/55"
+          >
+            Mostrando <span className="text-ink-900 dark:text-white">{shown}</span> de {total}
+            {loading ? " · cargando…" : ""}
+            {error ? " · no se pudieron cargar más" : ""}
+          </p>
+          {more ? (
             <button
               type="button"
               onClick={() => void loadMore()}
               disabled={loading}
-              className="rounded-full bg-ink-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-ink-800 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink-900 focus-visible:ring-offset-2"
+              aria-busy={loading || undefined}
+              className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-full bg-ink-900 px-6 text-sm font-medium leading-none text-white transition-colors hover:bg-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900 disabled:pointer-events-none disabled:opacity-45 sm:w-auto dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100 dark:focus-visible:outline-white"
             >
               {loading ? "Cargando…" : error ? "Reintentar" : "Cargar más"}
             </button>
-          </>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </>
   );

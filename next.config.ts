@@ -1,4 +1,6 @@
 import type { NextConfig } from "next";
+import { buildLegacyHostRedirects } from "./src/lib/host-redirects";
+import { LEGACY_PORTFOLIO_SLUGS } from "./src/lib/portfolio-canonical";
 
 /**
  * Content Security Policy.
@@ -83,12 +85,23 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   poweredByHeader: false,
   // D40: slugs inactivos -> 308 real (antes solo meta refresh en el stream).
+  // B7/T3: los 6 pares duplicados (slug viejo -> `-13f`) salen del mismo mapa
+  // que usan demo-data y los tests; sin migración ni desactivación en la base.
+  // `reclu.cl` nunca entra: es otro negocio.
   async redirects() {
     return [
       { source: "/portfolio/inverse-cramer", destination: "/portfolio/inverse-cramer-real", permanent: true },
       { source: "/pricing", destination: "/planes", permanent: true },
       { source: "/precios", destination: "/planes", permanent: true },
       { source: "/portfolio/afp-multifondos", destination: "/portfolio/afp-consenso-chile", permanent: true },
+      ...Object.entries(LEGACY_PORTFOLIO_SLUGS).map(([legacy, canonical]) => ({
+        source: `/portfolio/${legacy}`,
+        destination: `/portfolio/${canonical}`,
+        permanent: true,
+      })),
+      // B7/T3: cambio de dominio a fraccion.si. Solo si NEXT_PUBLIC_SITE_URL y
+      // LEGACY_HOSTS están definidos; sin ellas, staging/previews no cambian.
+      ...buildLegacyHostRedirects(process.env.NEXT_PUBLIC_SITE_URL, process.env.LEGACY_HOSTS),
     ];
   },
   async headers() {

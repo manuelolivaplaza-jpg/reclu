@@ -7,8 +7,9 @@
  * TODO(F16): cuando exista src/components/legal/legal-notice.tsx, las páginas
  * deben renderizarlo en lugar de AVISO_APRENDE. No crear ese archivo desde aquí.
  * TODO(F16): src/lib/public-disclosure.ts tampoco está en este worktree. La
- * política de mostrar los informes del 5 U.S.C. § 13107 sin muro queda escrita
- * en el aviso y en la ficha PTR, no en ese módulo.
+ * política de acceso vigente (decisión D55) es que las posiciones de políticos
+ * y funcionarios de EE.UU. —informes PTR y OGE 278-T— son solo para
+ * suscriptores. Así queda escrito en el aviso y en la ficha PTR, no en ese módulo.
  */
 
 export type FuenteAprende = {
@@ -22,16 +23,22 @@ export type FichaAprende = {
   resumen: string;
   cuerpo: readonly string[];
   fuentes: readonly FuenteAprende[];
+  /**
+   * Slugs de portafolios de /portfolio que ilustran esta ficha. Opcional:
+   * una ficha sin portafolio relacionado no inventa uno.
+   */
+  portafolios?: readonly string[];
 };
 
 /** Aviso visible al pie de /aprende. Ver TODO(F16) arriba. */
 export const AVISO_APRENDE =
-  "Estas fichas resumen fuentes públicas y tienen fines solo informativos. No son asesoría de inversión, tributaria, legal ni contable, ni una recomendación personalizada de compra o venta. Fraccion no ejecuta órdenes, no las enruta y no gestiona carteras. Los informes de funcionarios de Estados Unidos que cubre el 5 U.S.C. § 13107 se muestran sin muro de pago. Los datos personales que ya traen las fuentes se usan al mínimo y solo para explicar esa información pública (leyes 19.628 y 21.719).";
+  "Estas fichas resumen fuentes públicas y tienen fines solo informativos. No son asesoría de inversión, tributaria, legal ni contable, ni una recomendación personalizada de compra o venta. Fraccion no ejecuta órdenes, no las enruta y no gestiona carteras. Las posiciones de políticos y funcionarios de Estados Unidos (informes PTR y OGE 278-T) son solo para suscriptores. Los datos personales que ya traen las fuentes se usan al mínimo y solo para explicar esa información pública (leyes 19.628 y 21.719).";
 
 export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
     slug: "13f",
     titulo: "Formulario 13F",
+    portafolios: ["berkshire-hathaway-13f", "scion-13f"],
     resumen:
       "Los fondos grandes informan a la SEC, cada trimestre, las acciones y valores relacionados que tienen. El informe sale hasta 45 días después del cierre y no es la cartera completa.",
     cuerpo: [
@@ -53,6 +60,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
     slug: "form-4",
     titulo: "Formulario 4",
+    portafolios: ["insiders-compras-1m"],
     resumen:
       "Directores, altos ejecutivos y accionistas de 10% o más informan a la SEC la mayoría de sus operaciones. El Form 4 vence antes del cierre del segundo día hábil siguiente.",
     cuerpo: [
@@ -75,12 +83,13 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
     slug: "ptr-stock-act",
     titulo: "PTR y la STOCK Act",
+    portafolios: ["pelosi-tracker", "congress-buys"],
     resumen:
       "La STOCK Act de 2012 obliga a los miembros del Congreso a informar sus operaciones en acciones. Unusual Whales recoge un plazo de 30 a 45 días, y la ley ordena que esos informes sean públicos.",
     cuerpo: [
       "Unusual Whales resume la STOCK Act de 2012 así: los miembros del Congreso deben informar sus operaciones en acciones dentro de 30 a 45 días, aunque algunos presentan en 24 a 48 horas. El aviso sale cuando el documento ya está publicado, de modo que la operación ocurrió días o semanas antes. El mismo texto describe montos por tramos (US$1.000–15.000, US$15.000–50.000, US$50.000–100.000 y siguientes) y si la operación fue compra o venta. Esas declaraciones periódicas de transacciones son las que aquí llamamos PTR.",
       "El 5 U.S.C. § 13107 ordena que el Clerk de la Cámara de Representantes, el Secretario del Senado y las oficinas de ética pongan a disposición del público cada informe presentado bajo ese subcapítulo, con excepciones puntuales de inteligencia y de ciertos informes judiciales. En general, la inspección o la copia debe ofrecerse dentro de los 30 días desde que reciben el informe. Una nota de la STOCK Act publicada en esa misma página (la Representative Louise McIntosh Slaughter Stop Trading on Congressional Knowledge Act, Pub. L. 112-105) exige que los formularios de los miembros del Congreso, de los candidatos y del personal del Congreso queden en los sitios oficiales a más tardar 30 días después de presentarse. El informe de un miembro sigue público hasta seis años después de que deja el cargo.",
-      "La misma sección permite un cargo razonable por el costo de reproducir o enviar una copia, y prohíbe obtener o usar un informe para un fin comercial, salvo los medios de noticias y comunicaciones cuando lo difunden al público general. En Fraccion estos informes se muestran sin muro de pago.",
+      "La misma sección permite un cargo razonable por el costo de reproducir o enviar una copia, y prohíbe obtener o usar un informe para un fin comercial, salvo los medios de noticias y comunicaciones cuando lo difunden al público general. En Fraccion, las posiciones que salen de estos informes son solo para suscriptores.",
       "Unusual Whales informa, en su reporte de trading del Congreso de 2024, que un 32,2% le ganó al mercado. Es una cifra de ese sitio, no un censo oficial. El atraso y los tramos de monto hacen que una PTR no sea la cartera real de la persona ni una instrucción para copiarla.",
     ],
     fuentes: [
@@ -97,6 +106,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
     slug: "oge-278-t",
     titulo: "OGE Form 278-T",
+    portafolios: ["bessent-oge", "lutnick-oge"],
     resumen:
       "Quienes declaran patrimonio público en el poder ejecutivo de EE.UU. informan ciertas compras y ventas con dos plazos: 30 días desde que se enteran, y nunca más de 45 días después de la operación.",
     cuerpo: [
@@ -126,6 +136,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
     slug: "hecho-esencial",
     titulo: "Hecho esencial",
+    portafolios: ["hechos-esenciales-cl"],
     resumen:
       "En Chile, un hecho esencial es información relevante sobre un emisor y sus negocios. La CMF lo recibe y lo publica tal como llega, sin responder por su veracidad.",
     cuerpo: [
@@ -151,6 +162,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
     slug: "afp-multifondos",
     titulo: "AFP y multifondos",
+    portafolios: ["afp-consenso-chile"],
     resumen:
       "Una AFP administra cuentas individuales de capitalización. Los cinco fondos se distinguen por cuánta renta variable pueden tener: el A es el más expuesto y el E el más conservador.",
     cuerpo: [
@@ -176,6 +188,7 @@ export const FICHAS_APRENDE: readonly FichaAprende[] = [
   {
     slug: "infoprobidad",
     titulo: "InfoProbidad",
+    portafolios: ["infoProbidad-cl"],
     resumen:
       "El Consejo para la Transparencia y la Contraloría publican, como datos abiertos, declaraciones de probidad de autoridades. La licencia es CC BY 4.0 y los catálogos se actualizan los martes y los viernes.",
     cuerpo: [

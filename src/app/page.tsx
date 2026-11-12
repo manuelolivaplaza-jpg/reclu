@@ -67,8 +67,14 @@ async function RankingsWithSession() {
 /** Reserva el alto aproximado del ranking para no mover la página (CLS). */
 function RankingsFallback() {
   return (
-    <section className="bg-white py-24 md:py-32" aria-busy="true">
-      <div className="mx-auto h-[720px] w-full max-w-[1200px] animate-pulse rounded-3xl bg-neutral-50 px-4 sm:px-6 md:px-8" />
+    <section className="bg-white py-24 dark:bg-neutral-950 md:py-32" aria-busy="true">
+      <div className="container-page" role="status">
+        <span className="sr-only">Cargando ranking de portafolios</span>
+        <div
+          aria-hidden="true"
+          className="h-[720px] w-full animate-pulse border border-ink-300 bg-ink-50 dark:border-white/12 dark:bg-white/5"
+        />
+      </div>
     </section>
   );
 }

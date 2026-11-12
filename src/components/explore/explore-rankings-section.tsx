@@ -3,7 +3,7 @@ import { timed } from "@/lib/timing";
 import { getAlertCountsForRanking, getHoldingSymbolsAdmin, getPortfolios, getProfile } from "@/lib/queries";
 import { isPaidPlan } from "@/lib/types";
 import { getBeatTheMarketRanking } from "@/lib/performance-queries";
-import { ExploreRankingsCards } from "@/components/explore/explore-rankings-cards";
+import { ExploreRankingsCards, hasRankingsData } from "@/components/explore/explore-rankings-cards";
 import { consensusFromRows } from "@/lib/explore-paging";
 
 /** getAlerts recorta por defecto a 20. El ranking cuenta publicadas, no solo las últimas. */
@@ -26,7 +26,12 @@ export async function ExploreRankingsSection() {
     timed("rankings.holdingSymbols", getHoldingSymbolsAdmin(catalog.map((portfolio) => portfolio.id))),
   ]);
   const consensus = consensusFromRows(rows);
+  const cards = { portfolios: catalog, alertCounts, consensus, beatMarket: beatMarket ?? [] };
+  // D10: sin datos no se monta ni el bloque ni el filete que lo separa.
+  if (!hasRankingsData(cards)) return null;
   return (
-    <ExploreRankingsCards portfolios={catalog} alertCounts={alertCounts} consensus={consensus} beatMarket={beatMarket ?? []} />
+    <section aria-label="Rankings de portafolios" className="min-w-0">
+      <ExploreRankingsCards {...cards} />
+    </section>
   );
 }

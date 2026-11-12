@@ -1,4 +1,5 @@
 import { AppLink as Link } from "@/components/app/app-link";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import { Sparkline } from "@/components/sparkline";
 import type { ShowcasePortfolio } from "@/components/sections/portfolio-data";
 import { cn, formatSignedPct } from "@/lib/utils";
@@ -22,7 +23,7 @@ export function PortfolioRow({
 
   return (
     <Link
-      href={`/portfolio/${portfolio.slug}`}
+      href={`/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`}
       className={cn(
         "group grid grid-cols-1 items-center gap-x-8 gap-y-3 border-t border-ink-200 py-7 md:grid-cols-[1.4fr_1fr_auto] md:gap-y-0",
         isLast && "border-b",

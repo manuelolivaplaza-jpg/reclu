@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { track } from "@/lib/analytics";
+import { PLANS, formatClp } from "@/lib/plans";
 import { PAYMENTS_UNAVAILABLE_MESSAGE } from "@/lib/billing/messages";
 import type { Plan } from "@/lib/types";
 
@@ -49,9 +50,9 @@ const PLAN_DETAILS: Record<
     name: "Plan Pro",
     tagline: "Seguimiento activo en tiempo real con contexto AI en cada movimiento.",
     taglineNoAi: "Seguimiento activo en tiempo real con contexto en cada movimiento.",
-    monthlyPrice: "$12.990",
-    annualMonthlyPrice: "$10.390",
-    annualTotal: "$124.680",
+    monthlyPrice: formatClp(PLANS.pro.monthlyPrice),
+    annualMonthlyPrice: formatClp(PLANS.pro.annualMonthlyPrice),
+    annualTotal: formatClp(PLANS.pro.annualTotalPrice),
     features: [
       { text: "Hasta 15 portafolios seguidos en simultáneo" },
       { text: "Alertas en tiempo real apenas se detecta un filing o cambio" },
@@ -66,9 +67,9 @@ const PLAN_DETAILS: Record<
   elite: {
     name: "Plan Elite",
     tagline: "Cobertura institucional completa, libros 13F y radar político en vivo.",
-    monthlyPrice: "$16.990",
-    annualMonthlyPrice: "$13.590",
-    annualTotal: "$163.080",
+    monthlyPrice: formatClp(PLANS.elite.monthlyPrice),
+    annualMonthlyPrice: formatClp(PLANS.elite.annualMonthlyPrice),
+    annualTotal: formatClp(PLANS.elite.annualTotalPrice),
     features: [
       { text: "Portafolios ilimitados" },
       {
@@ -125,6 +126,10 @@ export function UpgradeCheckout({
   const displayMonthly =
     billing === "annual" ? plan.annualMonthlyPrice : plan.monthlyPrice;
   const totalDueNow = billing === "annual" ? plan.annualTotal : plan.monthlyPrice;
+  // Ahorro real del ciclo anual con el plan elegido: Pro $19.980 (~17%),
+  // Elite $40.800 (20%). Se calcula, no se escribe a mano.
+  const annualSaving =
+    PLANS[selectedPlan].monthlyPrice * 12 - PLANS[selectedPlan].annualTotalPrice;
 
   async function handleActivate(e: React.FormEvent) {
     e.preventDefault();
@@ -247,7 +252,7 @@ export function UpgradeCheckout({
                 : "bg-white text-ink-900 hover:bg-ink-50"
             }`}
           >
-            Anual (20% descuento)
+            Anual (ahorras {formatClp(annualSaving)})
           </button>
         </div>
       </div>
@@ -447,7 +452,9 @@ export function UpgradeCheckout({
 
             <div className="mt-5 flex items-center justify-between text-[14px]">
               <span className="text-ink-500">
-                {billing === "annual" ? "Total anual (20% dcto.)" : "Total mensual"}
+                {billing === "annual"
+                  ? `Total anual (ahorras ${formatClp(annualSaving)})`
+                  : "Total mensual"}
               </span>
               <span className="font-medium tabular-nums text-ink-900">
                 {totalDueNow} CLP

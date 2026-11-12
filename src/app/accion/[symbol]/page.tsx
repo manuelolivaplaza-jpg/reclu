@@ -11,9 +11,11 @@ import {
   topSymbolsByCount,
   type TickerHolder,
 } from "@/lib/ticker-queries";
+import { getTickerPublicSummary } from "@/lib/public-tickers";
 import { getPortfolios, getHoldings } from "@/lib/queries";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { AccionPublicSummary } from "@/components/accion-public-summary";
 import { CATEGORY_META } from "@/lib/types";
 import { timeAgo, formatCompact, formatPctPlain } from "@/lib/utils";
 
@@ -45,17 +47,40 @@ export function generateStaticParams() {
   return COMMON_SYMBOLS.map((symbol) => ({ symbol: symbol.toLowerCase() }));
 }
 
+/**
+ * Título y descripción sin nombres de fondos ni de políticos: el resumen
+ * público no expone quién tiene el ticker. `withSeo` agrega canonical y OG;
+ * la página no lleva noindex.
+ */
 export async function generateMetadata({ params }: AccionPageProps): Promise<Metadata> {
   const { symbol: raw } = await params;
   const symbol = normalizeSymbol(raw);
-  const overview = await getTickerOverview(symbol);
-  const name = overview.displayName ?? symbol;
-  const who = overview.consensus.portfolioCount;
-  if (!symbol || (who === 0 && !overview.displayName)) notFound();
-  const title = `¿Quién tiene ${symbol}? Políticos y fondos que la compran`;
+  if (!symbol) notFound();
+
+  const [overview, summary] = await Promise.all([
+    getTickerOverview(symbol),
+    getTickerPublicSummary(symbol),
+  ]);
+
+  const hasContent =
+    overview.consensus.holders.length > 0 || overview.alerts.length > 0;
+  // Regla 1b: solo un ticker inexistente da 404 (el proxy además lo resuelve
+  // antes del streaming). Ante la duda, se deja pasar.
+  if (!summary && !hasContent) notFound();
+
+  const name = summary?.name ?? overview.displayName ?? symbol;
+  const who = summary?.portfolioCount ?? overview.consensus.portfolioCount;
+  const title =
+    name.toUpperCase() !== symbol
+      ? `¿Quién tiene ${symbol}? ${name}`
+      : `¿Quién tiene ${symbol}?`;
+
   return withSeo(`/accion/${symbol.toLowerCase()}`, {
-    title: who > 0 ? title : `${symbol} — Ticker en fraccion.si`,
-    description: `Consulta quiénes tienen ${name} (${symbol}): ${who} ${who === 1 ? "cartera" : "carteras"} entre políticos de EE.UU., corredoras chilenas y fondos 13F, con peso, antigüedad y últimos movimientos.`,
+    title,
+    description:
+      who > 0
+        ? `${who} ${who === 1 ? "portafolio" : "portafolios"} de Fraccion incluyen ${name} (${symbol}). Ficha pública con datos agregados de fuentes públicas; el detalle de cada cartera es para suscriptores.`
+        : `Ficha pública de ${name} (${symbol}) en Fraccion. Datos agregados de fuentes públicas; el detalle de cada cartera es para suscriptores.`,
   });
 }
 
@@ -66,11 +91,27 @@ export default async function AccionPage({ params }: AccionPageProps) {
   const symbol = normalizeSymbol(raw);
   if (!symbol) notFound();
 
-  const overview = await getTickerOverview(symbol);
-  if (overview.consensus.portfolioCount === 0 && !overview.displayName) notFound();
+  const [overview, summary] = await Promise.all([
+    getTickerOverview(symbol),
+    getTickerPublicSummary(symbol),
+  ]);
+
   const { holders, avgWeight, maxWeight } = overview.consensus;
-  const displayName = overview.displayName ?? symbol;
-  const related = (await getRelatedSymbols(symbol)).slice(0, 6);
+  const hasHolders = holders.length > 0;
+  const hasAlerts = overview.alerts.length > 0;
+
+  // Regla 1b (Manu): un ticker real NUNCA da 404, aunque el rol actual vea 0
+  // carteras. Solo se da 404 cuando no existe y la ficha tampoco trae nada.
+  if (!summary && !hasHolders && !hasAlerts) notFound();
+
+  const displayName = summary?.name ?? overview.displayName ?? symbol;
+  const totalPortfolios = summary?.portfolioCount ?? holders.length;
+  // El rótulo de ejemplo sale del resumen cuando existe: `overview.isDemo` es
+  // true también cuando un rol ve 0 carteras en una base real, y ahí no aplica.
+  const isDemo = summary ? Boolean(summary.isDemo) : overview.isDemo;
+  // Los símbolos relacionados salen del catálogo con posiciones: solo se
+  // enlazan cuando la tabla de carteras ya es visible (decisión 2).
+  const related = hasHolders ? (await getRelatedSymbols(symbol)).slice(0, 6) : [];
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -85,21 +126,28 @@ export default async function AccionPage({ params }: AccionPageProps) {
             Volver a explorar
           </Link>
 
-          {/* Encabezado del ticker */}
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <p className="label-line">Acción · Ticker</p>
-              <h1 className="type-section mt-3 text-ink-900">{symbol}</h1>
-              {displayName !== symbol && (
-                <p className="type-body mt-2 text-ink-500">{displayName}</p>
-              )}
-              {overview.isDemo && (
-                <p className="mt-3 inline-block border border-ink-200 px-2.5 py-1 text-[11px] tracking-[0.08em] text-ink-500 uppercase">
-                  Datos de ejemplo
-                </p>
-              )}
-            </div>
-            {holders.length > 0 && (
+          {hasHolders ? (
+            /* Encabezado del ticker (carteras visibles para el rol) */
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <p className="label-line">Acción · Ticker</p>
+                <h1 className="type-section mt-3 text-ink-900">{symbol}</h1>
+                {displayName !== symbol && (
+                  <p className="type-body mt-2 text-ink-500">{displayName}</p>
+                )}
+                {totalPortfolios > 0 && (
+                  <p className="mt-3 text-[13px] text-ink-500">
+                    Está en {totalPortfolios}{" "}
+                    {totalPortfolios === 1 ? "portafolio" : "portafolios"} de
+                    Fraccion.
+                  </p>
+                )}
+                {isDemo && (
+                  <p className="mt-3 inline-block border border-ink-200 px-2.5 py-1 text-[11px] tracking-[0.08em] text-ink-500 uppercase">
+                    Datos de ejemplo
+                  </p>
+                )}
+              </div>
               <dl className="grid grid-cols-3 gap-px border border-ink-200 bg-ink-200 text-center">
                 <div className="bg-white px-4 py-4 sm:px-6">
                   <dt className="text-[11px] tracking-[0.08em] text-ink-500 uppercase">Carteras</dt>
@@ -114,100 +162,108 @@ export default async function AccionPage({ params }: AccionPageProps) {
                   <dd className="num mt-1 text-2xl font-medium text-ink-900">{formatPctPlain(maxWeight, 1)}</dd>
                 </div>
               </dl>
-            )}
-          </div>
-
-          {holders.length === 0 && overview.alerts.length === 0 ? (
-            <div className="mt-12 border border-ink-200 p-10 text-center">
-              <p className="font-medium text-ink-900">Sin registros para {symbol}</p>
-              <p className="mt-2 text-sm text-ink-500">
-                Ninguna cartera del catálogo reporta este símbolo aún. Vuelve a
-                explorar o busca por otro ticker.
-              </p>
-              <Link
-                href="/explore"
-                className="mt-6 inline-flex h-11 items-center rounded-full bg-ink-900 px-5 text-sm font-medium text-white transition-colors hover:bg-black"
-              >
-                Explorar portafolios
-              </Link>
+            </div>
+          ) : summary ? (
+            /* Resumen público: símbolo, nombre, sector y número agregado */
+            <div>
+              <AccionPublicSummary
+                symbol={symbol}
+                name={displayName}
+                sector={summary.sector}
+                portfolioCount={summary.portfolioCount}
+              />
+              {isDemo && (
+                <p className="mt-3 inline-block border border-ink-200 px-2.5 py-1 text-[11px] tracking-[0.08em] text-ink-500 uppercase">
+                  Datos de ejemplo
+                </p>
+              )}
             </div>
           ) : (
-            <>
-              {/* Quiénes la tienen — tabla con scroll horizontal en móvil */}
-              <section className="mt-12">
-                <h2 className="text-[15px] font-medium text-ink-900">
-                  ¿Quién tiene {symbol}?
-                </h2>
-                <div className="mt-4 overflow-x-auto no-scrollbar">
-                  <table className="w-full min-w-[560px] text-[15px]">
-                    <thead>
-                      <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
-                        <th className="py-3 pr-4 font-normal">Cartera</th>
-                        <th className="py-3 px-4 text-right font-normal">Peso</th>
-                        <th className="py-3 px-4 text-right font-normal">Cambio</th>
-                        <th className="py-3 px-4 text-right font-normal">Desde</th>
-                        <th className="pl-4 py-3 text-right font-normal">Retorno</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                      {holders.map((holder) => (
-                        <HolderRow key={holder.portfolio.id} holder={holder} />
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
-                  Peso según la última composición declarada por cada fuente.
-                  “Desde” es la primera fecha con el símbolo en la cartera.
-                </p>
-              </section>
-
-              {/* Movimientos recientes (alertas) */}
-              {overview.alerts.length > 0 && (
-                <section className="mt-12">
-                  <h2 className="text-[15px] font-medium text-ink-900">
-                    Quién movió {symbol} recientemente
-                  </h2>
-                  <div className="mt-4 flex flex-col gap-4">
-                    {overview.alerts.slice(0, 8).map((alert) => (
-                      <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
-                        <Link
-                          href={`/portfolio/${alert.portfolio?.slug}`}
-                          className="text-[13px] text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
-                        >
-                          {alert.portfolio?.name ?? "Portafolio"} · {timeAgo(alert.created_at)}
-                        </Link>
-                        <p className="mt-1 text-[15px] font-medium text-ink-900">{alert.title}</p>
-                        {alert.summary && (
-                          <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
-                            {alert.summary}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </section>
+            <div>
+              <p className="label-line">Acción · Ticker</p>
+              <h1 className="type-section mt-3 text-ink-900">{symbol}</h1>
+              {displayName !== symbol && (
+                <p className="type-body mt-2 text-ink-500">{displayName}</p>
               )}
+            </div>
+          )}
 
-              {/* Símbolos relacionados */}
-              {related.length > 0 && (
-                <section className="mt-12">
-                  <h2 className="text-[15px] font-medium text-ink-900">Otros símbolos con consenso</h2>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {related.map((rel) => (
-                      <Link
-                        key={rel.symbol}
-                        href={`/accion/${rel.symbol.toLowerCase()}`}
-                        className="inline-flex h-11 items-center border border-ink-200 px-4 text-[13px] font-medium text-ink-900 transition-colors hover:border-ink-900"
-                      >
-                        {rel.symbol}
-                        <span className="ml-1.5 text-[12px] font-normal text-ink-500">{rel.count}</span>
-                      </Link>
+          {hasHolders && (
+            /* Quiénes la tienen — tabla con scroll horizontal en móvil */
+            <section className="mt-12">
+              <h2 className="text-[15px] font-medium text-ink-900">
+                ¿Quién tiene {symbol}?
+              </h2>
+              <div className="mt-4 overflow-x-auto no-scrollbar">
+                <table className="w-full min-w-[560px] text-[15px]">
+                  <thead>
+                    <tr className="border-b border-ink-200 text-left text-[13px] text-ink-500">
+                      <th className="py-3 pr-4 font-normal">Cartera</th>
+                      <th className="py-3 px-4 text-right font-normal">Peso</th>
+                      <th className="py-3 px-4 text-right font-normal">Cambio</th>
+                      <th className="py-3 px-4 text-right font-normal">Desde</th>
+                      <th className="pl-4 py-3 text-right font-normal">Retorno</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {holders.map((holder) => (
+                      <HolderRow key={holder.portfolio.id} holder={holder} />
                     ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-3 text-[13px] leading-relaxed text-ink-500">
+                Peso según la última composición declarada por cada fuente.
+                “Desde” es la primera fecha con el símbolo en la cartera.
+              </p>
+            </section>
+          )}
+
+          {/* Movimientos recientes (alertas). En el resumen público no se
+              muestran: traen nombres de carteras (decisión 1b). */}
+          {hasAlerts && (hasHolders || !summary) && (
+            <section className="mt-12">
+              <h2 className="text-[15px] font-medium text-ink-900">
+                Quién movió {symbol} recientemente
+              </h2>
+              <div className="mt-4 flex flex-col gap-4">
+                {overview.alerts.slice(0, 8).map((alert) => (
+                  <div key={alert.id} className="border-l-2 border-ink-900 pl-4">
+                    <Link
+                      href={`/portfolio/${alert.portfolio?.slug}`}
+                      className="text-[13px] text-ink-500 underline-offset-4 hover:text-ink-900 hover:underline"
+                    >
+                      {alert.portfolio?.name ?? "Portafolio"} · {timeAgo(alert.created_at)}
+                    </Link>
+                    <p className="mt-1 text-[15px] font-medium text-ink-900">{alert.title}</p>
+                    {alert.summary && (
+                      <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-ink-500">
+                        {alert.summary}
+                      </p>
+                    )}
                   </div>
-                </section>
-              )}
-            </>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Símbolos relacionados (solo con carteras visibles) */}
+          {hasHolders && related.length > 0 && (
+            <section className="mt-12">
+              <h2 className="text-[15px] font-medium text-ink-900">Otros símbolos con consenso</h2>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {related.map((rel) => (
+                  <Link
+                    key={rel.symbol}
+                    href={`/accion/${rel.symbol.toLowerCase()}`}
+                    className="inline-flex h-11 items-center border border-ink-200 px-4 text-[13px] font-medium text-ink-900 transition-colors hover:border-ink-900"
+                  >
+                    {rel.symbol}
+                    <span className="ml-1.5 text-[12px] font-normal text-ink-500">{rel.count}</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
           )}
 
           {/* Disclaimer */}
@@ -220,7 +276,7 @@ export default async function AccionPage({ params }: AccionPageProps) {
         </div>
       </main>
 
-      {/* JSON-LD básico */}
+      {/* JSON-LD básico — solo con los holders que ya ve el rol actual */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -298,7 +354,7 @@ function tickerJsonLd(symbol: string, name: string, holders: TickerHolder[]) {
     "@context": "https://schema.org",
     "@type": "WebPage",
     name: `¿Quién tiene ${symbol}? Políticos y fondos que la compran`,
-    description: `Carteras de fraccion.si que incluyen ${name} (${symbol}), con peso, antigüedad y movimientos recientes.`,
+    description: `Ficha pública de ${name} (${symbol}) en Fraccion: cuántos portafolios lo incluyen y sus últimos movimientos declarados.`,
     url: absoluteUrl(`/accion/${symbol.toLowerCase()}`),
     about: { "@type": "Corporation", name, tickerSymbol: symbol },
     ...(holders.length > 0

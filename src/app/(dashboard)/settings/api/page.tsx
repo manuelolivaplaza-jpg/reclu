@@ -20,7 +20,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ApiKeysPanel, type ApiKeyListItem } from "@/components/api-keys-panel";
 import { LegalNotice } from "@/components/legal/legal-notice";
 
-export const metadata = { title: "API" };
+export const metadata = { title: "Claves de API" };
 // Ruta protegida por auth: lee cookies por request — nunca se prerenderiza.
 export const instant = false;
 
@@ -36,7 +36,7 @@ interface ApiKeyRow {
 
 function formatDay(value: string): string {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "Sin registro";
   return date.toLocaleDateString("es-CL", {
     day: "2-digit",
     month: "short",
@@ -176,20 +176,18 @@ export default async function ApiSettingsPage() {
     plan: row.plan,
     revoked: row.revoked,
     createdAt: formatDay(row.created_at),
-    lastUsedAt: row.last_used_at
-      ? new Date(row.last_used_at).toLocaleDateString("es-CL", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          timeZone: "UTC",
-        })
-      : null,
+    // Sin uso todavía: `null` para que el panel lo rotule "Sin uso".
+    lastUsedAt: row.last_used_at ? formatDay(row.last_used_at) : null,
   }));
 
   const enabled = apiPublicEnabled();
   const plan = normalizeApiPlan(profile.plan);
   const dailyLimit = apiDailyLimit(plan);
   const limitText = dailyLimit.toLocaleString("es-CL");
+  const apiPlanLabel = plan === "elite" ? "Elite" : plan === "pro" ? "Pro" : "Gratis";
+  const activeKeys = keys.filter((key) => !key.revoked).length;
+  const activeKeysLabel = `${activeKeys} de ${API_MAX_ACTIVE_KEYS}`;
+  const atKeyLimit = activeApiKeyLimitReached(activeKeys);
 
   // Cabeceras que verá cada respuesta: se documentan también en la UI para
   // que quien integra sepa cuándo se acerca al tope (sin exponer la clave).
@@ -198,16 +196,62 @@ export default async function ApiSettingsPage() {
   );
 
   return (
-    <div className="flex max-w-2xl flex-col gap-8">
-      <div>
-        <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
-          API
-        </h1>
-        <p className="mt-1.5 text-[15px] text-ink-500">
-          Consulta los datos públicos de Fraccion desde tus propios sistemas con
-          una clave personal.
-        </p>
+    <div className="flex max-w-4xl flex-col gap-8 pb-8">
+      <div className="flex flex-col gap-3">
+        <Link
+          href="/settings"
+          className="inline-flex w-fit items-center gap-1.5 text-[13px] text-ink-500 transition-colors hover:text-ink-900"
+        >
+          <span aria-hidden="true">←</span>
+          Volver a Ajustes
+        </Link>
+        <div>
+          <h1 className="text-[28px] font-medium tracking-[-0.03em] text-ink-900 sm:text-[32px]">
+            Claves de API
+          </h1>
+          <p className="mt-1.5 max-w-2xl text-[15px] leading-relaxed text-ink-500">
+            Consulta los datos públicos de Fraccion desde tus propios sistemas con
+            una clave personal. La clave se muestra una sola vez: guárdala al crearla.
+          </p>
+        </div>
       </div>
+
+      {/* Resumen de acceso: cuota y claves activas */}
+      <dl className="grid grid-cols-1 gap-px border-y border-ink-200 bg-ink-200 sm:grid-cols-3">
+        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
+          <dt className="text-[12px] leading-none text-ink-500">Plan de la API</dt>
+          <dd className="flex flex-col gap-0.5">
+            <span className="text-[15px] leading-snug text-ink-900">{apiPlanLabel}</span>
+            <span className="text-[12px] leading-snug text-ink-500">
+              {enabled ? "Habilitada" : "Emisión en pausa"}
+            </span>
+          </dd>
+        </div>
+        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
+          <dt className="text-[12px] leading-none text-ink-500">Cuota diaria</dt>
+          <dd className="flex flex-col gap-0.5">
+            <span className="text-[15px] tabular-nums leading-snug text-ink-900">
+              {limitText} llamadas
+            </span>
+            <span className="text-[12px] leading-snug text-ink-500">
+              Por clave y por día (UTC)
+            </span>
+          </dd>
+        </div>
+        <div className="flex flex-col gap-1.5 bg-white p-4 sm:p-5">
+          <dt className="text-[12px] leading-none text-ink-500">Claves activas</dt>
+          <dd className="flex flex-col gap-0.5">
+            <span className="text-[15px] tabular-nums leading-snug text-ink-900">
+              {activeKeysLabel}
+            </span>
+            <span className="text-[12px] leading-snug text-ink-500">
+              {atKeyLimit
+                ? "Tope alcanzado: revoca una antes de crear otra"
+                : "Puedes crear otra cuando quieras"}
+            </span>
+          </dd>
+        </div>
+      </dl>
 
       {!enabled && (
         <div className="border border-ink-200 px-4 py-3 text-[13px] leading-relaxed text-ink-500">
@@ -219,7 +263,7 @@ export default async function ApiSettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Nueva clave</CardTitle>
+          <CardTitle>Claves y cuota</CardTitle>
           <CardDescription>
             {enabled
               ? `Tu plan permite ${limitText} llamadas por día por clave. Cada clave es personal: no la compartas ni la subas a un repositorio.`

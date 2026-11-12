@@ -1,4 +1,6 @@
 import { connection } from "next/server";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import {
   getUserHoldings,
   getPortfolios,
@@ -12,7 +14,10 @@ import { PortfolioManager } from "@/components/portfolio-manager";
 import { AlignmentPanel } from "@/components/alignment-panel";
 import { PortfolioConsent } from "@/components/portfolio-consent";
 import { hasCurrentPortfolioConsent } from "@/lib/portfolio-consent";
-import { isPortfolioImageImportEnabled } from "@/lib/portfolio-flags";
+import {
+  isMyPortfolioEnabled,
+  isPortfolioImageImportEnabled,
+} from "@/lib/portfolio-flags";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Comparar" };
@@ -54,6 +59,8 @@ export default async function ComparePage() {
     consent?.consent_version ?? null,
   );
   const aiModel = (process.env.OPENROUTER_MODEL ?? "").trim();
+  // El enlace a Mi portafolio solo se ofrece si la ruta existe (flag).
+  const myPortfolioEnabled = isMyPortfolioEnabled();
 
   // F79: importación desde una captura (flag apagado por defecto).
   // Sin consentimiento vigente la ruta responde 403, así que el botón tampoco
@@ -90,14 +97,48 @@ export default async function ComparePage() {
   });
 
   return (
-    <div className="flex min-w-0 flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.03em] text-ink-900 sm:text-[32px]">
-          Comparar
-        </h1>
-        <p className="text-[14px] text-ink-500 sm:text-[15px]">
-          Cruza tu cartera con los portafolios de Fraccion y mira cuánto se parecen.
-        </p>
+    <div className="flex min-w-0 flex-col gap-6">
+      <header className="border-b border-ink-200 pb-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <p className="text-[13px] font-normal text-ink-500">
+              Solapamiento de cartera
+            </p>
+            <h1 className="mt-3 text-[32px] font-medium leading-[1.03] tracking-[-0.04em] text-ink-900 sm:text-[40px]">
+              Comparar
+            </h1>
+            <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-ink-500">
+              Cruza tu cartera con los portafolios de Fraccion y mira cuánto se parecen.
+            </p>
+          </div>
+          <nav
+            aria-label="Accesos rápidos"
+            className="flex flex-wrap items-center gap-x-6 gap-y-2 lg:shrink-0 lg:justify-end lg:pb-1"
+          >
+            {myPortfolioEnabled && (
+              <Link
+                href="/mi-portafolio"
+                className="group inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900"
+              >
+                Mi portafolio
+                <ArrowRight
+                  className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                  strokeWidth={1.5}
+                />
+              </Link>
+            )}
+            <Link
+              href="/explore"
+              className="group inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-700 transition-colors hover:text-ink-900"
+            >
+              Explorar portafolios
+              <ArrowRight
+                className="size-3.5 transition-transform group-hover:translate-x-0.5"
+                strokeWidth={1.5}
+              />
+            </Link>
+          </nav>
+        </div>
       </header>
       {profile && !hasConsent && (
         <PortfolioConsent
@@ -106,17 +147,37 @@ export default async function ComparePage() {
           model={aiModel}
         />
       )}
-      <section className="min-w-0 rounded-app border border-app-border bg-white p-4 shadow-app sm:p-6">
-      <PortfolioManager
-        initialHoldings={userHoldings}
-        catalog={compare.portfolios}
-        pairs={compare.pairs}
-        maxPositions={limits.maxPositions}
-        planName={planName}
-        imageImportEnabled={imageImportEnabled}
-      />
+      <section className="min-w-0 border border-ink-200 bg-white p-5 sm:p-7">
+        <div className="mb-5 border-b border-ink-200 pb-4 sm:mb-6 sm:pb-5">
+          <h2 className="text-[17px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
+            <span className="mr-2 text-[13px] font-normal text-ink-500">1.</span>
+            Tu cartera y coincidencias
+          </h2>
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+            Carga tus posiciones y revisa el solapamiento con cada portafolio del
+            catálogo. Tu cartera es privada y no se publica.
+          </p>
+        </div>
+        <PortfolioManager
+          initialHoldings={userHoldings}
+          catalog={compare.portfolios}
+          pairs={compare.pairs}
+          maxPositions={limits.maxPositions}
+          planName={planName}
+          imageImportEnabled={imageImportEnabled}
+        />
       </section>
-      <section className="min-w-0 rounded-app border border-app-border bg-white p-4 shadow-app sm:p-6">
+      <section className="min-w-0 border border-ink-200 bg-white p-5 sm:p-7">
+        <div className="mb-5 border-b border-ink-200 pb-4 sm:mb-6 sm:pb-5">
+          <h2 className="text-[17px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
+            <span className="mr-2 text-[13px] font-normal text-ink-500">2.</span>
+            Alineación con gestores y fuentes
+          </h2>
+          <p className="mt-1.5 max-w-2xl text-[13px] leading-relaxed text-ink-500">
+            Compara tus pesos normalizados con un portafolio objetivo: similitud,
+            lo que te falta y lo que te sobra. Tú decides qué hacer con esa lectura.
+          </p>
+        </div>
         <AlignmentPanel catalog={compare.portfolios} />
       </section>
     </div>

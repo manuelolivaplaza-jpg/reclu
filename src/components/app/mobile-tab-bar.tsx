@@ -10,8 +10,9 @@ import { MoreSheet } from "@/components/app/more-sheet";
 import { cn } from "@/lib/utils";
 
 /**
- * Tab bar móvil estilo app: fixed, fondo translúcido con blur (liquid glass),
- * safe-area, áreas táctiles ≥ 56px, activo relleno. 4 pestañas + "Más".
+ * d80: tab bar móvil de cabina. Blanca sólida, filete superior de 1px,
+ * 5 columnas de 64px, indicador negro de 2px en la pestaña activa.
+ * Sin blur ni sombras: el filete hace todo el trabajo.
  */
 export function MobileTabBar({ myPortfolio }: { myPortfolio: boolean }) {
   const pathname = usePathname();
@@ -21,13 +22,16 @@ export function MobileTabBar({ myPortfolio }: { myPortfolio: boolean }) {
   const tabActive = tabs.some((t) => isActivePath(pathname, t.href, t.match));
   const moreActive = !tabActive && extra.some((t) => isActivePath(pathname, t.href, t.match));
 
+  const cell =
+    "relative flex h-full w-full flex-col items-center justify-center gap-1.5 px-1 text-[11px] leading-none tracking-[-0.01em] transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ink-900";
+
   return (
     <>
       <nav
         aria-label="Navegación principal"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-white/60 bg-white/75 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_rgba(16,24,40,0.06)] backdrop-blur-2xl backdrop-saturate-[1.8] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
       >
-        <ul className="mx-auto grid h-16 max-w-lg grid-cols-5">
+        <ul className="grid h-16 grid-cols-5">
           {tabs.map((t) => {
             const active = isActivePath(pathname, t.href, t.match);
             return (
@@ -35,20 +39,11 @@ export function MobileTabBar({ myPortfolio }: { myPortfolio: boolean }) {
                 <Link
                   href={t.href}
                   aria-current={active ? "page" : undefined}
-                  className={cn(
-                    "flex h-full flex-col items-center justify-center gap-1 text-[10.5px] font-medium tracking-tight transition-colors focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink-900",
-                    active ? "text-ink-900" : "text-ink-500",
-                  )}
+                  className={cn(cell, active ? "font-medium text-ink-900" : "font-normal text-ink-500")}
                 >
-                  <span
-                    className={cn(
-                      "flex h-7 w-12 items-center justify-center rounded-full transition-colors",
-                      active ? "bg-ink-900 text-white" : "bg-transparent",
-                    )}
-                  >
-                    <AppIcon name={t.icon} className="size-[20px]" strokeWidth={active ? 2 : 1.75} />
-                  </span>
-                  {t.label}
+                  {active && <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] bg-ink-900" />}
+                  <AppIcon name={t.icon} className="size-[20px] shrink-0" strokeWidth={active ? 1.9 : 1.6} />
+                  <span className="max-w-full truncate">{t.short ?? t.label}</span>
                 </Link>
               </li>
             );
@@ -60,20 +55,11 @@ export function MobileTabBar({ myPortfolio }: { myPortfolio: boolean }) {
               aria-haspopup="dialog"
               aria-expanded={moreOpen}
               aria-current={moreActive ? "page" : undefined}
-              className={cn(
-                "flex h-full w-full flex-col items-center justify-center gap-1 text-[10.5px] font-medium tracking-tight focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-ink-900",
-                moreActive ? "text-ink-900" : "text-ink-500",
-              )}
+              className={cn(cell, moreActive ? "font-medium text-ink-900" : "font-normal text-ink-500")}
             >
-              <span
-                className={cn(
-                  "flex h-7 w-12 items-center justify-center rounded-full",
-                  moreActive ? "bg-ink-900 text-white" : "bg-transparent",
-                )}
-              >
-                <AppIcon name="Menu" className="size-[20px]" />
-              </span>
-              Más
+              {moreActive && <span aria-hidden className="absolute inset-x-0 top-0 h-[2px] bg-ink-900" />}
+              <AppIcon name="Menu" className="size-[20px] shrink-0" strokeWidth={moreActive ? 1.9 : 1.6} />
+              <span className="max-w-full truncate">Más</span>
             </button>
           </li>
         </ul>

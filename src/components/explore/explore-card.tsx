@@ -1,6 +1,7 @@
 "use client";
 
 import { AppLink as Link } from "@/components/app/app-link";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import { FollowButton } from "@/components/follow-button";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { CATEGORY_META } from "@/lib/types";
@@ -60,7 +61,7 @@ export function ExploreCard({
         "app-card group flex h-full flex-col rounded-2xl p-4 transition-shadow hover:shadow-app-raised",
       )}
     >
-      <Link href={`/portfolio/${portfolio.slug}`} className="flex min-w-0 items-center gap-3">
+      <Link href={`/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`} className="flex min-w-0 items-center gap-3">
         <PortfolioAvatar portfolio={portfolio} size={40} />
         <div className="min-w-0 flex-1">
           <h3 className="truncate text-[15px] font-semibold text-ink-900 group-hover:underline">{portfolio.name}</h3>
@@ -72,7 +73,7 @@ export function ExploreCard({
       </Link>
 
       {noSeries || pct === null ? (
-        <Link href={`/portfolio/${portfolio.slug}`} className="mt-4 block" tabIndex={-1} aria-hidden="true">
+        <Link href={`/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`} className="mt-4 block" tabIndex={-1} aria-hidden="true">
           <div className="flex h-[22px] items-end">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-ink-50 px-2.5 py-1 text-[11px] font-medium text-ink-500">
               <span className="size-1.5 rounded-full bg-ink-400" />
@@ -86,7 +87,7 @@ export function ExploreCard({
           </div>
         </Link>
       ) : (
-      <Link href={`/portfolio/${portfolio.slug}`} className="mt-4 block" tabIndex={-1} aria-hidden="true">
+      <Link href={`/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`} className="mt-4 block" tabIndex={-1} aria-hidden="true">
         <div className="flex items-end justify-between gap-2">
           <p className={cn("text-[22px] font-semibold leading-none tracking-tight tabular-nums", up ? "text-positive" : "text-negative")}>
             {formatSignedPct(pct)}

@@ -13,18 +13,21 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PortfolioCategory } from "@/lib/types";
+import { EtfTickerAvatar } from "@/components/etf-ticker-avatar";
 import {
   avatarGradient,
   avatarInitials,
   avatarSource,
   categoryIcon,
+  etfTickerForSlug,
 } from "@/lib/portfolio-avatar";
 
 /**
  * PortfolioAvatar — avatar de un portafolio (D4).
  *
- * Orden: retrato oficial (/portraits) > portada (/covers) > degradado
- * determinista con iniciales + ícono de categoría.
+ * Orden: ETF (ticker tipográfico, D11) > retrato oficial (/portraits) >
+ * portada (/covers) > degradado determinista con iniciales + ícono de
+ * categoría.
  *
  * Decorativo por diseño: el nombre siempre aparece al lado, así que la
  * imagen lleva `alt=""` y el conjunto `aria-hidden`. El crédito del retrato
@@ -97,6 +100,20 @@ export function PortfolioAvatar({
   title,
 }: PortfolioAvatarProps) {
   const [failed, setFailed] = useState(false);
+
+  // D11: si el portafolio replica un ETF (ARK, Global X, iShares, VanEck,
+  // NANC/GOP) manda el avatar tipográfico blanco y negro. Se resuelve antes
+  // de la imagen para que todas las vistas lo hereden sin tocarlas.
+  const ticker = etfTickerForSlug(portfolio.slug);
+  if (ticker) {
+    return (
+      <EtfTickerAvatar
+        ticker={ticker}
+        size={size}
+        className={cn(CONTAINER_CLASS[size], className)}
+      />
+    );
+  }
 
   const source = avatarSource(portfolio);
   const showImage =

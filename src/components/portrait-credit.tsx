@@ -1,11 +1,11 @@
 import { cn } from "@/lib/utils";
 
 /**
- * PortraitCredit â€” crÃ©dito de la foto del portafolio.
+ * PortraitCredit — crédito de la foto del portafolio.
  *
- * Dos orÃ­genes posibles (ver migraciones 055 y 056):
- * - Retrato oficial de dominio pÃºblico de un cargo pÃºblico de EE.UU.
- * - Foto con licencia libre de Wikimedia Commons (dominio pÃºblico, CC BY,
+ * Dos orígenes posibles (ver migraciones 055 y 056):
+ * - Retrato oficial de dominio público de un cargo público de EE.UU.
+ * - Foto con licencia libre de Wikimedia Commons (dominio público, CC BY,
  *   CC BY-SA): se muestra autor y licencia, con enlace a la ficha original,
  *   como exigen esas licencias.
  * Componente de servidor: no necesita interactividad.
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 interface PortraitCreditProps {
   /** URL de la fuente (bioguide, Casa Blanca o ficha en Wikimedia Commons). */
   portraitSource: string | null | undefined;
-  /** Licencia (p. ej. "CC BY 2.0", "Dominio pÃºblico"). */
+  /** Licencia (p. ej. "CC BY 2.0", "Dominio público"). */
   portraitLicense?: string | null;
   /** Autor de la foto (solo fotos de Wikimedia Commons). */
   portraitAuthor?: string | null;
@@ -44,18 +44,18 @@ export function portraitCreditText(
 ): string {
   const isCommons = portraitSource?.includes("commons.wikimedia.org") ?? false;
   if (!isCommons) {
-    // D70: solo los retratos de cargos pÃºblicos de EE.UU. (.gov) son
+    // D70: solo los retratos de cargos públicos de EE.UU. (.gov) son
     // "retrato oficial". Los logos de corredoras/fondos (Renta 4, MBI...)
-    // no son de dominio pÃºblico: se acreditan a su titular.
+    // no son de dominio público: se acreditan a su titular.
     return isOfficialPortraitSource(portraitSource)
-      ? "Foto: retrato oficial, dominio pÃºblico"
+      ? "Foto: retrato oficial, dominio público"
       : "Logo: marca de su titular, uso referencial";
   }
   const license = portraitLicense?.trim() || "licencia libre";
   const author = portraitAuthor?.trim();
   return author
-    ? `Foto: ${author} Â· ${license} Â· Wikimedia Commons`
-    : `Foto: ${license} Â· Wikimedia Commons`;
+    ? `Foto: ${author} · ${license} · Wikimedia Commons`
+    : `Foto: ${license} · Wikimedia Commons`;
 }
 
 export function PortraitCredit({

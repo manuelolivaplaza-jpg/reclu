@@ -4,6 +4,7 @@ import { absoluteUrl } from "@/lib/site";
 import { getPortfolios } from "@/lib/queries";
 import { itemListSchema, withSeo } from "@/lib/seo";
 import { INITIAL_CARDS } from "@/lib/explore-cards";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ExploreView, type ExploreSearchParams } from "@/components/explore/explore-view";
@@ -25,12 +26,22 @@ export default function ExplorePage({ searchParams }: { searchParams: Promise<Ex
     <>
       <ExploreJsonLd />
       <SiteHeader />
-      <main id="main" className="bg-app-canvas">
-        <div className="container-page py-6 md:py-10">
-          <h1 className="sr-only">Explorar portafolios</h1>
-          <Suspense fallback={<ExploreBodySkeleton />}>
-            <ExploreBody searchParams={searchParams} />
-          </Suspense>
+      <main id="main" className="bg-white dark:bg-ink-950">
+        <div className="container-page pb-16 pt-8 md:pb-24 md:pt-12">
+          <header className="max-w-3xl">
+            <p className="label-line">Catálogo público</p>
+            <h1 className="type-section mt-3 text-ink-900 dark:text-white">Explorar portafolios</h1>
+            <p className="type-body mt-5 max-w-2xl">
+              Carteras públicas —políticos de EE.UU., corredoras chilenas, fondos 13F y
+              temáticas— ordenadas por seguidores. Solo series reales: si un portafolio
+              todavía no tiene historial, la tarjeta lo dice y no muestra una cifra.
+            </p>
+          </header>
+          <div className="mt-8 border-t border-ink-300 pt-8 md:mt-10 md:pt-10 dark:border-white/12">
+            <Suspense fallback={<ExploreBodySkeleton />}>
+              <ExploreBody searchParams={searchParams} />
+            </Suspense>
+          </div>
         </div>
       </main>
       <SiteFooter />
@@ -45,7 +56,7 @@ async function ExploreBody({ searchParams }: { searchParams: Promise<ExploreSear
 
 function ExploreBodySkeleton() {
   return (
-    <div className="flex flex-col gap-6 sm:gap-8" aria-busy="true">
+    <div className="flex flex-col gap-10 sm:gap-12" aria-busy="true">
       <ExploreHeroSkeleton />
       <GridSkeleton />
     </div>
@@ -63,7 +74,7 @@ async function ExploreJsonLd() {
     <JsonLd
       data={itemListSchema(
         "Portafolios en fraccion.si",
-        portfolios.slice(0, INITIAL_CARDS).map((p) => ({ name: p.name, url: absoluteUrl(`/portfolio/${p.slug}`) })),
+        portfolios.slice(0, INITIAL_CARDS).map((p) => ({ name: p.name, url: absoluteUrl(`/portfolio/${canonicalPortfolioSlug(p.slug)}`) })),
       )}
     />
   );

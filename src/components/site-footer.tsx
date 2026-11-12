@@ -39,12 +39,17 @@ const FOOTER_SECTIONS: { title: string; links: FooterLink[] }[] = [
   },
 ];
 
+/**
+ * Enlace del footer: blanco al 62% en reposo, blanco pleno al hover. El foco
+ * es el outline de 1px del sistema; el footer lo fuerza a blanco porque su
+ * banda es negra en ambos esquemas y `--inverse-text` se invierte en oscuro.
+ */
 const linkClass =
-  "rounded-sm text-sm text-white/62 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70";
+  "rounded-sm text-sm text-white/62 transition-colors hover:text-white";
 
 export function SiteFooter() {
   return (
-    <footer className="bg-ink-900 text-white">
+    <footer className="border-t border-white/12 bg-ink-900 text-white [&_a:focus-visible]:outline-white [&_button:focus-visible]:outline-white [&_input:focus-visible]:outline-white">
       <div className="container-page py-16 md:py-20">
         <div className="grid grid-cols-2 gap-x-8 gap-y-12 md:grid-cols-4 lg:grid-cols-[1.6fr_repeat(4,minmax(0,1fr))] lg:gap-x-10">
           <div className="col-span-2 flex min-w-0 flex-col gap-5 md:col-span-4 lg:col-span-1">
@@ -60,7 +65,7 @@ export function SiteFooter() {
 
           {FOOTER_SECTIONS.map((section) => (
             <nav key={section.title} aria-label={section.title} className="min-w-0">
-              <h4 className="text-xs font-semibold uppercase tracking-[0.08em] text-white/45">
+              <h4 className="text-xs font-semibold uppercase tracking-[0.08em] text-white/55">
                 {section.title}
               </h4>
               <ul className="mt-4 flex flex-col gap-3">
@@ -83,15 +88,15 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-14 border-t border-white/10 pt-8">
-          <h4 className="text-xs font-semibold uppercase tracking-[0.08em] text-white/45">
+          <h4 className="text-xs font-semibold uppercase tracking-[0.08em] text-white/55">
             Fuentes de datos
           </h4>
-          <p className="mt-3 max-w-4xl text-xs leading-relaxed text-pretty text-white/45">
+          <p className="mt-3 max-w-4xl text-xs leading-relaxed text-pretty text-white/55">
             House Disclosure · Senate eFD · OGE 278-T · SEC EDGAR (13F, Form 4, 13D, 10-12B, XBRL) · ARK Invest · Global X · iShares · VanEck · Renta 4 · BTG Pactual · BICE · MBI · CMF · Superintendencia de Pensiones · InfoProbidad · Polymarket · Truth Social · X (@elonmusk) · CNBC
           </p>
         </div>
 
-        <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-8 text-xs text-white/45 md:flex-row md:items-center md:justify-between">
+        <div className="mt-8 flex flex-col gap-3 border-t border-white/10 pt-8 text-xs text-white/55 md:flex-row md:items-center md:justify-between">
           <p>© {CURRENT_YEAR} fraccion.si</p>
           <p className="max-w-xl leading-relaxed md:text-right">
             Información pública con fines informativos. No constituye asesoría de

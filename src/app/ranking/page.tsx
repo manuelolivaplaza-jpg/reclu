@@ -11,6 +11,7 @@ import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { Chip, StatCard } from "@/components/app";
 import { getPerformanceSeriesAdmin, getPortfolios, getProfile } from "@/lib/queries";
 import { isPaidPlan, type Portfolio } from "@/lib/types";
+import { canonicalPortfolioSlug, isLegacyPortfolioSlug } from "@/lib/portfolio-canonical";
 import {
   benchmarkSymbolForCountry,
   getBeatTheMarketRanking,
@@ -66,15 +67,17 @@ export default async function RankingPage() {
     getProfile(),
   ]);
   const paid = isPaidPlan(profile?.plan);
+  // B8: los slugs viejos redirigen 301 al canónico; no se rankean dos veces.
+  const visible = portfolios.filter((portfolio) => !isLegacyPortfolioSlug(portfolio.slug));
   // Fecha de inicio real de cada serie, para rotular "retorno total desde <fecha>".
-  const seriesById = await getPerformanceSeriesAdmin(portfolios.map((p) => p.id)).catch(() => new Map());
+  const seriesById = await getPerformanceSeriesAdmin(visible.map((p) => p.id)).catch(() => new Map());
 
   const metricsByPortfolio = new Map(metrics.map((row) => [row.portfolio_id, row]));
   const portfolioById = new Map<string, Portfolio>(
-    portfolios.map((portfolio) => [`portfolio-${portfolio.id}`, portfolio]),
+    visible.map((portfolio) => [`portfolio-${portfolio.id}`, portfolio]),
   );
 
-  const portfolioSources: RankingSourceInput[] = portfolios.map((portfolio) => {
+  const portfolioSources: RankingSourceInput[] = visible.map((portfolio) => {
     // Muro 048: las métricas de un portafolio premium solo las ve quien paga.
     // A los demás se les muestra el portafolio con candado y sin cifras.
     const locked = portfolio.premium && !paid;
@@ -92,7 +95,7 @@ export default async function RankingPage() {
       dataPoints: metric?.data_points ?? null,
       asOf: metric?.as_of ?? "",
       startDate: metric ? (seriesById.get(portfolio.id)?.[0]?.date ?? null) : null,
-      href: `/portfolio/${portfolio.slug}`,
+      href: `/portfolio/${canonicalPortfolioSlug(portfolio.slug)}`,
       locked,
       source: metric ? "portfolio_metrics (Supabase)" : undefined,
       note: locked

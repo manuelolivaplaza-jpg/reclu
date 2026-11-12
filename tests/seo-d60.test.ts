@@ -69,7 +69,7 @@ describe("metadata por página", () => {
   });
   it("notFound real en portfolio, accion y creadores (en generateMetadata)", () => {
     expect(src("src/app/portfolio/[slug]/page.tsx")).toContain("if (!portfolio) notFound();");
-    expect(src("src/app/accion/[symbol]/page.tsx")).toMatch(/who === 0 && !overview\.displayName\)\) notFound\(\)/);
+    expect(src("src/app/accion/[symbol]/page.tsx")).toMatch(/if \(!summary && !hasContent\) notFound\(\);/);
     expect(src("src/app/creadores/[alias]/page.tsx")).not.toContain("Creador no encontrado");
   });
   it("hero: un solo h1, estático (d65: el fallback ya no duplica el titular)", () => {
@@ -97,4 +97,4 @@ describe("JSON-LD", () => {
     expect(src("src/app/ranking/page.tsx")).toContain("itemListSchema(");
     expect(src("src/components/sections/faq.tsx")).toContain("faqSchema(FAQ_ITEMS)");
   });
-});
+});

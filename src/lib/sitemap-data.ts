@@ -14,6 +14,9 @@
  *   anónimo sin cookies la RLS `portfolios public read` ya limita a activas.
  * - Con error o base vacía, se cae a `getPortfolios()`: respeta
  *   `demoFallbackAllowed()` y nunca lanza, así el build no rompe.
+ *
+ * También expone las constantes del sitemap: la fecha fija de las rutas
+ * estáticas y el tope de URLs de ticker.
  */
 
 import { cacheLife, cacheTag } from "next/cache";
@@ -27,6 +30,24 @@ export type SitemapPortfolio = {
   /** `portfolios.updated_at` tal cual lo devuelve PostgREST (ISO 8601). */
   updatedAt: string | null;
 };
+
+/**
+ * `lastModified` de las rutas estáticas del sitemap.
+ *
+ * Es una fecha de contenido fija y documentada, no `new Date()`: las rutas
+ * estáticas no cambian entre requests y anunciar "modificado ahora" en cada
+ * generación es una señal falsa que Google acaba ignorando. Se actualiza a
+ * mano cuando cambia el copy o el contenido editorial de esas rutas.
+ */
+export const SITEMAP_STATIC_LAST_MODIFIED = "2026-11-11T00:00:00.000Z";
+
+/**
+ * Tope de URLs `/accion/*` en el sitemap. Un sitemap admite 50.000 URLs y
+ * 50 MB, pero listar miles de tickers sin demanda real diluye el rastreo;
+ * `getKnownTickerSymbols()` ya viene ordenado por `portfolioCount` desc, así
+ * que el corte deja los símbolos con más carteras.
+ */
+export const MAX_SITEMAP_TICKERS = 1000;
 
 /** True cuando Supabase está configurado con valores reales (no placeholder). */
 function isSupabaseLive(): boolean {

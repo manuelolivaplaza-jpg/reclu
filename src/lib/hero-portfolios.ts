@@ -1,13 +1,12 @@
 import type { Portfolio } from "@/lib/types";
-import { HERO_PORTFOLIOS } from "@/components/sections/portfolio-data";
 
 /**
  * Tarjeta de portafolio para los mockups del hero.
  *
- * `followers: null` significa que no hay dato de seguidores (por ejemplo
- * en la muestra ilustrativa): la UI no inventa la cifra.
- * `isExample: true` marca las tarjetas de muestra, para no presentarlas
- * como datos reales de mercado.
+ * `followers: null` significa que no hay dato de seguidores: la UI no
+ * inventa la cifra (y tampoco escribe "0 seguidores" cuando es 0).
+ * `isExample` se conserva por retrocompatibilidad con `PhoneMockups`, pero
+ * el hero ya no inyecta tarjetas de muestra: solo hay datos reales.
  */
 export interface HeroCard {
   slug: string;
@@ -30,6 +29,14 @@ export interface HeroCard {
   featured?: boolean;
   /** D29: fecha del último dato de la serie (ISO). */
   asOf?: string;
+  /**
+   * D6: serie real recortada (`clipSeriesForSlug`), en orden cronológico y
+   * con `value_pct` finito. Mismo formato que `PortfolioCardChart`, para que
+   * `PhoneMockups` haga `<PortfolioCardChart series={card.series ?? []} />`
+   * con selector 1M/3M/6M/1A/MAX (1A por defecto). `undefined` = sin serie
+   * real: no se dibuja gráfico ni se inventa una cifra.
+   */
+  series?: { date: string; value_pct: number }[];
 }
 
 /**
@@ -38,7 +45,7 @@ export interface HeroCard {
  * Reglas:
  * - Solo portafolios no premium: los retornos de los premium están
  *   detrás del muro de pago y no se muestran a quien no paga.
- * - Solo con `return_ytd` conocido: no se inventa una cifra.
+ * - Solo con `return_ytd` conocido y finito: no se inventa una cifra.
  * - Orden estable: más seguidores primero, y a igual número por nombre.
  */
 export function pickHeroPortfolios(
@@ -46,7 +53,7 @@ export function pickHeroPortfolios(
   count = 3,
 ): HeroCard[] {
   return portfolios
-    .filter((p) => !p.premium && typeof p.return_ytd === "number")
+    .filter((p) => !p.premium && typeof p.return_ytd === "number" && Number.isFinite(p.return_ytd))
     .sort((a, b) => b.followers - a.followers || a.name.localeCompare(b.name))
     .slice(0, count)
     .map((p) => ({
@@ -63,33 +70,17 @@ export function pickHeroPortfolios(
 }
 
 /**
- * Muestra ilustrativa (sin base de datos): los tres portafolios de
- * `portfolio-data.ts`, marcados como ejemplo.
- */
-export function exampleHeroCards(): HeroCard[] {
-  return HERO_PORTFOLIOS.map((p) => ({
-    slug: p.slug,
-    name: p.name,
-    manager: p.meta,
-    returnPct: p.returnPct,
-    followers: null,
-    isExample: true,
-    category: "thematic",
-    cover_image: null,
-    portrait_image: null,
-  }));
-}
-
-/**
- * Tarjetas del hero: primero las reales y, si faltan, se completa con la
- * muestra ilustrativa (marcada "Ejemplo") para no dejar el grupo vacío.
+ * Tarjetas del hero a partir del catálogo real.
+ *
+ * D6: se eliminó la muestra ilustrativa `"Ejemplo"` (portafolios y retornos
+ * inventados de `portfolio-data.ts`, antes en `exampleHeroCards`). Si el
+ * catálogo no entrega `count` portafolios reales con retorno conocido, se
+ * devuelven los que haya: el hero muestra menos tarjetas antes que carteras
+ * o cifras ficticias.
  */
 export function buildHeroCards(
   portfolios: Portfolio[],
   count = 3,
 ): HeroCard[] {
-  const real = pickHeroPortfolios(portfolios, count);
-  if (real.length >= count) return real;
-  const examples = exampleHeroCards().slice(0, count - real.length);
-  return [...real, ...examples];
+  return pickHeroPortfolios(portfolios, count);
 }

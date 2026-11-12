@@ -57,8 +57,8 @@ const PRIORITY_SLUGS = [
   "pelosi-tracker",
   "berkshire-hathaway",
   "pershing-square",
-  "duquesne-family-office",
-  "scion-asset-management",
+  "duquesne-13f",
+  "scion-13f",
   "renta4-moderada",
   "btg-cartera-recomendada",
 ];

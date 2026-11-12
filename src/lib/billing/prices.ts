@@ -10,9 +10,9 @@ export const PLAN_PRICES_CLP: Record<
   { monthly: number; annualMonthly: number; annualTotal: number }
 > = {
   pro: {
-    monthly: 12990,
-    annualMonthly: 10390, // 20% descuento aprox.
-    annualTotal: 124680,
+    monthly: 9990,
+    annualMonthly: 8325, // precio anual fijo: 99.900 / 12
+    annualTotal: 99900,
   },
   elite: {
     monthly: 16990,
@@ -23,7 +23,7 @@ export const PLAN_PRICES_CLP: Record<
 
 export const ANNUAL_DISCOUNT_PCT = 20;
 
-/** Formatea 12990 → "$12.990" (punto como separador de miles). */
+/** Formatea 9990 → "$9.990" (punto como separador de miles). */
 export function formatCLP(amount: number): string {
   return `$${amount.toLocaleString("es-CL")}`;
 }

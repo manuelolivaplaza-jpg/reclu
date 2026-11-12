@@ -24,17 +24,21 @@ const NAV_LINKS = [
   { href: "/planes", label: "Precios" },
 ];
 
-/** Enlace simple del nav: gris, se oscurece al hover. */
+/**
+ * Enlace simple del nav: gris de lectura, tinta al hover. El foco lo dibuja
+ * el sistema con el outline de 1px de `globals.css`; aquí no se añaden
+ * anillos (`ring`) que dupliquen el indicador.
+ */
 const linkClass =
-  "text-sm text-neutral-600 transition-colors duration-150 hover:text-neutral-950 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950";
+  "text-sm text-ink-600 transition-colors duration-150 hover:text-ink-900 dark:text-ink-400 dark:hover:text-white";
 
 /**
  * SiteHeader — barra de navegación de la home y de las páginas públicas.
  *
- * Blanco translúcido con blur y filete inferior de 1px. Se oculta al bajar
- * y vuelve al subir (`useHideOnScroll`): con el scroll en el top (o casi)
- * siempre está visible. El menú móvil a pantalla completa, el buscador ⌘K
- * y el acceso a sesión se mantienen.
+ * Fondo sólido del lienzo (blanco / #0a0a0a en oscuro) y filete inferior de
+ * 1px, alineado al contenedor de 1560px. Se oculta al bajar y vuelve al subir
+ * (`useHideOnScroll`): con el scroll en el top siempre está visible. El menú
+ * móvil a pantalla completa, el buscador ⌘K y el acceso a sesión se mantienen.
  */
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -64,7 +68,7 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 w-full border-b border-neutral-200/70 bg-white/90 backdrop-blur",
+        "sticky top-0 z-50 w-full border-b border-ink-300 bg-white dark:border-white/12 dark:bg-ink-950",
         "transition-transform duration-300 motion-reduce:transition-none",
         translated ? "-translate-y-full" : "translate-y-0",
       )}
@@ -73,9 +77,9 @@ export function SiteHeader() {
         <Link
           href="/"
           aria-label="Fraccion inicio"
-          className="shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
+          className="shrink-0"
         >
-          <LogoLockup />
+          <LogoLockup className="dark:text-white" />
         </Link>
 
         {/* Desktop nav: seis enlaces; entra en lg para no apretar el header. */}
@@ -96,11 +100,7 @@ export function SiteHeader() {
           <Link href="/login" className={linkClass}>
             Entrar
           </Link>
-          <ButtonLink
-            href="/signup"
-            size="sm"
-            className="bg-neutral-950 hover:bg-neutral-800 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
-          >
+          <ButtonLink href="/signup" size="sm">
             Empezar
           </ButtonLink>
         </div>
@@ -110,7 +110,7 @@ export function SiteHeader() {
           <CommandPalette />
           <button
             type="button"
-            className="inline-flex size-10 items-center justify-center rounded-sm text-neutral-950 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-neutral-950"
+            className="inline-flex size-10 items-center justify-center rounded-full text-ink-900 transition-colors hover:bg-ink-100 dark:text-white dark:hover:bg-white/10"
             onClick={() => {
               setMenuLoaded(true);
               setMobileOpen((v) => !v);
@@ -118,6 +118,7 @@ export function SiteHeader() {
             aria-label={mobileOpen ? "Cerrar menú" : "Abrir menú"}
             aria-expanded={mobileOpen}
             aria-controls="menu-movil"
+            aria-haspopup="dialog"
           >
             {mobileOpen ? <X className="size-6" /> : <Menu className="size-6" />}
           </button>

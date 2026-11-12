@@ -68,7 +68,7 @@ Regla: guardar solo título, URL y un resumen propio corto, sin texto completo (
 - Reutilizar `/compare` con "tu cartera vs X".
 
 ## 8. Planes (propuesta; Manu decide)
-| | Gratis | Pro ($12.990) | Elite ($16.990) |
+| | Gratis | Pro ($9.990) | Elite ($16.990) |
 |---|---|---|---|
 | Posiciones | 10 | 50 | 200 |
 | Carga | manual + CSV | + cartola | + cartola multi-corredora |

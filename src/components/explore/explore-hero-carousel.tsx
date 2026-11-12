@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { AppLink as Link } from "@/components/app/app-link";
+import { canonicalPortfolioSlug } from "@/lib/portfolio-canonical";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
 import { FollowButton } from "@/components/follow-button";
 import { CATEGORY_META } from "@/lib/types";
@@ -71,7 +72,7 @@ function Slide({ s, i, total, isPro }: { s: FeaturedSlide; i: number; total: num
       className="flex w-full shrink-0 snap-start snap-always flex-col p-4 sm:p-6"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <Link href={`/portfolio/${s.slug}`} className="group flex min-w-0 flex-1 items-center gap-3">
+        <Link href={`/portfolio/${canonicalPortfolioSlug(s.slug)}`} className="group flex min-w-0 flex-1 items-center gap-3">
           <PortfolioAvatar
             portfolio={{ slug: s.slug, name: s.name, category: s.category, cover_image: s.cover_image, portrait_image: s.portrait_image }}
             size={40}
@@ -115,7 +116,7 @@ function Slide({ s, i, total, isPro }: { s: FeaturedSlide; i: number; total: num
       <div className="mt-4 flex items-center gap-2 [&>*:first-child]:flex-1 sm:[&>*:first-child]:max-w-xs">
         <FollowButton portfolioId={s.id} initialFollowing={s.isFollowing} initialIsPro={isPro} portfolioPremium={s.premium} variant="page" />
         <Link
-          href={`/portfolio/${s.slug}`}
+          href={`/portfolio/${canonicalPortfolioSlug(s.slug)}`}
           className="inline-flex h-11 shrink-0 items-center rounded-full border border-ink-200 px-5 text-[14px] font-medium text-ink-900 hover:bg-ink-50"
         >
           Ver

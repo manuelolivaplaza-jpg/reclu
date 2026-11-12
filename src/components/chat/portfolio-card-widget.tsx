@@ -5,20 +5,35 @@ import { useState } from "react";
 import type { PortfolioCardData } from "@/lib/chat-ia/tools";
 import { Sparkline } from "@/components/chat/sparkline";
 
-function pct(v: number | null): string {
-  if (v === null || !Number.isFinite(v)) return "—";
+function pct(v: number | null): string | null {
+  if (v === null || !Number.isFinite(v)) return null;
   return `${v > 0 ? "+" : ""}${v.toFixed(2).replace(".", ",")}%`;
 }
 
 function Logo({ card }: { card: PortfolioCardData }) {
   const [failed, setFailed] = useState(false);
-  const initials = card.name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  const initials = card.name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
   if (card.image && !failed) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={card.image} alt="" onError={() => setFailed(true)} className="h-10 w-10 rounded-full bg-white object-cover" />;
+    return (
+      <img
+        src={card.image}
+        alt=""
+        onError={() => setFailed(true)}
+        className="h-9 w-9 shrink-0 rounded-full border border-ink-200 bg-ink-50 object-cover"
+      />
+    );
   }
   return (
-    <span aria-hidden="true" className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-sky-600 text-sm font-semibold text-white">
+    <span
+      aria-hidden="true"
+      className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink-900 text-[11px] font-medium tracking-wide text-white"
+    >
       {initials}
     </span>
   );
@@ -26,22 +41,27 @@ function Logo({ card }: { card: PortfolioCardData }) {
 
 export function PortfolioCardWidget({ card }: { card: PortfolioCardData }) {
   const positive = (card.returnPct ?? 0) >= 0;
+  const formatted = pct(card.returnPct);
   return (
     <Link
       href={`/app/portafolio/${encodeURIComponent(card.slug)}`}
-      className="group flex min-w-[240px] snap-start items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-3 transition hover:border-emerald-400/40 hover:bg-white/[0.07]"
+      className="group flex min-w-[248px] snap-start items-center gap-3 border border-ink-200 bg-white p-3.5 transition-colors hover:border-ink-900"
     >
       <Logo card={card} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-white">{card.name}</p>
-        <p className="text-xs text-zinc-400">
+        <p className="truncate text-sm font-medium text-ink-900">{card.name}</p>
+        <p className="truncate text-xs text-ink-500">
           {card.period ?? "Sin métrica"}
           {card.asOf ? ` · al ${card.asOf}` : ""}
         </p>
       </div>
-      <div className="flex flex-col items-end gap-1">
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
         <Sparkline values={card.spark} positive={positive} />
-        <span className={`text-sm font-semibold tabular-nums ${positive ? "text-emerald-400" : "text-red-400"}`}>{pct(card.returnPct)}</span>
+        {formatted === null ? (
+          <span className="text-xs font-normal text-ink-400">Sin dato</span>
+        ) : (
+          <span className={`text-sm font-medium tabular-nums ${positive ? "text-positive" : "text-negative"}`}>{formatted}</span>
+        )}
       </div>
     </Link>
   );

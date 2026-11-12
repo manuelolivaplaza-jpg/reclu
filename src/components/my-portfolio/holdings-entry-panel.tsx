@@ -19,8 +19,8 @@ import { useRouter } from "next/navigation";
 import { Plus, Save, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EntryModeSelector } from "@/components/my-portfolio/entry-mode-selector";
+import { TickerBadge } from "@/components/my-portfolio/ticker-badge";
 import {
   HOLDING_ENTRY_MODE_LABELS,
   emptyEntryValues,
@@ -299,7 +299,7 @@ export function HoldingsEntryPanel({
             step={1}
             value={fx}
             onChange={(event) => setFx(event.target.value)}
-            className="h-11 w-40 border border-ink-200 bg-white px-3 num text-[15px] text-ink-900 focus:border-ink-900 focus:outline-none"
+            className="h-11 w-full min-w-0 border border-ink-200 bg-white px-3 num text-[15px] text-ink-900 transition-colors hover:border-ink-400 focus:border-ink-900 focus:outline-none sm:w-40"
           />
           <p className="text-xs text-ink-500">
             Tu cartera mezcla USD y CLP. Sin este tipo de cambio no se pueden
@@ -312,8 +312,10 @@ export function HoldingsEntryPanel({
         <p
           role={message.type === "error" ? "alert" : "status"}
           className={
-            "text-sm font-medium " +
-            (message.type === "error" ? "text-negative" : "text-positive")
+            "border-l border-ink-900 pl-3 text-[13px] font-medium " +
+            (message.type === "error"
+              ? "border-negative text-negative"
+              : "border-ink-900 text-ink-900")
           }
         >
           {message.text}
@@ -321,8 +323,8 @@ export function HoldingsEntryPanel({
       )}
 
       {/* Alta de posición */}
-      <div className="flex flex-wrap items-end gap-2">
-        <div className="min-w-[160px] flex-1">
+      <div className="flex flex-wrap items-end gap-2 border border-ink-200 bg-white p-3 sm:p-4">
+        <div className="min-w-[140px] flex-1">
           <Input
             label="Símbolo"
             value={newSymbol}
@@ -332,7 +334,7 @@ export function HoldingsEntryPanel({
             autoComplete="off"
           />
         </div>
-        <div className="w-36">
+        <div className="w-36 min-w-0">
           <Input
             label={VALUE_LABEL[mode]}
             type="number"
@@ -351,17 +353,17 @@ export function HoldingsEntryPanel({
       </div>
 
       {/* Tabla de posiciones */}
-      <div className="-mx-5 overflow-x-auto px-5 sm:mx-0 sm:px-0">
+      <div className="overflow-x-auto">
         <table className="w-full min-w-[520px] text-sm">
           <thead>
-            <tr className="border-b border-ink-200 text-left text-[11px] font-semibold uppercase tracking-wide text-ink-500">
-              <th className="pb-2 pr-3">Símbolo</th>
-              <th className="pb-2 pr-3 text-right">{VALUE_LABEL[mode]}</th>
-              <th className="pb-2 pr-3 text-right">Peso</th>
-              <th className="pb-2 text-right" aria-label="Acciones" />
+            <tr className="border-b border-ink-200 text-left text-[11px] font-medium uppercase tracking-[0.08em] text-ink-500">
+              <th className="pb-2.5 pr-3 font-medium">Símbolo</th>
+              <th className="pb-2.5 pr-3 text-right font-medium">{VALUE_LABEL[mode]}</th>
+              <th className="pb-2.5 pr-3 text-right font-medium">Peso</th>
+              <th className="pb-2.5 text-right font-medium" aria-label="Acciones" />
             </tr>
           </thead>
-          <tbody className="divide-y divide-ink-100">
+          <tbody className="divide-y divide-ink-200">
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={4} className="py-8 text-center text-ink-600">
@@ -371,12 +373,17 @@ export function HoldingsEntryPanel({
             ) : (
               rows.map((row) => {
                 const value = readEntryValue(row.values, mode);
-                const weight = weightsBySymbol[row.symbol];
+                // El peso puede faltar si aún no hay precio: el índice no está
+                // tipado como opcional, así que se declara explícito.
+                const weight = weightsBySymbol[row.symbol] as number | undefined;
                 const error = symbolErrors[row.symbol];
                 return (
                   <tr key={row.symbol}>
                     <td className="py-2.5 pr-3">
-                      <span className="font-medium text-ink-900">{row.symbol}</span>
+                      <div className="flex items-center gap-2.5">
+                        <TickerBadge symbol={row.symbol} className="size-7 text-[9px]" />
+                        <span className="font-medium text-ink-900">{row.symbol}</span>
+                      </div>
                       {error && (
                         <span className="mt-0.5 block text-[12px] text-negative">
                           {error}
@@ -398,14 +405,18 @@ export function HoldingsEntryPanel({
                       />
                     </td>
                     <td className="py-2.5 pr-3 text-right tabular-nums text-ink-900">
-                      {weight === undefined ? "—" : `${formatPctPlain(weight, 2)}`}
+                      {weight === undefined || !Number.isFinite(weight) ? (
+                        <span className="text-[12px] text-ink-400">Sin peso</span>
+                      ) : (
+                        `${formatPctPlain(weight, 2)}`
+                      )}
                     </td>
                     <td className="py-2.5 text-right">
                       <button
                         type="button"
                         onClick={() => removeRow(row.symbol)}
                         aria-label={`Quitar ${row.symbol}`}
-                        className="inline-flex size-9 items-center justify-center text-ink-500 transition-colors hover:text-negative"
+                        className="inline-flex size-10 items-center justify-center border border-ink-200 text-ink-600 transition-colors hover:border-ink-900 hover:text-ink-900"
                       >
                         <X className="size-4" strokeWidth={1.5} />
                       </button>
@@ -418,7 +429,7 @@ export function HoldingsEntryPanel({
         </table>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 border-t border-ink-200 pt-4">
         <Button onClick={handleSave} loading={pending} disabled={rows.length === 0}>
           <Save className="size-4" strokeWidth={1.5} />
           Guardar cartera
@@ -431,7 +442,7 @@ export function HoldingsEntryPanel({
   );
 }
 
-/** Encabezado con título para la tarjeta que envuelve al panel. */
+/** Encabezado editorial para el panel que envuelve al formulario de carga. */
 export function EntryPanelCard({
   title,
   description,
@@ -442,12 +453,14 @@ export function EntryPanelCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>{children}</CardContent>
-    </Card>
+    <section className="border border-ink-200 bg-white">
+      <div className="border-b border-ink-200 p-5 sm:p-6">
+        <h2 className="text-[15px] font-medium leading-snug tracking-[-0.01em] text-ink-900">
+          {title}
+        </h2>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500">{description}</p>
+      </div>
+      <div className="p-5 sm:p-6">{children}</div>
+    </section>
   );
 }

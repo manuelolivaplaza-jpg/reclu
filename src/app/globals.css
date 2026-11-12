@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Tailwind v4: el modo oscuro se activa por clase (`.dark` en <html>), no por
+   media query. Sin `.dark` el sitio es blanco editorial puro. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ============================================================
    fraccion.si — Design tokens
    Autopilot marketing × SpaceX restraint.
@@ -48,10 +52,9 @@
   --color-warning: #0a0a0a;
   /* positive-bg / negative-bg eliminados del diseño a propósito */
 
-  /* --- Superficies --- */
-  --color-background: #ffffff;
-  --color-surface: #f6f6f6;
-  --color-surface-raised: #ffffff;
+  /* --- Superficies: viven en `:root` y `.dark` (abajo) y se atan a Tailwind
+     con `@theme inline`, para que el esquema pueda invertirse sin tocar
+     ninguna clase. --- */
 
   /* --- Tipografía ---
      La fuente global es Inter y la expone `src/app/layout.tsx` (next/font)
@@ -68,60 +71,152 @@
   --shadow-pop: none;
 }
 
+/* ---- Esquema de color: claro editorial por defecto, oscuro bajo `.dark` ----
+   Un solo lugar define los grises del sistema. Sin `.dark` todo sigue siendo
+   blanco #ffffff, negro #0a0a0a y filetes #e6e6e6: nada cambia visualmente. */
+:root {
+  color-scheme: light;
+
+  /* superficies */
+  --canvas: #ffffff;
+  --surface: #f6f6f6;
+  --panel: #ffffff;
+
+  /* filetes */
+  --line: #e6e6e6;
+  --line-strong: #0a0a0a;
+
+  /* texto */
+  --text: #0a0a0a;
+  --text-muted: #6b6b6b;
+  --text-faint: #8a8a8a;
+
+  /* inversión: bandas y paneles negros */
+  --inverse: #0a0a0a;
+  --inverse-text: #ffffff;
+
+  /* foco */
+  --focus: #0a0a0a;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --canvas: #0a0a0a;
+  --surface: #151515;
+  --panel: #111111;
+
+  --line: #2a2a2a;
+  --line-strong: #f2f2f2;
+
+  --text: #f5f5f5;
+  --text-muted: #a3a3a3;
+  --text-faint: #8a8a8a;
+
+  --inverse: #f5f5f5;
+  --inverse-text: #0a0a0a;
+
+  --focus: #ffffff;
+
+  /* Verde y rojo suben de luminancia para mantener contraste AA sobre negro.
+     Siguen reservados a cifras de rendimiento. */
+  --color-positive: #4ade80;
+  --color-negative: #f87171;
+}
+
+/* Puente entre el esquema y Tailwind: `bg-canvas`, `border-line`,
+   `text-foreground`, `bg-inverse`… resuelven a la variable viva. */
+@theme inline {
+  --color-background: var(--canvas);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--panel);
+  --color-panel: var(--panel);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-foreground: var(--text);
+  --color-muted: var(--text-muted);
+  --color-faint: var(--text-faint);
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-text);
+  --color-focus: var(--focus);
+}
+
 /* ---- Base layer ---- */
 @layer base {
   html {
     overflow-x: clip;
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    background-color: var(--canvas);
   }
 
   body {
     overflow-x: clip;
-    background-color: var(--color-background);
-    color: var(--color-ink-900);
+    background-color: var(--canvas);
+    color: var(--text);
     font-family: var(--font-sans);
+    font-synthesis-weight: none;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
 
   ::selection {
-    background-color: #0a0a0a;
-    color: #ffffff;
+    background-color: var(--inverse);
+    color: var(--inverse-text);
   }
 
-  /* Focus visible: filete negro de 1px, sin anillo de color */
+  /* Foco visible: un filete de 1px, negro sobre claro y blanco sobre oscuro.
+     No se toca `border-radius`: el outline sigue la forma del elemento
+     (píldoras, tarjetas) y no la deforma al enfocar. */
   :focus-visible {
-    outline: 1px solid #0a0a0a;
+    outline: 1px solid var(--focus);
     outline-offset: 3px;
-    border-radius: 0;
+  }
+
+  /* Sobre superficies invertidas el filete se invierte para no desaparecer. */
+  .pub-card-dark :focus-visible,
+  footer :focus-visible {
+    outline-color: var(--inverse-text);
+  }
+
+  .dark footer :focus-visible {
+    outline-color: #ffffff;
   }
 }
 
-/* ---- Escala tipográfica (definida una vez, usada en toda la home) ---- */
+/* ---- Escala tipográfica (definida una vez, usada en toda la web) ----
+   Tracking negativo en display y sección; el cuerpo respira a 1.5.
+   `text-wrap` solo suaviza el corte de línea: no cambia tamaños. */
 @utility type-display {
   font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 0.92;
   font-size: clamp(2.75rem, 7.4vw, 6.5rem);
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
 }
 
 @utility type-section {
   font-weight: 500;
-  letter-spacing: -0.04em;
-  line-height: 0.96;
   font-size: clamp(2.25rem, 4.6vw, 4.25rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+  text-wrap: balance;
 }
 
 @utility type-body {
   font-size: 1.0625rem;
   line-height: 1.5;
-  color: #6b6b6b;
+  letter-spacing: -0.006em;
+  color: var(--text-muted);
+  text-wrap: pretty;
 }
 
-/* Cifras de rendimiento: tabular, apretadas */
+/* Cifras de rendimiento: tabulares estrictas para que no bailen al actualizar */
 @utility num {
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
   letter-spacing: -0.03em;
   font-weight: 500;
 }
@@ -129,7 +224,9 @@
 /* Etiqueta fina de sección (no uppercase, no tracking-widest) */
 @utility label-line {
   font-size: 13px;
-  color: #6b6b6b;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
   font-weight: 400;
 }
 
@@ -142,15 +239,31 @@
   }
 }
 
+/* Lienzo editorial: 1560px y 16px de gutter en móvil, 28px desde md. */
 @utility container-page {
+  width: 100%;
   margin-inline: auto;
-  max-width: 1360px;
-  padding-inline: 1.25rem;
+  max-width: 1560px;
+  padding-inline: 1rem;
+}
+
+/* Lienzo ancho para grillas a sangre (dashboard, ficha, tablas). */
+@utility container-wide {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 1600px;
+  padding-inline: 1rem;
+}
+
+/* Ritmo vertical de sección: un solo valor para toda la web. */
+@utility section-y {
+  padding-block: clamp(4.5rem, 8vw, 7.5rem);
 }
 
 @media (min-width: 768px) {
-  .container-page {
-    padding-inline: 2.5rem;
+  .container-page,
+  .container-wide {
+    padding-inline: 1.75rem;
   }
 }
 
@@ -178,15 +291,22 @@ details[open] > summary ~ * {
 
 /* ==== d47: tokens SOLO de la app (dashboard). Prefijo app-, no tocan la web pública. ==== */
 @theme {
-  --color-app-canvas: #f6f6f6;
-  --color-app-card: #ffffff;
-  --color-app-border: #e6e6e6;
-  --radius-app: 12px;
-  --radius-app-control: 8px;
-  --shadow-app: 0 1px 2px rgb(0 0 0 / 0.04);
-  --shadow-app-raised: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px rgb(16 24 40 / 0.08);
+  /* Superficies y filetes de la app: salen del esquema (se emiten como
+     variables porque hay SVG que las consume con `var()`). El lienzo interno
+     es blanco editorial puro (#ffffff), no el gris de superficie. */
+  --color-app-canvas: var(--canvas);
+  --color-app-card: var(--panel);
+  --color-app-border: var(--line);
+  /* Geometría: radio 0 en toda la plataforma interna. La separación la hacen
+     el filete de 1px y el aire, nunca la elevación. */
+  --radius-app: 0px;
+  --radius-app-control: 0px;
+  /* Sin sombras (diseño Autopilot × SpaceX). */
+  --shadow-app: none;
+  --shadow-app-raised: none;
+  /* Escala interna: display 28px móvil / 34px desktop, interlineado 1.08. */
   --text-app-display: 28px;
-  --text-app-display--line-height: 1.15;
+  --text-app-display--line-height: 1.08;
   --text-app-title: 18px;
   --text-app-title--line-height: 1.3;
   --text-app-body: 15px;
@@ -197,70 +317,119 @@ details[open] > summary ~ * {
 
 @media (min-width: 1024px) {
   .app-root {
-    --text-app-display: 32px;
+    --text-app-display: 34px;
     --text-app-title: 20px;
   }
 }
 
+/* Panel interno: fondo panel, filete 1px, radio 0, sin sombra. */
+@utility app-panel {
+  background-color: var(--color-app-card);
+  border: 1px solid var(--color-app-border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Tarjeta interna. Misma geometría que app-panel: el filete de 1px es el
+   único separador. En enlaces, el filete sube a `--line-strong` al pasar el
+   cursor (transición sutil, sin mover ni elevar nada). */
 @utility app-card {
   background-color: var(--color-app-card);
   border: 1px solid var(--color-app-border);
-  border-radius: var(--radius-app);
-  box-shadow: var(--shadow-app);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+a.app-card {
+  transition: border-color 150ms ease;
+}
+
+a.app-card:hover {
+  border-color: var(--line-strong);
+}
+
+/* Banda de KPIs: celdas separadas por un filete de 1px (el gap deja ver el
+   color del borde del contenedor). Sin tarjetas sueltas ni sombras; las
+   columnas se reparten solas según el ancho disponible. */
+@utility app-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background-color: var(--color-app-border);
+  border: 1px solid var(--color-app-border);
+  border-radius: 0;
+  box-shadow: none;
+
+  & > * {
+    min-width: 0;
+    background-color: var(--color-app-card);
+    padding: 14px 16px;
+  }
 }
 
 /* Espacio para la tab bar móvil fija (64px + safe-area). */
 @utility pb-tabbar {
   padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px);
 }
-/* ==== d58: estilos de páginas públicas (legal, auth, precios, FAQ, errores). Prefijo pub-. ==== */
+/* ==== d58: estilos de páginas públicas (legal, auth, precios, FAQ, errores).
+   Prefijo pub-. Solo blanco/negro y filetes de 1px: sin halos radiales, sin
+   degradados, sin sombras. El verde y el rojo quedan reservados a las cifras
+   de rendimiento (`--color-positive` / `--color-negative`). ==== */
 .pub-canvas {
-  background:
-    radial-gradient(1200px 420px at 50% -120px, rgb(15 122 50 / 0.07), transparent 70%),
-    linear-gradient(#fafafa, #ffffff 420px);
+  background-color: var(--canvas);
+  color: var(--text);
 }
 .pub-card {
-  background: #ffffff;
-  border: 1px solid #e6e6e6;
-  border-radius: 16px;
-  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px rgb(16 24 40 / 0.05);
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0;
+  box-shadow: none;
 }
+/* Banda de marca: negro puro y filete de 1px, sin halo ni sombra. */
 .pub-card-dark {
-  background: radial-gradient(600px 300px at 80% 0%, rgb(15 122 50 / 0.35), transparent 70%), #0a0a0a;
-  color: #ffffff;
-  border-radius: 16px;
-  box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+  background-color: var(--inverse);
+  color: var(--inverse-text);
+  border: 1px solid color-mix(in oklab, var(--inverse-text) 14%, transparent);
+  border-radius: 0;
+  box-shadow: none;
+}
+/* La banda de marca es negra en ambos esquemas: su contenido fija blanco
+   (`text-white/60`), así que aquí la inversión no se voltea. */
+.dark .pub-card-dark {
+  --inverse: #0a0a0a;
+  --inverse-text: #ffffff;
 }
 .pub-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid #e6e6e6;
-  background: #ffffff;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background-color: transparent;
   font-size: 12px;
   font-weight: 500;
-  color: #3d3d3d;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 .pub-chip-dark {
-  border-color: rgb(255 255 255 / 0.16);
-  background: rgb(255 255 255 / 0.06);
-  color: rgb(255 255 255 / 0.85);
+  border-color: color-mix(in oklab, var(--inverse-text) 22%, transparent);
+  background-color: color-mix(in oklab, var(--inverse-text) 8%, transparent);
+  color: color-mix(in oklab, var(--inverse-text) 86%, transparent);
 }
+/* Estado positivo sin relleno verde: filete negro y punto sólido. */
 .pub-chip-positive {
-  border-color: rgb(15 122 50 / 0.25);
-  background: rgb(15 122 50 / 0.07);
-  color: #0f7a32;
+  border-color: var(--line-strong);
+  background-color: transparent;
+  color: var(--text);
 }
 .pub-dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
-  background: #0f7a32;
-  box-shadow: 0 0 0 3px rgb(15 122 50 / 0.15);
+  background-color: currentColor;
+  box-shadow: none;
 }
 .pub-icon-tile {
   display: inline-flex;
@@ -268,12 +437,12 @@ details[open] > summary ~ * {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  background: #0a0a0a;
-  color: #ffffff;
+  border-radius: 0;
+  background-color: var(--inverse);
+  color: var(--inverse-text);
 }
 
-/* Documentos legales: cada sección es una tarjeta numerada; el texto no cambia. */
+/* Documentos legales: cada sección es un bloque numerado; el texto no cambia. */
 .legal-doc {
   counter-reset: legal;
 }
@@ -281,11 +450,11 @@ details[open] > summary ~ * {
   counter-increment: legal;
   position: relative;
   scroll-margin-top: 96px;
-  background: #ffffff;
-  border: 1px solid #e6e6e6;
-  border-radius: 16px;
+  background-color: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 0;
   padding: 20px 20px 22px;
-  box-shadow: 0 1px 2px rgb(16 24 40 / 0.04);
+  box-shadow: none;
   line-height: 1.65;
 }
 @media (min-width: 768px) {
@@ -298,20 +467,27 @@ details[open] > summary ~ * {
   letter-spacing: -0.01em;
 }
 .legal-doc > section a {
-  color: #0a0a0a;
+  color: var(--text);
   text-decoration: underline;
   text-underline-offset: 3px;
 }
 .legal-doc > section li::marker {
-  color: #0f7a32;
+  color: var(--text-faint);
 }
 .legal-doc > p {
-  border-radius: 16px;
+  border-radius: 0;
+}
+/* En oscuro el texto legal hereda el gris de lectura; los títulos, el principal. */
+.dark .legal-doc {
+  color: var(--text-muted);
+}
+.dark .legal-doc > section > h2 {
+  color: var(--text);
 }
 
-/* Auth: campos más táctiles en celular */
+/* Auth: campos con radio 0, igual que el resto del sistema. */
 .pub-auth input {
-  border-radius: 12px;
+  border-radius: 0;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -349,5 +525,24 @@ details[open] > summary ~ * {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Accesibilidad: si el sistema pide menos movimiento, nada anima ni se
+   desplaza suave. El contenido se pinta en su estado final. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
   }
 }
