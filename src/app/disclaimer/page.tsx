@@ -2,7 +2,6 @@ import { withSeo } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
-import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
 import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
 export const metadata = withSeo("/disclaimer", {
@@ -72,7 +71,6 @@ export default function DisclaimerPage() {
 
             <section id="s4" className={SECTION}>
               <h2 className={H2}>Mi portafolio</h2>
-              <DraftLegalNotice scope="Confirma que el análisis de la cartera del usuario no constituye asesoría personalizada bajo la Ley Fintec 21.521." />
               <p className="mt-3">
                 «Mi portafolio» permite guardar tus propias posiciones para cruzar la
                 información pública con tus símbolos y mostrarte qué noticias podrían
@@ -88,7 +86,6 @@ export default function DisclaimerPage() {
 
             <section id="s5" className={SECTION}>
               <h2 className={H2}>IA</h2>
-              <DraftLegalNotice scope="Revisa el descargo, la minimización de datos y la transferencia internacional a OpenRouter." />
               <p className="mt-3">{AI_DISCLAIMER}</p>
               <p className="mt-3">
                 Los análisis con IA describen noticias y datos públicos; no son

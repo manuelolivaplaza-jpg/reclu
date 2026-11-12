@@ -2,7 +2,6 @@ import { withSeo } from "@/lib/seo";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { LegalShell, type LegalTocItem } from "@/components/public/legal-shell";
-import { DraftLegalNotice } from "@/components/legal/draft-legal-notice";
 import { AI_DISCLAIMER } from "@/lib/advice-filter";
 
 export const metadata = withSeo("/privacidad", {
@@ -113,7 +112,6 @@ export default function PrivacidadPage() {
 
             <section id="s6" className={SECTION}>
               <h2 className={H2}>Mi portafolio</h2>
-              <DraftLegalNotice scope="Describe el tratamiento de tenencias personales y el derecho de supresión." />
               <p className="mt-3">
                 Si decides usar <strong className={STRONG}>Mi portafolio</strong>,
                 guardamos los símbolos, cantidades, precio promedio, pesos y moneda que
@@ -152,7 +150,6 @@ export default function PrivacidadPage() {
 
             <section id="s7" className={SECTION}>
               <h2 className={H2}>IA</h2>
-              <DraftLegalNotice scope="Describe la transferencia internacional a OpenRouter y el alcance del análisis con IA." />
               <p className="mt-3">{AI_DISCLAIMER}</p>
               <p className="mt-3">
                 Para generar un resumen o responder una consulta enviamos a la IA solo

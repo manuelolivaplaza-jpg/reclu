@@ -39,8 +39,7 @@ export function BrokerAffiliate({ href, brokerName, offer }: BrokerAffiliateProp
       <p className="mt-3 text-[11px] leading-relaxed text-ink-500">
         Enlace de afiliado: fraccion.si puede recibir una comisión si abres cuenta. Esto no es
         una recomendación de inversión ni de corredora; la información de este sitio no
-        constituye asesoría financiera. Requiere revisión legal/CMF antes de su activación
-        definitiva.
+        constituye asesoría financiera.
       </p>
     </aside>
   );
