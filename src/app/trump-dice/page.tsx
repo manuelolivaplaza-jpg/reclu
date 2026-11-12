@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { PortfolioAvatar } from "@/components/portfolio-avatar";
+import { FiltrosMenciones, type OrdenMenciones } from "@/components/trump-dice/filtros-menciones";
 import { getMentions, TRUMP_DICE_START, formatMentionDate, mentionKindLabel } from "@/lib/mentions-queries";
 import { getPortfolioBySlug, getPerformanceSeriesAdmin } from "@/lib/queries";
 import { getBenchmarkSeries } from "@/lib/performance-queries";
@@ -20,6 +21,72 @@ export const metadata = withSeo("/trump-dice", {
 export const instant = false;
 
 type Pt = { date: string; v: number };
+
+interface TrumpDicePageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+/** Primer valor del parámetro; vacío o ausente → null. */
+function paramValue(value: string | string[] | undefined): string | null {
+  const raw = Array.isArray(value) ? value[0] : value;
+  const clean = raw?.trim();
+  return clean ? clean : null;
+}
+
+/** Año calendario de la mención (prefijo ISO), sin depender de la zona del servidor. */
+function mentionYear(iso: string): string | null {
+  const match = /^(\d{4})-\d{2}-\d{2}/.exec(iso.trim());
+  return match ? match[1] : null;
+}
+
+/**
+ * Clave de tipo para la URL. Los dichos sin etiqueta propia comparten
+ * "mencion": una mención sin kind no inventa una opción distinta.
+ */
+function mentionKindKey(kind: string | null): string {
+  return mentionKindLabel(kind) === "Mención" ? "mencion" : (kind ?? "mencion");
+}
+
+function parseOrden(value: string | null): OrdenMenciones {
+  return value === "retorno" || value === "alfabetico" ? value : "reciente";
+}
+
+/** Filtra por tipo y año; el orden se resuelve aparte. No muta la entrada. */
+function filterMentions<T extends { m: { kind: string | null; saidAt: string } }>(
+  rows: readonly T[],
+  tipo: string | null,
+  anio: string | null,
+): T[] {
+  if (tipo === null && anio === null) return [...rows];
+  return rows.filter(({ m }) => {
+    if (tipo !== null && mentionKindKey(m.kind) !== tipo) return false;
+    if (anio !== null && mentionYear(m.saidAt) !== anio) return false;
+    return true;
+  });
+}
+
+/** Ordena sin mutar: por defecto la más reciente primero; sin precio, al final. */
+function sortMentions<T extends { m: { saidAt: string; symbol: string }; r: { pct: number | null } }>(
+  rows: readonly T[],
+  orden: OrdenMenciones,
+): T[] {
+  const copy = [...rows];
+  if (orden === "retorno") {
+    return copy.sort((a, b) => {
+      const pa = a.r.pct;
+      const pb = b.r.pct;
+      if (pa === null && pb === null) return b.m.saidAt.localeCompare(a.m.saidAt);
+      if (pa === null) return 1;
+      if (pb === null) return -1;
+      if (pb !== pa) return pb - pa;
+      return b.m.saidAt.localeCompare(a.m.saidAt);
+    });
+  }
+  if (orden === "alfabetico") {
+    return copy.sort((a, b) => a.m.symbol.localeCompare(b.m.symbol) || b.m.saidAt.localeCompare(a.m.saidAt));
+  }
+  return copy.sort((a, b) => b.m.saidAt.localeCompare(a.m.saidAt));
+}
 
 /** Muestrea a lo más n puntos manteniendo extremos. */
 function sample(pts: Pt[], n = 120): Pt[] {
@@ -89,7 +156,13 @@ function Spark({ points, positive }: { points: number[]; positive: boolean }) {
 function Pct({ value, className }: { value: number | null; className?: string }) {
   if (value === null || !Number.isFinite(value)) return null;
   return (
-    <span className={cn("num", value >= 0 ? "text-positive" : "text-negative", className)}>
+    <span
+      className={cn(
+        "num",
+        value > 0 ? "text-positive" : value < 0 ? "text-negative" : "text-ink-900 dark:text-white",
+        className,
+      )}
+    >
       {formatSignedPct(value)}
     </span>
   );
@@ -103,9 +176,13 @@ function Ticker({ symbol }: { symbol: string }) {
   );
 }
 
-export default async function TrumpDicePage() {
+export default async function TrumpDicePage({ searchParams }: TrumpDicePageProps) {
   await connection();
-  const [portfolio, spxRaw] = await Promise.all([getPortfolioBySlug("trump-dice"), getBenchmarkSeries("^GSPC", 1000)]);
+  const [portfolio, spxRaw, params] = await Promise.all([
+    getPortfolioBySlug("trump-dice"),
+    getBenchmarkSeries("^GSPC", 1000),
+    searchParams,
+  ]);
   const [{ mentions, isDemo }, seriesById] = await Promise.all([
     portfolio ? getMentions(portfolio.id, "trump_mentions") : Promise.resolve({ mentions: [], isDemo: true }),
     portfolio ? getPerformanceSeriesAdmin([portfolio.id]) : Promise.resolve(new Map()),
@@ -134,7 +211,30 @@ export default async function TrumpDicePage() {
   for (const { m } of rows) kinds.set(mentionKindLabel(m.kind), (kinds.get(mentionKindLabel(m.kind)) ?? 0) + 1);
   const maxAbs = Math.max(1, ...priced.map((x) => Math.abs(x.r.pct ?? 0)));
 
-  const ordered = [...rows].sort((a, b) => b.m.saidAt.localeCompare(a.m.saidAt));
+  // Filtros por URL: solo afectan a la lista. Los indicadores y el ranking
+  // describen el total de menciones verificadas; sin parámetros, la lista
+  // completa sigue en el HTML inicial.
+  const tipoActivo = paramValue(params.tipo);
+  const anioActivo = paramValue(params.anio);
+  const ordenActivo = parseOrden(paramValue(params.orden));
+
+  const tiposMap = new Map<string, { value: string; label: string; n: number }>();
+  for (const { m } of rows) {
+    const value = mentionKindKey(m.kind);
+    const prev = tiposMap.get(value);
+    if (prev) prev.n += 1;
+    else tiposMap.set(value, { value, label: mentionKindLabel(m.kind), n: 1 });
+  }
+  const tipos = [...tiposMap.values()]
+    .sort((a, b) => b.n - a.n || a.label.localeCompare(b.label, "es"))
+    .map(({ value, label }) => ({ value, label }));
+  const anios = [...new Set(rows.map(({ m }) => mentionYear(m.saidAt)).filter((y): y is string => y !== null))].sort(
+    (a, b) => b.localeCompare(a),
+  );
+
+  const ordered = sortMentions(filterMentions(rows, tipoActivo, anioActivo), ordenActivo);
+  const ordenHint =
+    ordenActivo === "retorno" ? "mayor retorno primero" : ordenActivo === "alfabetico" ? "orden alfabético" : "más reciente primero";
   const ranked = [...priced].sort((a, b) => (b.r.pct ?? 0) - (a.r.pct ?? 0));
   const kindList = [...kinds.entries()].sort((a, b) => b[1] - a[1]);
 
@@ -150,7 +250,7 @@ export default async function TrumpDicePage() {
     kpis.push({
       label: "S&P 500, mismo período",
       value: formatSignedPct(spxReturn),
-      tone: spxReturn >= 0 ? "positive" : "negative",
+      tone: spxReturn > 0 ? "positive" : spxReturn < 0 ? "negative" : undefined,
     });
   }
   if (priced.length > 0) {
@@ -164,7 +264,7 @@ export default async function TrumpDicePage() {
       delta: { text: `${formatSignedPct(pct)} desde la mención`, positive: pct >= 0 },
     });
   }
-  if (worst && worst.r.pct !== null) {
+  if (worst && worst.r.pct !== null && worst.m.id !== best?.m.id) {
     const pct = worst.r.pct;
     kpis.push({
       label: "Peor mención",
@@ -181,7 +281,7 @@ export default async function TrumpDicePage() {
           <header className="border-b border-ink-300 pb-8 dark:border-white/12">
             <div className="flex items-center gap-3">
               {portfolio ? <PortfolioAvatar portfolio={portfolio} size={40} className="rounded-none border border-ink-300 dark:border-white/12" /> : null}
-              <p className="label-line">
+              <p className="label-line min-w-0">
                 Estudio de menciones públicas · desde {formatShortDate(TRUMP_DICE_START)}
                 {lastDate ? ` · actualizado ${formatShortDate(lastDate)}` : ""}
               </p>
@@ -200,9 +300,20 @@ export default async function TrumpDicePage() {
               ) : null}
             </div>
             <div className="mt-5 flex flex-wrap items-center gap-x-6 gap-y-2 text-[13px]">
-              {mentions.length > 0 ? <span className="num text-ink-900 dark:text-white">{mentions.length} menciones verificadas</span> : null}
+              {mentions.length > 0 ? (
+                <span className="num text-ink-900 dark:text-white">
+                  {mentions.length} {mentions.length === 1 ? "mención verificada" : "menciones verificadas"}
+                </span>
+              ) : null}
               {diff !== null ? (
-                <span className={cn("num", diff >= 0 ? "text-positive" : "text-negative")}>{formatSignedPct(diff)} vs S&amp;P 500</span>
+                <span
+                  className={cn(
+                    "num",
+                    diff > 0 ? "text-positive" : diff < 0 ? "text-negative" : "text-ink-900 dark:text-white",
+                  )}
+                >
+                  {formatSignedPct(diff)} vs S&amp;P 500
+                </span>
               ) : null}
             </div>
           </header>
@@ -260,11 +371,23 @@ export default async function TrumpDicePage() {
 
           <div className="mt-12 grid gap-12 lg:grid-cols-12 lg:gap-16">
             {/* Menciones: lista tipográfica con filetes de 1px. */}
-            <section className="lg:col-span-8">
-              <div className="flex items-baseline justify-between gap-4 border-b border-ink-900 pb-3 dark:border-white">
+            <section id="menciones" className="scroll-mt-24 lg:col-span-8">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-900 pb-3 dark:border-white">
                 <h2 className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">Cada mención</h2>
-                <span className="text-[11px] text-ink-500 dark:text-ink-400">más reciente primero</span>
+                <span className="text-[11px] text-ink-500 dark:text-ink-400">{ordenHint}</span>
               </div>
+              {mentions.length > 0 ? (
+                <FiltrosMenciones
+                  tipos={tipos}
+                  anios={anios}
+                  tipo={tipoActivo}
+                  anio={anioActivo}
+                  orden={ordenActivo}
+                  visibles={ordered.length}
+                  total={mentions.length}
+                  params={params}
+                />
+              ) : null}
               <ul>
                 {ordered.map(({ m, r }) => (
                   <li key={m.id} className="border-b border-ink-300 py-6 dark:border-white/12">
@@ -278,7 +401,7 @@ export default async function TrumpDicePage() {
                               {m.company ? <span className="ml-2 font-normal text-ink-500 dark:text-ink-400">{m.company}</span> : null}
                             </h3>
                             <p className="mt-1 text-[12px] text-ink-500 dark:text-ink-400">
-                              {formatMentionDate(m.saidAt)}
+                              <time dateTime={m.saidAt}>{formatMentionDate(m.saidAt)}</time>
                               {m.externalId ? ` · ${m.externalId}` : ""}
                             </p>
                           </div>
@@ -286,12 +409,14 @@ export default async function TrumpDicePage() {
                             <div className="shrink-0 text-right">
                               <Pct value={r.pct} className="block text-[19px] leading-tight" />
                               {r.baseDate ? (
-                                <p className="mt-1 text-[11px] text-ink-500 dark:text-ink-400">desde {formatShortDate(r.baseDate)}</p>
+                                <p className="mt-1 text-[11px] text-ink-500 dark:text-ink-400">
+                                  desde <time dateTime={r.baseDate}>{formatShortDate(r.baseDate)}</time>
+                                </p>
                               ) : null}
                             </div>
                           ) : null}
                         </div>
-                        <blockquote className="mt-4 max-w-[70ch] border-l border-ink-300 pl-4 text-[15px] leading-relaxed text-ink-700 dark:border-white/20 dark:text-ink-300">
+                        <blockquote className="mt-4 max-w-[70ch] border-l border-ink-300 pl-4 text-[15px] leading-relaxed text-ink-700 dark:border-white/20 dark:text-white/75">
                           “{m.quote}”
                         </blockquote>
                         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -305,7 +430,7 @@ export default async function TrumpDicePage() {
                               rel="noopener noreferrer"
                               className="border border-ink-300 px-2 py-0.5 text-[11px] font-medium text-ink-700 transition-colors hover:border-ink-900 hover:text-ink-900 dark:border-white/12 dark:text-ink-300 dark:hover:border-white dark:hover:text-white"
                             >
-                              Fuente ↗
+                              Fuente <span aria-hidden>↗</span>
                             </a>
                           </div>
                           <Spark points={r.spark} positive={(r.pct ?? 0) >= 0} />
@@ -315,7 +440,21 @@ export default async function TrumpDicePage() {
                   </li>
                 ))}
               </ul>
-              {ordered.length === 0 && !isDemo ? (
+              {ordered.length === 0 && mentions.length > 0 ? (
+                <div className="mt-6 border border-ink-300 px-5 py-6 dark:border-white/12">
+                  <p className="text-[15px] leading-relaxed text-ink-700 dark:text-white/80">Ninguna mención coincide con estos filtros.</p>
+                  <p className="mt-1.5 text-[13px] leading-relaxed text-ink-500 dark:text-ink-400">
+                    El listado completo tiene {mentions.length} {mentions.length === 1 ? "mención verificada" : "menciones verificadas"}.
+                  </p>
+                  <Link
+                    href="/trump-dice#menciones"
+                    className="mt-4 inline-flex h-10 items-center border border-ink-900 px-4 text-[13px] font-medium text-ink-900 transition-colors hover:bg-ink-900 hover:text-white dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-ink-900"
+                  >
+                    Ver todas las menciones
+                  </Link>
+                </div>
+              ) : null}
+              {ordered.length === 0 && mentions.length === 0 && !isDemo ? (
                 <p className="mt-6 text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
                   Todavía no hay menciones verificadas publicadas.
                 </p>
@@ -335,7 +474,10 @@ export default async function TrumpDicePage() {
                           <span className="truncate font-medium text-ink-900 dark:text-white">{m.symbol}</span>
                           <span aria-hidden className="h-[3px] bg-ink-100 dark:bg-white/10">
                             <span
-                              className={cn("block h-full", v >= 0 ? "bg-positive" : "bg-negative")}
+                              className={cn(
+                                "block h-full",
+                                v > 0 ? "bg-positive" : v < 0 ? "bg-negative" : "bg-ink-400 dark:bg-white/40",
+                              )}
                               style={{ width: `${Math.max(4, (Math.abs(v) / maxAbs) * 100)}%` }}
                             />
                           </span>

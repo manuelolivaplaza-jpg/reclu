@@ -141,7 +141,7 @@ export default async function CreadoresPage() {
                 </p>
               </div>
               {hasData ? (
-                <dl className="flex shrink-0 items-end gap-10">
+                <dl className="flex flex-wrap items-start gap-x-8 gap-y-5 sm:items-end sm:gap-x-10">
                   <div>
                     <dt className="label-line">Creadores verificados</dt>
                     <dd className="num mt-2 text-[28px] leading-none text-ink-900 dark:text-white">{creators.length}</dd>
@@ -158,8 +158,8 @@ export default async function CreadoresPage() {
           <div className="mt-8 flex flex-col gap-2 border border-ink-900 p-4 dark:border-white/40 sm:flex-row sm:items-baseline sm:gap-4 sm:p-5">
             <p className="shrink-0 text-[13px] font-medium text-ink-900 dark:text-white">Contenido de terceros, no asesoría.</p>
             <p className="text-[13px] leading-relaxed text-ink-600 dark:text-ink-400">
-              Las carteras las publica cada creador y reflejan su opinión, no una recomendación de
-              fraccion.si. No ejecutamos órdenes ni damos asesoría de inversión personalizada.
+              Cada creador publica su cartera y refleja su propia opinión, no una recomendación de
+              fraccion.si. No ejecutamos órdenes ni entregamos asesoría de inversión personalizada.
             </p>
           </div>
 
@@ -169,51 +169,63 @@ export default async function CreadoresPage() {
             </p>
           ) : null}
 
-          {!loadError && creators.length === 0 ? (
-            <div className="mt-10 border border-ink-300 px-6 py-16 text-center dark:border-white/12">
-              <p className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">Aún no hay creadores</p>
-              <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
-                Todavía no hay creadores verificados con carteras publicadas.
-              </p>
-            </div>
-          ) : null}
+          {!loadError ? (
+            <section className="mt-12" aria-labelledby="perfiles-verificados">
+              <h2 id="perfiles-verificados" className="border-b border-ink-300 pb-3 text-[15px] font-medium text-ink-900 dark:border-white/12 dark:text-white">
+                Perfiles verificados
+              </h2>
 
-          {creators.length > 0 ? (
-            <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {creators.map((creator) => (
-                <li key={creator.id}>
-                  <Link
-                    href={`/creadores/${creator.alias}`}
-                    className="group flex h-full flex-col gap-4 border border-ink-300 bg-white p-5 transition-colors hover:border-ink-900 dark:border-white/12 dark:bg-ink-950 dark:hover:border-white"
-                  >
-                    <div className="flex items-center gap-3">
-                      <Avatar name={creator.alias} className="size-10 rounded-none bg-ink-900 text-[13px] text-white dark:bg-white dark:text-ink-950" />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-mono text-[15px] font-medium text-ink-900 dark:text-white">{creator.alias}</p>
-                        <p className="mt-0.5 text-[11px] text-ink-500 dark:text-ink-400">✓ Verificado por moderación</p>
-                      </div>
-                      <span aria-hidden className="text-ink-400 transition-transform group-hover:translate-x-0.5 dark:text-ink-500">→</span>
-                    </div>
-                    <p className="line-clamp-3 text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
-                      {creator.bio || "Perfil verificado de la comunidad, sin bio pública."}
-                    </p>
-                    <div className="mt-auto flex flex-wrap items-center gap-2">
-                      <span className="border border-ink-300 px-2 py-0.5 text-[11px] text-ink-600 dark:border-white/12 dark:text-ink-400">
-                        {creator.carteras} {creator.carteras === 1 ? "cartera" : "carteras"}
-                      </span>
-                      {creator.conflictoInteres ? (
-                        <span className="border border-ink-900 px-2 py-0.5 text-[11px] text-ink-900 dark:border-white/40 dark:text-white">
-                          Conflicto de interés declarado
-                        </span>
-                      ) : null}
-                    </div>
-                    {creator.conflictoInteres ? (
-                      <p className="text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">{creator.conflictoInteres}</p>
-                    ) : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
+              {creators.length === 0 ? (
+                <div className="mt-8 border border-ink-300 px-6 py-16 text-center dark:border-white/12">
+                  <p className="text-[22px] font-medium tracking-[-0.03em] text-ink-900 dark:text-white">Aún no hay creadores</p>
+                  <p className="mx-auto mt-2 max-w-md text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
+                    Cuando un perfil verificado publique una cartera aprobada, aparecerá en esta página.
+                  </p>
+                </div>
+              ) : (
+                <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {creators.map((creator) => (
+                    <li key={creator.id} className="min-w-0">
+                      <Link
+                        href={`/creadores/${creator.alias}`}
+                        className="group flex h-full flex-col gap-4 border border-ink-300 bg-white p-5 transition-colors hover:border-ink-900 focus-visible:border-ink-900 dark:border-white/12 dark:bg-ink-950 dark:hover:border-white dark:focus-visible:border-white"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar name={creator.alias} className="size-10 rounded-none bg-ink-900 text-[13px] text-white dark:bg-white dark:text-ink-950" />
+                          <div className="min-w-0 flex-1">
+                            <p title={creator.alias} className="truncate font-mono text-[15px] font-medium text-ink-900 dark:text-white">
+                              {creator.alias}
+                            </p>
+                            <p className="mt-1 text-[12px] leading-tight text-ink-600 dark:text-ink-400">
+                              <span aria-hidden>✓</span> Verificado por moderación
+                            </p>
+                          </div>
+                          <span aria-hidden className="shrink-0 text-ink-500 transition-transform group-hover:translate-x-0.5 group-focus-visible:translate-x-0.5 dark:text-ink-400">
+                            →
+                          </span>
+                        </div>
+                        <p className="line-clamp-3 text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
+                          {creator.bio || "Perfil verificado de la comunidad, sin bio pública."}
+                        </p>
+                        <div className="mt-auto flex flex-wrap items-center gap-2">
+                          <span className="border border-ink-300 px-2 py-0.5 text-[12px] leading-relaxed text-ink-600 dark:border-white/20 dark:text-ink-300">
+                            {creator.carteras} {creator.carteras === 1 ? "cartera" : "carteras"}
+                          </span>
+                          {creator.conflictoInteres ? (
+                            <span className="border border-ink-900 px-2 py-0.5 text-[12px] leading-relaxed text-ink-900 dark:border-white/40 dark:text-white">
+                              Conflicto de interés declarado
+                            </span>
+                          ) : null}
+                        </div>
+                        {creator.conflictoInteres ? (
+                          <p className="line-clamp-2 text-[12px] leading-relaxed text-ink-500 dark:text-ink-400">{creator.conflictoInteres}</p>
+                        ) : null}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
           ) : null}
 
           <div className="mt-16 max-w-3xl">

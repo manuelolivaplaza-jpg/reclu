@@ -15,7 +15,8 @@ const TRENDS = 5;
 /**
  * d54: panel principal de Explorar (carrusel de los más seguidos) + lista
  * corta de tendencias a la derecha en escritorio. Va en Suspense: la grilla
- * no lo espera. Todo dato es real; sin dato se muestra "—".
+ * no lo espera. Todo dato es real: sin serie no se dibuja una curva y sin
+ * retorno el carrusel dice "Sin dato en este período", nunca un cero.
  */
 export async function ExploreHeroSection() {
   await connection();
@@ -44,6 +45,9 @@ export async function ExploreHeroSection() {
   );
   const withSeries = built.filter(slideHasSeries);
   const slides = (withSeries.length > 0 ? withSeries : built).slice(0, SLIDES);
+  // Sin catálogo no hay hero: no se reservan 520 px vacíos ni un encabezado
+  // que anuncie "0 portafolios".
+  if (slides.length === 0) return null;
 
   const stats = pickCardStats(catalog, allStats);
   const trends = catalog
@@ -54,9 +58,14 @@ export async function ExploreHeroSection() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-ink-300 pb-3 dark:border-white/12">
-        <p className="label-line">Más seguidos</p>
-        <p className="label-line num">
+      <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2 border-b border-ink-300 pb-3 dark:border-white/12">
+        <div className="min-w-0">
+          <p className="label-line">Portafolios</p>
+          <h2 className="mt-1.5 text-[22px] font-medium leading-[1.1] tracking-[-0.03em] text-ink-900 dark:text-white">
+            Más seguidos
+          </h2>
+        </div>
+        <p className="label-line num shrink-0">
           {slides.length} {slides.length === 1 ? "portafolio" : "portafolios"}
         </p>
       </div>
@@ -73,7 +82,7 @@ export async function ExploreHeroSection() {
           <p className="label-line">Rankings</p>
           <h2
             id="tendencias-heading"
-            className="mt-2 text-[17px] font-medium leading-[1.15] tracking-[-0.02em] text-ink-900 dark:text-white"
+            className="mt-1.5 text-[22px] font-medium leading-[1.1] tracking-[-0.03em] text-ink-900 dark:text-white"
           >
             Mejor rendimiento
           </h2>
@@ -87,7 +96,7 @@ export async function ExploreHeroSection() {
                 <li key={p.id}>
                   <Link
                     href={`/portfolio/${canonicalPortfolioSlug(p.slug)}`}
-                    className="group -mx-2 flex items-center gap-3 px-2 py-3 transition-colors hover:bg-ink-50 dark:hover:bg-white/[0.04]"
+                    className="group -mx-2 flex items-center gap-3 px-2 py-3 transition-colors hover:bg-ink-50 focus-visible:outline-offset-[-2px] dark:hover:bg-white/[0.04]"
                   >
                     <span className="num w-4 shrink-0 text-[12px] text-ink-500 dark:text-white/55">{i + 1}</span>
                     <span className="min-w-0 flex-1">
@@ -99,7 +108,11 @@ export async function ExploreHeroSection() {
                     <span
                       className={cn(
                         "num shrink-0 text-[14px]",
-                        (s!.pct as number) >= 0 ? "text-positive" : "text-negative",
+                        (s!.pct as number) > 0
+                          ? "text-positive"
+                          : (s!.pct as number) < 0
+                            ? "text-negative"
+                            : "text-ink-900 dark:text-white",
                       )}
                     >
                       {formatSignedPct(s!.pct)}
@@ -126,8 +139,11 @@ export async function ExploreHeroSection() {
 export function ExploreHeroSkeleton() {
   return (
     <div className="flex flex-col gap-4" aria-hidden="true">
-      <div className="flex items-baseline justify-between gap-4 border-b border-ink-300 pb-3 dark:border-white/12">
-        <span className="h-4 w-24 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+      <div className="flex items-end justify-between gap-4 border-b border-ink-300 pb-3 dark:border-white/12">
+        <div className="flex flex-col gap-2">
+          <span className="h-3 w-16 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+          <span className="h-5 w-32 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
+        </div>
         <span className="h-4 w-20 animate-pulse bg-ink-100 motion-reduce:animate-none dark:bg-white/5" />
       </div>
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_300px] lg:gap-10">

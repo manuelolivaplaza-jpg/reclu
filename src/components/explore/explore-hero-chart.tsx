@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
@@ -23,10 +23,16 @@ function niceStep(range: number, ticks: number): number {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * mag;
 }
 
+/** Márgenes del lienzo en px reales: el eje de % vive a la derecha. */
+const PAD = { l: 4, r: 52, t: 14, b: 26 };
+
 /**
  * Gráfico SVG propio estilo terminal: línea con degradado, eje de % a la
  * derecha, meses abajo, línea de 0% y tooltip con cruz al pasar el dedo o
  * el mouse. Sin librerías.
+ *
+ * El viewBox se mide del contenedor (1 unidad = 1 px), así la tipografía de
+ * los ejes nunca se deforma ni se encoge: en 320 px y en 1100 px se lee igual.
  */
 export function ExploreHeroChart({
   data,
@@ -37,13 +43,28 @@ export function ExploreHeroChart({
   className?: string;
   height?: number;
 }) {
-  const gid = useId().replace(/:/g, "");
-  const ref = useRef<SVGSVGElement>(null);
+  // Solo alfanumérico: el id debe servir dentro de url(#…) en cualquier navegador.
+  const gid = useId().replace(/[^a-zA-Z0-9_-]/g, "");
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<number | null>(null);
+  const [width, setWidth] = useState(640);
 
-  const W = 640;
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const measure = () => {
+      const w = Math.round(el.clientWidth);
+      if (w > 0) setWidth(w);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const W = Math.max(240, width);
   const H = height;
-  const PAD = { l: 4, r: 52, t: 12, b: 26 };
   const iw = W - PAD.l - PAD.r;
   const ih = H - PAD.t - PAD.b;
 
@@ -76,11 +97,29 @@ export function ExploreHeroChart({
     });
     const every = Math.ceil(months.length / 7) || 1;
     return { x, y, line, area, ticks, months: months.filter((_, k) => k % every === 0) };
-  }, [data, iw, ih, PAD.l, PAD.t]);
+  }, [data, iw, ih]);
+
+  // Etiqueta accesible: período cubierto, retorno y rango real de la serie.
+  const label = useMemo(() => {
+    if (data.length < 2) return "Sin datos de rendimiento para este período";
+    const vals = data.map((d) => d.pct);
+    const lastValue = vals[vals.length - 1];
+    return (
+      `Rendimiento acumulado del ${fmtDate(data[0].date)} al ${fmtDate(data[data.length - 1].date)}: ` +
+      `${fmtPct(lastValue, 2)}. Máximo ${fmtPct(Math.max(...vals), 2)}, mínimo ${fmtPct(Math.min(...vals), 2)}.`
+    );
+  }, [data]);
 
   if (!geo) {
     return (
-      <div className={cn("flex items-center justify-center rounded-xl bg-ink-50 text-[13px] text-ink-500", className)} style={{ height }}>
+      <div
+        ref={wrapRef}
+        className={cn(
+          "flex items-center justify-center border border-dashed border-ink-300 bg-ink-50 px-4 text-center text-[13px] leading-relaxed text-ink-500 dark:border-white/15 dark:bg-white/[0.03] dark:text-white/55",
+          className,
+        )}
+        style={{ height }}
+      >
         Sin datos de rendimiento para este período
       </div>
     );
@@ -89,9 +128,10 @@ export function ExploreHeroChart({
   const last = data[data.length - 1].pct;
   const up = last >= 0;
   const color = up ? "var(--color-positive, #16a34a)" : "var(--color-negative, #dc2626)";
+  const active = hover !== null && hover >= 0 && hover < data.length ? hover : null;
 
   function onMove(clientX: number) {
-    const svg = ref.current;
+    const svg = svgRef.current;
     if (!svg) return;
     const r = svg.getBoundingClientRect();
     const px = ((clientX - r.left) / r.width) * W;
@@ -99,21 +139,25 @@ export function ExploreHeroChart({
     setHover(Math.max(0, Math.min(data.length - 1, i)));
   }
 
-  const h = hover !== null ? data[hover] : null;
-  const hx = hover !== null ? geo.x(hover) : 0;
+  const h = active !== null ? data[active] : null;
+  const hx = active !== null ? geo.x(active) : 0;
 
   return (
-    <div className={cn("relative select-none", className)}>
+    <div ref={wrapRef} className={cn("relative w-full select-none", className)}>
       <svg
-        ref={ref}
+        ref={svgRef}
         viewBox={`0 0 ${W} ${H}`}
-        className="block h-auto w-full"
+        preserveAspectRatio="xMidYMid meet"
+        className="block w-full"
+        style={{ height: H }}
         role="img"
-        aria-label={`Rendimiento del período: ${fmtPct(last)}`}
+        aria-label={label}
         onMouseMove={(e) => onMove(e.clientX)}
         onMouseLeave={() => setHover(null)}
         onTouchStart={(e) => onMove(e.touches[0].clientX)}
+        onTouchMove={(e) => onMove(e.touches[0].clientX)}
         onTouchEnd={() => setHover(null)}
+        onTouchCancel={() => setHover(null)}
       >
         <defs>
           <linearGradient id={`g${gid}`} x1="0" y1="0" x2="0" y2="1">
@@ -129,41 +173,75 @@ export function ExploreHeroChart({
               x2={PAD.l + iw}
               y1={geo.y(v)}
               y2={geo.y(v)}
-              stroke={v === 0 ? "#c4c4c4" : "#efefef"}
               strokeDasharray={v === 0 ? "3 3" : undefined}
               vectorEffect="non-scaling-stroke"
+              className={v === 0 ? "stroke-ink-400 dark:stroke-white/35" : "stroke-ink-200 dark:stroke-white/12"}
             />
-            <text x={W - 4} y={geo.y(v) + 4} textAnchor="end" className="fill-ink-500 text-[11px] tabular-nums">
+            <text
+              x={W - 4}
+              y={geo.y(v) + 4}
+              textAnchor="end"
+              className="fill-ink-500 text-[11px] tabular-nums dark:fill-white/50"
+            >
               {fmtPct(v, Math.abs(v) < 10 && v % 1 !== 0 ? 1 : 0)}
             </text>
           </g>
         ))}
 
         {geo.months.map((m) => (
-          <text key={`${m.i}`} x={geo.x(m.i)} y={H - 6} textAnchor="middle" className="fill-ink-500 text-[11px]">
+          <text
+            key={`${m.i}`}
+            x={geo.x(m.i)}
+            y={H - 6}
+            textAnchor="middle"
+            className="fill-ink-500 text-[11px] dark:fill-white/50"
+          >
             {m.label}
           </text>
         ))}
 
         <path d={geo.area} fill={`url(#g${gid})`} />
-        <path d={geo.line} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+        <path
+          d={geo.line}
+          fill="none"
+          stroke={color}
+          strokeWidth={2}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          vectorEffect="non-scaling-stroke"
+        />
         <circle cx={geo.x(data.length - 1)} cy={geo.y(last)} r={3.5} fill={color} />
 
-        {h ? (
+        {h && active !== null ? (
           <g>
-            <line x1={hx} x2={hx} y1={PAD.t} y2={PAD.t + ih} stroke="#0a0a0a" strokeOpacity={0.35} vectorEffect="non-scaling-stroke" />
-            <circle cx={hx} cy={geo.y(h.pct)} r={4.5} fill="#fff" stroke={color} strokeWidth={2} />
+            <line
+              x1={hx}
+              x2={hx}
+              y1={PAD.t}
+              y2={PAD.t + ih}
+              vectorEffect="non-scaling-stroke"
+              className="stroke-ink-900/35 dark:stroke-white/40"
+            />
+            <circle
+              cx={hx}
+              cy={geo.y(h.pct)}
+              r={4.5}
+              stroke={color}
+              strokeWidth={2}
+              className="fill-white dark:fill-ink-950"
+            />
           </g>
         ) : null}
       </svg>
 
       {h ? (
         <div
-          className="pointer-events-none absolute top-1 z-10 -translate-x-1/2 rounded-lg bg-ink-900 px-2.5 py-1.5 text-center text-white shadow-lg"
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1 z-10 -translate-x-1/2 border border-ink-300 bg-white px-2.5 py-1.5 text-center dark:border-white/15 dark:bg-ink-900"
           style={{ left: `${Math.min(88, Math.max(12, (hx / W) * 100))}%` }}
         >
-          <p className="text-[13px] font-semibold tabular-nums">{fmtPct(h.pct, 2)}</p>
-          <p className="text-[11px] text-white/70">{fmtDate(h.date)}</p>
+          <p className="num text-[13px] text-ink-900 dark:text-white">{fmtPct(h.pct, 2)}</p>
+          <p className="text-[11px] text-ink-500 dark:text-white/60">{fmtDate(h.date)}</p>
         </div>
       ) : null}
     </div>

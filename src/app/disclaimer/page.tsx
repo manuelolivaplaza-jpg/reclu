@@ -19,6 +19,11 @@ const TOC: LegalTocItem[] = [
   { id: "s6", label: "Regulación" },
 ];
 
+const SECTION = "scroll-mt-24 border-t border-ink-200 pt-7 first:border-t-0 first:pt-0 target:border-ink-900 dark:border-white/12 dark:target:border-white print:border-ink-200";
+const H2 = "text-[17px] font-semibold leading-snug tracking-[-0.01em] text-ink-900 md:text-[19px] dark:text-white print:text-black";
+const STRONG = "font-semibold text-ink-900 dark:text-white";
+const LIST = "mt-3 list-disc space-y-1.5 pl-5 marker:text-ink-400 dark:marker:text-ink-500";
+
 export default function DisclaimerPage() {
   return (
     <>
@@ -26,16 +31,16 @@ export default function DisclaimerPage() {
       <main className="flex-1">
         <LegalShell kind="disclaimer" title="Disclaimer" toc={TOC}>
 
-          <div className="legal-doc flex flex-col gap-4 text-ink-700">
-            <p className="rounded-2xl border border-ink-900 bg-white p-5 leading-relaxed text-ink-800 shadow-sm">
-              <strong className="font-semibold">Información pública, no es consejo de inversión.</strong>{" "}
-              Todo el contenido de fraccion.si —incluidos los resúmenes generados por inteligencia
-              artificial— tiene fines exclusivamente informativos.
+          <div className="flex flex-col gap-7 text-[15px] leading-[1.68] text-ink-700 md:text-[16px] dark:text-ink-300 print:text-black">
+            <p className="border border-ink-900 p-5 text-[15px] leading-[1.68] text-ink-800 md:text-[16px] dark:border-white/60 dark:text-ink-200 print:break-inside-avoid print:border-ink-900 print:text-black">
+              <strong className={STRONG}>Información pública, no es consejo de inversión.</strong>{" "}
+              Todo el contenido de fraccion.si, incluidos los resúmenes generados por inteligencia
+              artificial, tiene fines exclusivamente informativos.
             </p>
 
-            <section id="s1">
-              <h2 className="text-lg font-semibold text-ink-900">Qué NO hace fraccion.si</h2>
-              <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5 leading-relaxed">
+            <section id="s1" className={SECTION}>
+              <h2 className={H2}>Qué NO hace fraccion.si</h2>
+              <ul className={LIST}>
                 <li>No ejecuta órdenes de compra ni venta por ti.</li>
                 <li>No custodia ni administra tu dinero.</li>
                 <li>No tiene acceso a tus cuentas de corretaje.</li>
@@ -44,20 +49,20 @@ export default function DisclaimerPage() {
               </ul>
             </section>
 
-            <section id="s2">
-              <h2 className="text-lg font-semibold text-ink-900">Riesgos</h2>
-              <p className="mt-2 leading-relaxed">
+            <section id="s2" className={SECTION}>
+              <h2 className={H2}>Riesgos</h2>
+              <p className="mt-2.5">
                 Las inversiones en instrumentos financieros implican riesgos, incluida la
                 pérdida total del capital invertido. Los precios pueden fluctuar
-                significativamente. Rentabilidades pasadas —de portafolios de políticos,
-                corredoras o fondos— <strong className="text-ink-900">no garantizan ni predicen
+                significativamente. Rentabilidades pasadas (de portafolios de políticos,
+                corredoras o fondos) <strong className={STRONG}>no garantizan ni predicen
                 resultados futuros</strong>.
               </p>
             </section>
 
-            <section id="s3">
-              <h2 className="text-lg font-semibold text-ink-900">Resúmenes generados por IA</h2>
-              <p className="mt-2 leading-relaxed">
+            <section id="s3" className={SECTION}>
+              <h2 className={H2}>Resúmenes generados por IA</h2>
+              <p className="mt-2.5">
                 Los resúmenes AI son generados automáticamente por modelos de lenguaje a partir
                 de datos públicos. Pueden contener imprecisiones, interpretaciones erróneas o
                 información desactualizada. Deben tratarse como material de lectura inicial,
@@ -65,14 +70,14 @@ export default function DisclaimerPage() {
               </p>
             </section>
 
-            <section id="s4">
-              <h2 className="text-lg font-semibold text-ink-900">Mi portafolio</h2>
+            <section id="s4" className={SECTION}>
+              <h2 className={H2}>Mi portafolio</h2>
               <DraftLegalNotice scope="Confirma que el análisis de la cartera del usuario no constituye asesoría personalizada bajo la Ley Fintec 21.521." />
-              <p className="mt-3 leading-relaxed">
+              <p className="mt-3">
                 «Mi portafolio» permite guardar tus propias posiciones para cruzar la
                 información pública con tus símbolos y mostrarte qué noticias podrían
                 afectarte. Es una herramienta descriptiva:{" "}
-                <strong className="text-ink-900">
+                <strong className={STRONG}>
                   no evalúa si una posición es adecuada para ti, no propone pesos
                   objetivo y no emite recomendaciones de compra, venta o mantención.
                 </strong>{" "}
@@ -81,11 +86,11 @@ export default function DisclaimerPage() {
               </p>
             </section>
 
-            <section id="s5">
-              <h2 className="text-lg font-semibold text-ink-900">IA</h2>
+            <section id="s5" className={SECTION}>
+              <h2 className={H2}>IA</h2>
               <DraftLegalNotice scope="Revisa el descargo, la minimización de datos y la transferencia internacional a OpenRouter." />
-              <p className="mt-3 leading-relaxed">{AI_DISCLAIMER}</p>
-              <p className="mt-3 leading-relaxed">
+              <p className="mt-3">{AI_DISCLAIMER}</p>
+              <p className="mt-3">
                 Los análisis con IA describen noticias y datos públicos; no son
                 asesoría personalizada ni una recomendación de inversión. El proveedor
                 es OpenRouter, con servidores fuera de Chile, y el modelo se configura
@@ -95,16 +100,16 @@ export default function DisclaimerPage() {
               </p>
             </section>
 
-            <section id="s6">
-              <h2 className="text-lg font-semibold text-ink-900">Regulación</h2>
-              <p className="mt-2 leading-relaxed">
+            <section id="s6" className={SECTION}>
+              <h2 className={H2}>Regulación</h2>
+              <p className="mt-2.5">
                 fraccion.si no está registrada como corredora de bolsa ni asesora financiera ante
                 la Comisión para el Mercado Financiero (CMF) de Chile, la SEC de EE.UU., ni
                 ningún otro regulador. El servicio es puramente informativo.
               </p>
             </section>
 
-            <p className="mt-4 border-t border-ink-200 pt-6 text-sm leading-relaxed text-ink-500">
+            <p className="border-t border-ink-200 pt-6 text-[14px] leading-[1.65] text-ink-500 dark:border-white/12 dark:text-ink-400 print:text-black">
               Al utilizar fraccion.si reconoces haber leído y entendido este disclaimer. Si no
               estás de acuerdo, no utilices el servicio.
             </p>

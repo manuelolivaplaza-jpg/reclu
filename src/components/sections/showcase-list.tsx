@@ -18,13 +18,22 @@ const frame =
   "[&_h3]:underline [&_h3]:text-ink-900 dark:[&_h3]:text-white " +
   "[&_h3]:decoration-transparent [&_h3]:underline-offset-[0.32em] " +
   "[&_h3]:[text-decoration-thickness:1px] [&_h3]:transition-[text-decoration-color] [&_h3]:duration-200 " +
-  "[&_a:hover_h3]:decoration-ink-900 dark:[&_a:hover_h3]:decoration-white " +
-  "[&_h3+span]:text-ink-500 dark:[&_h3+span]:text-neutral-400 " +
-  "[&_p]:text-ink-500 dark:[&_p]:text-neutral-400 " +
+  "[&_a:hover_h3]:decoration-ink-900 [&_a:focus-visible_h3]:decoration-ink-900 " +
+  "dark:[&_a:hover_h3]:decoration-white dark:[&_a:focus-visible_h3]:decoration-white " +
+  "[&_h3+span]:text-ink-500 dark:[&_h3+span]:text-ink-400 " +
+  "[&_p]:text-ink-500 dark:[&_p]:text-ink-400 " +
   "dark:[&_path]:stroke-white " +
   "[&_.num]:text-[clamp(2.25rem,4.6vw,3.6rem)] [&_.num]:tracking-[-0.045em]";
 
 export function ShowcaseList({ portfolios }: { portfolios: ShowcasePortfolio[] }) {
+  if (portfolios.length === 0) {
+    return (
+      <p className="border-t border-ink-300 py-8 text-[15px] leading-relaxed text-ink-600 dark:border-white/12 dark:text-ink-400">
+        Todavía no hay portafolios para mostrar.
+      </p>
+    );
+  }
+
   return (
     <div className={frame}>
       {portfolios.map((portfolio, i) => (

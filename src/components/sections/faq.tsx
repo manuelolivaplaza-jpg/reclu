@@ -61,18 +61,26 @@ function visibleFaqItems(): { q: string; a: string }[] {
 }
 
 /**
- * FAQ — acordeón de filetes de 1px, sin card ni sombra. El indicador es un
- * signo tipográfico sobrio que pasa de "+" a "−" al abrir.
+ * FAQ — acordeón de filetes de 1px, sin card ni sombra. El control es un
+ * signo tipográfico "+" que rota 45° al abrir (se lee "×"), con transición
+ * corta y sin color de adorno. El revelado del contenido lo anima
+ * `globals.css` y ya respeta `prefers-reduced-motion`.
  */
 export function FAQ() {
   const FAQ_ITEMS = visibleFaqItems();
   return (
-    <section id="faq" className="pub-canvas section-y border-t border-ink-300 dark:border-white/12">
+    <section
+      id="faq"
+      aria-labelledby="faq-title"
+      className="pub-canvas section-y border-t border-ink-300 bg-white dark:border-white/12 dark:bg-ink-950"
+    >
       <JsonLd data={faqSchema(FAQ_ITEMS)} />
       <div className="container-page grid gap-12 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)] lg:gap-20">
         <div>
           <p className="label-line">Preguntas frecuentes</p>
-          <h2 className="type-section mt-4 text-ink-900 dark:text-white">Preguntas.</h2>
+          <h2 id="faq-title" className="type-section mt-4 text-ink-900 dark:text-white">
+            Preguntas.
+          </h2>
           <p className="type-body mt-4 max-w-[38ch]">
             Lo esencial sobre datos, alertas y planes. ¿Algo más?{" "}
             <a
@@ -91,15 +99,14 @@ export function FAQ() {
                 <span aria-hidden className="num w-6 shrink-0 text-[13px] leading-none text-ink-500 dark:text-neutral-400">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <span className="flex-1 text-[22px] font-medium leading-[1.15] tracking-[-0.03em] text-ink-900 md:text-[24px] dark:text-white">
+                <h3 className="min-w-0 flex-1 text-[22px] font-medium leading-[1.15] tracking-[-0.03em] text-ink-900 md:text-[24px] dark:text-white">
                   {item.q}
-                </span>
+                </h3>
                 <span
                   aria-hidden
-                  className="flex size-6 shrink-0 items-center justify-center text-[22px] font-light leading-none text-ink-900 dark:text-white"
+                  className="flex size-6 shrink-0 items-center justify-center self-center text-[22px] font-light leading-none text-ink-900 transition-transform duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] group-open:rotate-45 motion-reduce:transition-none dark:text-white"
                 >
-                  <span className="group-open:hidden">+</span>
-                  <span className="hidden group-open:inline">−</span>
+                  +
                 </span>
               </summary>
               <p className="type-body max-w-[40rem] pb-6 pl-10 pr-2 md:pl-12">{item.a}</p>

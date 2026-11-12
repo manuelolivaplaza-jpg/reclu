@@ -18,11 +18,12 @@ export interface PortfolioGridPage {
  * página; las siguientes se piden a /api/explore/cards con "Cargar más" o
  * automáticamente al acercarse al final (IntersectionObserver).
  *
- * D9: retícula editorial 1 / 2 / 3 columnas para el lienzo de 1560px
- * (`container-page`). A 3 columnas la tarjeta nueva (gráfico de 148px con
- * selector de período) respira sin apretar la cifra; la tarjeta actual
- * hereda el mismo ancho. El estado "Sin resultados" no vive aquí: lo pinta
- * `explore-view.tsx` antes de montar la grilla.
+ * D9: retícula editorial 1 / 2 / 3 / 4 columnas según el ancho del lienzo
+ * (`container-page`, 1560px). Las celdas llevan `min-w-0` para que un nombre
+ * largo no ensanche la columna, y todas comparten alto de fila. El estado
+ * "Sin resultados" no vive aquí: lo pinta `explore-view.tsx` antes de montar
+ * la grilla; el bloque de abajo solo cubre el caso defensivo de un catálogo
+ * vacío (cero portafolios, cero tarjetas fantasma).
  */
 export function PortfolioGrid({
   initial,
@@ -87,16 +88,30 @@ export function PortfolioGrid({
     return () => observer.disconnect();
   }, [more, error, loadMore]);
 
+  if (items.length === 0 && total === 0) {
+    return (
+      <div className="border border-ink-300 px-6 py-12 text-center dark:border-white/12">
+        <p className="text-[15px] font-medium text-ink-900 dark:text-white">Sin portafolios para mostrar</p>
+        <p className="mx-auto mt-2 max-w-sm text-[14px] leading-relaxed text-ink-500 dark:text-white/55">
+          No hay portafolios que coincidan con estos filtros. Prueba con otra búsqueda o vuelve a
+          “Todos”.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
       <ul
+        id="explore-grid"
         role="list"
-        className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:gap-5 xl:grid-cols-3"
+        aria-busy={loading || undefined}
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5 2xl:grid-cols-4"
       >
         {items.map((portfolio) => (
           <li
             key={portfolio.id}
-            className="min-w-0 [contain-intrinsic-size:auto_480px] [content-visibility:auto]"
+            className="min-w-0 [contain-intrinsic-size:auto_270px] [content-visibility:auto]"
           >
             <ExploreCard
               portfolio={portfolio}
@@ -127,6 +142,7 @@ export function PortfolioGrid({
               onClick={() => void loadMore()}
               disabled={loading}
               aria-busy={loading || undefined}
+              aria-controls="explore-grid"
               className="inline-flex h-10 w-full shrink-0 items-center justify-center rounded-full bg-ink-900 px-6 text-sm font-medium leading-none text-white transition-colors hover:bg-black focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900 disabled:pointer-events-none disabled:opacity-45 sm:w-auto dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100 dark:focus-visible:outline-white"
             >
               {loading ? "Cargando…" : error ? "Reintentar" : "Cargar más"}

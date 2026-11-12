@@ -1,5 +1,6 @@
 import { withSeo } from "@/lib/seo";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { connection } from "next/server";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -183,50 +184,68 @@ export default async function BacktestPage() {
   return (
     <>
       <SiteHeader />
-      <main id="main">
-        <div className="container-page max-w-6xl py-16 md:py-20">
-          <p className="label-line">Herramientas</p>
-          <h1 className="type-section mt-3 text-ink-900">Backtest.</h1>
-          <p className="type-body mt-5 max-w-2xl">
-            Combina hasta cinco portafolios, define sus pesos y el rebalanceo,
-            y mira la curva contra el mercado. Trabaja con retornos ya
-            publicados: no ejecuta órdenes ni recomienda una cartera.
-          </p>
-          {!live ? (
-            <div className="mt-5">
-              <DemoBadge />
-            </div>
-          ) : null}
+      <main id="main" className="bg-white dark:bg-ink-950">
+        <div className="container-page pb-24 pt-10 md:pt-14">
+          <header className="border-b border-ink-300 pb-10 dark:border-white/12 md:pb-12">
+            <p className="label-line">Herramientas</p>
+            <h1 className="type-section mt-4 text-ink-900 dark:text-white">
+              Backtest.
+            </h1>
+            <p className="type-body mt-6 max-w-2xl">
+              Combina hasta cinco portafolios, define sus pesos y el rebalanceo,
+              y mira la curva contra el mercado. Trabaja con retornos ya
+              publicados: no ejecuta órdenes ni recomienda una cartera.
+            </p>
+            {!live ? (
+              <div className="mt-5">
+                <DemoBadge />
+              </div>
+            ) : null}
+          </header>
 
-          <section className="mt-12 border-t border-ink-200 pt-10">
+          <section aria-label="Simulador de portafolios" className="mt-10">
             {options.length === 0 ? (
-              <div className="border border-ink-200 px-4 py-10">
-                <p className="text-[14px] text-ink-900">
-                  Todavía no hay portafolios con dos datos de rendimiento.
+              <div className="border border-ink-300 px-5 py-12 dark:border-white/15">
+                <p className="text-[15px] font-medium text-ink-900 dark:text-white">
+                  Todavía no hay series para simular.
                 </p>
-                <p className="mt-2 text-[13px] text-ink-500">
-                  El backtest se activa cuando el pipeline publica la primera
-                  serie. Mientras tanto, puedes revisar el{" "}
-                  <a href="/ranking" className="underline underline-offset-4">
-                    ranking honesto
-                  </a>
-                  .
+                <p className="mt-2 max-w-xl text-[14px] leading-relaxed text-ink-600 dark:text-ink-400">
+                  El backtest necesita al menos dos datos de rendimiento
+                  publicados para un portafolio. Mientras tanto, el ranking
+                  ordena lo que ya tiene historial.
                 </p>
+                <Link
+                  href="/ranking"
+                  className="mt-5 inline-flex items-center gap-1.5 border-b border-ink-900 pb-0.5 text-[13px] font-medium text-ink-900 dark:border-white dark:text-white"
+                >
+                  Ver el ranking <span aria-hidden="true">→</span>
+                </Link>
               </div>
             ) : (
-              <BacktestForm
-                portfolios={options}
-                benchmarks={benchmarks}
-                paid={paid}
-                windowDays={windowDays ?? FREE_BACKTEST_WINDOW_DAYS}
-                demo={!live}
-              />
+              <div className="border border-ink-200 bg-white p-4 sm:p-6 lg:p-8 dark:border-white/15">
+                <BacktestForm
+                  portfolios={options}
+                  benchmarks={benchmarks}
+                  paid={paid}
+                  windowDays={windowDays ?? FREE_BACKTEST_WINDOW_DAYS}
+                  demo={!live}
+                />
+              </div>
             )}
           </section>
 
-          <section className="mt-16 border-t border-ink-200 pt-8">
-            <h2 className="text-[15px] font-medium text-ink-900">Cómo se calcula</h2>
-            <ul className="mt-4 max-w-2xl space-y-2 text-[13px] leading-relaxed text-ink-500">
+          <section className="mt-16 grid gap-8 border-t border-ink-300 pt-10 dark:border-white/12 lg:grid-cols-12 lg:gap-16">
+            <div className="lg:col-span-4">
+              <h2 className="text-[15px] font-medium text-ink-900 dark:text-white">
+                Cómo se calcula
+              </h2>
+              <p className="mt-3 max-w-[40ch] text-[13px] leading-relaxed text-ink-600 dark:text-ink-400">
+                La simulación se hace en tu navegador con las series que ya
+                llegaron con la página: al mover un peso o el rebalanceo, el
+                resultado se recalcula al instante, sin peticiones ni espera.
+              </p>
+            </div>
+            <ul className="max-w-[62ch] space-y-3 text-[14px] leading-relaxed text-ink-600 dark:text-ink-400 lg:col-span-8">
               <li>
                 La curva parte en 100 el primer día en que todas las series
                 tienen un dato y termina cuando se acaba la más corta.
@@ -246,7 +265,9 @@ export default async function BacktestPage() {
             </ul>
           </section>
 
-          <div className="mt-12">
+          {/* Aviso legal sobre papel blanco: su texto es de 12px y no tiene
+              variante oscura propia. */}
+          <div className="mt-10">
             <LegalNotice kind="simulation" />
           </div>
         </div>

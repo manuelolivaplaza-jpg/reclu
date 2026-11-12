@@ -17,24 +17,53 @@ type Tone = "light" | "dark";
  * muro de pago que vive en otra rama.
  */
 const FREE_FEATURES: { text: string; ai?: boolean }[] = [
-  { text: "Carteras recomendadas de corredoras (Renta 4, BTG y más) con todas sus acciones" },
+  { text: "Carteras recomendadas de corredoras (Renta 4, BTG y más) con todas sus posiciones" },
   { text: "Explorador público y retorno YTD de cada portafolio" },
   { text: "Resumen semanal «Lo que movieron los grandes»" },
-  { text: "Alertas por email con resumen diario" },
-  { text: "5 consultas diarias al asistente IA", ai: true },
+  { text: "Alertas por email con resumen diario o semanal" },
+  { text: `${PLANS.free.chatQuota.limit} consultas diarias al asistente IA`, ai: true },
 ];
 
-/** Primer bullet de Pro, propio de esta sección (no vive en `lib/plans.ts`). */
-const PRO_HEADLINE = "Seguir portafolios y ver todas sus acciones";
+/**
+ * Primer bullet de Pro, propio de esta sección (no vive en `lib/plans.ts`).
+ * No enumera categorías: `plans.ts` acota Pro a políticos y corredoras, y la
+ * tarjeta no debe prometer más de lo que el plan entrega. El tope sale de
+ * `followLimitLabel("pro")`, nunca escrito a mano.
+ */
+const PRO_HEADLINE = `Seguir hasta ${followLimitLabel("pro")} portafolios con todas sus posiciones`;
+
+/** Cupo del asistente ya formateado, leído de `PLANS` (sin cifras a mano). */
+function chatQuotaLabel(plan: "free" | "pro" | "elite"): string {
+  const { limit, window: period } = PLANS[plan].chatQuota;
+  if (!Number.isFinite(limit) || period === "unlimited") return "Ilimitado";
+  return `${limit} ${period === "day" ? "por día" : "por semana"}`;
+}
 
 const COMPARISON: { label: string; free: string; pro: string; elite: string; ai?: boolean }[] = [
   { label: "Carteras recomendadas de corredoras", free: "Incluido", pro: "Incluido", elite: "Incluido" },
-  { label: "Seguir portafolios", free: "-", pro: followLimitLabel("pro"), elite: followLimitLabel("elite") },
-  { label: "Ver todas las acciones de cada portafolio", free: "Solo corredoras", pro: "Incluido", elite: "Incluido" },
-  { label: "Frecuencia de alertas", free: "Diaria", pro: "Tiempo real", elite: "Prioritaria instantánea" },
-  { label: "Fondos 13F y carteras Premium", free: "-", pro: "Parcial", elite: "Acceso total" },
-  { label: "Asistente Fraccion AI", free: "5 por día", pro: "50 por semana", elite: "Ilimitado", ai: true },
-  { label: "Exportación CSV y Cruce Multi-cartera", free: "-", pro: "-", elite: "Incluido" },
+  { label: "Seguir portafolios", free: "-", pro: `Hasta ${followLimitLabel("pro")}`, elite: followLimitLabel("elite") },
+  { label: "Ver todas las posiciones de cada portafolio", free: "Solo corredoras", pro: "Incluido", elite: "Incluido" },
+  {
+    label: "Fondos 13F institucionales y soberanos",
+    free: "-",
+    pro: "-",
+    elite: "Incluido",
+  },
+  { label: "Frecuencia de alertas", free: "Diaria o semanal", pro: "Tiempo real", elite: "Tiempo real" },
+  {
+    label: "Alertas automáticas de Mi portafolio",
+    free: "-",
+    pro: "Resumen diario",
+    elite: `Tiempo real, hasta ${PLANS.elite.autoAlertsMaxPerDay} al día`,
+  },
+  {
+    label: "Asistente Fraccion AI",
+    free: chatQuotaLabel("free"),
+    pro: chatQuotaLabel("pro"),
+    elite: chatQuotaLabel("elite"),
+    ai: true,
+  },
+  { label: "Exportación CSV y comparador multi-cartera", free: "-", pro: "-", elite: "Incluido" },
 ];
 
 /** Descuento real del ciclo anual, calculado desde `PLANS` (nunca a mano). */
@@ -46,9 +75,23 @@ function annualDiscountPct(plan: { monthlyPrice: number; annualTotalPrice: numbe
 
 function Cell({ value }: { value: string }) {
   if (value === "-")
-    return <Minus className="size-4 text-ink-500 dark:text-neutral-500" aria-label="No incluido" />;
+    return (
+      <span className="inline-flex items-center">
+        <Minus className="size-4 shrink-0 text-ink-500 dark:text-neutral-400" aria-hidden />
+        <span className="sr-only">No incluido</span>
+      </span>
+    );
   if (value === "Incluido")
-    return <Check className="size-4 text-ink-900 dark:text-white" strokeWidth={1.75} aria-label="Incluido" />;
+    return (
+      <span className="inline-flex items-center">
+        <Check
+          className="size-4 shrink-0 text-ink-900 dark:text-white"
+          strokeWidth={1.75}
+          aria-hidden
+        />
+        <span className="sr-only">Incluido</span>
+      </span>
+    );
   return <span>{value}</span>;
 }
 
@@ -102,10 +145,15 @@ export function Pricing({
   const [billing, setBilling] = useState<Billing>("monthly");
   const annual = billing === "annual";
   const Heading = titleAs;
+  /** En /planes el h1 ya lo emite `Pricing`, así que la comparación es h2. */
+  const ComparisonHeading = titleAs === "h1" ? "h2" : "h3";
 
   // IA apagada (default del lanzamiento): ni un bullet ni una fila con IA.
   const freeFeatures = FREE_FEATURES.filter((f) => aiOn || f.ai !== true).map((f) => f.text);
-  const proFeatures = [PRO_HEADLINE, ...planFeatures("pro", aiOn)];
+  const proFeatures = [
+    PRO_HEADLINE,
+    ...planFeatures("pro", aiOn).filter((feature) => !feature.startsWith("Seguir hasta ")),
+  ];
   const eliteFeatures = planFeatures("elite", aiOn);
   const comparison = COMPARISON.filter((row) => aiOn || row.ai !== true);
 
@@ -139,8 +187,8 @@ export function Pricing({
                 Empieza en cero.
               </Heading>
               <p className="mt-4 max-w-md text-[16px] leading-relaxed text-ink-500 dark:text-neutral-400">
-                Las carteras de corredoras son gratis. Para seguir portafolios de políticos,
-                fondos y ETFs y ver todas sus posiciones, elige Pro o Elite.
+                Las carteras de corredoras son gratis. Seguir portafolios (políticos, fondos y
+                ETFs) y ver todas sus posiciones requiere Pro o Elite.
               </p>
             </div>
 
@@ -158,10 +206,10 @@ export function Pricing({
                     onClick={() => setBilling(b)}
                     aria-pressed={active}
                     className={
-                      "flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-xs sm:text-sm font-medium transition-colors sm:flex-none sm:px-5 " +
+                      "flex min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-2 text-xs font-medium transition-colors focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900 sm:flex-none sm:px-5 sm:text-sm dark:focus-visible:outline-white " +
                       (active
                         ? "bg-ink-900 text-white dark:bg-white dark:text-ink-900 "
-                        : "text-ink-500 hover:text-ink-900 focus-visible:outline-ink-900 dark:text-neutral-400 dark:hover:text-white dark:focus-visible:outline-white ")
+                        : "text-ink-500 hover:text-ink-900 dark:text-neutral-400 dark:hover:text-white")
                     }
                   >
                     {b === "monthly" ? "Mensual" : "Anual"}
@@ -182,12 +230,15 @@ export function Pricing({
               })}
             </div>
           </div>
+          <p className="sr-only" role="status">
+            {annual ? "Mostrando precios del ciclo anual." : "Mostrando precios del ciclo mensual."}
+          </p>
         </FadeIn>
 
         {/* Regla de acceso: dos columnas separadas por un filete de 1px. */}
         <FadeIn delay={0.04} className="mt-10">
           <div className="grid gap-px border border-ink-300 bg-ink-300 dark:border-white/15 dark:bg-white/15 sm:grid-cols-2">
-            <div className="flex items-start gap-3 bg-white p-5 dark:bg-ink-950">
+            <div className="flex items-start gap-3 bg-white p-5 dark:bg-panel">
               <Check
                 className="mt-0.5 size-4 shrink-0 text-ink-900 dark:text-white"
                 strokeWidth={1.75}
@@ -196,11 +247,11 @@ export function Pricing({
               <div>
                 <p className="text-[14px] font-medium text-ink-900 dark:text-white">Gratis para todos</p>
                 <p className="mt-0.5 text-[13px] leading-relaxed text-ink-500 dark:text-neutral-400">
-                  Carteras recomendadas de corredoras, como Renta 4, con todas sus acciones.
+                  Carteras recomendadas de corredoras, como Renta 4, con todas sus posiciones.
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3 bg-white p-5 dark:bg-ink-950">
+            <div className="flex items-start gap-3 bg-white p-5 dark:bg-panel">
               <Lock
                 className="mt-0.5 size-4 shrink-0 text-ink-900 dark:text-white"
                 strokeWidth={1.75}
@@ -209,7 +260,7 @@ export function Pricing({
               <div>
                 <p className="text-[14px] font-medium text-ink-900 dark:text-white">Con suscripción</p>
                 <p className="mt-0.5 text-[13px] leading-relaxed text-ink-500 dark:text-neutral-400">
-                  Seguir portafolios y ver todas las acciones de políticos, fondos y ETFs.
+                  Seguir portafolios y ver todas las posiciones de políticos, fondos y ETFs.
                 </p>
               </div>
             </div>
@@ -219,7 +270,7 @@ export function Pricing({
         <FadeIn delay={0.08} className="mt-6">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
             {/* Gratis */}
-            <div className="flex flex-col rounded-none bg-white dark:bg-ink-950 border border-ink-300 dark:border-white/15 p-6 md:p-8">
+            <div className="flex flex-col rounded-none border border-ink-300 bg-white p-6 dark:border-white/15 dark:bg-panel md:p-8">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-[15px] font-medium text-ink-900 dark:text-white">{PLANS.free.name}</p>
                 <p className="text-[12px] text-ink-500 dark:text-neutral-400">{PLANS.free.tagline}</p>
@@ -233,12 +284,12 @@ export function Pricing({
               <p className="mt-2 text-[13px] text-ink-500 dark:text-neutral-400">Sin tarjeta</p>
               <FeatureList items={freeFeatures} />
               <ButtonLink href="/signup" variant="outline" size="lg" className="mt-8 w-full">
-                Crear cuenta
+                Empezar gratis
               </ButtonLink>
             </div>
 
             {/* Pro: bloque negro SpaceX, texto blanco y CTA píldora blanca. */}
-            <div className="flex flex-col rounded-none border border-[#0a0a0a] bg-[#0a0a0a] p-6 text-white dark:border-white/20 md:p-8">
+            <div className="flex flex-col rounded-none border border-ink-900 bg-ink-900 p-6 text-white dark:border-white/25 md:p-8">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-[15px] font-medium text-white">{PLANS.pro.name}</p>
                 <p className="text-[12px] text-white/60">{PLANS.pro.tagline}</p>
@@ -250,14 +301,14 @@ export function Pricing({
               <p className="mt-2 text-[13px] leading-relaxed text-white/60">
                 {annual ? (
                   <>
-                    {formatClp(PLANS.pro.annualMonthlyPrice)} / mes ·{" "}
+                    Equivale a {formatClp(PLANS.pro.annualMonthlyPrice)} al mes ·{" "}
                     <button
                       type="button"
                       onClick={() => setBilling("monthly")}
                       aria-label={`Ver facturación mensual: ${formatClp(PLANS.pro.monthlyPrice)} al mes`}
-                      className="text-white underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white focus-visible:outline-white"
+                      className="text-white underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
-                      {formatClp(PLANS.pro.monthlyPrice)} / mes
+                      {formatClp(PLANS.pro.monthlyPrice)} al mes
                     </button>{" "}
                     en pago mensual
                   </>
@@ -268,26 +319,28 @@ export function Pricing({
                       type="button"
                       onClick={() => setBilling("annual")}
                       aria-label={`Ver facturación anual: ${formatClp(PLANS.pro.annualTotalPrice)} al año`}
-                      className="text-white underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white focus-visible:outline-white"
+                      className="text-white underline decoration-white/30 underline-offset-4 transition-colors hover:decoration-white focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
-                      {formatClp(PLANS.pro.annualTotalPrice)} / año
+                      {formatClp(PLANS.pro.annualTotalPrice)} al año
                     </button>
                   </>
                 )}
               </p>
               {proAnnualSaving > 0 && (
-                <p className="mt-1 text-[12px] text-white/50">
-                  Ahorras {formatClp(proAnnualSaving)} al año con el plan anual.
+                <p className="mt-1 text-[12px] text-white/65">
+                  {annual
+                    ? `Ahorras ${formatClp(proAnnualSaving)} al año frente al pago mensual.`
+                    : `Ahorras ${formatClp(proAnnualSaving)} al año con el ciclo anual.`}
                 </p>
               )}
               <p className="mt-3 text-[13px] text-white/60">
-                {TRIAL_DAYS} días de prueba en cuentas nuevas.
+                {TRIAL_DAYS} días de prueba de Pro en cuentas nuevas.
               </p>
               <FeatureList items={proFeatures} tone="dark" />
               <ButtonLink
                 href="/signup?plan=pro"
                 size="lg"
-                className="mt-8 w-full bg-white text-ink-900 hover:bg-ink-100 focus-visible:outline-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100"
+                className="mt-8 w-full bg-white text-ink-900 hover:bg-ink-100 active:bg-ink-200 focus-visible:outline-white dark:bg-white dark:text-ink-900 dark:hover:bg-ink-100 dark:active:bg-ink-200"
                 onClick={() => track("checkout_click", { plan: "pro", source: "pricing" })}
               >
                 Elegir Pro
@@ -295,7 +348,7 @@ export function Pricing({
             </div>
 
             {/* Elite */}
-            <div className="flex flex-col rounded-none bg-white dark:bg-ink-950 border border-ink-300 dark:border-white/15 p-6 md:p-8">
+            <div className="flex flex-col rounded-none border border-ink-300 bg-white p-6 dark:border-white/15 dark:bg-panel md:p-8">
               <div className="flex items-baseline justify-between gap-3">
                 <p className="text-[15px] font-medium text-ink-900 dark:text-white">{PLANS.elite.name}</p>
                 <p className="text-[12px] text-ink-500 dark:text-neutral-400">{PLANS.elite.tagline}</p>
@@ -309,14 +362,14 @@ export function Pricing({
               <p className="mt-2 text-[13px] leading-relaxed text-ink-500 dark:text-neutral-400">
                 {annual ? (
                   <>
-                    {formatClp(PLANS.elite.annualMonthlyPrice)} / mes ·{" "}
+                    Equivale a {formatClp(PLANS.elite.annualMonthlyPrice)} al mes ·{" "}
                     <button
                       type="button"
                       onClick={() => setBilling("monthly")}
                       aria-label={`Ver facturación mensual: ${formatClp(PLANS.elite.monthlyPrice)} al mes`}
-                      className="text-ink-900 underline decoration-ink-300 underline-offset-4 transition-colors hover:decoration-ink-900 focus-visible:outline-ink-900 dark:text-white dark:decoration-white/30 dark:hover:decoration-white dark:focus-visible:outline-white"
+                      className="text-ink-900 underline decoration-ink-300 underline-offset-4 transition-colors hover:decoration-ink-900 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900 dark:text-white dark:decoration-white/30 dark:hover:decoration-white dark:focus-visible:outline-white"
                     >
-                      {formatClp(PLANS.elite.monthlyPrice)} / mes
+                      {formatClp(PLANS.elite.monthlyPrice)} al mes
                     </button>{" "}
                     en pago mensual
                   </>
@@ -327,14 +380,14 @@ export function Pricing({
                       type="button"
                       onClick={() => setBilling("annual")}
                       aria-label={`Ver facturación anual: ${formatClp(PLANS.elite.annualTotalPrice)} al año`}
-                      className="text-ink-900 underline decoration-ink-300 underline-offset-4 transition-colors hover:decoration-ink-900 focus-visible:outline-ink-900 dark:text-white dark:decoration-white/30 dark:hover:decoration-white dark:focus-visible:outline-white"
+                      className="text-ink-900 underline decoration-ink-300 underline-offset-4 transition-colors hover:decoration-ink-900 focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-ink-900 dark:text-white dark:decoration-white/30 dark:hover:decoration-white dark:focus-visible:outline-white"
                     >
-                      {formatClp(PLANS.elite.annualTotalPrice)} / año
+                      {formatClp(PLANS.elite.annualTotalPrice)} al año
                     </button>
                   </>
                 )}
               </p>
-              <p className="mt-2 text-[13px] text-ink-500 dark:text-neutral-400">Todo Pro, sin límites</p>
+              <p className="mt-2 text-[13px] text-ink-500 dark:text-neutral-400">Todo lo de Pro y más</p>
               <FeatureList items={eliteFeatures} />
               <ButtonLink
                 href="/signup?plan=elite"
@@ -351,18 +404,20 @@ export function Pricing({
 
         {/* Comparación: tarjetas en celular, tabla en escritorio. */}
         <FadeIn delay={0.12} className="mt-12">
-          <h3 className="text-[18px] font-medium tracking-[-0.02em] text-ink-900 dark:text-white">
+          <ComparisonHeading className="text-[18px] font-medium tracking-[-0.02em] text-ink-900 dark:text-white">
             Comparación rápida
-          </h3>
+          </ComparisonHeading>
 
-          <div className="mt-4 flex flex-col gap-3 md:hidden">
+          <div className="mt-4 flex flex-col gap-3 lg:hidden">
             {comparison.map((row) => (
               <div
                 key={row.label}
-                className="rounded-none border border-ink-300 bg-white p-4 dark:border-white/15 dark:bg-ink-950"
+                className="rounded-none border border-ink-300 bg-white p-4 dark:border-white/15 dark:bg-panel"
               >
-                <p className="text-[14px] font-medium text-ink-900 dark:text-white">{row.label}</p>
-                <dl className="mt-3 grid grid-cols-3 gap-2 text-[13px]">
+                <p className="text-[14px] font-medium leading-snug text-ink-900 dark:text-white">
+                  {row.label}
+                </p>
+                <dl className="mt-3 grid grid-cols-3 gap-2">
                   {(
                     [
                       ["Gratis", row.free],
@@ -372,10 +427,10 @@ export function Pricing({
                   ).map(([k, v]) => (
                     <div
                       key={k}
-                      className="rounded-none border border-ink-200 px-2.5 py-2 dark:border-white/12"
+                      className="min-w-0 rounded-none border border-ink-200 px-2 py-2 dark:border-white/12"
                     >
-                      <dt className="text-[11px] text-ink-500 dark:text-neutral-400">{k}</dt>
-                      <dd className="mt-1 flex min-h-4 items-center text-ink-900 dark:text-white">
+                      <dt className="text-[11px] leading-tight text-ink-500 dark:text-neutral-400">{k}</dt>
+                      <dd className="mt-1 flex min-h-4 min-w-0 break-words text-[12px] leading-snug text-ink-900 dark:text-white">
                         <Cell value={v} />
                       </dd>
                     </div>
@@ -385,30 +440,43 @@ export function Pricing({
             ))}
           </div>
 
-          <div className="mt-4 hidden overflow-hidden rounded-none border border-ink-300 bg-white dark:border-white/15 dark:bg-ink-950 md:block">
+          <div className="mt-4 hidden overflow-x-auto rounded-none border border-ink-300 bg-white dark:border-white/15 dark:bg-panel lg:block">
             <table className="w-full text-[14px]">
+              <caption className="sr-only">
+                Comparación de funciones por plan: Gratis, Pro y Elite
+              </caption>
               <thead>
                 <tr className="border-b border-ink-300 bg-ink-50 text-left text-[13px] text-ink-500 dark:border-white/12 dark:bg-white/5 dark:text-neutral-400">
-                  <th className="px-5 py-3.5 font-medium">Función</th>
-                  <th className="px-5 py-3.5 font-medium">Gratis</th>
-                  <th className="px-5 py-3.5 font-medium text-ink-900 dark:text-white">Pro</th>
-                  <th className="px-5 py-3.5 font-medium">Elite</th>
+                  <th scope="col" className="px-5 py-3.5 text-left font-medium">
+                    Función
+                  </th>
+                  <th scope="col" className="px-5 py-3.5 text-left font-medium">
+                    Gratis
+                  </th>
+                  <th scope="col" className="px-5 py-3.5 text-left font-medium text-ink-900 dark:text-white">
+                    Pro
+                  </th>
+                  <th scope="col" className="px-5 py-3.5 text-left font-medium">
+                    Elite
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {comparison.map((row) => (
-                  <tr
-                    key={row.label}
-                    className="border-t border-ink-200 dark:border-white/12"
-                  >
-                    <td className="px-5 py-3.5 text-ink-900 dark:text-white">{row.label}</td>
-                    <td className="px-5 py-3.5 text-ink-500 dark:text-neutral-400">
+                  <tr key={row.label} className="border-t border-ink-200 dark:border-white/12">
+                    <th
+                      scope="row"
+                      className="px-5 py-3.5 text-left align-top font-normal text-ink-900 dark:text-white"
+                    >
+                      {row.label}
+                    </th>
+                    <td className="px-5 py-3.5 align-top text-ink-500 dark:text-neutral-400">
                       <Cell value={row.free} />
                     </td>
-                    <td className="bg-ink-50/60 px-5 py-3.5 font-medium text-ink-900 dark:bg-white/[0.04] dark:text-white">
+                    <td className="bg-ink-50/60 px-5 py-3.5 align-top font-medium text-ink-900 dark:bg-white/[0.04] dark:text-white">
                       <Cell value={row.pro} />
                     </td>
-                    <td className="px-5 py-3.5 text-ink-900 dark:text-white">
+                    <td className="px-5 py-3.5 align-top text-ink-900 dark:text-white">
                       <Cell value={row.elite} />
                     </td>
                   </tr>

@@ -7,9 +7,13 @@ import { EmbeddedPerformanceChart } from "@/components/embedded-performance-char
 
 /**
  * Gráfico incrustable (P4/M6): mini curva portafolio vs S&P 500 apta para
- * iframe en medios y creadores. Marca "Datos de reclu.cl" siempre visible.
+ * iframe en medios y creadores. Marca "Datos de fraccion.si" siempre visible.
  * CSP: /embed/* permite frame-ancestors (ver next.config.ts); el resto sigue
  * 'none'.
+ *
+ * El iframe no hereda el tema del sitio anfitrión: el lienzo es blanco
+ * explícito y las cifras de rendimiento usan los verdes y rojos del esquema
+ * claro, aunque el sitio propio esté en oscuro.
  */
 export const instant = false;
 
@@ -21,7 +25,9 @@ export async function generateMetadata({ params }: EmbedPageProps) {
   const { slug } = await params;
   const portfolio = await getPortfolioBySlug(slug);
   return {
-    title: portfolio ? `${portfolio.name} — Datos de fraccion.si` : "fraccion.si",
+    title: portfolio
+      ? { absolute: `${portfolio.name} · Datos de fraccion.si` }
+      : { absolute: "Datos de fraccion.si" },
     robots: { index: false },
   };
 }
@@ -47,13 +53,19 @@ export default async function EmbedPage({ params }: EmbedPageProps) {
       : null);
 
   return (
-    <EmbeddedPerformanceChart
-      name={portfolio.name}
-      slug={portfolio.slug}
-      benchmarkLabel={data.benchmarkLabel}
-      portfolioSeries={data.portfolioSeries.length >= 2 ? data.portfolioSeries : fromPctToLevel(performanceSeries)}
-      benchmarkSeries={data.benchmarkSeries}
-      metrics={metrics}
-    />
+    <div className="min-h-dvh w-full overflow-x-clip bg-white text-ink-900 [color-scheme:light] [--color-positive:#0f7a32] [--color-negative:#c81e1e]">
+      <EmbeddedPerformanceChart
+        name={portfolio.name}
+        slug={portfolio.slug}
+        benchmarkLabel={data.benchmarkLabel}
+        portfolioSeries={
+          data.portfolioSeries.length >= 2
+            ? data.portfolioSeries
+            : fromPctToLevel(performanceSeries)
+        }
+        benchmarkSeries={data.benchmarkSeries}
+        metrics={metrics}
+      />
+    </div>
   );
 }
